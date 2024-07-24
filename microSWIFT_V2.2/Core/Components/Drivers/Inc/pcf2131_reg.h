@@ -1,0 +1,537 @@
+/*
+ * pcf2131_reg.h
+ *
+ *  Created on: Jul 24, 2024
+ *      Author: philbush
+ */
+
+#ifndef COMPONENTS_DRIVERS_INC_PCF2131_REG_H_
+#define COMPONENTS_DRIVERS_INC_PCF2131_REG_H_
+
+#include <stdint.h>
+#include <math.h>
+#include <stdbool.h>
+
+#define BCD_INVALID 0xFF
+
+static uint8_t bcd_to_dec[256] =
+  {
+// 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+  0,
+    1, 2, 3, 4, 5, 6, 7,
+// 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+    8,
+    9, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+    10,
+    11, 12, 13, 14, 15, 16, 17,
+// 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
+    18,
+    19, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
+    20,
+    21, 22, 23, 24, 25, 26, 27,
+// 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F,
+    28,
+    29, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+    30,
+    31, 32, 33, 34, 35, 36, 37,
+// 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
+    38,
+    39, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47,
+    40,
+    41, 42, 43, 44, 45, 46, 47,
+// 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F,
+    48,
+    49, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57,
+    50,
+    51, 52, 53, 54, 55, 56, 57,
+// 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F,
+    58,
+    59, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67,
+    60,
+    61, 62, 63, 64, 65, 66, 67,
+// 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F,
+    68,
+    69, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77,
+    70,
+    71, 72, 73, 74, 75, 76, 77,
+// 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F,
+    78,
+    79, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87,
+    80,
+    81, 82, 83, 84, 85, 86, 87,
+// 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F,
+    88,
+    89, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97,
+    90,
+    91, 92, 93, 94, 95, 96, 97,
+// 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F,
+    98,
+    99, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7,
+    BCD_INVALID,
+    BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF,
+    BCD_INVALID,
+    BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7,
+    BCD_INVALID,
+    BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF,
+    BCD_INVALID,
+    BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7,
+    BCD_INVALID,
+    BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF,
+    BCD_INVALID,
+    BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7,
+    BCD_INVALID,
+    BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF,
+    BCD_INVALID,
+    BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7,
+    BCD_INVALID,
+    BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF,
+    BCD_INVALID,
+    BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID,
+// 0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7,
+    BCD_INVALID,
+    BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID, BCD_INVALID
+// 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF,
+    };
+
+/**************************************************************************************************/
+/**************************************** Return Codes ********************************************/
+/**************************************************************************************************/
+#define PCF2131_OK 0
+#define PCF2131_ERROR -1
+
+/** @defgroup  Endianness definitions
+ * @{
+ *
+ */
+
+#ifndef DRV_BYTE_ORDER
+#ifndef __BYTE_ORDER__
+
+#define DRV_LITTLE_ENDIAN 1234
+#define DRV_BIG_ENDIAN    4321
+
+/** if _BYTE_ORDER is not defined, choose the endianness of your architecture
+  * by uncommenting the define which fits your platform endianness
+  */
+//#define DRV_BYTE_ORDER    DRV_BIG_ENDIAN
+#define DRV_BYTE_ORDER    DRV_LITTLE_ENDIAN
+
+#else /* defined __BYTE_ORDER__ */
+
+#define DRV_LITTLE_ENDIAN  __ORDER_LITTLE_ENDIAN__
+#define DRV_BIG_ENDIAN     __ORDER_BIG_ENDIAN__
+#define DRV_BYTE_ORDER     __BYTE_ORDER__
+
+#endif /* __BYTE_ORDER__*/
+#endif /* DRV_BYTE_ORDER */
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t bit0 :1;
+  uint8_t bit1 :1;
+  uint8_t bit2 :1;
+  uint8_t bit3 :1;
+  uint8_t bit4 :1;
+  uint8_t bit5 :1;
+  uint8_t bit6 :1;
+  uint8_t bit7 :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t bit7 :1;
+  uint8_t bit6 :1;
+  uint8_t bit5 :1;
+  uint8_t bit4 :1;
+  uint8_t bit3 :1;
+  uint8_t bit2 :1;
+  uint8_t bit1 :1;
+  uint8_t bit0 :1;
+#endif /* DRV_BYTE_ORDER */
+} bitwise_byte_t;
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t bit0 :1;
+  uint8_t bit1 :1;
+  uint8_t bit2 :1;
+  uint8_t bit3 :1;
+  uint8_t bit4 :1;
+  uint8_t bit5 :1;
+  uint8_t bit6 :1;
+  uint8_t bit7 :1;
+  uint8_t bit8 :1;
+  uint8_t bit9 :1;
+  uint8_t bit10 :1;
+  uint8_t bit11 :1;
+  uint8_t bit12 :1;
+  uint8_t bit13 :1;
+  uint8_t bit14 :1;
+  uint8_t bit15 :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t bit15 :1;
+  uint8_t bit14 :1;
+  uint8_t bit13 :1;
+  uint8_t bit12 :1;
+  uint8_t bit11 :1;
+  uint8_t bit10 :1;
+  uint8_t bit9 :1;
+  uint8_t bit8 :1;
+  uint8_t bit7 :1;
+  uint8_t bit6 :1;
+  uint8_t bit5 :1;
+  uint8_t bit4 :1;
+  uint8_t bit3 :1;
+  uint8_t bit2 :1;
+  uint8_t bit1 :1;
+  uint8_t bit0 :1;
+#endif /* DRV_BYTE_ORDER */
+} bitwise_short_t;
+
+#define PROPERTY_DISABLE                (0U)
+#define PROPERTY_ENABLE                 (1U)
+
+/** @addtogroup  Interfaces_Functions
+ * @brief       This section provide a set of functions used to read and
+ *              write a generic register of the device.
+ *              MANDATORY: return 0 -> no Error.
+ * @{
+ *
+ */
+/**************************************************************************************************/
+/*********************** Required read/ write functions to be implemented *************************/
+/**************************************************************************************************/
+typedef int32_t (*dev_spi_write_ptr) ( void*, uint8_t*, uint16_t );
+typedef int32_t (*dev_spi_read_ptr) ( void*, uint8_t*, uint8_t*, uint16_t );
+
+/**************************************************************************************************/
+/******************************** Basic I/O interface struct **************************************/
+/**************************************************************************************************/
+typedef struct
+{
+  /** Component mandatory fields **/
+  dev_spi_write_ptr spi_write;
+  dev_spi_read_ptr spi_read;
+  /** Customizable optional pointer **/
+  void *handle;
+} dev_ctx_t;
+
+/**************************************************************************************************/
+/*********************************** Register Definitions *****************************************/
+/**************************************************************************************************/
+
+/**************************************************************************************************/
+/*********************************** Control Register 1 *******************************************/
+/**************************************************************************************************/
+#define CTRL1_REG_ADDR (0x00)
+#define CTRL1_REG_RESET_VAL (0b00010000)
+
+typedef enum
+{
+  TWENTY_FOUR_HOUR_MODE = 0,
+  TWELVE_HOUR_MODE = 1
+} hours_mode_t;
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t second_irq :1;
+  uint8_t minute_irq :1;
+  hours_mode_t hours_mode :1;
+  uint8_t por_override :1;
+  uint8_t one_100_sec_disable :1;
+  uint8_t stop :1;
+  uint8_t temp_comp_disable :1;
+  uint8_t ext_clock_test_en :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t ext_clock_test_enable :1;
+  uint8_t temp_comp_disable :1;
+  uint8_t stop :1;
+  uint8_t one_100_sec_disable :1;
+  uint8_t por_override :1;
+  hours_mode_t hours_mode :1;
+  uint8_t minute_irq :1;
+  uint8_t second_irq :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_ctrl1_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Control Register 2 *******************************************/
+/**************************************************************************************************/
+#define CTRL2_REG_ADDR (0x01)
+#define CTRL2_REG_RESET_VAL (0b00000000)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t unused :1;
+  uint8_t alarm_irq_en :1;
+  uint8_t unused :2;
+  uint8_t alarm_flag_en :1;
+  uint8_t unused :1;
+  uint8_t watchdog_flag_en :1;
+  uint8_t min_sec_flag_en :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t min_sec_flag_en :1;
+  uint8_t watchdog_flag_en :1;
+  uint8_t unused :1;
+  uint8_t alarm_flag_en :1;
+  uint8_t unused :2;
+  uint8_t alarm_irq_en :1;
+  uint8_t unused :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_ctrl2_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Control Register 3 *******************************************/
+/**************************************************************************************************/
+#define CTRL3_REG_ADDR (0x02)
+#define CTRL3_REG_RESET_VAL (0b00000111)
+
+typedef enum
+{
+  BATTERY_OK = 0,
+  BATTERY_LOW = 1
+} battery_status_t;
+
+typedef enum
+{
+  SWTCH_OVER_NORMAEN_LOW_BATT_EN = 0b000,
+  SWTCH_OVER_NORMAL_EN_LOW_BATT_DIS = 0b010,
+  SWTCH_OVER_DIRECT_EN_LOW_BATT_EN = 0b011,
+  SWTCH_OVER_DIRECT_EN_LOW_BATT_DIS = 0b101,
+  SWITCH_OVER_DIS_LOW_BATT_DIS = 0b111
+} pwr_mgmt_t;
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t batt_low_flag_en :1;
+  uint8_t batt_irq_en :1;
+  battery_status_t batt_stat_flag :1;
+  uint8_t batt_switchover_flag :1;
+  uint8_t batt_switchover_timestamp_en :1;
+  pwr_mgmt_t pwrmng :3;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t pwrmng :3;
+  uint8_t batt_switchover_timestamp_en :1;
+  uint8_t batt_switchover_flag :1;
+  battery_status_t batt_stat_flag :1;
+  uint8_t batt_irq_en :1;
+  uint8_t batt_low_flag_en :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_ctrl3_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Control Register 4 *******************************************/
+/**************************************************************************************************/
+
+#define CTRL4_REG_ADDR (0x03)
+#define CTRL4_REG_RESET_VAL (0b00000000)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t unused :4;
+  uint8_t timestamp4_flag :1;
+  uint8_t timestamp3_flag :1;
+  uint8_t timestamp2_flag :1;
+  uint8_t timestamp1_flag :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t timestamp1_flag :1;
+  uint8_t timestamp2_flag :1;
+  uint8_t timestamp3_flag :1;
+  uint8_t timestamp4_flag :1;
+  uint8_t unused :4;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_ctrl4_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Control 5 Register *******************************************/
+/**************************************************************************************************/
+#define CTRL5_REG_ADDR (0x04)
+#define CTRL5_REG_RESET_VAL (0b00000000)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t unused :4;
+  uint8_t timestamp4_irq_en :1;
+  uint8_t timestamp3_irq_en :1;
+  uint8_t timestamp2_irq_en :1;
+  uint8_t timestamp1_irq_en :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t timestamp1_irq_en :1;
+  uint8_t timestamp2_irq_en :1;
+  uint8_t timestamp3_irq_en :1;
+  uint8_t timestamp4_irq_en :1;
+  uint8_t unused :4;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_ctrl5_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Software Reset Register **************************************/
+/**************************************************************************************************/
+#define RESET_REG_ADDR (0x05)
+#define RESET_REG_RESET_VAL (0b00100100)
+
+typedef enum
+{
+  SOFTWARE_RESET_BIT_PATTERN = 0b00101100,
+  CLEAR_PRESCALAR_BIT_PATTERN = 0b10100100,
+  CLEAR_TIMESTAMP_BIT_PATTERN = 0b00100101,
+  CLEAR_PRESCALAR_AND_TIMESTAMP_BIT_PATTERN = 0b10100101
+} reset_reg_bit_pattern_t;
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  reset_reg_bit_pattern_t bit_pattern :8;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  reset_reg_bit_pattern_t bit_pattern :8;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_reset_reg_t;
+
+/**************************************************************************************************/
+/*********************************** 1/100 Second Register ****************************************/
+/**************************************************************************************************/
+#define ONE_100_SEC_REG_ADDR (0x06)
+#define ONE_100_SEC_REG_RESET_VAL (0b00000000)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t units_place :4;
+  uint8_t tens_place :4;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t tens_place :4;
+  uint8_t units_place :4;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131__reg_t;
+
+/**************************************************************************************************/
+/*********************************** Clock Out Control Register ***********************************/
+/**************************************************************************************************/
+#define CLKOUT_CTRL_REG_ADDR (0x13)
+#define CLKOUT_CTRL_REG_RESET_VAL (0b00000000) || (0b00000100)
+
+typedef enum
+{
+  EVERY_32_MINS = 0b00,
+  EVERY_16_MINS = 0b01,
+  EVERY_8_MINS = 0b10,
+  EVERY_4_MINS = 0b11
+} temp_meas_period_t;
+
+typedef enum
+{
+  FREQ_32768 = 0b000,
+  FREQ_16384 = 0b001,
+  FREQ_8192 = 0b010,
+  FREQ_4096 = 0b011,
+  FREQ_2048 = 0b100,
+  FREQ_1024 = 0b101,
+  FREQ_1 = 0b110,
+  CLKOUT_HI_Z = 0b111
+} clock_frequency_t;
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  clock_frequency_t clk_freq :3;
+  uint8_t unused :2;
+  uint8_t otp_refresh_performed :1;
+  temp_meas_period_t temp_meas_p :2;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  temp_meas_period_t temp_meas_p :2;
+  uint8_t otp_refresh_performed :1;
+  uint8_t unused :2;
+  clock_frequency_t clk_freq :3;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131__reg_t;
+
+/**************************************************************************************************/
+/*********************************** Aging Offset Register ****************************************/
+/**************************************************************************************************/
+#define AGING_OFFSET_REG_ADDR (0x)
+#define AGING_OFFSET_REG_RESET_VAL (0b00010000)
+
+typedef enum
+{
+  PLUS_16 = 0b0000,
+  PLUS_14 = 0b0001,
+  PLUS_12 = 0b0010,
+  PLUS_10 = 0b0011,
+  PLUS_8 = 0b0100,
+  PLUS_6 = 0b0101,
+  PLUS_4 = 0b0110,
+  PLUS_2 = 0b0111,
+  ZERO = 0b1000,
+  MINUS_2 = 0b1001,
+  MINUS_4 = 0b1010,
+  MINUS_6 = 0b1011,
+  MINUS_8 = 0b1100,
+  MINUS_10 = 0b1101,
+  MINUS_12 = 0b1110,
+  MINUS_14 = 0b1111
+} aging_offset_t;
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  aging_offset_t offset :4;
+  uint8_t unused :4;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t unused :4;
+  aging_offset_t offset :4;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131__reg_t;
+
+#endif /* COMPONENTS_DRIVERS_INC_PCF2131_REG_H_ */
+
+/**************************************************************************************************/
+/*********************************** Register *******************************************/
+/**************************************************************************************************/
+#define _REG_ADDR (0x)
+#define _REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131__reg_t;
