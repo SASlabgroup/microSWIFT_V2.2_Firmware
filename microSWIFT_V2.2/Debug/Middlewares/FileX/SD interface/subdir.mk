@@ -1,0 +1,27 @@
+################################################################################
+# Automatically-generated file. Do not edit!
+# Toolchain: GNU Tools for STM32 (12.3.rel1)
+################################################################################
+
+# Add inputs and outputs from these tool invocations to the build variables 
+C_SRCS += \
+/Users/philbush/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/filex/common/drivers/fx_stm32_sd_driver.c 
+
+OBJS += \
+./Middlewares/FileX/SD\ interface/fx_stm32_sd_driver.o 
+
+C_DEPS += \
+./Middlewares/FileX/SD\ interface/fx_stm32_sd_driver.d 
+
+
+# Each subdirectory must supply rules for building sources it contributes
+Middlewares/FileX/SD\ interface/fx_stm32_sd_driver.o: /Users/philbush/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/filex/common/drivers/fx_stm32_sd_driver.c Middlewares/FileX/SD\ interface/subdir.mk
+	arm-none-eabi-gcc "$<" -mcpu=cortex-m33 -std=gnu11 -g3 -DDEBUG -DTX_INCLUDE_USER_DEFINE_FILE -DTX_SINGLE_MODE_NON_SECURE=1 -DUSE_HAL_DRIVER -DSTM32U5A5xx -DSTM32_THREAD_SAFE_STRATEGY=2 -c -I../Core/Inc -I../AZURE_RTOS/App -I/Users/philbush/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/STM32U5xx_HAL_Driver/Inc -I/Users/philbush/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/STM32U5xx_HAL_Driver/Inc/Legacy -I/Users/philbush/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/threadx/common/inc -I/Users/philbush/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/CMSIS/Device/ST/STM32U5xx/Include -I/Users/philbush/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/threadx/ports/cortex_m33/gnu/inc -I/Users/philbush/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/threadx/utility/low_power -I/Users/philbush/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/CMSIS/Include -I../Core/ThreadSafe -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Middlewares/FileX/SD interface/fx_stm32_sd_driver.d" -MT"$@" --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -o "$@"
+
+clean: clean-Middlewares-2f-FileX-2f-SD-20-interface
+
+clean-Middlewares-2f-FileX-2f-SD-20-interface:
+	-$(RM) ./Middlewares/FileX/SD\ interface/fx_stm32_sd_driver.cyclo ./Middlewares/FileX/SD\ interface/fx_stm32_sd_driver.d ./Middlewares/FileX/SD\ interface/fx_stm32_sd_driver.o ./Middlewares/FileX/SD\ interface/fx_stm32_sd_driver.su
+
+.PHONY: clean-Middlewares-2f-FileX-2f-SD-20-interface
+
