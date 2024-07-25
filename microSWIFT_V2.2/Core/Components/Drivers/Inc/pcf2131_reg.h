@@ -15,7 +15,7 @@
 #define BCD_ERROR 0xFF
 
 // @formatter:off
-/* Looku tab or ast onversion from BCD to decimal */
+/* Looku table for fast conversion from BCD to decimal */
 static uint8_t bcd_to_dec[256] =
 {
   // 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
@@ -794,7 +794,7 @@ typedef struct
   uint8_t tens_place :3;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_sec_timestamp_1_reg_t;
+} pcf2131_timestamp_1_sec_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Minute Timestamp 1 Register **********************************/
@@ -813,7 +813,7 @@ typedef struct
   uint8_t tens_place :3;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_min_timestamp_1_reg_t;
+} pcf2131_timestamp_1_min_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Hour Timestamp 1 Register ************************************/
@@ -834,7 +834,7 @@ typedef struct
   uint8_t tens_place :1;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_hour_timestamp_1_ampm_format_reg_t;
+} pcf2131_timestamp_1_hour_ampm_format_reg_t;
 
 typedef struct
 {
@@ -847,13 +847,13 @@ typedef struct
   uint8_t tens_place :2;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_hour_timestamp_1_24hr_format_reg_t;
+} pcf2131_timestamp_1_hour_24hr_format_reg_t;
 
 typedef union
 {
-  pcf2131_hour_timestamp_1_ampm_format_reg_t format_ampm;
-  pcf2131_hour_timestamp_1_24hr_format_reg_t format_24hr;
-} pcf2131_hour_timestamp_1_reg_t;
+  pcf2131_timestamp_1_hour_ampm_format_reg_t format_ampm;
+  pcf2131_timestamp_1_hour_24hr_format_reg_t format_24hr;
+} pcf2131_timestamp_1_hour_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Day Timestamp 1 Register *************************************/
@@ -872,7 +872,7 @@ typedef struct
   uint8_t tens_place :2;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_day_timestamp_1_reg_t;
+} pcf2131_timestamp_1_day_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Month Timestamp 1 Register ***********************************/
@@ -889,7 +889,7 @@ typedef struct
   uint8_t unused :3;
   month_t month :5;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_month_timestamp_1_reg_t;
+} pcf2131_timestamp_1_month_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Year Timestamp 1 Register ************************************/
@@ -906,7 +906,7 @@ typedef struct
   uint8_t tens_place :4;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_year_timestamp_1_reg_t;
+} pcf2131_timestamp_1_year_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Timestamp 2 Control Register *********************************/
@@ -946,7 +946,7 @@ typedef struct
   uint8_t tens_place :3;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_sec_timestamp_2_reg_t;
+} pcf2131_timestamp_2_sec_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Minute Timestamp 2 Register **********************************/
@@ -965,7 +965,7 @@ typedef struct
   uint8_t tens_place :3;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_min_timestamp_2_reg_t;
+} pcf2131_timestamp_2_min_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Hour Timestamp 2 Register ************************************/
@@ -986,7 +986,7 @@ typedef struct
   uint8_t tens_place :1;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_hour_timestamp_2_ampm_format_reg_t;
+} pcf2131_timestamp_2_hour_ampm_format_reg_t;
 
 typedef struct
 {
@@ -999,13 +999,13 @@ typedef struct
   uint8_t tens_place :2;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_hour_timestamp_2_24hr_format_reg_t;
+} pcf2131_timestamp_2_hour_24hr_format_reg_t;
 
 typedef union
 {
-  pcf2131_hour_timestamp_2_ampm_format_reg_t format_ampm;
-  pcf2131_hour_timestamp_2_24hr_format_reg_t format_24hr;
-} pcf2131_hour_timestamp_2_reg_t;
+  pcf2131_timestamp_2_hour_ampm_format_reg_t format_ampm;
+  pcf2131_timestamp_2_hour_24hr_format_reg_t format_24hr;
+} pcf2131_timestamp_2_hour_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Day Timestamp 2 Register *************************************/
@@ -1024,7 +1024,7 @@ typedef struct
   uint8_t tens_place :2;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_day_timestamp_2_reg_t;
+} pcf2131_timestamp_2_day_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Month Timestamp 2 Register ***********************************/
@@ -1041,7 +1041,7 @@ typedef struct
   uint8_t unused :3;
   month_t month :5;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_month_timestamp_2_reg_t;
+} pcf2131_timestamp_2_month_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Year Timestamp 2 Register ************************************/
@@ -1058,7 +1058,7 @@ typedef struct
   uint8_t tens_place :4;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_year_timestamp_2_reg_t;
+} pcf2131_timestamp_2_year_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Timestamp 3 Control Register *********************************/
@@ -1098,7 +1098,7 @@ typedef struct
   uint8_t tens_place :3;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_sec_timestamp_3_reg_t;
+} pcf2131_timestamp_3_sec_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Minute Timestamp 3 Register **********************************/
@@ -1117,7 +1117,7 @@ typedef struct
   uint8_t tens_place :3;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_min_timestamp_3_reg_t;
+} pcf2131_timestamp_3_min_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Hour Timestamp 3 Register ************************************/
@@ -1138,7 +1138,7 @@ typedef struct
   uint8_t tens_place :1;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_hour_timestamp_3_ampm_format_reg_t;
+} pcf2131_timestamp_3_hour_ampm_format_reg_t;
 
 typedef struct
 {
@@ -1151,13 +1151,13 @@ typedef struct
   uint8_t tens_place :2;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_hour_timestamp_3_24hr_format_reg_t;
+} pcf2131_timestamp_3_hour_24hr_format_reg_t;
 
 typedef union
 {
-  pcf2131_hour_timestamp_3_ampm_format_reg_t format_ampm;
-  pcf2131_hour_timestamp_3_24hr_format_reg_t format_24hr;
-} pcf2131_hour_timestamp_3_reg_t;
+  pcf2131_timestamp_3_hour_ampm_format_reg_t format_ampm;
+  pcf2131_timestamp_3_hour_24hr_format_reg_t format_24hr;
+} pcf2131_timestamp_3_hour_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Day Timestamp 3 Register *************************************/
@@ -1176,7 +1176,7 @@ typedef struct
   uint8_t tens_place :2;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_day_timestamp_3_reg_t;
+} pcf2131_timestamp_3_day_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Month Timestamp 3 Register ***********************************/
@@ -1193,7 +1193,7 @@ typedef struct
   uint8_t unused :3;
   month_t month :5;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_month_timestamp_3_reg_t;
+} pcf2131_timestamp_3_month_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Year Timestamp 3 Register ************************************/
@@ -1210,7 +1210,7 @@ typedef struct
   uint8_t tens_place :4;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_year_timestamp_3_reg_t;
+} pcf2131_timestamp_3_year_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Timestamp 4 Control Register *********************************/
@@ -1250,7 +1250,7 @@ typedef struct
   uint8_t tens_place :3;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_sec_timestamp_4_reg_t;
+} pcf2131_timestamp_4_sec_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Minute Timestamp 4 Register **********************************/
@@ -1269,7 +1269,7 @@ typedef struct
   uint8_t tens_place :3;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_min_timestamp_4_reg_t;
+} pcf2131_timestamp_4_min_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Hour Timestamp 4 Register ************************************/
@@ -1290,7 +1290,7 @@ typedef struct
   uint8_t tens_place :1;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_hour_timestamp_4_ampm_format_reg_t;
+} pcf2131_timestamp_4_hour_ampm_format_reg_t;
 
 typedef struct
 {
@@ -1303,13 +1303,13 @@ typedef struct
   uint8_t tens_place :2;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_hour_timestamp_4_24hr_format_reg_t;
+} pcf2131_timestamp_4_hour_24hr_format_reg_t;
 
 typedef union
 {
-  pcf2131_hour_timestamp_4_ampm_format_reg_t format_ampm;
-  pcf2131_hour_timestamp_4_24hr_format_reg_t format_24hr;
-} pcf2131_hour_timestamp_4_reg_t;
+  pcf2131_timestamp_4_hour_ampm_format_reg_t format_ampm;
+  pcf2131_timestamp_4_hour_24hr_format_reg_t format_24hr;
+} pcf2131_timestamp_4_hour_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Day Timestamp 4 Register *************************************/
@@ -1328,7 +1328,7 @@ typedef struct
   uint8_t tens_place :2;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_day_timestamp_4_reg_t;
+} pcf2131_timestamp_4_day_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Month Timestamp 4 Register ***********************************/
@@ -1345,7 +1345,7 @@ typedef struct
   uint8_t unused :3;
   month_t month :5;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_month_timestamp_4_reg_t;
+} pcf2131_timestamp_4_month_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Year Timestamp 4 Register ************************************/
@@ -1362,7 +1362,7 @@ typedef struct
   uint8_t tens_place :4;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131_year_timestamp_4_reg_t;
+} pcf2131_timestamp_4_year_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Aging Offset Register ****************************************/
@@ -1552,5 +1552,72 @@ typedef struct
   uint8_t timer_count :8;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_watchdog_tim_value_reg_t;
+
+typedef union
+{
+  pcf2131_ctrl1_reg_t ctrl1;
+  pcf2131_ctrl2_reg_t ctrl2;
+  pcf2131_ctrl3_reg_t ctrl3;
+  pcf2131_ctrl3_reg_t ctrl4;
+  pcf2131_ctrl4_reg_t ctrl5;
+  pcf2131_reset_reg_t reset;
+  pcf2131_one_100_sec_reg_t one_100_sec;
+  pcf2131_seconds_reg_t seconds;
+  pcf2131_minutes_reg_t minutes;
+  pcf2131_hours_reg_t hours;
+  pcf2131_days_reg_t days;
+  pcf2131_months_reg_t months;
+  pcf2131_years_reg_t years;
+  pcf2131_second_alarm_reg_t second_alarm;
+  pcf2131_minute_alarm_reg_t minute_alarm;
+  pcf2131_hour_alarm_reg_t hour_alarm;
+  pcf2131_day_alarm_reg_t day_alarm;
+  pcf2131_weekday_alarm_reg_t weekday_alarm;
+  pcf2131_clkout_ctrl_reg_t clkout_ctrl;
+  pcf2131_timestamp_1_ctrl_reg_t timestamp_1_ctrl;
+  pcf2131_timestamp_1_sec_reg_t timestamp_1_sec;
+  pcf2131_timestamp_1_min_reg_t timestamp_1_min;
+  pcf2131_timestamp_1_hour_reg_t timestamp_1_hour;
+  pcf2131_timestamp_1_day_reg_t timestamp_1_day;
+  pcf2131_timestamp_1_month_reg_t timestamp_1_month;
+  pcf2131_timestamp_1_year_reg_t timestamp_1_year;
+  pcf2131_timestamp_2_ctrl_reg_t timestamp_2_ctrl;
+  pcf2131_timestamp_2_sec_reg_t timestamp_2_sec;
+  pcf2131_timestamp_2_min_reg_t timestamp_2_min;
+  pcf2131_timestamp_2_hour_reg_t timestamp_2_hour;
+  pcf2131_timestamp_2_day_reg_t timestamp_2_day;
+  pcf2131_timestamp_2_month_reg_t timestamp_2_month;
+  pcf2131_timestamp_2_year_reg_t timestamp_2_year;
+  pcf2131_timestamp_3_ctrl_reg_t timestamp_3_ctrl;
+  pcf2131_timestamp_3_sec_reg_t timestamp_3_sec;
+  pcf2131_timestamp_3_min_reg_t timestamp_3_min;
+  pcf2131_timestamp_3_hour_reg_t timestamp_3_hour;
+  pcf2131_timestamp_3_day_reg_t timestamp_3_day;
+  pcf2131_timestamp_3_month_reg_t timestamp_3_month;
+  pcf2131_timestamp_3_year_reg_t timestamp_3_year;
+  pcf2131_timestamp_4_ctrl_reg_t timestamp_4_ctrl;
+  pcf2131_timestamp_4_sec_reg_t timestamp_4_sec;
+  pcf2131_timestamp_4_min_reg_t timestamp_4_min;
+  pcf2131_timestamp_4_hour_reg_t timestamp_4_hour;
+  pcf2131_timestamp_4_day_reg_t timestamp_4_day;
+  pcf2131_timestamp_4_month_reg_t timestamp_4_month;
+  pcf2131_timestamp_4_year_reg_t timestamp_4_year;
+  pcf2131_int_a_mask_1_reg_t int_a_mask_1;
+  pcf2131_int_a_mask_2_reg_t int_a_mask_2;
+  pcf2131_int_b_mask_1_reg_t int_b_mask_1;
+  pcf2131_int_b_mask_2_reg_t int_b_mask_2;
+  pcf2131_watchdog_tim_ctrl_reg_t watchdog_tim_ctrl;
+  pcf2131_watchdog_tim_value_reg_t watchdog_tim_val;
+  uint8_t byte;
+} pcf2131_reg_t;
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*################################## Function Declarations #######################################*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+int32_t pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_write_ptr bus_write_fn,
+                                        dev_read_ptr bus_read_fn, void *optional_handle );
+
+int32_t pcf2131_set_time ()
 
 #endif /* COMPONENTS_DRIVERS_INC_PCF2131_REG_H_ */
