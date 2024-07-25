@@ -14,6 +14,8 @@ RM := rm -rf
 -include Middlewares/ThreadX/Core/subdir.mk
 -include Middlewares/FileX/SD\ interface/subdir.mk
 -include Middlewares/FileX/Core/subdir.mk
+-include FileX/Target/subdir.mk
+-include FileX/App/subdir.mk
 -include Drivers/STM32U5xx_HAL_Driver/subdir.mk
 -include Core/ThreadSafe/subdir.mk
 -include Core/Startup/subdir.mk

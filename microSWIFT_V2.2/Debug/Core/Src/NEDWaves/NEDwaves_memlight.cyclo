@@ -1,0 +1,6 @@
+../Core/Src/NEDWaves/NEDwaves_memlight.c:53:13:b_binary_expand_op	5
+../Core/Src/NEDWaves/NEDwaves_memlight.c:104:13:binary_expand_op	4
+../Core/Src/NEDWaves/NEDwaves_memlight.c:143:14:rt_atan2f_snf	10
+../Core/Src/NEDWaves/NEDwaves_memlight.c:181:15:rt_remd_snf	9
+../Core/Src/NEDWaves/NEDwaves_memlight.c:206:15:rt_roundd_snf	4
+../Core/Src/NEDWaves/NEDwaves_memlight.c:284:6:NEDwaves_memlight	167

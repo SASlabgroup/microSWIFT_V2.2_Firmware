@@ -30,6 +30,8 @@ Core/Src \
 Core/Startup \
 Core/ThreadSafe \
 Drivers/STM32U5xx_HAL_Driver \
+FileX/App \
+FileX/Target \
 Middlewares/FileX/Core \
 Middlewares/FileX/SD\ interface \
 Middlewares/ThreadX/Core \

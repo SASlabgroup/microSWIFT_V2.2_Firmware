@@ -192,8 +192,8 @@ typedef struct
 /**************************************************************************************************/
 /*********************** Required read/ write functions to be implemented *************************/
 /**************************************************************************************************/
-typedef int32_t (*dev_spi_write_ptr) ( void*, uint8_t*, uint16_t );
-typedef int32_t (*dev_spi_read_ptr) ( void*, uint8_t*, uint8_t*, uint16_t );
+typedef int32_t (*dev_write_ptr) ( void*, uint8_t*, uint16_t );
+typedef int32_t (*dev_read_ptr) ( void*, uint8_t*, uint8_t*, uint16_t );
 
 /**************************************************************************************************/
 /******************************** Basic I/O interface struct **************************************/
@@ -201,21 +201,21 @@ typedef int32_t (*dev_spi_read_ptr) ( void*, uint8_t*, uint8_t*, uint16_t );
 typedef struct
 {
   /** Component mandatory fields **/
-  dev_spi_write_ptr spi_write;
-  dev_spi_read_ptr spi_read;
+  dev_write_ptr bus_write;
+  dev_read_ptr bus_read;
   /** Customizable optional pointer **/
   void *handle;
 } dev_ctx_t;
 
-/**************************************************************************************************/
-/*********************************** Register Definitions *****************************************/
-/**************************************************************************************************/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*################################## Register Definitions ########################################*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 /**************************************************************************************************/
 /*********************************** Control Register 1 *******************************************/
 /**************************************************************************************************/
 #define CTRL1_REG_ADDR (0x00)
-#define CTRL1_REG_RESET_VAL (0b00010000)
+#define CTRL1_REG_RESET_VAL (0b00001000)
 
 typedef enum
 {
@@ -277,7 +277,7 @@ typedef struct
 /*********************************** Control Register 3 *******************************************/
 /**************************************************************************************************/
 #define CTRL3_REG_ADDR (0x02)
-#define CTRL3_REG_RESET_VAL (0b00000111)
+#define CTRL3_REG_RESET_VAL (0b11100000)
 
 typedef enum
 {
@@ -403,145 +403,138 @@ typedef struct
 /**************************************************************************************************/
 /*********************************** Seconds Register *********************************************/
 /**************************************************************************************************/
-#define SECONDS_REG_ADDR (0x)
-#define SECONDS_REG_RESET_VAL (0b)
+#define SECONDS_REG_ADDR (0x07)
+#define SECONDS_REG_RESET_VAL (0b10000000)
+
+typedef enum
+{
+  CLOCK_INTEGRITY_GUARANTEED = 0,
+  CLOCK_INTEGRITY_NOT_GUARANTEED = 1
+} seconds_osf_bit_t;
 
 typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
+  uint8_t units_place :4;
+  uint8_t tens_place :3;
+  seconds_osf_bit_t osf :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
+  seconds_osf_bit_t osf :1;
+  uint8_t tens_place :3;
+  uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_seconds_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Minutes Register *********************************************/
 /**************************************************************************************************/
-#define MINUTES_REG_ADDR (0x)
-#define MINUTES_REG_RESET_VAL (0b)
+#define MINUTES_REG_ADDR (0x08)
+#define MINUTES_REG_RESET_VAL (0b00000000)
 
 typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
+  uint8_t units_place :4;
+  uint8_t tens_place :3;
+  uint8_t unused :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
+  uint8_t unused :1;
+  uint8_t tens_place :3;
+  uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_minutes_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Hour Register ************************************************/
 /**************************************************************************************************/
-#define HOURS_REG_ADDR (0x)
-#define HOURS_REG_RESET_VAL (0b)
+#define HOURS_REG_ADDR (0x09)
+#define HOURS_REG_RESET_VAL (0b00000000)
+
+typedef enum
+{
+  AM = 0,
+  PM = 1
+} hours_ampm_bit_t;
 
 typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
+  uint8_t hours_units_place :4;
+  uint8_t hours_tens_place :1;
+  hours_ampm_bit_t am_pm :1;
+  uint8_t unused :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
+  uint8_t unused :2;
+  hours_ampm_bit_t am_pm :1;
+  uint8_t hours_tens_place :1;
+  uint8_t hours_units_place :4;
 #endif /* DRV_BYTE_ORDER */
+} pcf2131_hours_ampm_format_reg_t;
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t hours_units_place :4;
+  uint8_t hours_tens_place :4;
+  uint8_t unused :2;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t unused :2;
+  uint8_t hours_tens_place :4;
+  uint8_t hours_units_place :4;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_hours_24hr_format_reg_t;
+
+typedef union
+{
+  pcf2131_hours_ampm_format_reg_t format_ampm;
+  pcf2131_hours_24hr_format_reg_t format_24hr;
 } pcf2131_hours_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Days Register ************************************************/
 /**************************************************************************************************/
-#define DAYS_REG_ADDR (0x)
-#define DAYS_REG_RESET_VAL (0b)
+#define DAYS_REG_ADDR (0x0A)
+#define DAYS_REG_RESET_VAL (0b00000000)
 
 typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
+  uint8_t units_place :4;
+  uint8_t tens_place :2;
+  uint8_t unused :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
+  uint8_t unused :2;
+  uint8_t tens_place :2;
+  uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_days_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Weekdays Register ********************************************/
 /**************************************************************************************************/
-#define WEEKDAYS_REG_ADDR (0x)
-#define WEEKDAYS_REG_RESET_VAL (0b)
+#define WEEKDAYS_REG_ADDR (0x0B)
+#define WEEKDAYS_REG_RESET_VAL (0b00000001)
+
+typedef enum
+{
+  SUNDAY = 0b000,
+  MONDAY = 0b001,
+  TUESDAY = 0b010,
+  WEDNESDAY = 0b011,
+  THURSDAY = 0b100,
+  FRIDAY = 0b101,
+  SATURDAY = 0b110,
+  INVALID_DAY = 0b111
+} weekday_t;
 
 typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
-  uint8_t :1;
+  weekday_t weekday :3;
+  uint8_t unused :5;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
-  uint8_t  :1;
+  uint8_t unused :5;
+  weekday_t weekday :3;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_weekdays_reg_t;
 
@@ -752,7 +745,7 @@ typedef struct
 /*********************************** Clock Out Control Register ***********************************/
 /**************************************************************************************************/
 #define CLKOUT_CTRL_REG_ADDR (0x13)
-#define CLKOUT_CTRL_REG_RESET_VAL (0b00000000) || (0b00000100)
+#define CLKOUT_CTRL_REG_RESET_VAL (0b00000000) || (0b00100000)
 
 typedef enum
 {
@@ -1605,7 +1598,7 @@ typedef struct
 /*********************************** Aging Offset Register ****************************************/
 /**************************************************************************************************/
 #define AGING_OFFSET_REG_ADDR (0x)
-#define AGING_OFFSET_REG_RESET_VAL (0b00010000)
+#define AGING_OFFSET_REG_RESET_VAL (0b00001000)
 
 typedef enum
 {
@@ -1637,6 +1630,180 @@ typedef struct
   aging_offset_t offset :4;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_aging_offset_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Interrupt A Mask 1 Register **********************************/
+/**************************************************************************************************/
+#define INT_A_MASK_1_REG_ADDR (0x)
+#define INT_A_MASK_1_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_int_a_mask_1_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Interrupt A Mask 2 Register **********************************/
+/**************************************************************************************************/
+#define INT_A_MASK_2_REG_ADDR (0x)
+#define INT_A_MASK_2_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_int_a_mask_2_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Interrupt B Mask 1 Register **********************************/
+/**************************************************************************************************/
+#define INT_B_MASK_1_REG_ADDR (0x)
+#define INT_B_MASK_1_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_int_b_mask_1_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Interrupt B Mask 2 Register **********************************/
+/**************************************************************************************************/
+#define INT_B_MASK_2_REG_ADDR (0x)
+#define INT_B_MASK_2_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_int_b_mask_2_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Watchdog Timer Control Register ******************************/
+/**************************************************************************************************/
+#define WATCHDOG_TIM_CTRL_REG_ADDR (0x)
+#define WATCHDOG_TIM_CTRL_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_watchdog_tim_ctrl_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Watchdog Timer Value Register ********************************/
+/**************************************************************************************************/
+#define WATCHDOG_TIM_VALUE_REG_ADDR (0x)
+#define WATCHDOG_TIM_VALUE_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_watchdog_tim_value_reg_t;
 
 #endif /* COMPONENTS_DRIVERS_INC_PCF2131_REG_H_ */
 
