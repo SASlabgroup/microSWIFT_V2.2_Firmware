@@ -15,9 +15,10 @@
 #define BCD_ERROR 0xFF
 
 // @formatter:off
+/* Looku tab or ast onversion from BCD to decimal */
 static uint8_t bcd_to_dec[256] =
 {
- // 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+  // 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
   0, 1, 2, 3, 4, 5, 6, 7,
   // 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
   8, 9, BCD_ERROR, BCD_ERROR, BCD_ERROR, BCD_ERROR, BCD_ERROR, BCD_ERROR,
@@ -397,7 +398,355 @@ typedef struct
   uint8_t tens_place :4;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131__reg_t;
+} pcf2131_one_100_sec_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Seconds Register *********************************************/
+/**************************************************************************************************/
+#define SECONDS_REG_ADDR (0x)
+#define SECONDS_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_seconds_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Minutes Register *********************************************/
+/**************************************************************************************************/
+#define MINUTES_REG_ADDR (0x)
+#define MINUTES_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_minutes_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Hour Register ************************************************/
+/**************************************************************************************************/
+#define HOURS_REG_ADDR (0x)
+#define HOURS_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_hours_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Days Register ************************************************/
+/**************************************************************************************************/
+#define DAYS_REG_ADDR (0x)
+#define DAYS_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_days_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Weekdays Register ********************************************/
+/**************************************************************************************************/
+#define WEEKDAYS_REG_ADDR (0x)
+#define WEEKDAYS_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_weekdays_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Months Register **********************************************/
+/**************************************************************************************************/
+#define MONTHS_REG_ADDR (0x)
+#define MONTHS_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_months_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Years Register ***********************************************/
+/**************************************************************************************************/
+#define YEARS_REG_ADDR (0x)
+#define YEARS_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_years_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Second Alarm Register ****************************************/
+/**************************************************************************************************/
+#define SECOND_ALARM_REG_ADDR (0x)
+#define SECOND_ALARM_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_second_alarm_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Minute Alarm Register ****************************************/
+/**************************************************************************************************/
+#define MINUTE_ALARM_REG_ADDR (0x)
+#define MINUTE_ALARM_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_minute_alarm_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Hour Alarm Register ******************************************/
+/**************************************************************************************************/
+#define HOUR_ALARM_REG_ADDR (0x)
+#define HOUR_ALARM_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_hour_alarm_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Day Alarm Register *******************************************/
+/**************************************************************************************************/
+#define DAY_ALARM_REG_ADDR (0x)
+#define DAY_ALARM_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_day_alarm_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Weekday Alarm Register ***************************************/
+/**************************************************************************************************/
+#define WEEKDAY_ALARM_REG_ADDR (0x)
+#define WEEKDAY_ALARM_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_weekday_alarm_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Clock Out Control Register ***********************************/
@@ -438,7 +787,819 @@ typedef struct
   uint8_t unused :2;
   clock_frequency_t clk_freq :3;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131__reg_t;
+} pcf2131_clkout_ctrl_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Timestamp 1 Control Register *********************************/
+/**************************************************************************************************/
+#define TIMESTAMP_1_CTRL_REG_ADDR (0x)
+#define TIMESTAMP_1_CTRL_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_timestamp_1_ctrl_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Seconds Timestamp 1 Register *********************************/
+/**************************************************************************************************/
+#define SEC_TIMESTAMP_1_REG_ADDR (0x)
+#define SEC_TIMESTAMP_1_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_sec_timestamp_1_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Minute Timestamp 1 Register **********************************/
+/**************************************************************************************************/
+#define MIN_TIMESTAMP_1_REG_ADDR (0x)
+#define MIN_TIMESTAMP_1_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_min_timestamp_1_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Hour Timestamp 1 Register ************************************/
+/**************************************************************************************************/
+#define HOUR_TIMESTAMP_1_REG_ADDR (0x)
+#define HOUR_TIMESTAMP_1_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_hour_timestamp_1_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Day Timestamp 1 Register *************************************/
+/**************************************************************************************************/
+#define DAY_TIMESTAMP_1_REG_ADDR (0x)
+#define DAY_TIMESTAMP_1_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_day_timestamp_1_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Month Timestamp 1 Register ***********************************/
+/**************************************************************************************************/
+#define MONTH_TIMESTAMP_1_REG_ADDR (0x)
+#define MONTH_TIMESTAMP_1_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_month_timestamp_1_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Year Timestamp 1 Register ************************************/
+/**************************************************************************************************/
+#define YEAR_TIMESTAMP_1_REG_ADDR (0x)
+#define YEAR_TIMESTAMP_1_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_year_timestamp_1_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Timestamp 2 Control Register *********************************/
+/**************************************************************************************************/
+#define TIMESTAMP_2_CTRL_REG_ADDR (0x)
+#define TIMESTAMP_2_CTRL_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_timestamp_2_ctrl_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Seconds Timestamp 2 Register *********************************/
+/**************************************************************************************************/
+#define SEC_TIMESTAMP_2_REG_ADDR (0x)
+#define SEC_TIMESTAMP_2_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_sec_timestamp_2_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Minute Timestamp 2 Register **********************************/
+/**************************************************************************************************/
+#define MIN_TIMESTAMP_2_REG_ADDR (0x)
+#define MIN_TIMESTAMP_2_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_min_timestamp_2_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Hour Timestamp 2 Register ************************************/
+/**************************************************************************************************/
+#define HOUR_TIMESTAMP_2_REG_ADDR (0x)
+#define HOUR_TIMESTAMP_2_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_hour_timestamp_2_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Day Timestamp 2 Register *************************************/
+/**************************************************************************************************/
+#define DAY_TIMESTAMP_2_REG_ADDR (0x)
+#define DAY_TIMESTAMP_2_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_day_timestamp_2_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Month Timestamp 2 Register ***********************************/
+/**************************************************************************************************/
+#define MONTH_TIMESTAMP_2_REG_ADDR (0x)
+#define MONTH_TIMESTAMP_2_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_month_timestamp_2_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Year Timestamp 2 Register ************************************/
+/**************************************************************************************************/
+#define YEAR_TIMESTAMP_2_REG_ADDR (0x)
+#define YEAR_TIMESTAMP_2_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_year_timestamp_2_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Timestamp 3 Control Register *********************************/
+/**************************************************************************************************/
+#define TIMESTAMP_3_CTRL_REG_ADDR (0x)
+#define TIMESTAMP_3_CTRL_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_timestamp_3_ctrl_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Seconds Timestamp 3 Register *********************************/
+/**************************************************************************************************/
+#define SEC_TIMESTAMP_3_REG_ADDR (0x)
+#define SEC_TIMESTAMP_3_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_sec_timestamp_3_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Minute Timestamp 3 Register **********************************/
+/**************************************************************************************************/
+#define MIN_TIMESTAMP_3_REG_ADDR (0x)
+#define MIN_TIMESTAMP_3_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_min_timestamp_3_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Hour Timestamp 3 Register ************************************/
+/**************************************************************************************************/
+#define HOUR_TIMESTAMP_3_REG_ADDR (0x)
+#define HOUR_TIMESTAMP_3_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_hour_timestamp_3_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Day Timestamp 3 Register *************************************/
+/**************************************************************************************************/
+#define DAY_TIMESTAMP_3_REG_ADDR (0x)
+#define DAY_TIMESTAMP_3_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_day_timestamp_3_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Month Timestamp 3 Register ***********************************/
+/**************************************************************************************************/
+#define MONTH_TIMESTAMP_3_REG_ADDR (0x)
+#define MONTH_TIMESTAMP_3_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_month_timestamp_3_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Year Timestamp 3 Register ************************************/
+/**************************************************************************************************/
+#define YEAR_TIMESTAMP_3_REG_ADDR (0x)
+#define YEAR_TIMESTAMP_3_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_year_timestamp_3_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Timestamp 4 Control Register *********************************/
+/**************************************************************************************************/
+#define TIMESTAMP_4_CTRL_REG_ADDR (0x)
+#define TIMESTAMP_4_CTRL_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_timestamp_4_ctrl_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Seconds Timestamp 4 Register *********************************/
+/**************************************************************************************************/
+#define SEC_TIMESTAMP_4_REG_ADDR (0x)
+#define SEC_TIMESTAMP_4_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_sec_timestamp_4_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Minute Timestamp 4 Register **********************************/
+/**************************************************************************************************/
+#define MIN_TIMESTAMP_4_REG_ADDR (0x)
+#define MIN_TIMESTAMP_4_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_min_timestamp_4_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Hour Timestamp 4 Register ************************************/
+/**************************************************************************************************/
+#define HOUR_TIMESTAMP_4_REG_ADDR (0x)
+#define HOUR_TIMESTAMP_4_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_hour_timestamp_4_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Day Timestamp 4 Register *************************************/
+/**************************************************************************************************/
+#define DAY_TIMESTAMP_4_REG_ADDR (0x)
+#define DAY_TIMESTAMP_4_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_day_timestamp_4_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Month Timestamp 4 Register ***********************************/
+/**************************************************************************************************/
+#define MONTH_TIMESTAMP_4_REG_ADDR (0x)
+#define MONTH_TIMESTAMP_4_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_month_timestamp_4_reg_t;
+
+/**************************************************************************************************/
+/*********************************** Year Timestamp 4 Register ************************************/
+/**************************************************************************************************/
+#define YEAR_TIMESTAMP_4_REG_ADDR (0x)
+#define YEAR_TIMESTAMP_4_REG_RESET_VAL (0b)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+  uint8_t :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+  uint8_t  :1;
+#endif /* DRV_BYTE_ORDER */
+} pcf2131_year_timestamp_4_reg_t;
 
 /**************************************************************************************************/
 /*********************************** Aging Offset Register ****************************************/
@@ -475,7 +1636,7 @@ typedef struct
   uint8_t unused :4;
   aging_offset_t offset :4;
 #endif /* DRV_BYTE_ORDER */
-} pcf2131__reg_t;
+} pcf2131_aging_offset_reg_t;
 
 #endif /* COMPONENTS_DRIVERS_INC_PCF2131_REG_H_ */
 
