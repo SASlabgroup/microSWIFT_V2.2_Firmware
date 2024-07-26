@@ -256,21 +256,21 @@ typedef struct
 typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-  uint8_t unused :1;
+  uint8_t T_bit :1;
   uint8_t alarm_irq_en :1;
-  uint8_t unused :2;
+  uint8_t T_bit :2;
   uint8_t alarm_flag_en :1;
-  uint8_t unused :1;
+  uint8_t T_bit :1;
   uint8_t watchdog_flag_en :1;
   uint8_t min_sec_flag_en :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
   uint8_t min_sec_flag_en :1;
   uint8_t watchdog_flag_en :1;
-  uint8_t unused :1;
+  uint8_t T_bit :1;
   uint8_t alarm_flag_en :1;
-  uint8_t unused :2;
+  uint8_t T_bit :2;
   uint8_t alarm_irq_en :1;
-  uint8_t unused :1;
+  uint8_t T_bit :1;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_ctrl2_reg_t;
 
@@ -324,7 +324,7 @@ typedef struct
 typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-  uint8_t unused :4;
+  uint8_t T_bit :4;
   uint8_t timestamp4_flag :1;
   uint8_t timestamp3_flag :1;
   uint8_t timestamp2_flag :1;
@@ -334,7 +334,7 @@ typedef struct
   uint8_t timestamp2_flag :1;
   uint8_t timestamp3_flag :1;
   uint8_t timestamp4_flag :1;
-  uint8_t unused :4;
+  uint8_t T_bit :4;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_ctrl4_reg_t;
 
@@ -347,7 +347,7 @@ typedef struct
 typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-  uint8_t unused :4;
+  uint8_t T_bit :4;
   uint8_t timestamp4_irq_en :1;
   uint8_t timestamp3_irq_en :1;
   uint8_t timestamp2_irq_en :1;
@@ -357,7 +357,7 @@ typedef struct
   uint8_t timestamp2_irq_en :1;
   uint8_t timestamp3_irq_en :1;
   uint8_t timestamp4_irq_en :1;
-  uint8_t unused :4;
+  uint8_t T_bit :4;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_ctrl5_reg_t;
 
@@ -437,9 +437,9 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :3;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t tens_place :3;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -463,9 +463,9 @@ typedef struct
   uint8_t hours_units_place :4;
   uint8_t hours_tens_place :1;
   hours_ampm_bit_t am_pm :1;
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
   hours_ampm_bit_t am_pm :1;
   uint8_t hours_tens_place :1;
   uint8_t hours_units_place :4;
@@ -477,9 +477,9 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t hours_units_place :4;
   uint8_t hours_tens_place :4;
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
   uint8_t hours_tens_place :4;
   uint8_t hours_units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -502,9 +502,9 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :2;
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
   uint8_t tens_place :2;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -531,9 +531,9 @@ typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   weekday_t weekday :3;
-  uint8_t unused :5;
+  uint8_t dash_bit :5;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :5;
+  uint8_t dash_bit :5;
   weekday_t weekday :3;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_weekdays_reg_t;
@@ -564,9 +564,9 @@ typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   month_t month :5;
-  uint8_t unused :3;
+  uint8_t dash_bit :3;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :3;
+  uint8_t dash_bit :3;
   month_t month :5;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_months_reg_t;
@@ -638,11 +638,11 @@ typedef struct
   uint8_t units_place :4;
   uint8_t tens_place :1;
   hours_ampm_bit_t ampm :1;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t alarm_disable :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
   uint8_t alarm_disable :1;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   hours_ampm_bit_t ampm :1;
   uint8_t tens_place :1;
   uint8_t units_place :4;
@@ -654,11 +654,11 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :2;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t alarm_disable :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
   uint8_t alarm_disable :1;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t tens_place :2;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -681,11 +681,11 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :2;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t alarm_disable :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
   uint8_t alarm_disable :1;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t tens_place :2;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -701,11 +701,11 @@ typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   weekday_t weekday :3;
-  uint8_t unused :4;
+  uint8_t dash_bit :4;
   uint8_t alarm_disable :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
   uint8_t alarm_disable :1;
-  uint8_t unused :4;
+  uint8_t dash_bit :4;
   weekday_t weekday :3;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_weekday_alarm_reg_t;
@@ -740,13 +740,13 @@ typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   clock_frequency_t clk_freq :3;
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
   uint8_t otp_refresh_performed :1;
   temp_meas_period_t temp_meas_p :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
   temp_meas_period_t temp_meas_p :2;
   uint8_t otp_refresh_performed :1;
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
   clock_frequency_t clk_freq :3;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_clkout_ctrl_reg_t;
@@ -767,13 +767,13 @@ typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t bcd_subsecond :5;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t timestamp_disable :1;
   timestamp_subsequent_event_t timestamp_store_option :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
   timestamp_subsequent_event_t timestamp_store_option :1;
   uint8_t timestamp_disable :1;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t bcd_subsecond :5;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_timestamp_1_ctrl_reg_t;
@@ -789,9 +789,9 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :3;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t tens_place :3;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -808,9 +808,9 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :3;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t tens_place :3;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -828,9 +828,9 @@ typedef struct
   uint8_t units_place :4;
   uint8_t tens_place :1;
   hours_ampm_bit_t ampm :1;
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
   hours_ampm_bit_t ampm :1;
   uint8_t tens_place :1;
   uint8_t units_place :4;
@@ -842,9 +842,9 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :2;
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
   uint8_t tens_place :2;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -867,9 +867,9 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :2;
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
   uint8_t tens_place :2;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -885,9 +885,9 @@ typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   month_t month :5;
-  uint8_t unused :3;
+  uint8_t dash_bit :3;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :3;
+  uint8_t dash_bit :3;
   month_t month :5;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_timestamp_1_month_reg_t;
@@ -919,13 +919,13 @@ typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t bcd_subsecond :5;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t timestamp_disable :1;
   timestamp_subsequent_event_t timestamp_store_option :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
   timestamp_subsequent_event_t timestamp_store_option :1;
   uint8_t timestamp_disable :1;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t bcd_subsecond :5;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_timestamp_2_ctrl_reg_t;
@@ -941,9 +941,9 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :3;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t tens_place :3;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -960,9 +960,9 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :3;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t tens_place :3;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -980,9 +980,9 @@ typedef struct
   uint8_t units_place :4;
   uint8_t tens_place :1;
   hours_ampm_bit_t ampm :1;
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
   hours_ampm_bit_t ampm :1;
   uint8_t tens_place :1;
   uint8_t units_place :4;
@@ -994,9 +994,9 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :2;
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
   uint8_t tens_place :2;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -1019,9 +1019,9 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :2;
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
   uint8_t tens_place :2;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -1037,9 +1037,9 @@ typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   month_t month :5;
-  uint8_t unused :3;
+  uint8_t dash_bit :3;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :3;
+  uint8_t dash_bit :3;
   month_t month :5;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_timestamp_2_month_reg_t;
@@ -1071,13 +1071,13 @@ typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t bcd_subsecond :5;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t timestamp_disable :1;
   timestamp_subsequent_event_t timestamp_store_option :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
   timestamp_subsequent_event_t timestamp_store_option :1;
   uint8_t timestamp_disable :1;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t bcd_subsecond :5;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_timestamp_3_ctrl_reg_t;
@@ -1093,9 +1093,9 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :3;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t tens_place :3;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -1112,9 +1112,9 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :3;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t tens_place :3;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -1132,9 +1132,9 @@ typedef struct
   uint8_t units_place :4;
   uint8_t tens_place :1;
   hours_ampm_bit_t ampm :1;
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
   hours_ampm_bit_t ampm :1;
   uint8_t tens_place :1;
   uint8_t units_place :4;
@@ -1146,9 +1146,9 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :2;
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
   uint8_t tens_place :2;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -1171,9 +1171,9 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :2;
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
   uint8_t tens_place :2;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -1189,9 +1189,9 @@ typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   month_t month :5;
-  uint8_t unused :3;
+  uint8_t dash_bit :3;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :3;
+  uint8_t dash_bit :3;
   month_t month :5;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_timestamp_3_month_reg_t;
@@ -1223,13 +1223,13 @@ typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t bcd_subsecond :5;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t timestamp_disable :1;
   timestamp_subsequent_event_t timestamp_store_option :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
   timestamp_subsequent_event_t timestamp_store_option :1;
   uint8_t timestamp_disable :1;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t bcd_subsecond :5;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_timestamp_4_ctrl_reg_t;
@@ -1245,9 +1245,9 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :3;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t tens_place :3;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -1264,9 +1264,9 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :3;
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :1;
+  uint8_t dash_bit :1;
   uint8_t tens_place :3;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -1284,9 +1284,9 @@ typedef struct
   uint8_t units_place :4;
   uint8_t tens_place :1;
   hours_ampm_bit_t ampm :1;
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
   hours_ampm_bit_t ampm :1;
   uint8_t tens_place :1;
   uint8_t units_place :4;
@@ -1298,9 +1298,9 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :2;
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
   uint8_t tens_place :2;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -1323,9 +1323,9 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t units_place :4;
   uint8_t tens_place :2;
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
   uint8_t tens_place :2;
   uint8_t units_place :4;
 #endif /* DRV_BYTE_ORDER */
@@ -1341,9 +1341,9 @@ typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   month_t month :5;
-  uint8_t unused :3;
+  uint8_t dash_bit :3;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :3;
+  uint8_t dash_bit :3;
   month_t month :5;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_timestamp_4_month_reg_t;
@@ -1395,9 +1395,9 @@ typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   aging_offset_t offset :4;
-  uint8_t unused :4;
+  uint8_t dash_bit :4;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :4;
+  uint8_t dash_bit :4;
   aging_offset_t offset :4;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_aging_offset_reg_t;
@@ -1417,9 +1417,9 @@ typedef struct
   uint8_t watchdog_irq_mask :1;
   uint8_t sec_irq_mask :1;
   uint8_t min_irq_mask :1;
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
   uint8_t min_irq_mask :1;
   uint8_t sec_irq_mask :1;
   uint8_t watchdog_irq_mask :1;
@@ -1442,9 +1442,9 @@ typedef struct
   uint8_t timestamp_3_irq_mask :1;
   uint8_t timestamp_2_irq_mask :1;
   uint8_t timestamp_1_irq_mask :1;
-  uint8_t unused :4;
+  uint8_t dash_bit :4;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :4;
+  uint8_t dash_bit :4;
   uint8_t timestamp_1_irq_mask :1;
   uint8_t timestamp_2_irq_mask :1;
   uint8_t timestamp_3_irq_mask :1;
@@ -1467,9 +1467,9 @@ typedef struct
   uint8_t watchdog_irq_mask :1;
   uint8_t sec_irq_mask :1;
   uint8_t min_irq_mask :1;
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :2;
+  uint8_t dash_bit :2;
   uint8_t min_irq_mask :1;
   uint8_t sec_irq_mask :1;
   uint8_t watchdog_irq_mask :1;
@@ -1492,9 +1492,9 @@ typedef struct
   uint8_t timestamp_3_irq_mask :1;
   uint8_t timestamp_2_irq_mask :1;
   uint8_t timestamp_1_irq_mask :1;
-  uint8_t unused :4;
+  uint8_t dash_bit :4;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t unused :4;
+  uint8_t dash_bit :4;
   uint8_t timestamp_1_irq_mask :1;
   uint8_t timestamp_2_irq_mask :1;
   uint8_t timestamp_3_irq_mask :1;
@@ -1526,15 +1526,15 @@ typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   watchdog_time_source_t clock_source :1;
-  uint8_t unused :3;
+  uint8_t dash_bit :3;
   watchdog_int_signal_t irq_signal_behavior :1;
-  uint8_t unused :1;
+  uint8_t T_bit :1;
   uint8_t interrupt_enable :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
   uint8_t interrupt_enable :1;
-  uint8_t unused :1;
+  uint8_t T_bit :1;
   watchdog_int_signal_t irq_signal_behavior :1;
-  uint8_t unused :3;
+  uint8_t dash_bit :3;
   watchdog_time_source_t clock_source :1;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_watchdog_tim_ctrl_reg_t;
