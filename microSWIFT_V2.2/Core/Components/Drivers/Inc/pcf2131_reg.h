@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <math.h>
 #include <stdbool.h>
+#include <time.h>
 
 #define BCD_ERROR 0xFF
 
@@ -1553,6 +1554,10 @@ typedef struct
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_watchdog_tim_value_reg_t;
 
+/**************************************************************************************************/
+/*********************************** Register Union ***********************************************/
+/**************************************************************************************************/
+
 typedef union
 {
   pcf2131_ctrl1_reg_t ctrl1;
@@ -1611,13 +1616,56 @@ typedef union
   uint8_t byte;
 } pcf2131_reg_t;
 
+/**************************************************************************************************/
+/*********************************** Misc structs, enums, and typedefs ****************************/
+/**************************************************************************************************/
+
+typedef struct
+{
+  uint8_t alarm_second;
+  uint8_t alarm_minute;
+  uint8_t alarm_hour;
+  uint8_t alarm_day;
+  weekday_t alarm_weekday;
+  bool second_alarm_en;
+  bool minute_alarm_en;
+  bool hour_alarm_en;
+  bool day_alarm_en;
+  bool weekday_alarm_en;
+} pcf2131_alarm_struct;
+
+typedef struct
+{
+  // Enable seconds interrupt
+  bool sec_irq_en;
+  // Enable minutes interrupt
+  bool min_irq_en;
+  // Enable pulsed interrupt mode for seconds and/or minutes interrupt (latched mode otherwise)
+  bool sec_min_pulsed_irq_en;
+  // Enable watchdog interrupt
+  bool watchdog_irq_en;
+  // Enable alarm interrupt
+  bool alarm_irq_en;
+  // Enable battery flag interrupt
+  bool batt_flag_irq_en;
+  // Enable low battery interrupt
+  bool batt_low_irq_en;
+  // Enable timestamp interrupts
+  bool timestamp_1_irq_en;
+  bool timestamp_2_irq_en;
+  bool timestamp_3_irq_en;
+  bool timestamp_4_irq_en;
+} pcf2131_irq_config_struct;
+
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*################################## Function Declarations #######################################*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 int32_t pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_write_ptr bus_write_fn,
                                         dev_read_ptr bus_read_fn, void *optional_handle );
-
-int32_t pcf2131_set_time ()
+int32_t pcf2131_set_date_time ( struct tm input_date_time );
+int32_t pcf2131_set_alarm ( pcf2131_alarm_struct alarm_setting );
+int32_t pcf2131_config_int_a ( pcf2131_irq_config_struct irq_config );
+int32_t pcf2131_config_int_b ( pcf2131_irq_config_struct irq_config );
 
 #endif /* COMPONENTS_DRIVERS_INC_PCF2131_REG_H_ */
