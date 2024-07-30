@@ -256,11 +256,11 @@ typedef struct
 typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-  uint8_t T_bit :1;
+  uint8_t T_bit0 :1;
   uint8_t alarm_irq_en :1;
-  uint8_t T_bit :2;
+  uint8_t T_bit1 :2;
   uint8_t alarm_flag_en :1;
-  uint8_t T_bit :1;
+  uint8_t T_bit2 :1;
   uint8_t watchdog_flag_en :1;
   uint8_t min_sec_flag_en :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
@@ -1663,9 +1663,44 @@ typedef struct
 
 int32_t pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_write_ptr bus_write_fn,
                                         dev_read_ptr bus_read_fn, void *optional_handle );
-int32_t pcf2131_set_date_time ( struct tm input_date_time );
-int32_t pcf2131_set_alarm ( pcf2131_alarm_struct alarm_setting );
-int32_t pcf2131_config_int_a ( pcf2131_irq_config_struct irq_config );
-int32_t pcf2131_config_int_b ( pcf2131_irq_config_struct irq_config );
+int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm input_date_time );
+int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_time,
+                                weekday_t *return_weekday );
+int32_t pcf2131_set_alarm ( dev_ctx_t *dev_handle, pcf2131_alarm_struct alarm_setting );
+int32_t pcf2131_get_alarm ( dev_ctx_t *dev_handle, pcf2131_alarm_struct *return_alarm_setting );
+int32_t pcf2131_config_int_a ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct irq_config );
+int32_t pcf2131_config_int_b ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct irq_config );
+int32_t pcf2131_temp_comp_config ( dev_ctx_t *dev_handle, bool en );
+int32_t pcf2131_set_stop_bit ( dev_ctx_t *dev_handle );
+int32_t pcf2131_clear_stop_bit ( dev_ctx_t *dev_handle );
+int32_t pcf2131_one_100_sec_counter_config ( dev_ctx_t *dev_handle, bool en );
+int32_t pcf2131_hours_format_config ( dev_ctx_t *dev_handle, hours_ampm_bit_t hours_format );
+int32_t pcf2131_get_msf_flag ( dev_ctx_t *dev_handle, bool *return_flag );
+int32_t pcf2131_clear_msf_flag ( dev_ctx_t *dev_handle );
+int32_t pcf2131_get_watchdog_flag ( dev_ctx_t *dev_handle, bool *return_flag );
+int32_t pcf2131_clear_watchdog_flag ( dev_ctx_t *dev_handle );
+int32_t pcf2131_get_alarm_flag ( dev_ctx_t *dev_handle, bool *return_flag );
+int32_t pcf2131_clear_alarm_flag ( dev_ctx_t *dev_handle );
+int32_t pcf2131_get_battery_switch_over_flag ( dev_ctx_t *dev_handle, bool *return_flag );
+int32_t pcf2131_clear_battery_switch_over_flag ( dev_ctx_t *dev_handle );
+int32_t pcf2131_config_timestamp_flag ( dev_ctx_t *dev_handle, uint8_t which_timestamp, bool en );
+int32_t pcf2131_get_timestamp_flag ( dev_ctx_t *dev_handle, uint8_t which_timestamp,
+                                     bool *return_flag );
+int32_t pcf2131_clear_timestamp_flag ( dev_ctx_t *dev_handle, uint8_t which_timestamp );
+int32_t pcf2131_set_temp_meas_period ( dev_ctx_t *dev_handle, temp_meas_period_t meas_period );
+int32_t pcf2131_set_clkout_freq ( dev_ctx_t *dev_handle, clock_frequency_t freq_out );
+int32_t pcf2131_perform_otp_refresh ( dev_ctx_t *dev_handle );
+int32_t pcf2131_set_crystal_aging_offset ( dev_ctx_t *dev_handle, aging_offset_t offset );
+int32_t pcf2131_config_pwr_mgmt_scheme ( dev_ctx_t *dev_handle, pwr_mgmt_t mgmt_scheme );
+int32_t pcf2131_get_osf_flag ( dev_ctx_t *dev_handle, bool *return_flag );
+int32_t pcf2131_software_reset ( dev_ctx_t *dev_handle );
+int32_t pcf2131_clear_prescalar ( dev_ctx_t *dev_handle );
+int32_t pcf2131_clear_timestamps ( dev_ctx_t *dev_handle );
+int32_t pcf2131_clear_prescalar_and_timestamps ( dev_ctx_t *dev_handle );
+int32_t pcf2131_watchdog_irq_signal_config ( dev_ctx_t *dev_handle,
+                                             watchdog_int_signal_t signal_config );
+int32_t pcf2131_watchdog_config_time_source ( dev_ctx_t *dev_handle,
+                                              watchdog_time_source_t time_source );
+int32_t pcf2131_set_watchdog_timer_value ( dev_ctx_t *dev_handle, uint8_t timer_value );
 
 #endif /* COMPONENTS_DRIVERS_INC_PCF2131_REG_H_ */

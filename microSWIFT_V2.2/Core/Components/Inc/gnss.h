@@ -9,6 +9,7 @@
 #ifndef SRC_GPS_H_
 #define SRC_GPS_H_
 
+#include "configuration.h"
 #include "byte_array.h"
 #include "app_threadx.h"
 #include "tx_api.h"
@@ -24,27 +25,28 @@
 #include "u_error_common.h"
 
 // Return codes
-typedef enum gnss_error_code{
-	// Error/ success codes
-	GNSS_SUCCESS = 0,
-	GNSS_UNKNOWN_ERROR = -1,
-	GNSS_LOCATION_INVALID = -2,
-	GNSS_VELOCITY_INVALID = -3,
-	GNSS_NO_SAMPLES_ERROR = -4,
-	GNSS_TIMEOUT_ERROR = -5,
-	GNSS_BUSY_ERROR = -6,
-	GNSS_NO_MESSAGE_RECEIVED = -7,
-	GNSS_UART_ERROR = -8,
-	GNSS_CONFIG_ERROR = -9,
-	GNSS_SELF_TEST_FAILED = -10,
-	GNSS_MESSAGE_PROCESS_ERROR = -11,
-	GNSS_RTC_ERROR = -12,
-	GNSS_TIMER_ERROR = -13,
-	GNSS_TIME_RESOLUTION_ERROR = -14,
-	GNSS_FIRST_SAMPLE_RESOLUTION_ERROR = -15,
-	GNSS_NAK_MESSAGE_RECEIVED = -16,
-	GNSS_HIGH_PERFORMANCE_ENABLE_ERROR = -17,
-	GNSS_DONE_SAMPLING = -18
+typedef enum gnss_error_code
+{
+  // Error/ success codes
+  GNSS_SUCCESS = 0,
+  GNSS_UNKNOWN_ERROR = -1,
+  GNSS_LOCATION_INVALID = -2,
+  GNSS_VELOCITY_INVALID = -3,
+  GNSS_NO_SAMPLES_ERROR = -4,
+  GNSS_TIMEOUT_ERROR = -5,
+  GNSS_BUSY_ERROR = -6,
+  GNSS_NO_MESSAGE_RECEIVED = -7,
+  GNSS_UART_ERROR = -8,
+  GNSS_CONFIG_ERROR = -9,
+  GNSS_SELF_TEST_FAILED = -10,
+  GNSS_MESSAGE_PROCESS_ERROR = -11,
+  GNSS_RTC_ERROR = -12,
+  GNSS_TIMER_ERROR = -13,
+  GNSS_TIME_RESOLUTION_ERROR = -14,
+  GNSS_FIRST_SAMPLE_RESOLUTION_ERROR = -15,
+  GNSS_NAK_MESSAGE_RECEIVED = -16,
+  GNSS_HIGH_PERFORMANCE_ENABLE_ERROR = -17,
+  GNSS_DONE_SAMPLING = -18
 } gnss_error_code_t;
 
 // Macros
@@ -105,84 +107,84 @@ typedef enum gnss_error_code{
 #define ENABLE_HIGH_PERFORMANCE_SIZE 60
 
 // GNSS struct definition -- packed for good organization, not memory efficiency
-typedef struct GNSS {
-	// Our global configuration struct
-	microSWIFT_configuration* global_config;
-	// The UART and DMA handle for the GNSS interface
-	UART_HandleTypeDef* gnss_uart_handle;
-	DMA_HandleTypeDef* gnss_rx_dma_handle;
-	DMA_HandleTypeDef* gnss_tx_dma_handle;
-	// Handle to the RTC
-	RTC_HandleTypeDef* rtc_handle;
-	// Event flags
-	TX_EVENT_FLAGS_GROUP* control_flags;
-	TX_EVENT_FLAGS_GROUP* error_flags;
-	// Pointer to hardware timer handle
-	TIM_HandleTypeDef* minutes_timer;
-	// UBX message process buffer filled from DMA ISR
-	uint8_t* ubx_process_buf;
-	// Configuration response buffer
-	uint8_t* config_response_buf;
-	// Velocity sample array pointers
-	float* GNSS_N_Array;
-	float* GNSS_E_Array;
-	float* GNSS_D_Array;
-	// Number of messages processed in a given buffer
-	uint32_t messages_processed;
-	// Keep a running track of sum -- to be used in getRunningAverage
-	// NOTE: These values are in units of mm/s and must be converted
-	int32_t v_north_sum;
-	int32_t v_east_sum;
-	int32_t v_down_sum;
-	// Hold the current lat/long for whatever we might need it for (modem)
-	int32_t current_latitude;
-	int32_t current_longitude;
-	// The start time for the sampling window
-	uint32_t sample_window_start_time;
-	// The start time for the sampling window
-	uint32_t sample_window_stop_time;
-	// The true calculated sample window frequency
-	double sample_window_freq;
-	// Increment with each sample or running average
-	uint16_t total_samples;
-	// We'll keep track of how many times we had to sub in a running average
-	uint16_t total_samples_averaged;
-	// How many times we've had to skip a sample - gets reset with valid data
-	uint16_t number_cycles_without_data;
-	// Flags
-	bool current_fix_is_good;
-	bool all_resolution_stages_complete;
-	bool is_configured;
-	bool is_clock_set;
-	bool rtc_error;
-	bool all_samples_processed;
-	bool timer_timeout;
-	// Function pointers
-	gnss_error_code_t (*config)(void);
-	gnss_error_code_t (*sync_and_start_reception)(
-				gnss_error_code_t (*start_dma)(struct GNSS*, uint8_t*, size_t),
-				uint8_t* buffer, size_t msg_size);
-	gnss_error_code_t (*get_location)(float* latitude, float* longitude);
-	gnss_error_code_t (*get_running_average_velocities)(void);
-	void		 	  (*process_message)(void);
-	gnss_error_code_t (*sleep)(bool put_to_sleep);
-	void			  (*on_off)(GPIO_PinState pin_state);
-	void			  (*cycle_power)(void);
-	gnss_error_code_t (*set_rtc)(uint8_t* msg_payload);
-	gnss_error_code_t (*reset_uart)(uint16_t baud_rate);
-	gnss_error_code_t (*reset_timer)(uint16_t timeout_in_minutes);
+typedef struct GNSS
+{
+  // Our global configuration struct
+  microSWIFT_configuration *global_config;
+  // The UART and DMA handle for the GNSS interface
+  UART_HandleTypeDef *gnss_uart_handle;
+  DMA_HandleTypeDef *gnss_rx_dma_handle;
+  DMA_HandleTypeDef *gnss_tx_dma_handle;
+  // Handle to the RTC
+  RTC_HandleTypeDef *rtc_handle;
+  // Event flags
+  TX_EVENT_FLAGS_GROUP *control_flags;
+  TX_EVENT_FLAGS_GROUP *error_flags;
+  // Pointer to hardware timer handle
+  TIM_HandleTypeDef *minutes_timer;
+  // UBX message process buffer filled from DMA ISR
+  uint8_t *ubx_process_buf;
+  // Configuration response buffer
+  uint8_t *config_response_buf;
+  // Velocity sample array pointers
+  float *GNSS_N_Array;
+  float *GNSS_E_Array;
+  float *GNSS_D_Array;
+  // Number of messages processed in a given buffer
+  uint32_t messages_processed;
+  // Keep a running track of sum -- to be used in getRunningAverage
+  // NOTE: These values are in units of mm/s and must be converted
+  int32_t v_north_sum;
+  int32_t v_east_sum;
+  int32_t v_down_sum;
+  // Hold the current lat/long for whatever we might need it for (modem)
+  int32_t current_latitude;
+  int32_t current_longitude;
+  // The start time for the sampling window
+  uint32_t sample_window_start_time;
+  // The start time for the sampling window
+  uint32_t sample_window_stop_time;
+  // The true calculated sample window frequency
+  double sample_window_freq;
+  // Increment with each sample or running average
+  uint16_t total_samples;
+  // We'll keep track of how many times we had to sub in a running average
+  uint16_t total_samples_averaged;
+  // How many times we've had to skip a sample - gets reset with valid data
+  uint16_t number_cycles_without_data;
+  // Flags
+  bool current_fix_is_good;
+  bool all_resolution_stages_complete;
+  bool is_configured;
+  bool is_clock_set;
+  bool rtc_error;
+  bool all_samples_processed;
+  bool timer_timeout;
+  // Function pointers
+  gnss_error_code_t (*config) ( void );
+  gnss_error_code_t (*sync_and_start_reception) (
+      gnss_error_code_t (*start_dma) ( struct GNSS*, uint8_t*, size_t ), uint8_t *buffer,
+      size_t msg_size );
+  gnss_error_code_t (*get_location) ( float *latitude, float *longitude );
+  gnss_error_code_t (*get_running_average_velocities) ( void );
+  void (*process_message) ( void );
+  gnss_error_code_t (*sleep) ( bool put_to_sleep );
+  void (*on_off) ( GPIO_PinState pin_state );
+  void (*cycle_power) ( void );
+  gnss_error_code_t (*set_rtc) ( uint8_t *msg_payload );
+  gnss_error_code_t (*reset_uart) ( uint16_t baud_rate );
+  gnss_error_code_t (*reset_timer) ( uint16_t timeout_in_minutes );
 } GNSS;
 
 /* Function declarations */
-void gnss_init(GNSS* struct_ptr, microSWIFT_configuration* global_config,
-		UART_HandleTypeDef* gnss_uart_handle, DMA_HandleTypeDef* gnss_rx_dma_handle,
-		DMA_HandleTypeDef* gnss_tx_dma_handle, TX_EVENT_FLAGS_GROUP* control_flags,
-		TX_EVENT_FLAGS_GROUP* error_flags, TIM_HandleTypeDef* timer, uint8_t* ubx_process_buf,
-		uint8_t* config_response_buffer, RTC_HandleTypeDef* rtc_handle, float* GNSS_N_Array,
-		float* GNSS_E_Array, float* GNSS_D_Array);
+void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
+                 UART_HandleTypeDef *gnss_uart_handle, DMA_HandleTypeDef *gnss_rx_dma_handle,
+                 DMA_HandleTypeDef *gnss_tx_dma_handle, TX_EVENT_FLAGS_GROUP *control_flags,
+                 TX_EVENT_FLAGS_GROUP *error_flags, TIM_HandleTypeDef *timer,
+                 uint8_t *ubx_process_buf, uint8_t *config_response_buffer,
+                 RTC_HandleTypeDef *rtc_handle, float *GNSS_N_Array, float *GNSS_E_Array,
+                 float *GNSS_D_Array );
 // watchdog refresh function
-extern void 	  register_watchdog_refresh();
-
-
+extern void register_watchdog_refresh ();
 
 #endif /* SRC_GPS_H_ */
