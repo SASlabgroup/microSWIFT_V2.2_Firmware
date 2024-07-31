@@ -84,6 +84,20 @@ static uint8_t bcd_to_dec[256] =
   // 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF
   BCD_ERROR, BCD_ERROR, BCD_ERROR, BCD_ERROR, BCD_ERROR, BCD_ERROR, BCD_ERROR, BCD_ERROR
 };
+
+static uint8_t dec_to_bcd[100] =
+{
+  0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, // 0-9
+  0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, // 10-19
+  0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, // 20-29
+  0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, // 30-39
+  0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, // 40-49
+  0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, // 50-59
+  0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, // 60-69
+  0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, // 70-79
+  0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, // 80-89
+  0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99  // 90-99
+};
 // @formatter:on
 
 /**************************************************************************************************/
@@ -193,8 +207,10 @@ typedef struct
 /**************************************************************************************************/
 /*********************** Required read/ write functions to be implemented *************************/
 /**************************************************************************************************/
-typedef int32_t (*dev_write_ptr) ( void*, uint8_t*, uint16_t );
-typedef int32_t (*dev_read_ptr) ( void*, uint8_t*, uint8_t*, uint16_t );
+//(handle, i2c addr, reg_addr, reg_data, data_size)
+typedef int32_t (*dev_write_ptr) ( void*, uint16_t, uint16_t, uint8_t*, uint16_t );
+//(handle, i2c_addr, reg_addr, reg_data, data_size)
+typedef int32_t (*dev_read_ptr) ( void*, uint16_t, uint16_t, uint8_t*, uint16_t );
 
 /**************************************************************************************************/
 /******************************** Basic I/O interface struct **************************************/
@@ -207,6 +223,8 @@ typedef struct
   /** Customizable optional pointer **/
   void *handle;
 } dev_ctx_t;
+
+#define PCF2131_I2C_ADDR 0b10100110
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*################################## Register Definitions ########################################*/
@@ -1525,7 +1543,7 @@ typedef enum
 typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-  watchdog_time_source_t clock_source :1;
+  watchdog_time_source_t clock_source :2;
   uint8_t dash_bit :3;
   watchdog_int_signal_t irq_signal_behavior :1;
   uint8_t T_bit :1;
@@ -1535,7 +1553,7 @@ typedef struct
   uint8_t T_bit :1;
   watchdog_int_signal_t irq_signal_behavior :1;
   uint8_t dash_bit :3;
-  watchdog_time_source_t clock_source :1;
+  watchdog_time_source_t clock_source :2;
 #endif /* DRV_BYTE_ORDER */
 } pcf2131_watchdog_tim_ctrl_reg_t;
 
@@ -1663,13 +1681,13 @@ typedef struct
 
 int32_t pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_write_ptr bus_write_fn,
                                         dev_read_ptr bus_read_fn, void *optional_handle );
-int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm input_date_time );
+int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm *input_date_time );
 int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_time,
                                 weekday_t *return_weekday );
-int32_t pcf2131_set_alarm ( dev_ctx_t *dev_handle, pcf2131_alarm_struct alarm_setting );
+int32_t pcf2131_set_alarm ( dev_ctx_t *dev_handle, pcf2131_alarm_struct *alarm_setting );
 int32_t pcf2131_get_alarm ( dev_ctx_t *dev_handle, pcf2131_alarm_struct *return_alarm_setting );
-int32_t pcf2131_config_int_a ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct irq_config );
-int32_t pcf2131_config_int_b ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct irq_config );
+int32_t pcf2131_config_int_a ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config );
+int32_t pcf2131_config_int_b ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config );
 int32_t pcf2131_temp_comp_config ( dev_ctx_t *dev_handle, bool en );
 int32_t pcf2131_set_stop_bit ( dev_ctx_t *dev_handle );
 int32_t pcf2131_clear_stop_bit ( dev_ctx_t *dev_handle );
@@ -1685,7 +1703,7 @@ int32_t pcf2131_get_battery_switch_over_flag ( dev_ctx_t *dev_handle, bool *retu
 int32_t pcf2131_clear_battery_switch_over_flag ( dev_ctx_t *dev_handle );
 int32_t pcf2131_config_timestamp_flag ( dev_ctx_t *dev_handle, uint8_t which_timestamp, bool en );
 int32_t pcf2131_get_timestamp_flag ( dev_ctx_t *dev_handle, uint8_t which_timestamp,
-                                     bool *return_flag );
+bool *return_flag );
 int32_t pcf2131_clear_timestamp_flag ( dev_ctx_t *dev_handle, uint8_t which_timestamp );
 int32_t pcf2131_set_temp_meas_period ( dev_ctx_t *dev_handle, temp_meas_period_t meas_period );
 int32_t pcf2131_set_clkout_freq ( dev_ctx_t *dev_handle, clock_frequency_t freq_out );

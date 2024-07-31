@@ -7,6 +7,9 @@
 
 #include "pcf2131_reg.h"
 
+static inline uint8_t dec_to_bcd ( uint8_t dec );
+static inline uint8_t bcd_to_dec ( uint8_t bcd );
+
 int32_t pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_write_ptr bus_write_fn,
                                         dev_read_ptr bus_read_fn, void *optional_handle )
 {
@@ -14,15 +17,22 @@ int32_t pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_write_ptr bus
   dev_handle->bus_write = bus_write_fn;
   dev_handle->handle = optional_handle;
 
+  HAL_I2C_Mem_Read (hi2c, DevAddress, MemAddress, MemAddSize, pData, Size, Timeout)
+
   return PCF2131_OK;
 }
 
-int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm input_date_time )
+int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm *input_date_time )
 {
   int32_t ret = PCF2131_OK;
-  uint8_t year;
-  uint8_t month;
-  uint8_t
+  uint8_t bcd_year = dec_to_bcd (input_date_time->tm_yday);
+  uint8_t bcd_month = dec_to_bcd (input_date_time->tm_mon);
+  uint8_t bcd_day = dec_to_bcd (input_date_time->tm_mday);
+  uint8_t bcd_hour = dec_to_bcd (input_date_time->tm_hour);
+  uint8_t bcd_min = dec_to_bcd (input_date_time->tm_min);
+  uint8_t bcd_sec = dec_to_bcd (input_date_time->tm_sec);
+  uint8_t bcd_sec_fraction = 0x00;
+  uint8_t weekday = (uint8_t) input_date_time->tm_wday;
   /*
    • start an I2C access at register control_1
    • set STOP bit
@@ -40,7 +50,8 @@ int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm input_date_time
 
   ret |= pcf2131_clear_prescalar (dev_handle);
 
-  ret |= dev_handle->bus_write ()
+  //(handle, i2c addr, reg_addr, reg_data, data_size)
+  ret |= dev_handle->bus_write (dev_handle->handle, PCF2131_I2C_ADDR, YEARS_REG_ADDR, &bcd_year, 1);
 
   return ret;
 }
@@ -54,7 +65,7 @@ int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_ti
   return ret;
 }
 
-int32_t pcf2131_set_alarm ( dev_ctx_t *dev_handle, pcf2131_alarm_struct alarm_setting )
+int32_t pcf2131_set_alarm ( dev_ctx_t *dev_handle, pcf2131_alarm_struct *alarm_setting )
 {
   int32_t ret = PCF2131_OK;
 
@@ -68,14 +79,14 @@ int32_t pcf2131_get_alarm ( dev_ctx_t *dev_handle, pcf2131_alarm_struct *return_
   return ret;
 }
 
-int32_t pcf2131_config_int_a ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct irq_config )
+int32_t pcf2131_config_int_a ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config )
 {
   int32_t ret = PCF2131_OK;
 
   return ret;
 }
 
-int32_t pcf2131_config_int_b ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct irq_config )
+int32_t pcf2131_config_int_b ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config )
 {
   int32_t ret = PCF2131_OK;
 
@@ -286,4 +297,14 @@ int32_t pcf2131_set_watchdog_timer_value ( dev_ctx_t *dev_handle, uint8_t timer_
   int32_t ret = PCF2131_OK;
 
   return ret;
+}
+
+static inline uint8_t dec_to_bcd ( uint8_t dec )
+{
+  return ((dec / 10U) << 4U) | (dec % 10U);
+}
+
+static inline uint8_t bcd_to_dec ( uint8_t bcd )
+{
+  return bcd_to_dec[bcd];
 }
