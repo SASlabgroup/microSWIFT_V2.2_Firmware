@@ -17,8 +17,6 @@ int32_t pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_write_ptr bus
   dev_handle->bus_write = bus_write_fn;
   dev_handle->handle = optional_handle;
 
-  HAL_I2C_Mem_Read (hi2c, DevAddress, MemAddress, MemAddSize, pData, Size, Timeout)
-
   return PCF2131_OK;
 }
 
