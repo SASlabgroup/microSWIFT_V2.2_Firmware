@@ -8,30 +8,35 @@
 #include "ext_rtc.h"
 #include "pcf2131_reg.h"
 #include "spi.h"
+#include "gpio.h"
 
 static SPI_HandleTypeDef rtc_spi_bus = hspi1;
 
 static int32_t ext_rtc_spi_init ( void );
 static int32_t ext_rtc_spi_deinit ( void );
+static int32_t ext_rtc_read_reg_spi_blocking ( uint16_t bus_address, uint16_t reg_address,
+                                               uint8_t *read_data, uint16_t data_length );
+static int32_t ext_rtc_write_reg_spi_blocking ( uint16_t bus_address, uint16_t reg_address,
+                                                uint8_t *write_data, uint16_t data_length );
+static int32_t ext_rtc_read_reg_spi_dma ( uint16_t bus_address, uint16_t reg_address,
+                                          uint8_t *read_data, uint16_t data_length );
+static int32_t ext_rtc_write_reg_spi_dma ( uint16_t bus_address, uint16_t reg_address,
+                                           uint8_t *write_data, uint16_t data_length );
 static int32_t ext_rtc_get_access_lock ( void );
 static int32_t ext_rtc_release_access_lock ( void );
 
 /**
  * @brief Initialize the SPI bus if not already initialized.
  * @param  None
- * @retval ISM330DLC_OK
+ * @retval ext_rtc_return_code
  */
 static int32_t ext_rtc_spi_init ( void )
 {
-  int32_t retval = RTC_OK;
+  ext_rtc_return_code retval = RTC_OK;
 
   if ( !spi1_bus_init_status () )
   {
     retval = spi1_init ();
-
-    // Disable the half transfer interrupts
-    __HAL_DMA_DISABLE_IT(ACC_GYRO_SPI_TX_DMA_HANDLE, DMA_IT_HT);
-    __HAL_DMA_DISABLE_IT(ACC_GYRO_SPI_RX_DMA_HANDLE, DMA_IT_HT);
 
   }
 
@@ -41,9 +46,9 @@ static int32_t ext_rtc_spi_init ( void )
 /**
  * @brief Deinitialize the SPI bus if it has not already been.
  * @param  None
- * @retval ISM330DLC_OK
+ * @retval ext_rtc_return_code
  */
-static int32_t acc_gyro_spi_deinit ( void )
+static int32_t ext_rtc_spi_deinit ( void )
 {
   int32_t retval = RTC_OK;
 
@@ -57,31 +62,15 @@ static int32_t acc_gyro_spi_deinit ( void )
 }
 
 /**
- * @brief Remove and reapply power to sensor
- * @param  None
- * @retval ISM330DLC_OK
- */
-static int32_t acc_gyro_reset_sensor ( void )
-{
-  int32_t retval = ISM330DLC_OK;
-
-  HAL_GPIO_WritePin (ISM330_FET_GPIO_Port, ISM330_FET_Pin, GPIO_PIN_RESET);
-  rtc_usleep (50);
-  HAL_GPIO_WritePin (ISM330_FET_GPIO_Port, ISM330_FET_Pin, GPIO_PIN_SET);
-
-  return retval;
-}
-
-/**
  * @brief Blocking SPI read for the Sensor. CS pin handled within function.
  * @param  bus_address - Unused -- used when I2C is the interfacing bus
  * @param  reg_address - register address
  * @param  read_data - read data return pointer
  * @param  data_length - read data length in bytes
- * @retval ISM330DLC_OK if successful, ISM330DLC_ERROR otherwise.
+ * @retval ext_rtc_return_code
  */
-static int32_t acc_gyro_read_reg_spi_blocking ( uint16_t bus_address, uint16_t reg_address,
-                                                uint8_t *read_data, uint16_t data_length )
+static int32_t ext_rtc_read_reg_spi_blocking ( uint16_t bus_address, uint16_t reg_address,
+                                               uint8_t *read_data, uint16_t data_length )
 {
   (void) bus_address;
   int32_t retval = ISM330DLC_OK;
@@ -114,10 +103,10 @@ done:
  * @param  reg_address - register address
  * @param  write_data - write data buffer pointer
  * @param  data_length - write data length in bytes
- * @retval ISM330DLC_OK if successful, ISM330DLC_ERROR otherwise.
+ * @retval ext_rtc_return_code
  */
-static int32_t acc_gyro_write_reg_spi_blocking ( uint16_t bus_address, uint16_t reg_address,
-                                                 uint8_t *write_data, uint16_t data_length )
+static int32_t ext_rtc_write_reg_spi_blocking ( uint16_t bus_address, uint16_t reg_address,
+                                                uint8_t *write_data, uint16_t data_length )
 {
   (void) bus_address;
   int32_t retval = ISM330DLC_OK;
@@ -150,10 +139,10 @@ done:
  * @param  reg_address - register address
  * @param  read_data - read data return pointer
  * @param  data_length - read data length in bytes
- * @retval ISM330DLC_OK if successful, ISM330DLC_ERROR otherwise.
+ * @retval ext_rtc_return_code
  */
-static int32_t acc_gyro_read_reg_spi_dma ( uint16_t bus_address, uint16_t reg_address,
-                                           uint8_t *read_data, uint16_t data_length )
+static int32_t ext_rtc_read_reg_spi_dma ( uint16_t bus_address, uint16_t reg_address,
+                                          uint8_t *read_data, uint16_t data_length )
 {
   (void) bus_address;
   UINT ret;
@@ -200,10 +189,10 @@ done:
  * @param  reg_address - register address
  * @param  write_data - write data buffer pointer
  * @param  data_length - write data length in bytes
- * @retval ISM330DLC_OK if successful, ISM330DLC_ERROR otherwise.
+ * @retval ext_rtc_return_code
  */
-static int32_t acc_gyro_write_reg_spi_dma ( uint16_t bus_address, uint16_t reg_address,
-                                            uint8_t *write_data, uint16_t data_length )
+static int32_t ext_rtc_write_reg_spi_dma ( uint16_t bus_address, uint16_t reg_address,
+                                           uint8_t *write_data, uint16_t data_length )
 {
   (void) bus_address;
   UINT ret;

@@ -207,6 +207,8 @@ typedef struct
 /**************************************************************************************************/
 /*********************** Required read/ write functions to be implemented *************************/
 /**************************************************************************************************/
+typedef int32_t (*dev_init_ptr) ( void );
+typedef int32_t (*dev_deinit_ptr) ( void );
 //(handle, i2c addr, reg_addr, reg_data, data_size)
 typedef int32_t (*dev_write_ptr) ( void*, uint16_t, uint16_t, uint8_t*, uint16_t );
 //(handle, i2c_addr, reg_addr, reg_data, data_size)
@@ -218,6 +220,8 @@ typedef int32_t (*dev_read_ptr) ( void*, uint16_t, uint16_t, uint8_t*, uint16_t 
 typedef struct
 {
   /** Component mandatory fields **/
+  dev_init_ptr init;
+  dev_deinit_ptr deinit;
   dev_write_ptr bus_write;
   dev_read_ptr bus_read;
   /** Customizable optional pointer **/
@@ -1681,7 +1685,8 @@ typedef struct
 /*################################## Function Declarations #######################################*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
-int32_t pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_write_ptr bus_write_fn,
+int32_t pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_init_ptr init_fn,
+                                        dev_deinit_ptr deinit_fn, dev_write_ptr bus_write_fn,
                                         dev_read_ptr bus_read_fn, void *optional_handle );
 int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm *input_date_time );
 int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_time );

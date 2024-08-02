@@ -26,4 +26,6 @@ typedef struct
 
 extern testing_hooks tests;
 
+void tests_init ( void );
+
 #endif /* COMPONENTS_INC_TESTING_HOOKS_H_ */

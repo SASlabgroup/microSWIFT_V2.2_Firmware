@@ -31,7 +31,8 @@ typedef enum
 
 typedef struct
 {
-  void *placeholder;
+  dev_ctx_t dev_ctx;
+
 } ext_rtc;
 
 ext_rtc_return_code ext_rtc_init ( ext_rtc *struct_ptr, TX_MUTEX access_lock );
