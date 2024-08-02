@@ -128,16 +128,6 @@
 			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_rcc_ex.c</locationURI>
 		</link>
 		<link>
-			<name>Drivers/STM32U5xx_HAL_Driver/stm32u5xx_hal_sd.c</name>
-			<type>1</type>
-			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_sd.c</locationURI>
-		</link>
-		<link>
-			<name>Drivers/STM32U5xx_HAL_Driver/stm32u5xx_hal_sd_ex.c</name>
-			<type>1</type>
-			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_sd_ex.c</locationURI>
-		</link>
-		<link>
 			<name>Drivers/STM32U5xx_HAL_Driver/stm32u5xx_hal_spi.c</name>
 			<type>1</type>
 			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_spi.c</locationURI>
@@ -171,11 +161,6 @@
 			<name>Drivers/STM32U5xx_HAL_Driver/stm32u5xx_ll_dlyb.c</name>
 			<type>1</type>
 			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_dlyb.c</locationURI>
-		</link>
-		<link>
-			<name>Drivers/STM32U5xx_HAL_Driver/stm32u5xx_ll_sdmmc.c</name>
-			<type>1</type>
-			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_sdmmc.c</locationURI>
 		</link>
 		<link>
 			<name>Middlewares/FileX/Core/fx_directory_attributes_read.c</name>
@@ -1338,9 +1323,104 @@
 			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/filex/common/src/fxe_unicode_short_name_get_extended.c</locationURI>
 		</link>
 		<link>
-			<name>Middlewares/FileX/SD interface/fx_stm32_sd_driver.c</name>
+			<name>Middlewares/FileX/LevelX NOR interface/fx_stm32_levelx_nor_driver.c</name>
 			<type>1</type>
-			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/filex/common/drivers/fx_stm32_sd_driver.c</locationURI>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/filex/common/drivers/fx_stm32_levelx_nor_driver.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LevelX/NOR Flash Support/lx_nor_flash_block_reclaim.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/levelx/common/src/lx_nor_flash_block_reclaim.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LevelX/NOR Flash Support/lx_nor_flash_close.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/levelx/common/src/lx_nor_flash_close.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LevelX/NOR Flash Support/lx_nor_flash_defragment.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/levelx/common/src/lx_nor_flash_defragment.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LevelX/NOR Flash Support/lx_nor_flash_driver_block_erase.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/levelx/common/src/lx_nor_flash_driver_block_erase.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LevelX/NOR Flash Support/lx_nor_flash_driver_read.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/levelx/common/src/lx_nor_flash_driver_read.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LevelX/NOR Flash Support/lx_nor_flash_driver_write.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/levelx/common/src/lx_nor_flash_driver_write.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LevelX/NOR Flash Support/lx_nor_flash_extended_cache_enable.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/levelx/common/src/lx_nor_flash_extended_cache_enable.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LevelX/NOR Flash Support/lx_nor_flash_initialize.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/levelx/common/src/lx_nor_flash_initialize.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LevelX/NOR Flash Support/lx_nor_flash_logical_sector_find.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/levelx/common/src/lx_nor_flash_logical_sector_find.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LevelX/NOR Flash Support/lx_nor_flash_next_block_to_erase_find.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/levelx/common/src/lx_nor_flash_next_block_to_erase_find.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LevelX/NOR Flash Support/lx_nor_flash_open.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/levelx/common/src/lx_nor_flash_open.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LevelX/NOR Flash Support/lx_nor_flash_partial_defragment.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/levelx/common/src/lx_nor_flash_partial_defragment.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LevelX/NOR Flash Support/lx_nor_flash_physical_sector_allocate.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/levelx/common/src/lx_nor_flash_physical_sector_allocate.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LevelX/NOR Flash Support/lx_nor_flash_sector_mapping_cache_invalidate.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/levelx/common/src/lx_nor_flash_sector_mapping_cache_invalidate.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LevelX/NOR Flash Support/lx_nor_flash_sector_read.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/levelx/common/src/lx_nor_flash_sector_read.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LevelX/NOR Flash Support/lx_nor_flash_sector_release.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/levelx/common/src/lx_nor_flash_sector_release.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LevelX/NOR Flash Support/lx_nor_flash_sector_write.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/levelx/common/src/lx_nor_flash_sector_write.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LevelX/NOR Flash Support/lx_nor_flash_system_error.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/levelx/common/src/lx_nor_flash_system_error.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/LevelX/OctoSPI memory interface/lx_stm32_ospi_driver.c</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Middlewares/ST/levelx/common/drivers/lx_stm32_ospi_driver.c</locationURI>
 		</link>
 		<link>
 			<name>Middlewares/ThreadX/Core/tx_block_allocate.c</name>

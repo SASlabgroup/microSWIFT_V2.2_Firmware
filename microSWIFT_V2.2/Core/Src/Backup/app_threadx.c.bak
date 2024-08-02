@@ -86,6 +86,54 @@ void MX_ThreadX_Init(void)
   /* USER CODE END  Kernel_Start_Error */
 }
 
+/**
+  * @brief  App_ThreadX_LowPower_Timer_Setup
+  * @param  count : TX timer count
+  * @retval None
+  */
+void App_ThreadX_LowPower_Timer_Setup(ULONG count)
+{
+  /* USER CODE BEGIN  App_ThreadX_LowPower_Timer_Setup */
+
+  /* USER CODE END  App_ThreadX_LowPower_Timer_Setup */
+}
+
+/**
+  * @brief  App_ThreadX_LowPower_Enter
+  * @param  None
+  * @retval None
+  */
+void App_ThreadX_LowPower_Enter(void)
+{
+  /* USER CODE BEGIN  App_ThreadX_LowPower_Enter */
+
+  /* USER CODE END  App_ThreadX_LowPower_Enter */
+}
+
+/**
+  * @brief  App_ThreadX_LowPower_Exit
+  * @param  None
+  * @retval None
+  */
+void App_ThreadX_LowPower_Exit(void)
+{
+  /* USER CODE BEGIN  App_ThreadX_LowPower_Exit */
+
+  /* USER CODE END  App_ThreadX_LowPower_Exit */
+}
+
+/**
+  * @brief  App_ThreadX_LowPower_Timer_Adjust
+  * @param  None
+  * @retval Amount of time (in ticks)
+  */
+ULONG App_ThreadX_LowPower_Timer_Adjust(void)
+{
+  /* USER CODE BEGIN  App_ThreadX_LowPower_Timer_Adjust */
+  return 0;
+  /* USER CODE END  App_ThreadX_LowPower_Timer_Adjust */
+}
+
 /* USER CODE BEGIN 1 */
 
 /* USER CODE END 1 */

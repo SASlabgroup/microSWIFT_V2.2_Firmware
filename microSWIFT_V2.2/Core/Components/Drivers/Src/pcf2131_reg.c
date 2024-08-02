@@ -7,8 +7,7 @@
 
 #include "pcf2131_reg.h"
 
-static inline uint8_t dec_to_bcd ( uint8_t dec );
-static inline uint8_t bcd_to_dec ( uint8_t bcd );
+static uint8_t weekday_from_date ( int y, int m, int d );
 
 int32_t pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_write_ptr bus_write_fn,
                                         dev_read_ptr bus_read_fn, void *optional_handle )
@@ -23,42 +22,64 @@ int32_t pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_write_ptr bus
 int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm *input_date_time )
 {
   int32_t ret = PCF2131_OK;
-  uint8_t bcd_year = dec_to_bcd (input_date_time->tm_yday);
-  uint8_t bcd_month = dec_to_bcd (input_date_time->tm_mon);
-  uint8_t bcd_day = dec_to_bcd (input_date_time->tm_mday);
-  uint8_t bcd_hour = dec_to_bcd (input_date_time->tm_hour);
-  uint8_t bcd_min = dec_to_bcd (input_date_time->tm_min);
-  uint8_t bcd_sec = dec_to_bcd (input_date_time->tm_sec);
+  uint8_t bcd_year = dec_to_bcd[input_date_time->tm_year];
+  uint8_t bcd_month = dec_to_bcd[input_date_time->tm_mon];
+  uint8_t weekday =
+      (input_date_time->tm_wday == WEEKDAY_UNKNOWN) ?
+          weekday_from_date (input_date_time->tm_year, input_date_time->tm_mon,
+                             input_date_time->tm_mday) :
+          (uint8_t) input_date_time->tm_wday;
+  uint8_t bcd_day = dec_to_bcd[input_date_time->tm_mday];
+  uint8_t bcd_hour = dec_to_bcd[input_date_time->tm_hour];
+  uint8_t bcd_min = dec_to_bcd[input_date_time->tm_min];
+  uint8_t bcd_sec = dec_to_bcd[input_date_time->tm_sec];
   uint8_t bcd_sec_fraction = 0x00;
-  uint8_t weekday = (uint8_t) input_date_time->tm_wday;
+  uint8_t rtc_date_time[8] =
+    { bcd_sec_fraction, bcd_sec, bcd_min, bcd_hour, bcd_day, weekday, bcd_month, bcd_year };
+
   /*
-   • start an I2C access at register control_1
    • set STOP bit
    • set CPR (register SR_RESET, CPR is logic 1)
    • address counter rolls over to address 06h
    • set time (100th seconds, seconds to years)
-   • end I2C access
    • wait for external time reference to indicate that time counting should start
-   • start an I2C access at register control_1
    • clear STOP bit (time starts counting from now)
-   • end I2C access
    */
 
   ret = pcf2131_set_stop_bit (dev_handle);
 
   ret |= pcf2131_clear_prescalar (dev_handle);
 
-  //(handle, i2c addr, reg_addr, reg_data, data_size)
-  ret |= dev_handle->bus_write (dev_handle->handle, PCF2131_I2C_ADDR, YEARS_REG_ADDR, &bcd_year, 1);
+  ret |= dev_handle->bus_write (NULL, 0, ONE_100_SEC_REG_ADDR, &(rtc_date_time[0]),
+                                sizeof(rtc_date_time));
+
+  ret |= pcf2131_clear_stop_bit (dev_handle);
 
   return ret;
 }
 
-int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_time,
-                                weekday_t *return_weekday )
+int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_time )
 {
-  // TODO: need to ensure sequential read is happening in this function
+// TODO: need to ensure sequential read is happening in this function
   int32_t ret = PCF2131_OK;
+  pcf2131_reg_t time_date[8] =
+    { 0 };
+
+  ret = dev_handle->bus_read (NULL, 0, ONE_100_SEC_REG_ADDR, (uint8_t*) &(time_date[0]),
+                              sizeof(time_date));
+
+  return_date_time->tm_sec = bcd_to_dec[time_date[1].seconds.tens_place
+                                        | time_date[1].seconds.units_place];
+  return_date_time->tm_min = bcd_to_dec[time_date[2].minutes.tens_place
+                                        | time_date[2].minutes.units_place];
+  return_date_time->tm_hour = bcd_to_dec[time_date[3].hours.format_24hr.hours_tens_place
+                                         | time_date[3].hours.format_24hr.hours_units_place];
+  return_date_time->tm_mday = bcd_to_dec[time_date[4].days.tens_place
+                                         | time_date[4].days.units_place];
+  return_date_time->tm_wday = time_date[5].weekday.weekday;
+  return_date_time->tm_mon = bcd_to_dec[time_date[6].months.month];
+  return_date_time->tm_year = bcd_to_dec[time_date[7].years.tens_place
+                                         | time_date[7].years.units_place];
 
   return ret;
 }
@@ -297,12 +318,12 @@ int32_t pcf2131_set_watchdog_timer_value ( dev_ctx_t *dev_handle, uint8_t timer_
   return ret;
 }
 
-static inline uint8_t dec_to_bcd ( uint8_t dec )
+static uint8_t weekday_from_date ( int y, int m, int d )
 {
-  return ((dec / 10U) << 4U) | (dec % 10U);
-}
+  /* wikipedia.org/wiki/Determination_of_the_day_of_the_week#Implementation-dependent_methods */
+  uint8_t weekday = (uint8_t) ((d += m < 3 ?
+      y-- : y - 2, 23 * m / 9 + d + 4 + y / 4 - y / 100 + y / 400)
+                               % 7);
 
-static inline uint8_t bcd_to_dec ( uint8_t bcd )
-{
-  return bcd_to_dec[bcd];
+  return weekday;
 }

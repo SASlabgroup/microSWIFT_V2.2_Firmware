@@ -29,6 +29,8 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "fx_api.h"
 #include "fx_stm32_sd_driver.h"
+#include "fx_stm32_levelx_nor_driver.h"
+#include "lx_stm32_ospi_driver.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -89,6 +91,26 @@ UINT MX_FileX_Init(VOID *memory_ptr);
 /* fx sd Hidden sectors */
 #ifndef FX_SD_HIDDEN_SECTORS
   #define FX_SD_HIDDEN_SECTORS               0
+#endif
+
+/* fx nor_ospi volume name */
+#ifndef FX_NOR_OSPI_VOLUME_NAME
+  #define FX_NOR_OSPI_VOLUME_NAME "STM32_NOR_OSPI_FLASH_DISK"
+#endif
+
+/* fx nor_ospi number of bytes per sector */
+#ifndef FX_NOR_OSPI_SECTOR_SIZE
+  #define FX_NOR_OSPI_SECTOR_SIZE         512
+#endif
+
+/* fx nor_ospi number of FATs */
+#ifndef FX_NOR_OSPI_NUMBER_OF_FATS
+  #define FX_NOR_OSPI_NUMBER_OF_FATS        1
+#endif
+
+/* fx nor_ospi Hidden sectors */
+#ifndef FX_NOR_OSPI_HIDDEN_SECTORS
+  #define FX_NOR_OSPI_HIDDEN_SECTORS        0
 #endif
 
 /* USER CODE BEGIN PD */

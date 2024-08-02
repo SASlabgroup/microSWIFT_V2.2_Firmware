@@ -12,9 +12,11 @@ RM := rm -rf
 -include Middlewares/ThreadX/TraceX_Support/subdir.mk
 -include Middlewares/ThreadX/Low_Power_Support/subdir.mk
 -include Middlewares/ThreadX/Core/subdir.mk
--include Middlewares/FileX/SD\ interface/subdir.mk
+-include Middlewares/LevelX/OctoSPI\ memory\ interface/subdir.mk
+-include Middlewares/LevelX/NOR\ Flash\ Support/subdir.mk
+-include Middlewares/FileX/LevelX\ NOR\ interface/subdir.mk
 -include Middlewares/FileX/Core/subdir.mk
--include FileX/Target/subdir.mk
+-include LevelX/Target/subdir.mk
 -include FileX/App/subdir.mk
 -include Drivers/STM32U5xx_HAL_Driver/subdir.mk
 -include Core/ThreadSafe/subdir.mk

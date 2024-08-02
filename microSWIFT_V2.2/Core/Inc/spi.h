@@ -1,21 +1,21 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file    spi.h
-  * @brief   This file contains all the function prototypes for
-  *          the spi.c file
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2024 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file    spi.h
+ * @brief   This file contains all the function prototypes for
+ *          the spi.c file
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2024 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __SPI_H__
@@ -29,22 +29,36 @@ extern "C" {
 #include "main.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "stdbool.h"
 /* USER CODE END Includes */
 
 extern SPI_HandleTypeDef hspi1;
 
 extern SPI_HandleTypeDef hspi2;
 
-/* USER CODE BEGIN Private defines */
+extern SPI_HandleTypeDef hspi3;
 
+/* USER CODE BEGIN Private defines */
+#define SPI_OK 0
+#define SPI_ERROR -1
 /* USER CODE END Private defines */
 
-void MX_SPI1_Init(void);
-void MX_SPI2_Init(void);
+void MX_SPI1_Init ( void );
+void MX_SPI2_Init ( void );
+void MX_SPI3_Init ( void );
 
 /* USER CODE BEGIN Prototypes */
+int32_t spi1_init ( void );
+int32_t spi2_init ( void );
+int32_t spi3_init ( void );
 
+int32_t spi1_deinit ( void );
+int32_t spi2_deinit ( void );
+int32_t spi3_deinit ( void );
+
+bool spi1_bus_init_status ( void );
+bool spi2_bus_init_status ( void );
+bool spi3_bus_init_status ( void );
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

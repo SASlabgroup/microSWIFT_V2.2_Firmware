@@ -533,6 +533,7 @@ typedef struct
 /**************************************************************************************************/
 #define WEEKDAYS_REG_ADDR (0x0B)
 #define WEEKDAYS_REG_RESET_VAL (0b00000001)
+#define WEEKDAY_UNKNOWN (-1)
 
 typedef enum
 {
@@ -1589,6 +1590,7 @@ typedef union
   pcf2131_minutes_reg_t minutes;
   pcf2131_hours_reg_t hours;
   pcf2131_days_reg_t days;
+  pcf2131_weekdays_reg_t weekday;
   pcf2131_months_reg_t months;
   pcf2131_years_reg_t years;
   pcf2131_second_alarm_reg_t second_alarm;
@@ -1682,8 +1684,7 @@ typedef struct
 int32_t pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_write_ptr bus_write_fn,
                                         dev_read_ptr bus_read_fn, void *optional_handle );
 int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm *input_date_time );
-int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_time,
-                                weekday_t *return_weekday );
+int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_time );
 int32_t pcf2131_set_alarm ( dev_ctx_t *dev_handle, pcf2131_alarm_struct *alarm_setting );
 int32_t pcf2131_get_alarm ( dev_ctx_t *dev_handle, pcf2131_alarm_struct *return_alarm_setting );
 int32_t pcf2131_config_int_a ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config );
