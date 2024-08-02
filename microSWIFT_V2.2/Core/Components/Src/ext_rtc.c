@@ -10,7 +10,7 @@
 #include "spi.h"
 #include "gpio.h"
 
-static SPI_HandleTypeDef rtc_spi_bus = hspi1;
+static SPI_HandleTypeDef *rtc_spi_bus = &hspi1;
 
 static int32_t ext_rtc_spi_init ( void );
 static int32_t ext_rtc_spi_deinit ( void );
@@ -54,8 +54,7 @@ static int32_t ext_rtc_spi_deinit ( void )
 
   if ( spi1_bus_init_status () )
   {
-    retval = HAL_SPI_DeInit (acc_gyro_spi_bus);
-    spi_bus_init = false;
+    retval = spi1_deinit ();
   }
 
   return retval;
@@ -73,26 +72,22 @@ static int32_t ext_rtc_read_reg_spi_blocking ( uint16_t bus_address, uint16_t re
                                                uint8_t *read_data, uint16_t data_length )
 {
   (void) bus_address;
-  int32_t retval = ISM330DLC_OK;
-  uint8_t reg = (uint8_t) (reg_address | SPI_READ_BIT);
+  int32_t retval = RTC_OK;
+  uint8_t write_buf[RTC_SPI_BUF_SIZE] =
+    { 0 };
+  write_buf[0] = (uint8_t) (reg_address | PCF2131_SPI_READ_BIT);
 
-  HAL_GPIO_WritePin (ISM330_CS_GPIO_Port, ISM330_CS_Pin, GPIO_PIN_RESET);
+  assert(data_length <= sizeof(write_buffer));
 
-  if ( HAL_SPI_Transmit (acc_gyro_spi_bus, &reg, 1, 250) != HAL_OK )
+  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
+
+  if ( HAL_SPI_TransmitReceive (rtc_spi_bus, &reg, read_data, data_length, RTC_SPI_TIMEOUT)
+       != HAL_OK )
   {
-    retval = ISM330DLC_ERROR;
-    goto done;
+    retval = RTC_SPI_ERROR;
   }
 
-  if ( HAL_SPI_Receive (acc_gyro_spi_bus, read_data, data_length, 250) != HAL_OK )
-  {
-    retval = ISM330DLC_ERROR;
-    goto done;
-  }
-
-done:
-
-  HAL_GPIO_WritePin (ISM330_CS_GPIO_Port, ISM330_CS_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_SET);
 
   return retval;
 }
@@ -109,26 +104,23 @@ static int32_t ext_rtc_write_reg_spi_blocking ( uint16_t bus_address, uint16_t r
                                                 uint8_t *write_data, uint16_t data_length )
 {
   (void) bus_address;
-  int32_t retval = ISM330DLC_OK;
-  uint8_t buf[SPI_READ_BUFF_SIZE];
-  memset (&(buf[0]), 0, sizeof(buf));
+  int32_t retval = RTC_OK;
+  uint8_t write_buf[RTC_SPI_BUF_SIZE + 1] =
+    { 0 };
 
-  assert((data_length + 1) <= SPI_READ_BUFF_SIZE);
+  assert(data_length <= sizeof(write_buffer));
 
-  buf[0] = (uint8_t) reg_address;
+  write_buffer[0] = (uint8_t) reg_address;
   memcpy (&(buf[1]), write_data, data_length);
 
-  HAL_GPIO_WritePin (ISM330_CS_GPIO_Port, ISM330_CS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
 
-  if ( HAL_SPI_Transmit (acc_gyro_spi_bus, buf, data_length + 1, 250) != HAL_OK )
+  if ( HAL_SPI_Transmit (rtc_spi_bus, buf, data_length + 1, RTC_SPI_TIMEOUT) != HAL_OK )
   {
-    retval = ISM330DLC_ERROR;
-    goto done;
+    retval = RTC_SPI_ERROR;
   }
 
-done:
-
-  HAL_GPIO_WritePin (ISM330_CS_GPIO_Port, ISM330_CS_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_SET);
 
   return retval;
 }
@@ -145,40 +137,30 @@ static int32_t ext_rtc_read_reg_spi_dma ( uint16_t bus_address, uint16_t reg_add
                                           uint8_t *read_data, uint16_t data_length )
 {
   (void) bus_address;
-  UINT ret;
-  int32_t retval = ISM330DLC_OK;
-  uint8_t reg = (uint8_t) (reg_address | SPI_READ_BIT);
+  int32_t retval = RTC_OK;
+  uint8_t write_buf[RTC_SPI_BUF_SIZE] =
+    { 0 };
+  write_buf[0] = (uint8_t) (reg_address | PCF2131_SPI_READ_BIT);
 
-  HAL_GPIO_WritePin (ISM330_CS_GPIO_Port, ISM330_CS_Pin, GPIO_PIN_RESET);
+  assert(data_length <= sizeof(write_buffer));
 
-  if ( HAL_SPI_Transmit_DMA (acc_gyro_spi_bus, &reg, 1) != HAL_OK )
+  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
+
+  if ( HAL_SPI_TransmitReceive_DMA (rtc_spi_bus, &reg, read_data, data_length) != HAL_OK )
   {
-    retval = ISM330DLC_ERROR;
+    retval = RTC_SPI_ERROR;
     goto done;
   }
 
-  ret = tx_semaphore_get (&acc_gyro_spi_sema, MAX_SPI_TRANSFER_WAIT);
-  if ( ret != TX_SUCCESS )
+  if ( tx_semaphore_get (&ext_rtc_spi_sema, RTC_SPI_TIMEOUT) != TX_SUCCESS )
   {
-    retval = ISM330DLC_ERROR;
+    retval = RTC_SPI_ERROR;
     goto done;
-  }
-
-  if ( HAL_SPI_Receive_DMA (acc_gyro_spi_bus, read_data, data_length) != HAL_OK )
-  {
-    retval = ISM330DLC_ERROR;
-    goto done;
-  }
-
-  ret = tx_semaphore_get (&acc_gyro_spi_sema, MAX_SPI_TRANSFER_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    retval = ISM330DLC_ERROR;
   }
 
 done:
 
-  HAL_GPIO_WritePin (ISM330_CS_GPIO_Port, ISM330_CS_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_SET);
 
   return retval;
 }
@@ -195,33 +177,31 @@ static int32_t ext_rtc_write_reg_spi_dma ( uint16_t bus_address, uint16_t reg_ad
                                            uint8_t *write_data, uint16_t data_length )
 {
   (void) bus_address;
-  UINT ret;
-  int32_t retval = ISM330DLC_OK;
-  uint8_t buf[SPI_READ_BUFF_SIZE];
-  memset (&(buf[0]), 0, sizeof(buf));
+  int32_t retval = RTC_OK;
+  uint8_t write_buf[RTC_SPI_BUF_SIZE + 1] =
+    { 0 };
 
-  assert((data_length + 1) <= SPI_READ_BUFF_SIZE);
+  assert(data_length <= sizeof(write_buffer));
 
-  buf[0] = (uint8_t) reg_address;
+  write_buffer[0] = (uint8_t) reg_address;
   memcpy (&(buf[1]), write_data, data_length);
 
-  HAL_GPIO_WritePin (ISM330_CS_GPIO_Port, ISM330_CS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
 
-  if ( HAL_SPI_Transmit_DMA (acc_gyro_spi_bus, buf, data_length + 1) != HAL_OK )
+  if ( HAL_SPI_Transmit_DMA (rtc_spi_bus, buf, data_length + 1) != HAL_OK )
   {
-    retval = ISM330DLC_ERROR;
+    retval = RTC_SPI_ERROR;
     goto done;
   }
 
-  ret = tx_semaphore_get (&acc_gyro_spi_sema, MAX_SPI_TRANSFER_WAIT);
-  if ( ret != TX_SUCCESS )
+  if ( tx_semaphore_get (&ext_rtc_spi_sema, RTC_SPI_TIMEOUT) != TX_SUCCESS )
   {
-    retval = ISM330DLC_ERROR;
+    retval = RTC_SPI_ERROR;
   }
 
 done:
 
-  HAL_GPIO_WritePin (ISM330_CS_GPIO_Port, ISM330_CS_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_SET);
 
   return retval;
 }

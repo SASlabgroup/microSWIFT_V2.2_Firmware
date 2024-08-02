@@ -12,6 +12,9 @@
 #include "time.h"
 #include "pcf2131_reg.h"
 
+#define RTC_SPI_TIMEOUT 25
+#define RTC_SPI_BUF_SIZE 8
+
 typedef struct
 {
   struct tm date_time;
