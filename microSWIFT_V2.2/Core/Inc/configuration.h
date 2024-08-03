@@ -60,26 +60,14 @@
 // Determine whether or not the GNSS sensor should be set to high performance mode
 #define GNSS_HIGH_PERFORMANCE_MODE_ENABLED false
 
-// The number of samples for the CT sensor to take. Result will be averaged
-#define TOTAL_CT_SAMPLES 10
-
-// If the IMU will be utilized or not
-#define IMU_ENABLED false
-
 // If there is a CT sensor present
 #define CT_ENABLED false
 
+// The number of samples for the CT sensor to take. Result will be averaged
+#define TOTAL_CT_SAMPLES 10
+
 // If there is a Blue Robotics I2C temperature sensor presen
 #define TEMPERATURE_ENABLED true
-
-// If we are saving raw data to flash
-#define FLASH_STORAGE_ENABLED false
-
-// If true, will clear out flash memory on initial power up or hard reset.
-#define CLEAR_USER_FLASH false
-
-// If true, Type 99 messages will be transmitted indicating status of flash operation
-#define VERBOSE_FLASH false
 
 // Whether or not to use the Independent watchdog
 #define WATCHDOG_ENABLED true
