@@ -41,6 +41,10 @@ extern SPI_HandleTypeDef hspi3;
 /* USER CODE BEGIN Private defines */
 #define SPI_OK 0
 #define SPI_ERROR -1
+
+#define RTC_SPI SPI1
+#define AUX_SPI_1 SPI2
+#define AUX_SPI_2 SPI3
 /* USER CODE END Private defines */
 
 void MX_SPI1_Init ( void );

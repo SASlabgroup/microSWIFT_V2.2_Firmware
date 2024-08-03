@@ -20,7 +20,14 @@ static bool rtc_test ( void *unused );
 /**************************************************************************************************/
 void tests_init ( void )
 {
-  tests.main_test = rtc_test;
+  tests.main_test = NULL;
+  threadx_init_test = NULL;
+  startup_test = rtc_test;
+  gnss_thread_test = NULL;
+  ct_thread_test = NULL;
+  waves_thread_test = NULL;
+  iridium_thread_test = NULL;
+  shutdown_test = NULL;
 }
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
@@ -32,4 +39,6 @@ static bool rtc_test ( void *unused )
   ext_rtc rtc_struct;
 
   ret = ext_rtc_init (&rtc_struct, NULL);
+
+  return false;
 }
