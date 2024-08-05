@@ -6,7 +6,6 @@
  */
 
 #include "spi.h"
-#include "app_threadx.h"
 
 /**
  * @brief Tx Transfer completed callback.

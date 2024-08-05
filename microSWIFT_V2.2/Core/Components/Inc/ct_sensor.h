@@ -19,8 +19,7 @@
 #include "stdbool.h"
 #include "configuration.h"
 
-// 20,000 milliseconds -> 20 seconds
-#ifdef DBUG
+#ifdef DEBUG
 #define WARMUP_TIME 20
 #else
 #define WARMUP_TIME 20000

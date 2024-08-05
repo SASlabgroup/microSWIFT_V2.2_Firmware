@@ -47,9 +47,9 @@ extern SPI_HandleTypeDef hspi3;
 #define AUX_SPI_2 SPI3
 /* USER CODE END Private defines */
 
-void MX_SPI1_Init ( void );
-void MX_SPI2_Init ( void );
-void MX_SPI3_Init ( void );
+void MX_SPI1_Init(void);
+void MX_SPI2_Init(void);
+void MX_SPI3_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 int32_t spi1_init ( void );
