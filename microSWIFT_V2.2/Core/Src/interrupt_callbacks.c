@@ -73,3 +73,103 @@ void HAL_SPI_TxRxCpltCallback ( SPI_HandleTypeDef *hspi )
     (void) tx_semaphore_put (&aux_spi_2_spi_sema);
   }
 }
+
+/**
+ * @brief Tx Transfer completed callback.
+ * @param huart UART handle.
+ * @retval None
+ */
+void HAL_UART_TxCpltCallback ( UART_HandleTypeDef *huart )
+{
+  if ( huart->Instance == CT_UART )
+  {
+    (void) tx_semaphore_put (&ct_uart_sema);
+  }
+  else if ( huart->Instance == IRIDIUM_UART )
+  {
+    (void) tx_semaphore_put (&iridium_uart_sema);
+  }
+  else if ( huart->Instance == GNSS_UART )
+  {
+    (void) tx_semaphore_put (&gnss_uart_sema);
+  }
+  else if ( huart->Instance == AUX_UART_1 )
+  {
+    (void) tx_semaphore_put (&aux_uart_1_sema);
+  }
+  else if ( huart->Instance == AUX_UART_2 )
+  {
+    (void) tx_semaphore_put (&aux_uart_2_sema);
+  }
+}
+
+/**
+ * @brief  Rx Transfer completed callback.
+ * @param  huart UART handle.
+ * @retval None
+ */
+void HAL_UART_RxCpltCallback ( UART_HandleTypeDef *huart )
+{
+  if ( huart->Instance == CT_UART )
+  {
+    (void) tx_semaphore_put (&ct_uart_sema);
+  }
+  else if ( huart->Instance == IRIDIUM_UART )
+  {
+    (void) tx_semaphore_put (&iridium_uart_sema);
+  }
+  else if ( huart->Instance == GNSS_UART )
+  {
+    (void) tx_semaphore_put (&gnss_uart_sema);
+  }
+  else if ( huart->Instance == AUX_UART_1 )
+  {
+    (void) tx_semaphore_put (&aux_uart_1_sema);
+  }
+  else if ( huart->Instance == AUX_UART_2 )
+  {
+    (void) tx_semaphore_put (&aux_uart_2_sema);
+  }
+}
+
+/**
+ * @brief  UART error callback.
+ * @param  huart UART handle.
+ * @retval None
+ */
+void HAL_UART_ErrorCallback ( UART_HandleTypeDef *huart )
+{
+  UNUSED(huart);
+  // TODO: Add a call to set an error flag here?
+}
+
+/**
+ * @brief  Reception Event Callback (Rx event notification called after use of advanced reception service).
+ * @param  huart UART handle
+ * @param  Size  Number of data available in application reception buffer (indicates a position in
+ *               reception buffer until which, data are available)
+ * @retval None
+ */
+void HAL_UARTEx_RxEventCallback ( UART_HandleTypeDef *huart, uint16_t Size )
+{
+  if ( huart->Instance == CT_UART )
+  {
+    (void) tx_semaphore_put (&ct_uart_sema);
+  }
+  else if ( huart->Instance == IRIDIUM_UART )
+  {
+    (void) tx_semaphore_put (&iridium_uart_sema);
+  }
+  else if ( huart->Instance == GNSS_UART )
+  {
+    (void) tx_semaphore_put (&gnss_uart_sema);
+  }
+  else if ( huart->Instance == AUX_UART_1 )
+  {
+    (void) tx_semaphore_put (&aux_uart_1_sema);
+  }
+  else if ( huart->Instance == AUX_UART_2 )
+  {
+    (void) tx_semaphore_put (&aux_uart_2_sema);
+  }
+}
