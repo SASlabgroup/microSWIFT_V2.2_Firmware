@@ -8,22 +8,19 @@
 #include "generic_uart_driver.h"
 
 int32_t generic_uart_init ( generic_uart_driver *driver_ptr, UART_HandleTypeDef *uart_handle,
-                            TX_SEMAPHORE *uart_sema, init_fn init )
+                            TX_SEMAPHORE *uart_sema, init_fn init, deinit_fn deinit )
 {
   driver_ptr->uart_handle = uart_handle;
   driver_ptr->uart_sema = uart_sema;
+  driver_ptr->init = init;
+  driver_ptr->deinit = deinit;
 
-  return init ();
+  return driver_ptr->init ();
 }
 
 int32_t generic_uart_deinit ( generic_uart_driver *driver_ptr )
 {
-  if ( HAL_UART_DeInit (driver_ptr->uart_handle) != HAL_OK )
-  {
-    return UART_ERROR;
-  }
-
-  return UART_OK;
+  return driver_ptr->deinit ();
 }
 
 int32_t generic_uart_read ( generic_uart_driver *driver_ptr, uint8_t *read_buf, uint16_t size,

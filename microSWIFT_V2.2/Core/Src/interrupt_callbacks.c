@@ -7,6 +7,7 @@
 
 #include "spi.h"
 #include "app_threadx.h"
+#include "usart.h"
 
 /**
  * @brief Tx Transfer completed callback.

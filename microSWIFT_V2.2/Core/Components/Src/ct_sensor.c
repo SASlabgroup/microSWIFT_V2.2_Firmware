@@ -14,7 +14,7 @@ static ct_error_code_t ct_parse_sample ( void );
 static ct_error_code_t ct_get_averages ( void );
 static void ct_on_off ( GPIO_PinState pin_state );
 static ct_error_code_t ct_self_test ( bool add_warmup_time );
-static ct_error_code_t reset_ct_uart ( uint16_t baud_rate );
+static ct_error_code_t reset_ct_uart ( void );
 
 // Helper functions
 static void reset_ct_struct_fields ( void );
@@ -28,18 +28,16 @@ static const char *salinity_units = "PSU";
  *
  * @return void
  */
-void ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
-               UART_HandleTypeDef *ct_uart_handle, DMA_HandleTypeDef *ct_dma_handle,
-               TX_EVENT_FLAGS_GROUP *control_flags, TX_EVENT_FLAGS_GROUP *error_flags,
-               char *data_buf, ct_samples *samples_buf )
+ct_error_code_t ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
+                          UART_HandleTypeDef *ct_uart_handle, DMA_HandleTypeDef *ct_dma_handle,
+                          TX_EVENT_FLAGS_GROUP *control_flags, TX_EVENT_FLAGS_GROUP *error_flags,
+                          char *data_buf, ct_samples *samples_buf )
 {
   // Assign object pointer
   self = struct_ptr;
 
   reset_ct_struct_fields ();
   self->global_config = global_config;
-  self->ct_uart_handle = ct_uart_handle;
-  self->ct_dma_handle = ct_dma_handle;
   self->control_flags = control_flags;
   self->error_flags = error_flags;
   self->data_buf = data_buf;
@@ -52,6 +50,8 @@ void ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
   // zero out the buffer
   memset (&(self->data_buf[0]), 0, CT_DATA_ARRAY_SIZE);
   memset (&(self->samples_buf[0]), 0, self->global_config->total_ct_samples * sizeof(ct_samples));
+
+  return generic_uart_init (&self->uart_driver, &huart5, &ct_uart_sema, uart5_init, uart5_deinit);
 }
 
 /**
@@ -78,19 +78,13 @@ static ct_error_code_t ct_parse_sample ( void )
 
   while ( ++fail_counter < MAX_RETRIES )
   {
-    reset_ct_uart (CT_DEFAULT_BAUD_RATE);
-    HAL_Delay (1);
-    HAL_UART_Receive_DMA (self->ct_uart_handle, (uint8_t*) &(self->data_buf[0]),
-    CT_DATA_ARRAY_SIZE);
-    // Disable half transfer interrupt
-    __HAL_DMA_DISABLE_IT(self->ct_dma_handle, DMA_IT_HT);
-    // See if we got the message, otherwise retry
-    if ( tx_event_flags_get (self->control_flags, CT_MSG_RECVD, TX_OR_CLEAR, &actual_flags,
-                             required_ticks_to_get_message)
-         != TX_SUCCESS )
+
+    if ( generic_uart_read (&self->uart_driver, (uint8_t*) &(self->data_buf[0]),
+    CT_DATA_ARRAY_SIZE,
+                            required_ticks_to_get_message)
+         != UART_OK )
     {
-      // If we didn't get a sample inside of required_ticks_to_get_message
-      // time, then something is wrong with the sensor. We'll still try again.
+      self->reset_ct_uart ();
       return_code = CT_UART_ERROR;
       continue;
     }
@@ -191,33 +185,16 @@ static ct_error_code_t ct_self_test ( bool add_warmup_time )
   int required_ticks_to_get_message = TX_TIMER_TICKS_PER_SECOND * 3;
 
   self->on_off (GPIO_PIN_SET);
-  self->reset_ct_uart (CT_DEFAULT_BAUD_RATE);
 
   start_time = HAL_GetTick ();
 
-  if ( HAL_UART_Receive_DMA (self->ct_uart_handle, (uint8_t*) &(self->data_buf[0]),
-  CT_DATA_ARRAY_SIZE)
-       != HAL_OK )
+  if ( generic_uart_read (&self->uart_driver, (uint8_t*) &(self->data_buf[0]), CT_DATA_ARRAY_SIZE,
+                          required_ticks_to_get_message)
+       != UART_OK )
   {
-
-    reset_ct_uart (CT_DEFAULT_BAUD_RATE);
-
+    self->reset_ct_uart ();
     return_code = CT_UART_ERROR;
-    return return_code;
-
-  }
-  // Disable half-transfer interrupt
-  __HAL_DMA_DISABLE_IT(self->ct_dma_handle, DMA_IT_HT);
-
-  if ( tx_event_flags_get (self->control_flags, CT_MSG_RECVD, TX_OR_CLEAR, &actual_flags,
-                           required_ticks_to_get_message)
-       != TX_SUCCESS )
-  {
-
-    HAL_UART_DMAStop (self->ct_uart_handle);
-    reset_ct_uart (CT_DEFAULT_BAUD_RATE);
-
-    return_code = CT_UART_ERROR;
+    self->reset_ct_uart ();
     return return_code;
   }
 
@@ -283,45 +260,16 @@ static ct_error_code_t ct_self_test ( bool add_warmup_time )
  * @param self - GNSS struct
  * @param baud_rate - baud rate to set port to
  */
-static ct_error_code_t reset_ct_uart ( uint16_t baud_rate )
+static ct_error_code_t reset_ct_uart ( void )
 {
-
-  if ( HAL_UART_DeInit (self->ct_uart_handle) != HAL_OK )
+  if ( !self->uart_driver.deinit () )
   {
     return CT_UART_ERROR;
   }
 
-  self->ct_uart_handle->Instance = self->ct_uart_handle->Instance;
-  self->ct_uart_handle->Init.BaudRate = baud_rate;
-  self->ct_uart_handle->Init.WordLength = UART_WORDLENGTH_8B;
-  self->ct_uart_handle->Init.StopBits = UART_STOPBITS_1;
-  self->ct_uart_handle->Init.Parity = UART_PARITY_NONE;
-  self->ct_uart_handle->Init.Mode = UART_MODE_TX_RX;
-  self->ct_uart_handle->Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  self->ct_uart_handle->Init.OverSampling = UART_OVERSAMPLING_16;
-  self->ct_uart_handle->Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  self->ct_uart_handle->Init.ClockPrescaler = UART_PRESCALER_DIV1;
-  self->ct_uart_handle->AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if ( HAL_UART_Init (self->ct_uart_handle) != HAL_OK )
-  {
-    return CT_UART_ERROR;
-  }
-  if ( HAL_UARTEx_SetTxFifoThreshold (self->ct_uart_handle, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK )
-  {
-    return CT_UART_ERROR;
-  }
-  if ( HAL_UARTEx_SetRxFifoThreshold (self->ct_uart_handle, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK )
-  {
-    return CT_UART_ERROR;
-  }
-  if ( HAL_UARTEx_DisableFifoMode (self->ct_uart_handle) != HAL_OK )
-  {
-    return CT_UART_ERROR;
-  }
+  tx_thread_sleep (1);
 
-  LL_DMA_ResetChannel (GPDMA1, LL_DMA_CHANNEL_1);
-
-  return CT_SUCCESS;
+  return self->uart_driver.init ();
 }
 
 static void reset_ct_struct_fields ( void )

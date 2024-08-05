@@ -11,6 +11,7 @@
 #include "app_threadx.h"
 #include "tx_api.h"
 #include "main.h"
+#include "generic_uart_driver.h"
 #include "stdint.h"
 #include "string.h"
 #include "stm32u5xx_hal.h"
@@ -19,7 +20,7 @@
 #include "stdbool.h"
 #include "configuration.h"
 
-#ifdef DEBUG
+#ifdef DEBUGGING_FAST_CYCLE
 #define WARMUP_TIME 20
 #else
 #define WARMUP_TIME 20000
@@ -54,9 +55,7 @@ typedef struct CT
 {
   // Our global configuration struct
   microSWIFT_configuration *global_config;
-  // The UART and DMA handle for the GNSS interface
-  UART_HandleTypeDef *ct_uart_handle;
-  DMA_HandleTypeDef *ct_dma_handle;
+  generic_uart_driver uart_driver;
   // Event flags
   TX_EVENT_FLAGS_GROUP *control_flags;
   TX_EVENT_FLAGS_GROUP *error_flags;
@@ -72,12 +71,12 @@ typedef struct CT
   ct_error_code_t (*get_averages) ( void );
   void (*on_off) ( GPIO_PinState pin_state );
   ct_error_code_t (*self_test) ( bool add_warmup_time );
-  ct_error_code_t (*reset_ct_uart) ( uint16_t baud_rate );
+  ct_error_code_t (*reset_ct_uart) ( void );
 } CT;
 
-void ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
-               UART_HandleTypeDef *ct_uart_handle, DMA_HandleTypeDef *ct_dma_handle,
-               TX_EVENT_FLAGS_GROUP *control_flags, TX_EVENT_FLAGS_GROUP *error_flags,
-               char *data_buf, ct_samples *samples_buf );
+ct_error_code_t ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
+                          UART_HandleTypeDef *ct_uart_handle, DMA_HandleTypeDef *ct_dma_handle,
+                          TX_EVENT_FLAGS_GROUP *control_flags, TX_EVENT_FLAGS_GROUP *error_flags,
+                          char *data_buf, ct_samples *samples_buf );
 
 #endif /* SRC_CT_H_ */
