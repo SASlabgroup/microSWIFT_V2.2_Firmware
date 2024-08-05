@@ -38,7 +38,7 @@ typedef struct
 
 } ext_rtc;
 
-ext_rtc_return_code ext_rtc_init ( ext_rtc *struct_ptr, TX_MUTEX access_lock );
+ext_rtc_return_code ext_rtc_init ( ext_rtc *struct_ptr, TX_MUTEX *access_lock );
 ext_rtc_return_code ext_rtc_config_watchdog ( ext_rtc *struct_ptr, uint32_t period_ms );
 ext_rtc_return_code ext_rtc_refresh_watchdog ( ext_rtc *struct_ptr );
 ext_rtc_return_code ext_rtc_set_date_time ( ext_rtc *struct_ptr,

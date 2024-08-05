@@ -9,6 +9,7 @@
 #include "pcf2131_reg.h"
 #include "spi.h"
 #include "gpio.h"
+#include "app_threadx.h"
 
 static SPI_HandleTypeDef *rtc_spi_bus = &hspi1;
 
@@ -34,7 +35,7 @@ static int32_t ext_rtc_spi_init ( void )
 {
   ext_rtc_return_code retval = RTC_OK;
 
-  if ( !spi1_bus_init_status () )
+  if ( !spi_bus_init_status (rtc_spi_bus->Instance) )
   {
     retval = spi1_init ();
 
@@ -52,7 +53,7 @@ static int32_t ext_rtc_spi_deinit ( void )
 {
   int32_t retval = RTC_OK;
 
-  if ( spi1_bus_init_status () )
+  if ( spi_bus_init_status (rtc_spi_bus->Instance) )
   {
     retval = spi1_deinit ();
   }
@@ -77,11 +78,12 @@ static int32_t ext_rtc_read_reg_spi_blocking ( uint16_t bus_address, uint16_t re
     { 0 };
   write_buf[0] = (uint8_t) (reg_address | PCF2131_SPI_READ_BIT);
 
-  assert(data_length <= sizeof(write_buffer));
+  assert(data_length <= sizeof(write_buf));
 
   HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
 
-  if ( HAL_SPI_TransmitReceive (rtc_spi_bus, &reg, read_data, data_length, RTC_SPI_TIMEOUT)
+  if ( HAL_SPI_TransmitReceive (rtc_spi_bus, &(write_buf[0]), read_data, data_length,
+  RTC_SPI_TIMEOUT)
        != HAL_OK )
   {
     retval = RTC_SPI_ERROR;
@@ -108,14 +110,14 @@ static int32_t ext_rtc_write_reg_spi_blocking ( uint16_t bus_address, uint16_t r
   uint8_t write_buf[RTC_SPI_BUF_SIZE + 1] =
     { 0 };
 
-  assert(data_length <= sizeof(write_buffer));
+  assert(data_length <= sizeof(write_buf));
 
-  write_buffer[0] = (uint8_t) reg_address;
-  memcpy (&(buf[1]), write_data, data_length);
+  write_buf[0] = (uint8_t) reg_address;
+  memcpy (&(write_buf[1]), write_data, data_length);
 
   HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
 
-  if ( HAL_SPI_Transmit (rtc_spi_bus, buf, data_length + 1, RTC_SPI_TIMEOUT) != HAL_OK )
+  if ( HAL_SPI_Transmit (rtc_spi_bus, write_buf, data_length + 1, RTC_SPI_TIMEOUT) != HAL_OK )
   {
     retval = RTC_SPI_ERROR;
   }
@@ -142,11 +144,11 @@ static int32_t ext_rtc_read_reg_spi_dma ( uint16_t bus_address, uint16_t reg_add
     { 0 };
   write_buf[0] = (uint8_t) (reg_address | PCF2131_SPI_READ_BIT);
 
-  assert(data_length <= sizeof(write_buffer));
+  assert(data_length <= sizeof(write_buf));
 
   HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
 
-  if ( HAL_SPI_TransmitReceive_DMA (rtc_spi_bus, &reg, read_data, data_length) != HAL_OK )
+  if ( HAL_SPI_TransmitReceive_DMA (rtc_spi_bus, write_buf, read_data, data_length) != HAL_OK )
   {
     retval = RTC_SPI_ERROR;
     goto done;
@@ -181,14 +183,14 @@ static int32_t ext_rtc_write_reg_spi_dma ( uint16_t bus_address, uint16_t reg_ad
   uint8_t write_buf[RTC_SPI_BUF_SIZE + 1] =
     { 0 };
 
-  assert(data_length <= sizeof(write_buffer));
+  assert(data_length <= sizeof(write_buf));
 
-  write_buffer[0] = (uint8_t) reg_address;
-  memcpy (&(buf[1]), write_data, data_length);
+  write_buf[0] = (uint8_t) reg_address;
+  memcpy (&(write_buf[1]), write_data, data_length);
 
   HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
 
-  if ( HAL_SPI_Transmit_DMA (rtc_spi_bus, buf, data_length + 1) != HAL_OK )
+  if ( HAL_SPI_Transmit_DMA (rtc_spi_bus, write_buf, data_length + 1) != HAL_OK )
   {
     retval = RTC_SPI_ERROR;
     goto done;

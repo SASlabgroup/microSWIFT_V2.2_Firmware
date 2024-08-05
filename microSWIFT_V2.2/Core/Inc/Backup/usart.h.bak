@@ -1,21 +1,21 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file    usart.h
-  * @brief   This file contains all the function prototypes for
-  *          the usart.c file
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2024 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file    usart.h
+ * @brief   This file contains all the function prototypes for
+ *          the usart.c file
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2024 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __USART_H__
@@ -27,9 +27,17 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "stdbool.h"
 
 /* USER CODE BEGIN Includes */
+#define UART_OK 0
+#define UART_ERROR -1
 
+#define CT_UART UART4
+#define IRIDIUM_UART UART5
+#define GNSS_UART USART1
+#define AUX_UART_1 USART2
+#define AUX_UART_2 USART3
 /* USER CODE END Includes */
 
 extern UART_HandleTypeDef huart4;
@@ -46,14 +54,26 @@ extern UART_HandleTypeDef huart3;
 
 /* USER CODE END Private defines */
 
-void MX_UART4_Init(void);
-void MX_UART5_Init(void);
-void MX_USART1_UART_Init(void);
-void MX_USART2_UART_Init(void);
-void MX_USART3_UART_Init(void);
+void MX_UART4_Init ( void );
+void MX_UART5_Init ( void );
+void MX_USART1_UART_Init ( void );
+void MX_USART2_UART_Init ( void );
+void MX_USART3_UART_Init ( void );
 
 /* USER CODE BEGIN Prototypes */
+int32_t uart4_init ( void );
+int32_t uart5_init ( void );
+int32_t usart1_init ( void );
+int32_t usart2_init ( void );
+int32_t usart3_init ( void );
 
+int32_t uart4_deinit ( void );
+int32_t uart5_deinit ( void );
+int32_t usart1_deinit ( void );
+int32_t usart2_deinit ( void );
+int32_t usart3_deinit ( void );
+
+bool uart_init_status ( USART_TypeDef *instance );
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

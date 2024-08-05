@@ -27,7 +27,6 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "stdbool.h"
 
 /* USER CODE BEGIN Includes */
 #define UART_OK 0
@@ -54,11 +53,11 @@ extern UART_HandleTypeDef huart3;
 
 /* USER CODE END Private defines */
 
-void MX_UART4_Init ( void );
-void MX_UART5_Init ( void );
-void MX_USART1_UART_Init ( void );
-void MX_USART2_UART_Init ( void );
-void MX_USART3_UART_Init ( void );
+void MX_UART4_Init(void);
+void MX_UART5_Init(void);
+void MX_USART1_UART_Init(void);
+void MX_USART2_UART_Init(void);
+void MX_USART3_UART_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 int32_t uart4_init ( void );

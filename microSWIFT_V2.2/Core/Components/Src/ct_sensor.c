@@ -61,7 +61,6 @@ ct_error_code_t ct_init ( CT *struct_ptr, microSWIFT_configuration *global_confi
  */
 static ct_error_code_t ct_parse_sample ( void )
 {
-  ULONG actual_flags;
   ct_error_code_t return_code = CT_SUCCESS;
   int fail_counter = 0;
   double temperature, salinity;
@@ -176,7 +175,6 @@ static void ct_on_off ( GPIO_PinState pin_state )
  */
 static ct_error_code_t ct_self_test ( bool add_warmup_time )
 {
-  ULONG actual_flags;
   ct_error_code_t return_code;
   uint32_t elapsed_time, start_time;
   double temperature, salinity;

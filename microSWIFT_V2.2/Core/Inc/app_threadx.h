@@ -121,6 +121,7 @@ extern TX_SEMAPHORE gnss_uart_sema;
 extern TX_SEMAPHORE aux_uart_1_sema;
 extern TX_SEMAPHORE aux_uart_2_sema;
 extern TX_SEMAPHORE sd_card_sema;
+extern TX_MUTEX rtc_lock;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -158,6 +159,7 @@ extern TX_SEMAPHORE sd_card_sema;
 
 /* Exported functions prototypes ---------------------------------------------*/
 UINT App_ThreadX_Init ( VOID *memory_ptr );
+void MX_ThreadX_Init ( void );
 
 /* USER CODE BEGIN EFP */
 void MX_ThreadX_Init ( void );

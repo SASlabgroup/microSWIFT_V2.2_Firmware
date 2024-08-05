@@ -256,17 +256,25 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* i2cHandle)
       Error_Handler();
     }
 
+    __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_GPIOG_CLK_ENABLE();
     /**I2C3 GPIO Configuration
+    PC1     ------> I2C3_SDA
     PG7     ------> I2C3_SCL
-    PG8     ------> I2C3_SDA
     */
-    GPIO_InitStruct.Pin = AUX_I2C_2_SCL_Pin|AUX_I2C_2_SDA_Pin;
+    GPIO_InitStruct.Pin = AUX_I2C_2_SDA_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF4_I2C3;
-    HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
+    HAL_GPIO_Init(AUX_I2C_2_SDA_GPIO_Port, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = AUX_I2C_2_SCL_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF4_I2C3;
+    HAL_GPIO_Init(AUX_I2C_2_SCL_GPIO_Port, &GPIO_InitStruct);
 
     /* I2C3 clock enable */
     __HAL_RCC_I2C3_CLK_ENABLE();
@@ -340,12 +348,12 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle)
     __HAL_RCC_I2C3_CLK_DISABLE();
 
     /**I2C3 GPIO Configuration
+    PC1     ------> I2C3_SDA
     PG7     ------> I2C3_SCL
-    PG8     ------> I2C3_SDA
     */
-    HAL_GPIO_DeInit(AUX_I2C_2_SCL_GPIO_Port, AUX_I2C_2_SCL_Pin);
-
     HAL_GPIO_DeInit(AUX_I2C_2_SDA_GPIO_Port, AUX_I2C_2_SDA_Pin);
+
+    HAL_GPIO_DeInit(AUX_I2C_2_SCL_GPIO_Port, AUX_I2C_2_SCL_Pin);
 
     /* I2C3 interrupt Deinit */
     HAL_NVIC_DisableIRQ(I2C3_EV_IRQn);

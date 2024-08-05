@@ -26,6 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "main.h"
+#inclde "stddef.h"
 #include <math.h>
 #include "stm32u5xx_hal.h"
 #include "stm32u5xx_ll_dma.h"
@@ -36,7 +37,6 @@
 #include "battery.h"
 #include "ct_sensor.h"
 #include "rf_switch.h"
-#include "imu.h"
 #include "iridium.h"
 #include "temp_sensor.h"
 #include "NEDWaves/mem_replacements.h"
@@ -111,6 +111,8 @@ TX_SEMAPHORE gnss_uart_sema;
 TX_SEMAPHORE aux_uart_1_sema;
 TX_SEMAPHORE aux_uart_2_sema;
 TX_SEMAPHORE sd_card_sema;
+// Access lock for the RTC
+TX_MUTEX rtc_lock;
 // The data structures for Waves
 emxArray_real32_T *north;
 emxArray_real32_T *east;
@@ -1622,178 +1624,6 @@ void end_of_cycle_thread_entry ( ULONG thread_input )
 
   tx_event_flags_set (&thread_control_flags, FULL_CYCLE_COMPLETE, TX_OR);
   tx_thread_terminate (&end_of_cycle_thread);
-}
-
-void HAL_UARTEx_RxEventCallback ( UART_HandleTypeDef *huart, uint16_t Size )
-{
-  if ( huart->Instance == gnss->gnss_uart_handle->Instance )
-  {
-    if ( Size < UBX_NAV_PVT_MESSAGE_LENGTH )
-    {
-      gnss->get_running_average_velocities ();
-      tx_event_flags_set (&thread_control_flags, GNSS_MSG_INCOMPLETE, TX_OR);
-    }
-    else
-    {
-      memcpy (&(gnss->ubx_process_buf[0]), &(ubx_DMA_message_buf[0]), UBX_MESSAGE_SIZE);
-      tx_event_flags_set (&thread_control_flags, GNSS_MSG_RECEIVED, TX_OR);
-    }
-  }
-}
-
-/**
- * @brief  UART ISR callback
- *
- * @param  UART_HandleTypeDef *huart - pointer to the UART handle
-
- * @retval void
- */
-void HAL_UART_RxCpltCallback ( UART_HandleTypeDef *huart )
-{
-  // Context is saved/restored in upstream Interrupt call chain
-  if ( huart->Instance == gnss->gnss_uart_handle->Instance )
-  {
-    if ( !gnss->is_configured )
-    {
-
-      tx_event_flags_set (&thread_control_flags, GNSS_CONFIG_RECVD, TX_OR);
-
-    }
-    else
-    {
-      memcpy (&(gnss->ubx_process_buf[0]), &(ubx_DMA_message_buf[0]), UBX_MESSAGE_SIZE);
-      tx_event_flags_set (&thread_control_flags, GNSS_MSG_RECEIVED, TX_OR);
-    }
-  }
-
-  // CT sensor
-#if CT_ENABLED
-        else if (huart->Instance == ct->ct_uart_handle->Instance) {
-                tx_event_flags_set(&thread_control_flags, CT_MSG_RECVD, TX_OR);
-        }
-#endif
-
-  // Iridium modem
-  else if ( huart->Instance == iridium->iridium_uart_handle->Instance )
-  {
-    tx_event_flags_set (&thread_control_flags, IRIDIUM_MSG_RECVD, TX_OR);
-  }
-}
-
-void HAL_UART_TxCpltCallback ( UART_HandleTypeDef *huart )
-{
-  if ( huart->Instance == gnss->gnss_uart_handle->Instance )
-  {
-    tx_event_flags_set (&thread_control_flags, GNSS_TX_COMPLETE, TX_OR);
-  }
-  else if ( huart->Instance == iridium->iridium_uart_handle->Instance )
-  {
-    tx_event_flags_set (&thread_control_flags, IRIDIUM_TX_COMPLETE, TX_OR);
-  }
-}
-
-/**
- * @brief  Period elapsed callback in non blocking mode
- * @note   This function is called  when TIM16 interrupt took place, inside
- * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
- * a global variable "uwTick" used as application time base.
- *
- * @param  htim : TIM handle
- * @retval None
- */
-void HAL_TIM_PeriodElapsedCallback ( TIM_HandleTypeDef *htim )
-{
-  // High frequency, low overhead ISR, no need to save/restore context
-  if ( htim->Instance == TIM4 )
-  {
-    HAL_IncTick ();
-  }
-  else if ( htim->Instance == TIM17 )
-  {
-    iridium->timer_timeout = true;
-  }
-  else if ( htim->Instance == TIM16 )
-  {
-    gnss->timer_timeout = true;
-  }
-  else if ( htim->Instance == TIM15 )
-  {
-    watchdog_hour_timer_elapsed = true;
-  }
-}
-
-/**
- * @brief  RTC alarm interrupt callback
- *
- * @param  hrtc : RTC handle
- * @retval None
- */
-void HAL_RTC_AlarmAEventCallback ( RTC_HandleTypeDef *hrtc )
-{
-  // Low overhead ISR does not require save/restore context
-  // Clear the alarm flag, flash an LED in debug mode
-  HAL_PWR_EnableBkUpAccess ();
-  __HAL_RTC_ALARM_CLEAR_FLAG (hrtc, RTC_CLEAR_ALRAF);
-  // Clear the Wake-up timer flag too (Errata 2.2.4)
-  __HAL_RTC_WAKEUPTIMER_CLEAR_FLAG (hrtc, RTC_CLEAR_WUTF);
-
-}
-
-/**
- * @brief  Independent watchdog early wakeup callback
- *
- * @param  hiwdg : IWDG handle
- * @retval None
- */
-void HAL_IWDG_EarlyWakeupCallback ( IWDG_HandleTypeDef *hiwdg )
-{
-  shut_it_all_down ();
-}
-
-/**
- * @brief  ADC conversion complete callback
- *
- * @param  hadc : ADC handle
- * @retval None
- */
-void HAL_ADC_ConvCpltCallback ( ADC_HandleTypeDef *hadc )
-{
-  static uint32_t number_of_conversions = 0;
-  static uint64_t v_sum = 0;
-
-  if ( number_of_conversions < NUMBER_OF_ADC_SAMPLES )
-  {
-    uint32_t sample = HAL_ADC_GetValue (hadc);
-    v_sum += (sample * ADC_MICROVOLTS_PER_BIT) + battery->calibration_offset;
-    number_of_conversions++;
-  }
-  else
-  {
-    // Write the voltage to the battery struct
-    battery->voltage = (float) ((((float) v_sum / (float) NUMBER_OF_ADC_SAMPLES)
-                                 + ADC_CALIBRATION_CONSTANT_MICROVOLTS)
-                                / MICROVOLTS_PER_VOLT);
-    // Reset static variables
-    v_sum = 0;
-    number_of_conversions = 0;
-    // Set the conversion complete flag
-    tx_event_flags_set (&thread_control_flags, BATTERY_VOLTAGE_CONVERSION_COMPLETE, TX_OR);
-    // Done with our samples, shut it down.
-    HAL_ADC_Stop_IT (hadc);
-  }
-
-}
-
-/**
- * @brief  ADC error callback
- *
- * @param  hadc : ADC handle
- * @retval None
- */
-void HAL_ADC_ErrorCallback ( ADC_HandleTypeDef *hadc )
-{
-  // Set the ADC conversion error flag and move on
-  tx_event_flags_set (&error_flags, ADC_CONVERSION_ERROR, TX_OR);
 }
 
 /**

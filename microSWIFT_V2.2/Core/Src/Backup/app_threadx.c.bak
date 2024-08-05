@@ -25,6 +25,31 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "main.h"
+#include <math.h>
+#include "stm32u5xx_hal.h"
+#include "stm32u5xx_ll_dma.h"
+#include "stdint.h"
+#include "stdbool.h"
+#include "string.h"
+#include "gnss.h"
+#include "battery.h"
+#include "ct_sensor.h"
+#include "rf_switch.h"
+#include "imu.h"
+#include "iridium.h"
+#include "temp_sensor.h"
+#include "NEDWaves/mem_replacements.h"
+#include "configuration.h"
+#include "linked_list.h"
+
+// Waves files
+#include "NEDWaves/NEDwaves_memlight.h"
+#include "NEDWaves/NEDwaves_memlight_emxAPI.h"
+#include "NEDWaves/NEDwaves_memlight_terminate.h"
+#include "NEDWaves/NEDwaves_memlight_types.h"
+#include "NEDWaves/rt_nonfinite.h"
+#include "NEDWaves/rtwhalf.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -73,6 +98,19 @@ TX_EVENT_FLAGS_GROUP thread_control_flags;
 TX_EVENT_FLAGS_GROUP error_flags;
 // Our watchdog refresh semaphore
 TX_SEMAPHORE watchdog_semaphore;
+// Comms buses semaphores
+TX_SEMAPHORE ext_rtc_spi_sema;
+TX_SEMAPHORE aux_spi_1_spi_sema;
+TX_SEMAPHORE aux_spi_2_spi_sema;
+TX_SEMAPHORE core_i2c_sema;
+TX_SEMAPHORE aux_i2c_1_sema;
+TX_SEMAPHORE aux_i2c_2_sema;
+TX_SEMAPHORE iridium_uart_sema;
+TX_SEMAPHORE ct_uart_sema;
+TX_SEMAPHORE gnss_uart_sema;
+TX_SEMAPHORE aux_uart_1_sema;
+TX_SEMAPHORE aux_uart_2_sema;
+TX_SEMAPHORE sd_card_sema;
 // The data structures for Waves
 emxArray_real32_T *north;
 emxArray_real32_T *east;
@@ -112,8 +150,8 @@ ct_samples* samples_buf;
 // Only if a temperature sensor is present
 #if TEMPERATURE_ENABLED
 
-Temperature*    temperature;
-TX_THREAD               temperature_thread;
+Temperature *temperature;
+TX_THREAD temperature_thread;
 
 #endif
 
@@ -148,16 +186,16 @@ void ct_thread_entry(ULONG thread_input);
 #endif
 
 #if TEMPERATURE_ENABLED
-void temperature_thread_entry(ULONG thread_input);
+void temperature_thread_entry ( ULONG thread_input );
 #endif
 /* USER CODE END PFP */
 
 /**
-  * @brief  Application ThreadX Initialization.
-  * @param memory_ptr: memory pointer
-  * @retval int
-  */
-UINT App_ThreadX_Init(VOID *memory_ptr)
+ * @brief  Application ThreadX Initialization.
+ * @param memory_ptr: memory pointer
+ * @retval int
+ */
+UINT App_ThreadX_Init ( VOID *memory_ptr )
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -165,21 +203,24 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   CHAR *pointer = TX_NULL;
   byte_pool = memory_ptr;
 #if WATCHDOG_ENABLED
-        //
-        // Create the watchdog refresh semaphore
-        ret = tx_semaphore_create(&watchdog_semaphore, "watchdog semaphore", 0);
-        //
-        // Allocate stack for the watchdog thread
-        ret = tx_byte_allocate(byte_pool, (VOID**) &pointer, THREAD_SMALL_STACK_SIZE, TX_NO_WAIT);
-        if (ret != TX_SUCCESS){
-          return ret;
-        }
-        // Create the watchdog thread. HIGHEST priority level and no preemption possible, auto-start
-        ret = tx_thread_create(&watchdog_thread, "watchdog thread", watchdog_thread_entry, 0, pointer,
-                        THREAD_SMALL_STACK_SIZE, HIGHEST, HIGHEST, TX_NO_TIME_SLICE, TX_AUTO_START);
-        if (ret != TX_SUCCESS){
-          return ret;
-        }
+  //
+  // Create the watchdog refresh semaphore
+  ret = tx_semaphore_create(&watchdog_semaphore, "watchdog semaphore", 0);
+  //
+  // Allocate stack for the watchdog thread
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, THREAD_SMALL_STACK_SIZE, TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+  // Create the watchdog thread. HIGHEST priority level and no preemption possible, auto-start
+  ret = tx_thread_create(&watchdog_thread, "watchdog thread", watchdog_thread_entry, 0, pointer,
+                         THREAD_SMALL_STACK_SIZE, HIGHEST, HIGHEST, TX_NO_TIME_SLICE,
+                         TX_AUTO_START);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
 #endif
   //
   // Allocate stack for the startup thread
@@ -308,7 +349,7 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   //
   // The Iridium error message payload array
   ret = tx_byte_allocate (byte_pool, (VOID**) &iridium_error_message,
-                          IRIDIUM_ERROR_MESSAGE_PAYLOAD_SIZE + 100 + IRIDIUM_CHECKSUM_LENGTH,
+  IRIDIUM_ERROR_MESSAGE_PAYLOAD_SIZE + 100 + IRIDIUM_CHECKSUM_LENGTH,
                           TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
@@ -317,7 +358,7 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   //
   // The Iridium response message array
   ret = tx_byte_allocate (byte_pool, (VOID**) &iridium_response_message,
-                          IRIDIUM_MAX_RESPONSE_SIZE + 100,
+  IRIDIUM_MAX_RESPONSE_SIZE + 100,
                           TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
@@ -348,25 +389,29 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
 
 #if TEMPERATURE_ENABLED
 
-        //
-        // The temperature struct
-        ret = tx_byte_allocate(byte_pool, (VOID**) &temperature, sizeof(Temperature) + 100, TX_NO_WAIT);
-        if (ret != TX_SUCCESS){
-                return ret;
-        }
+  //
+  // The temperature struct
+  ret = tx_byte_allocate (byte_pool, (VOID**) &temperature, sizeof(Temperature) + 100, TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
 
-        //
-        // Allocate stack for the temperature thread
-        ret = tx_byte_allocate(byte_pool, (VOID**) &pointer, THREAD_LARGE_STACK_SIZE, TX_NO_WAIT);
-        if (ret != TX_SUCCESS){
-                return ret;
-        }
-        // Create the temperature thread. VERY_HIGH priority, no preemption-threshold
-        ret = tx_thread_create(&temperature_thread, "temperature thread", temperature_thread_entry, 0,
-                        pointer, THREAD_LARGE_STACK_SIZE, HIGH, HIGH, TX_NO_TIME_SLICE, TX_DONT_START);
-        if (ret != TX_SUCCESS){
-                return ret;
-        }
+  //
+  // Allocate stack for the temperature thread
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, THREAD_LARGE_STACK_SIZE, TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+  // Create the temperature thread. VERY_HIGH priority, no preemption-threshold
+  ret = tx_thread_create(&temperature_thread, "temperature thread", temperature_thread_entry, 0,
+                         pointer, THREAD_LARGE_STACK_SIZE, HIGH, HIGH, TX_NO_TIME_SLICE,
+                         TX_DONT_START);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
 
 #endif
 
@@ -449,20 +494,18 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   return ret;
 }
 
-  /**
-  * @brief  Function that implements the kernel's initialization.
-  * @param  None
-  * @retval None
-  */
-void MX_ThreadX_Init(void)
-{
-  /* USER CODE BEGIN  Before_Kernel_Start */
+/**
+ * @brief  Function that implements the kernel's initialization.
+ * @param  None
+ * @retval None
+ */
 void MX_ThreadX_Init ( void )
 {
+  /* USER CODE BEGIN  Before_Kernel_Start */
 
   /* USER CODE END  Before_Kernel_Start */
 
-  tx_kernel_enter();
+  tx_kernel_enter ();
 
   /* USER CODE BEGIN  Kernel_Start_Error */
 
@@ -470,11 +513,11 @@ void MX_ThreadX_Init ( void )
 }
 
 /**
-  * @brief  App_ThreadX_LowPower_Timer_Setup
-  * @param  count : TX timer count
-  * @retval None
-  */
-void App_ThreadX_LowPower_Timer_Setup(ULONG count)
+ * @brief  App_ThreadX_LowPower_Timer_Setup
+ * @param  count : TX timer count
+ * @retval None
+ */
+void App_ThreadX_LowPower_Timer_Setup ( ULONG count )
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Timer_Setup */
 
@@ -482,11 +525,11 @@ void App_ThreadX_LowPower_Timer_Setup(ULONG count)
 }
 
 /**
-  * @brief  App_ThreadX_LowPower_Enter
-  * @param  None
-  * @retval None
-  */
-void App_ThreadX_LowPower_Enter(void)
+ * @brief  App_ThreadX_LowPower_Enter
+ * @param  None
+ * @retval None
+ */
+void App_ThreadX_LowPower_Enter ( void )
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Enter */
 
@@ -494,11 +537,11 @@ void App_ThreadX_LowPower_Enter(void)
 }
 
 /**
-  * @brief  App_ThreadX_LowPower_Exit
-  * @param  None
-  * @retval None
-  */
-void App_ThreadX_LowPower_Exit(void)
+ * @brief  App_ThreadX_LowPower_Exit
+ * @param  None
+ * @retval None
+ */
+void App_ThreadX_LowPower_Exit ( void )
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Exit */
 
@@ -506,11 +549,11 @@ void App_ThreadX_LowPower_Exit(void)
 }
 
 /**
-  * @brief  App_ThreadX_LowPower_Timer_Adjust
-  * @param  None
-  * @retval Amount of time (in ticks)
-  */
-ULONG App_ThreadX_LowPower_Timer_Adjust(void)
+ * @brief  App_ThreadX_LowPower_Timer_Adjust
+ * @param  None
+ * @retval Amount of time (in ticks)
+ */
+ULONG App_ThreadX_LowPower_Timer_Adjust ( void )
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Timer_Adjust */
   return 0;
@@ -602,8 +645,8 @@ void startup_thread_entry ( ULONG thread_input )
 #endif
 
 #if TEMPERATURE_ENABLED
-        temperature_init(temperature, device_handles->temp_i2c_handle, &thread_control_flags, &error_flags,
-                        TEMP_PWR_GPIO_Port, TEMP_PWR_Pin, true);
+  temperature_init (temperature, device_handles->temp_i2c_handle, &thread_control_flags,
+                    &error_flags, TEMP_PWR_GPIO_Port, TEMP_PWR_Pin, true);
 #endif
 
   rf_switch_init (rf_switch);
@@ -639,11 +682,12 @@ void startup_thread_entry ( ULONG thread_input )
 #endif
 
 #if TEMPERATURE_ENABLED
-                tx_return = tx_thread_reset(&temperature_thread);
-                if (tx_return == TX_NOT_DONE){
-                        tx_thread_terminate(&temperature_thread);
-                        tx_thread_reset(&temperature_thread);
-                }
+    tx_return = tx_thread_reset (&temperature_thread);
+    if ( tx_return == TX_NOT_DONE )
+    {
+      tx_thread_terminate (&temperature_thread);
+      tx_thread_reset (&temperature_thread);
+    }
 #endif
     tx_return = tx_thread_reset (&waves_thread);
     if ( tx_return == TX_NOT_DONE )
@@ -983,10 +1027,11 @@ void gnss_thread_entry ( ULONG thread_input )
 
 #elif TEMPERATURE_ENABLED
 
-        if (tx_thread_resume(&temperature_thread) != TX_SUCCESS){
-                shut_it_all_down();
-                HAL_NVIC_SystemReset();
-        }
+  if ( tx_thread_resume (&temperature_thread) != TX_SUCCESS )
+  {
+    shut_it_all_down ();
+    HAL_NVIC_SystemReset ();
+  }
 
 #else
 
@@ -1110,50 +1155,58 @@ void ct_thread_entry(ULONG thread_input){
 
 #if TEMPERATURE_ENABLED
 /**
-  * @brief  temperature_thread_entry
-  *         This thread will handle the temperature sensor, capture readings, and getting averages.
-  *
-  * @param  ULONG thread_input - unused
-  * @retval void
-  */
-void temperature_thread_entry(ULONG thread_input)
+ * @brief  temperature_thread_entry
+ *         This thread will handle the temperature sensor, capture readings, and getting averages.
+ *
+ * @param  ULONG thread_input - unused
+ * @retval void
+ */
+void temperature_thread_entry ( ULONG thread_input )
 {
-        temperature_error_code_t temp_return_code;
-        real16_T half_salinity;
-        real16_T half_temp;
-        int fail_counter = 0;
+  temperature_error_code_t temp_return_code;
+  real16_T half_salinity;
+  real16_T half_temp;
+  int fail_counter = 0;
 
-        register_watchdog_refresh();
+  register_watchdog_refresh ();
 
-        temperature->on();
+  temperature->on ();
 
-        while (fail_counter < MAX_RETRIES) {
-                temp_return_code = temperature->get_readings();
+  while ( fail_counter < MAX_RETRIES )
+  {
+    temp_return_code = temperature->get_readings ();
 
-                if (temp_return_code == TEMPERATURE_SUCCESS) {
-                        break;
-                } else {
-                        fail_counter++;
-                }
-        }
+    if ( temp_return_code == TEMPERATURE_SUCCESS )
+    {
+      break;
+    }
+    else
+    {
+      fail_counter++;
+    }
+  }
 
-        if (fail_counter == MAX_RETRIES) {
-                half_temp.bitPattern = TEMPERATURE_AVERAGED_ERROR_CODE;
-        } else {
-                half_temp = floatToHalf(temperature->converted_temp);
-        }
+  if ( fail_counter == MAX_RETRIES )
+  {
+    half_temp.bitPattern = TEMPERATURE_AVERAGED_ERROR_CODE;
+  }
+  else
+  {
+    half_temp = floatToHalf (temperature->converted_temp);
+  }
 
-        temperature->off();
+  temperature->off ();
 
-        half_salinity.bitPattern = CT_AVERAGED_VALUE_ERROR_CODE;
-        memcpy(&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
-        memcpy(&sbd_message.mean_salinity, &half_salinity, sizeof(real16_T));
+  half_salinity.bitPattern = CT_AVERAGED_VALUE_ERROR_CODE;
+  memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
+  memcpy (&sbd_message.mean_salinity, &half_salinity, sizeof(real16_T));
 
-        if (tx_thread_resume(&waves_thread) != TX_SUCCESS){
-                shut_it_all_down();
-                HAL_NVIC_SystemReset();
-        }
-        tx_thread_terminate(&temperature_thread);
+  if ( tx_thread_resume (&waves_thread) != TX_SUCCESS )
+  {
+    shut_it_all_down ();
+    HAL_NVIC_SystemReset ();
+  }
+  tx_thread_terminate (&temperature_thread);
 }
 #endif
 
@@ -1841,7 +1894,7 @@ gnss_error_code_t start_GNSS_UART_DMA ( GNSS *gnss_struct_ptr, uint8_t *buffer, 
   gnss_struct_ptr->gnss_rx_dma_handle->InitLinkedList.LinkStepMode = DMA_LSM_FULL_EXECUTION;
   gnss_struct_ptr->gnss_rx_dma_handle->InitLinkedList.LinkAllocatedPort = DMA_LINK_ALLOCATED_PORT0;
   gnss_struct_ptr->gnss_rx_dma_handle->InitLinkedList.TransferEventMode =
-      DMA_TCEM_LAST_LL_ITEM_TRANSFER;
+  DMA_TCEM_LAST_LL_ITEM_TRANSFER;
   gnss_struct_ptr->gnss_rx_dma_handle->InitLinkedList.LinkedListMode = DMA_LINKEDLIST_CIRCULAR;
 
   if ( HAL_DMAEx_List_Init (gnss_struct_ptr->gnss_rx_dma_handle) != HAL_OK )
@@ -1849,7 +1902,7 @@ gnss_error_code_t start_GNSS_UART_DMA ( GNSS *gnss_struct_ptr, uint8_t *buffer, 
     return_code = GNSS_UART_ERROR;
   }
 
-  __HAL_LINKDMA (gnss_struct_ptr->gnss_uart_handle, hdmarx, *gnss_struct_ptr->gnss_rx_dma_handle);
+  __HAL_LINKDMA(gnss_struct_ptr->gnss_uart_handle, hdmarx, *gnss_struct_ptr->gnss_rx_dma_handle);
 
   hal_return_code = HAL_DMAEx_List_LinkQ (gnss_struct_ptr->gnss_rx_dma_handle, &GNSS_LL_Queue);
   if ( hal_return_code != HAL_OK )
@@ -1860,7 +1913,7 @@ gnss_error_code_t start_GNSS_UART_DMA ( GNSS *gnss_struct_ptr, uint8_t *buffer, 
   hal_return_code = HAL_UARTEx_ReceiveToIdle_DMA (gnss_struct_ptr->gnss_uart_handle,
                                                   (uint8_t*) &(buffer[0]), msg_size);
   //  No need for the half-transfer complete interrupt, so disable it
-  __HAL_DMA_DISABLE_IT (gnss->gnss_rx_dma_handle, DMA_IT_HT);
+  __HAL_DMA_DISABLE_IT(gnss->gnss_rx_dma_handle, DMA_IT_HT);
 
   if ( hal_return_code != HAL_OK )
   {
@@ -1904,12 +1957,15 @@ void shut_it_all_down ( void )
 void register_watchdog_refresh ( void )
 {
 #if WATCHDOG_ENABLED
-        if (!watchdog_hour_timer_elapsed) {
-                tx_semaphore_put(&watchdog_semaphore);
-        } else {
-                // Drain the watchdog refresh semaphore
-                while (tx_semaphore_get(&watchdog_semaphore, TX_NO_WAIT) == TX_SUCCESS);
-        }
+  if ( !watchdog_hour_timer_elapsed )
+  {
+    tx_semaphore_put (&watchdog_semaphore);
+  }
+  else
+  {
+    // Drain the watchdog refresh semaphore
+    while ( tx_semaphore_get (&watchdog_semaphore, TX_NO_WAIT) == TX_SUCCESS );
+  }
 #endif
 }
 
@@ -1933,7 +1989,7 @@ static self_test_status_t initial_power_on_self_test ( void )
 #endif
 
 #if TEMPERATURE_ENABLED
-        temperature_error_code_t temp_return_code;
+  temperature_error_code_t temp_return_code;
 #endif
 
   int fail_counter;
@@ -2106,35 +2162,40 @@ static self_test_status_t initial_power_on_self_test ( void )
 #endif
 
 #if TEMPERATURE_ENABLED
-        fail_counter = 0;
-        while (fail_counter < MAX_SELF_TEST_RETRIES) {
+  fail_counter = 0;
+  while ( fail_counter < MAX_SELF_TEST_RETRIES )
+  {
 
-                temperature->on();
-                tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 10);
-                register_watchdog_refresh();
-                // See if we can get an ack message from the modem
-                temp_return_code = temperature->self_test();
-                if (temp_return_code != TEMPERATURE_SUCCESS) {
+    temperature->on ();
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+    register_watchdog_refresh ();
+    // See if we can get an ack message from the modem
+    temp_return_code = temperature->self_test ();
+    if ( temp_return_code != TEMPERATURE_SUCCESS )
+    {
 
-                        temperature->off();
-                        temperature->reset_i2c();
-                        tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 10);
-                        fail_counter++;
+      temperature->off ();
+      temperature->reset_i2c ();
+      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+      fail_counter++;
 
-                } else {
+    }
+    else
+    {
 
-                        break;
-                }
-        }
+      break;
+    }
+  }
 
-        if (fail_counter == MAX_SELF_TEST_RETRIES) {
+  if ( fail_counter == MAX_SELF_TEST_RETRIES )
+  {
 
-                return_code = SELF_TEST_NON_CRITICAL_FAULT;
-                tx_event_flags_set(&error_flags, TEMPERATURE_ERROR, TX_OR);
+    return_code = SELF_TEST_NON_CRITICAL_FAULT;
+    tx_event_flags_set (&error_flags, TEMPERATURE_ERROR, TX_OR);
 
-        }
+  }
 
-        temperature->off();
+  temperature->off ();
 #endif
 
   return return_code;
@@ -2266,8 +2327,8 @@ static void send_error_message ( ULONG error_flags )
 
   if ( error_flags & GNSS_RESOLUTION_ERROR )
   {
-    if ( (string_ptr - &(error_message[0])) + strlen (gnss_resolution_error)
-         <= ERROR_MESSAGE_MAX_LENGTH )
+    if ( (string_ptr - &(error_message[0]))
+         + strlen (gnss_resolution_error) <= ERROR_MESSAGE_MAX_LENGTH )
     {
       memcpy (string_ptr, gnss_resolution_error, strlen (gnss_resolution_error));
       string_ptr += strlen (gnss_resolution_error);
@@ -2276,8 +2337,8 @@ static void send_error_message ( ULONG error_flags )
 
   if ( error_flags & SAMPLE_WINDOW_ERROR )
   {
-    if ( (string_ptr - &(error_message[0])) + strlen (sample_window_error)
-         <= ERROR_MESSAGE_MAX_LENGTH )
+    if ( (string_ptr - &(error_message[0]))
+         + strlen (sample_window_error) <= ERROR_MESSAGE_MAX_LENGTH )
     {
       memcpy (string_ptr, sample_window_error, strlen (sample_window_error));
       string_ptr += strlen (sample_window_error);
@@ -2286,8 +2347,8 @@ static void send_error_message ( ULONG error_flags )
 
   if ( error_flags & MEMORY_CORRUPTION_ERROR )
   {
-    if ( (string_ptr - &(error_message[0])) + strlen (memory_corruption_error)
-         <= ERROR_MESSAGE_MAX_LENGTH )
+    if ( (string_ptr - &(error_message[0]))
+         + strlen (memory_corruption_error) <= ERROR_MESSAGE_MAX_LENGTH )
     {
       memcpy (string_ptr, memory_corruption_error, strlen (memory_corruption_error));
       string_ptr += strlen (memory_corruption_error);
@@ -2296,8 +2357,8 @@ static void send_error_message ( ULONG error_flags )
 
   if ( error_flags & MEMORY_ALLOC_ERROR )
   {
-    if ( (string_ptr - &(error_message[0])) + strlen (memory_alloc_error)
-         <= ERROR_MESSAGE_MAX_LENGTH )
+    if ( (string_ptr - &(error_message[0]))
+         + strlen (memory_alloc_error) <= ERROR_MESSAGE_MAX_LENGTH )
     {
       memcpy (string_ptr, memory_alloc_error, strlen (memory_alloc_error));
       string_ptr += strlen (memory_alloc_error);
@@ -2342,8 +2403,8 @@ static void send_error_message ( ULONG error_flags )
 
   if ( error_flags & FLASH_OPERATION_UNKNOWN_ERROR )
   {
-    if ( (string_ptr - &(error_message[0])) + strlen (flash_unknown_error)
-         <= ERROR_MESSAGE_MAX_LENGTH )
+    if ( (string_ptr - &(error_message[0]))
+         + strlen (flash_unknown_error) <= ERROR_MESSAGE_MAX_LENGTH )
     {
       memcpy (string_ptr, flash_unknown_error, strlen (flash_unknown_error));
       string_ptr += strlen (flash_unknown_error);
@@ -2352,8 +2413,8 @@ static void send_error_message ( ULONG error_flags )
 
   if ( error_flags & FLASH_OPERATION_STORAGE_FULL )
   {
-    if ( (string_ptr - &(error_message[0])) + strlen (flash_storage_full)
-         <= ERROR_MESSAGE_MAX_LENGTH )
+    if ( (string_ptr - &(error_message[0]))
+         + strlen (flash_storage_full) <= ERROR_MESSAGE_MAX_LENGTH )
     {
       memcpy (string_ptr, flash_storage_full, strlen (flash_storage_full));
       string_ptr += strlen (flash_storage_full);
@@ -2362,8 +2423,7 @@ static void send_error_message ( ULONG error_flags )
 
   if ( error_flags & FLASH_OPERATION_ERASE_ERROR )
   {
-    if ( (string_ptr - &(error_message[0])) + strlen (flash_erase_error)
-         <= ERROR_MESSAGE_MAX_LENGTH )
+    if ( (string_ptr - &(error_message[0])) + strlen (flash_erase_error) <= ERROR_MESSAGE_MAX_LENGTH )
     {
       memcpy (string_ptr, flash_erase_error, strlen (flash_erase_error));
       string_ptr += strlen (flash_erase_error);
@@ -2372,8 +2432,8 @@ static void send_error_message ( ULONG error_flags )
 
   if ( error_flags & FLASH_OPERATION_PROGRAM_ERROR )
   {
-    if ( (string_ptr - &(error_message[0])) + strlen (flash_program_error)
-         <= ERROR_MESSAGE_MAX_LENGTH )
+    if ( (string_ptr - &(error_message[0]))
+         + strlen (flash_program_error) <= ERROR_MESSAGE_MAX_LENGTH )
     {
       memcpy (string_ptr, flash_program_error, strlen (flash_program_error));
       string_ptr += strlen (flash_program_error);
