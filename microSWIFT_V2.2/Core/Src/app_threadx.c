@@ -1946,7 +1946,7 @@ static self_test_status_t initial_power_on_self_test ( void )
   iridium->sleep (GPIO_PIN_RESET);
 
   // We got an ack and were able to config the Iridium modem
-  tx_event_flags_set (&thread_control_flags, IRIDIUM_READY, TX_OR)
+  tx_event_flags_set (&thread_control_flags, IRIDIUM_READY, TX_OR);
 
 #if CT_ENABLED
         ///////////////////////////////////////////////////////////////////////////////////////////////

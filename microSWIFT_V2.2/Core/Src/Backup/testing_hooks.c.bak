@@ -6,6 +6,8 @@
  */
 
 #include "testing_hooks.h"
+#include "stddef.h"
+#include "ext_rtc.h"
 
 testing_hooks tests;
 
@@ -21,13 +23,13 @@ static bool rtc_test ( void *unused );
 void tests_init ( void )
 {
   tests.main_test = NULL;
-  threadx_init_test = NULL;
-  startup_test = rtc_test;
-  gnss_thread_test = NULL;
-  ct_thread_test = NULL;
-  waves_thread_test = NULL;
-  iridium_thread_test = NULL;
-  shutdown_test = NULL;
+  tests.threadx_init_test = NULL;
+  tests.startup_test = rtc_test;
+  tests.gnss_thread_test = NULL;
+  tests.ct_thread_test = NULL;
+  tests.waves_thread_test = NULL;
+  tests.iridium_thread_test = NULL;
+  tests.shutdown_test = NULL;
 }
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/

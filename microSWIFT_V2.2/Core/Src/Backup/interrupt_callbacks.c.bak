@@ -122,6 +122,18 @@ void HAL_UART_RxCpltCallback ( UART_HandleTypeDef *huart )
   else if ( huart->Instance == GNSS_UART )
   {
     (void) tx_semaphore_put (&gnss_uart_sema);
+
+    if ( !gnss->is_configured )
+    {
+
+      tx_event_flags_set (&thread_control_flags, GNSS_CONFIG_RECVD, TX_OR);
+
+    }
+    else
+    {
+      memcpy (&(gnss->ubx_process_buf[0]), &(ubx_DMA_message_buf[0]), UBX_MESSAGE_SIZE);
+      tx_event_flags_set (&thread_control_flags, GNSS_MSG_RECEIVED, TX_OR);
+    }
   }
   else if ( huart->Instance == AUX_UART_1 )
   {
@@ -164,6 +176,17 @@ void HAL_UARTEx_RxEventCallback ( UART_HandleTypeDef *huart, uint16_t Size )
   else if ( huart->Instance == GNSS_UART )
   {
     (void) tx_semaphore_put (&gnss_uart_sema);
+
+    if ( Size < UBX_NAV_PVT_MESSAGE_LENGTH )
+    {
+      gnss->get_running_average_velocities ();
+      tx_event_flags_set (&thread_control_flags, GNSS_MSG_INCOMPLETE, TX_OR);
+    }
+    else
+    {
+      memcpy (&(gnss->ubx_process_buf[0]), &(ubx_DMA_message_buf[0]), UBX_MESSAGE_SIZE);
+      tx_event_flags_set (&thread_control_flags, GNSS_MSG_RECEIVED, TX_OR);
+    }
   }
   else if ( huart->Instance == AUX_UART_1 )
   {
@@ -173,4 +196,80 @@ void HAL_UARTEx_RxEventCallback ( UART_HandleTypeDef *huart, uint16_t Size )
   {
     (void) tx_semaphore_put (&aux_uart_2_sema);
   }
+}
+
+/**
+ * @brief  Period elapsed callback in non blocking mode
+ * @note   This function is called  when TIM16 interrupt took place, inside
+ * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+ * a global variable "uwTick" used as application time base.
+ *
+ * @param  htim : TIM handle
+ * @retval None
+ */
+void HAL_TIM_PeriodElapsedCallback ( TIM_HandleTypeDef *htim )
+{
+  // High frequency, low overhead ISR, no need to save/restore context
+  if ( htim->Instance == TIM6 )
+  {
+    HAL_IncTick ();
+  }
+  else if ( htim->Instance == TIM17 )
+  {
+    iridium->timer_timeout = true;
+  }
+  else if ( htim->Instance == TIM16 )
+  {
+    gnss->timer_timeout = true;
+  }
+  else if ( htim->Instance == TIM15 )
+  {
+    watchdog_hour_timer_elapsed = true;
+  }
+}
+
+/**
+ * @brief  ADC conversion complete callback
+ *
+ * @param  hadc : ADC handle
+ * @retval None
+ */
+void HAL_ADC_ConvCpltCallback ( ADC_HandleTypeDef *hadc )
+{
+  static uint32_t number_of_conversions = 0;
+  static uint64_t v_sum = 0;
+
+  if ( number_of_conversions < NUMBER_OF_ADC_SAMPLES )
+  {
+    uint32_t sample = HAL_ADC_GetValue (hadc);
+    v_sum += (sample * ADC_MICROVOLTS_PER_BIT) + battery->calibration_offset;
+    number_of_conversions++;
+  }
+  else
+  {
+    // Write the voltage to the battery struct
+    battery->voltage = (float) ((((float) v_sum / (float) NUMBER_OF_ADC_SAMPLES)
+                                 + ADC_CALIBRATION_CONSTANT_MICROVOLTS)
+                                / MICROVOLTS_PER_VOLT);
+    // Reset static variables
+    v_sum = 0;
+    number_of_conversions = 0;
+    // Set the conversion complete flag
+    tx_event_flags_set (&thread_control_flags, BATTERY_VOLTAGE_CONVERSION_COMPLETE, TX_OR);
+    // Done with our samples, shut it down.
+    HAL_ADC_Stop_IT (hadc);
+  }
+
+}
+
+/**
+ * @brief  ADC error callback
+ *
+ * @param  hadc : ADC handle
+ * @retval None
+ */
+void HAL_ADC_ErrorCallback ( ADC_HandleTypeDef *hadc )
+{
+  // Set the ADC conversion error flag and move on
+  tx_event_flags_set (&error_flags, ADC_CONVERSION_ERROR, TX_OR);
 }
