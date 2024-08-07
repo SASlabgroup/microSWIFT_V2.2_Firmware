@@ -11,7 +11,7 @@
 #include "gpio.h"
 #include "app_threadx.h"
 
-static ext_rtc *self;
+static Ext_RTC *self;
 
 static int32_t ext_rtc_spi_init ( void );
 static int32_t ext_rtc_spi_deinit ( void );

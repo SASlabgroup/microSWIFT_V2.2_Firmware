@@ -29,15 +29,15 @@ typedef struct
   TX_QUEUE *request_queue;
   TX_EVENT_FLAGS_GROUP *complete_flags;
   SPI_HandleTypeDef *rtc_spi_bus;
-} ext_rtc;
+} Ext_RTC;
 
-ext_rtc_return_code ext_rtc_init ( ext_rtc *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus,
+ext_rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus,
                                    TX_QUEUE *messaging_queue );
-ext_rtc_return_code ext_rtc_config_watchdog ( ext_rtc *struct_ptr, uint32_t period_ms );
-ext_rtc_return_code ext_rtc_refresh_watchdog ( ext_rtc *struct_ptr );
-ext_rtc_return_code ext_rtc_set_date_time ( ext_rtc *struct_ptr, struct tm input_date_time );
-ext_rtc_return_code ext_rtc_get_date_time ( ext_rtc *struct_ptr, struct tm *return_date_time );
-ext_rtc_return_code ext_rtc_get_timestamp ( ext_rtc *struct_ptr, uint64_t *return_timestamp );
-ext_rtc_return_code ext_rtc_set_alarm ( ext_rtc *struct_ptr, pcf2131_alarm_struct alarm_setting );
+ext_rtc_return_code ext_rtc_config_watchdog ( uint32_t period_ms );
+ext_rtc_return_code ext_rtc_refresh_watchdog ( void );
+ext_rtc_return_code ext_rtc_set_date_time ( struct tm input_date_time );
+ext_rtc_return_code ext_rtc_get_date_time ( struct tm *return_date_time );
+ext_rtc_return_code ext_rtc_get_timestamp ( uint64_t *return_timestamp );
+ext_rtc_return_code ext_rtc_set_alarm ( pcf2131_alarm_struct alarm_setting );
 
 #endif /* COMPONENTS_INC_EXT_RTC_H_ */

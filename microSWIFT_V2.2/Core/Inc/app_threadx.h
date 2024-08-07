@@ -122,6 +122,16 @@ extern TX_SEMAPHORE aux_uart_1_sema;
 extern TX_SEMAPHORE aux_uart_2_sema;
 extern TX_SEMAPHORE sd_card_sema;
 extern TX_MUTEX rtc_lock;
+
+typedef struct
+{
+  SPI_HandleTypeDef *core_spi_handle;
+  I2C_HandleTypeDef *core_i2c_handle;
+  UART_HandleTypeDef *iridium_uart_handle;
+  UART_HandleTypeDef *gnss_uart_handle;
+  UART_HandleTypeDef *ct_uart_handle;
+
+} Device_Handles;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/

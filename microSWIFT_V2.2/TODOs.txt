@@ -11,3 +11,6 @@ Lengthy list of TODOs:
 [ ] Change end of cycle sleep to shutdown mode, wakeup on int <a,b> from RTC
 [ ] Figure out how to get threads running concurrently: i.e. CT sampling while GNSS wrapping up
     [ ] Should be easy with control thread
+[ ] Do we keep watchdog hour timer????
+    [ ] Short answer, NO! Long answer, still no.
+
