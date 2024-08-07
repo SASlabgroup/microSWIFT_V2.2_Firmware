@@ -56,12 +56,13 @@
 /* USER CODE BEGIN PTD */
 typedef enum thread_priorities
 {
-  HIGHEST = 0,
-  VERY_HIGH = 1,
-  HIGH = 2,
-  MID = 3,
-  LOW = 4,
-  LOWEST = 5
+  HIGHEST_PRIORITY = 0,
+  VERY_HIGH_PRIORITY = 1,
+  HIGH_PRIORITY = 2,
+  MID_PRIORITY = 3,
+  LOW_PRIORITY = 4,
+  VERY_LOW_PRIORITY = 5,
+  LOWEST_PRIORITY = 6
 } thread_priorities_t;
 /* USER CODE END PTD */
 
@@ -85,13 +86,12 @@ sbd_message_type_52 sbd_message;
 // The primary byte pool from which all memory is allocated from
 TX_BYTE_POOL *byte_pool;
 // Our threads
-TX_THREAD watchdog_thread;
-TX_THREAD startup_thread;
+TX_THREAD control_thread;
+TX_THREAD rtc_thread;
 TX_THREAD gnss_thread;
 TX_THREAD imu_thread;
 TX_THREAD waves_thread;
 TX_THREAD iridium_thread;
-TX_THREAD end_of_cycle_thread;
 // We'll use flags to dictate control flow between the threads
 TX_EVENT_FLAGS_GROUP thread_control_flags;
 // Flags for errors
@@ -191,48 +191,44 @@ void temperature_thread_entry ( ULONG thread_input );
 /* USER CODE END PFP */
 
 /**
-  * @brief  Application ThreadX Initialization.
-  * @param memory_ptr: memory pointer
-  * @retval int
-  */
-UINT App_ThreadX_Init(VOID *memory_ptr)
+ * @brief  Application ThreadX Initialization.
+ * @param memory_ptr: memory pointer
+ * @retval int
+ */
+UINT App_ThreadX_Init ( VOID *memory_ptr )
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
   (void) byte_pool;
   CHAR *pointer = TX_NULL;
   byte_pool = memory_ptr;
-#if WATCHDOG_ENABLED
+
   //
-  // Create the watchdog refresh semaphore
-  ret = tx_semaphore_create(&watchdog_semaphore, "watchdog semaphore", 0);
-  //
-  // Allocate stack for the watchdog thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, THREAD_SMALL_STACK_SIZE, TX_NO_WAIT);
+  // Allocate stack for the control thread
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, THREAD_XXL_STACK_SIZE, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
-  // Create the watchdog thread. HIGHEST priority level and no preemption possible, auto-start
-  ret = tx_thread_create(&watchdog_thread, "watchdog thread", watchdog_thread_entry, 0, pointer,
-                         THREAD_SMALL_STACK_SIZE, HIGHEST, HIGHEST, TX_NO_TIME_SLICE,
-                         TX_AUTO_START);
+  // Create the control thread. HIGHEST priority level and no preemption possible, auto-start
+  ret = tx_thread_create(&control_thread, "control thread", control_thread_entry, 0, pointer,
+                         THREAD_XXL_STACK_SIZE, HIGHEST_PRIORITY, HIGHEST_PRIORITY,
+                         TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
-#endif
   //
-  // Allocate stack for the startup thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, THREAD_EXTRA_LARGE_STACK_SIZE, TX_NO_WAIT);
+  // Allocate stack for the rtc thread
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, THREAD_MEDIUM_STACK_SIZE, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
-  // Create the startup thread. HIGH priority level and no preemption possible
-  ret = tx_thread_create(&startup_thread, "startup thread", startup_thread_entry, 0, pointer,
-                         THREAD_EXTRA_LARGE_STACK_SIZE, HIGH, HIGH, TX_NO_TIME_SLICE,
-                         TX_AUTO_START);
+  // Create the rtc thread. VERY_HIGH priority level and no preemption possible, auto-start
+  ret = tx_thread_create(&rtc_thread, "rtc thread", rtc_thread_entry, 0, pointer,
+                         THREAD_MEDIUM_STACK_SIZE, VERY_HIGH_PRIORITY, HIGHEST_PRIORITY,
+                         TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -246,7 +242,8 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   }
   // Create the gnss thread. VERY_HIGH priority, no preemption-threshold
   ret = tx_thread_create(&gnss_thread, "gnss thread", gnss_thread_entry, 0, pointer,
-                         THREAD_EXTRA_LARGE_STACK_SIZE, MID, MID, TX_NO_TIME_SLICE, TX_DONT_START);
+                         THREAD_EXTRA_LARGE_STACK_SIZE, MID_PRIORITY, HIGHEST_PRIORITY,
+                         TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -260,7 +257,8 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   }
   // Create the waves thread. MID priority, no preemption-threshold
   ret = tx_thread_create(&waves_thread, "waves thread", waves_thread_entry, 0, pointer,
-                         THREAD_XXL_STACK_SIZE, MID, MID, TX_NO_TIME_SLICE, TX_DONT_START);
+                         THREAD_XXL_STACK_SIZE, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
+                         TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -274,21 +272,7 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   }
   // Create the Iridium thread. VERY_HIGH priority, no preemption-threshold
   ret = tx_thread_create(&iridium_thread, "iridium thread", iridium_thread_entry, 0, pointer,
-                         THREAD_EXTRA_LARGE_STACK_SIZE, MID, MID, TX_NO_TIME_SLICE, TX_DONT_START);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-  //
-  // Allocate stack for the teardown thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, THREAD_EXTRA_LARGE_STACK_SIZE, TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-  // Create the end of cycle thread. Priority and preemption is low to allow no preemption
-  ret = tx_thread_create(&end_of_cycle_thread, "end of cycle thread", end_of_cycle_thread_entry, 0,
-                         pointer, THREAD_EXTRA_LARGE_STACK_SIZE, VERY_HIGH, VERY_HIGH,
+                         THREAD_EXTRA_LARGE_STACK_SIZE, MID_PRIORITY, HIGHEST_PRIORITY,
                          TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
@@ -406,8 +390,8 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   }
   // Create the temperature thread. VERY_HIGH priority, no preemption-threshold
   ret = tx_thread_create(&temperature_thread, "temperature thread", temperature_thread_entry, 0,
-                         pointer, THREAD_LARGE_STACK_SIZE, HIGH, HIGH, TX_NO_TIME_SLICE,
-                         TX_DONT_START);
+                         pointer, THREAD_LARGE_STACK_SIZE, HIGH_PRIORITY, HIGHEST_PRIORITY,
+                         TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -415,35 +399,6 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
 
 #endif
 
-// Only if the IMU will be utilized
-#if IMU_ENABLED
-        //
-        // Allocate stack for the imu thread
-        ret = tx_byte_allocate(byte_pool, (VOID**) &pointer, THREAD_LARGE_STACK_SIZE, TX_NO_WAIT);
-        if (ret != TX_SUCCESS){
-          return ret;
-        }
-        // Create the imu thread. VERY_HIGH priority, no preemption-threshold
-        ret = tx_thread_create(&imu_thread, "imu thread", imu_thread_entry, 0, pointer,
-                  THREAD_LARGE_STACK_SIZE, HIGH, HIGH, TX_NO_TIME_SLICE, TX_AUTO_START);
-        if (ret != TX_SUCCESS){
-          return ret;
-        }
-
-        ret = tx_byte_allocate(byte_pool, (VOID**) &IMU_N_Array, SENSOR_DATA_ARRAY_SIZE, TX_NO_WAIT);
-        if (ret != TX_SUCCESS){
-          return ret;
-        }
-        ret = tx_byte_allocate(byte_pool, (VOID**) &IMU_E_Array, SENSOR_DATA_ARRAY_SIZE, TX_NO_WAIT);
-        if (ret != TX_SUCCESS){
-          return ret;
-        }
-        ret = tx_byte_allocate(byte_pool, (VOID**) &IMU_D_Array, SENSOR_DATA_ARRAY_SIZE, TX_NO_WAIT);
-        if (ret != TX_SUCCESS){
-          return ret;
-        }
-
-#endif
 // Only is there is a CT sensor present
 #if CT_ENABLED
         //
@@ -454,7 +409,7 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
         }
         // Create the CT thread. VERY_HIGH priority, no preemption-threshold
         ret = tx_thread_create(&ct_thread, "ct thread", ct_thread_entry, 0, pointer,
-                        THREAD_EXTRA_LARGE_STACK_SIZE, HIGH, HIGH, TX_NO_TIME_SLICE, TX_DONT_START);
+                        THREAD_EXTRA_LARGE_STACK_SIZE, HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
         if (ret != TX_SUCCESS){
           return ret;
         }
@@ -494,18 +449,18 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   return ret;
 }
 
-  /**
-  * @brief  Function that implements the kernel's initialization.
-  * @param  None
-  * @retval None
-  */
-void MX_ThreadX_Init(void)
+/**
+ * @brief  Function that implements the kernel's initialization.
+ * @param  None
+ * @retval None
+ */
+void MX_ThreadX_Init ( void )
 {
   /* USER CODE BEGIN  Before_Kernel_Start */
 
   /* USER CODE END  Before_Kernel_Start */
 
-  tx_kernel_enter();
+  tx_kernel_enter ();
 
   /* USER CODE BEGIN  Kernel_Start_Error */
 
@@ -513,11 +468,11 @@ void MX_ThreadX_Init(void)
 }
 
 /**
-  * @brief  App_ThreadX_LowPower_Timer_Setup
-  * @param  count : TX timer count
-  * @retval None
-  */
-void App_ThreadX_LowPower_Timer_Setup(ULONG count)
+ * @brief  App_ThreadX_LowPower_Timer_Setup
+ * @param  count : TX timer count
+ * @retval None
+ */
+void App_ThreadX_LowPower_Timer_Setup ( ULONG count )
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Timer_Setup */
 
@@ -525,11 +480,11 @@ void App_ThreadX_LowPower_Timer_Setup(ULONG count)
 }
 
 /**
-  * @brief  App_ThreadX_LowPower_Enter
-  * @param  None
-  * @retval None
-  */
-void App_ThreadX_LowPower_Enter(void)
+ * @brief  App_ThreadX_LowPower_Enter
+ * @param  None
+ * @retval None
+ */
+void App_ThreadX_LowPower_Enter ( void )
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Enter */
 
@@ -537,11 +492,11 @@ void App_ThreadX_LowPower_Enter(void)
 }
 
 /**
-  * @brief  App_ThreadX_LowPower_Exit
-  * @param  None
-  * @retval None
-  */
-void App_ThreadX_LowPower_Exit(void)
+ * @brief  App_ThreadX_LowPower_Exit
+ * @param  None
+ * @retval None
+ */
+void App_ThreadX_LowPower_Exit ( void )
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Exit */
 
@@ -549,11 +504,11 @@ void App_ThreadX_LowPower_Exit(void)
 }
 
 /**
-  * @brief  App_ThreadX_LowPower_Timer_Adjust
-  * @param  None
-  * @retval Amount of time (in ticks)
-  */
-ULONG App_ThreadX_LowPower_Timer_Adjust(void)
+ * @brief  App_ThreadX_LowPower_Timer_Adjust
+ * @param  None
+ * @retval Amount of time (in ticks)
+ */
+ULONG App_ThreadX_LowPower_Timer_Adjust ( void )
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Timer_Adjust */
   return 0;
@@ -569,7 +524,7 @@ ULONG App_ThreadX_LowPower_Timer_Adjust(void)
  * @param  ULONG thread_input - unused
  * @retval void
  */
-void watchdog_thread_entry ( ULONG thread_input )
+void rtc_thread_entry ( ULONG thread_input )
 {
   while ( 1 )
   {

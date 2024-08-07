@@ -18,19 +18,16 @@
 
 typedef enum
 {
-  RTC_SUCCESS = 0
-} ext_rtc_return_codes_t;
-
-typedef enum
-{
-  RTC_OK = 0,
-  RTC_SPI_ERROR = -1
+  RTC_SUCCESS = 0,
+  RTC_SPI_ERROR = -1,
+  RTC_PARAMETERS_INVALID = -2
 } ext_rtc_return_code;
 
 typedef struct
 {
   dev_ctx_t dev_ctx;
-  TX_QUEUE *messaging_queue;
+  TX_QUEUE *request_queue;
+  TX_EVENT_FLAGS_GROUP *complete_flags;
   SPI_HandleTypeDef *rtc_spi_bus;
 } ext_rtc;
 

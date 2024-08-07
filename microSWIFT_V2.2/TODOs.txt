@@ -1,0 +1,13 @@
+
+Lengthy list of TODOs:
+
+[ ] Change all non-threadx objects to static allocation -- remove from App_ThreadX_Init()
+[ ] Make a control thread
+    [ ] Move startup and end-of-cycle thread functions inside
+    [ ] make event loop handler type deal to look for error flags or something
+[ ] Figure out how to disable watchdog in debug mode
+[ ] Fill out Tx low power functions and see if things work with Stop1 mode
+    [ ] Non-critical, if it makes everything fall apart, ditch it
+[ ] Change end of cycle sleep to shutdown mode, wakeup on int <a,b> from RTC
+[ ] Figure out how to get threads running concurrently: i.e. CT sampling while GNSS wrapping up
+    [ ] Should be easy with control thread

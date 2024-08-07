@@ -69,9 +69,6 @@
 // If there is a Blue Robotics I2C temperature sensor presen
 #define TEMPERATURE_ENABLED true
 
-// Whether or not to use the Independent watchdog
-#define WATCHDOG_ENABLED true
-
 typedef struct microSWIFT_configuration
 {
   uint32_t samples_per_window;

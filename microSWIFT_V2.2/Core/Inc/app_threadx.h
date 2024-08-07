@@ -158,17 +158,16 @@ extern TX_MUTEX rtc_lock;
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-UINT App_ThreadX_Init(VOID *memory_ptr);
-void MX_ThreadX_Init(void);
+UINT App_ThreadX_Init ( VOID *memory_ptr );
+void MX_ThreadX_Init ( void );
 
 /* USER CODE BEGIN EFP */
 void MX_ThreadX_Init ( void );
-void watchdog_thread_entry ( ULONG thread_input );
-void startup_thread_entry ( ULONG thread_input );
+void rtc_thread_entry ( ULONG thread_input );
+void control_thread_entry ( ULONG thread_input );
 void gnss_thread_entry ( ULONG thread_input );
 void waves_thread_entry ( ULONG thread_input );
 void iridium_thread_entry ( ULONG thread_input );
-void end_of_cycle_thread_entry ( ULONG thread_input );
 /* USER CODE END EFP */
 
 /* USER CODE BEGIN 1 */

@@ -10,26 +10,7 @@
 
 #include "stddef.h"
 #include "time.h"
-#include "pcf2131.h"
-
-typedef enum
-{
-  CONTROL = 0,
-  GNSS = 1,
-  IRIDIUM = 2,
-  CT = 3,
-  TEMP = 4,
-  LIGHT = 5,
-  TURBIDITY = 6,
-  MISSION_BOARD_1 = 7,
-  MISSION_BOARD_2 = 8,
-  MISSION_BOARD_3 = 9,
-  MISSION_BOARD_4 = 10,
-  MISSION_BOARD_5 = 11,
-  MISSION_BOARD_6 = 12,
-  MISSION_BOARD_7 = 13,
-  MISSION_BOARD_8 = 14
-} rtc_requestor_t;
+#include "pcf2131_reg.h"
 
 typedef enum
 {
@@ -39,7 +20,7 @@ typedef enum
   REFRESH_WATCHDOG = 3,
   GET_TIMESTAMP = 4,
   SET_ALARM = 5
-} rtc_command_t;
+} rtc_request_t;
 
 typedef enum
 {
@@ -100,22 +81,10 @@ typedef union
 
 typedef struct
 {
-  rtc_requestor requestor;
-  rtc_command_t command;
-  rtc_data_t input_parameters;
+  rtc_request_t request :32;
+  rtc_data_t *input_parameters;
+  UINT complete_flag;
+  int32_t *return_code;
 } rtc_request_message;
-
-typedef struct
-{
-  rtc_requestor recipient;
-  rtc_command_t command;
-  rtc_data_t requested_data;
-} rtc_response_message;
-
-typedef union
-{
-  rtc_request_message request;
-  rtc_response_message response;
-} rtc_message;
 
 #endif /* COMPONENTS_INC_EXT_RTC_API_H_ */
