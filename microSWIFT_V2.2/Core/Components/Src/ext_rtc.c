@@ -11,7 +11,7 @@
 #include "gpio.h"
 #include "app_threadx.h"
 
-static SPI_HandleTypeDef *rtc_spi_bus = &hspi1;
+static ext_rtc *self;
 
 static int32_t ext_rtc_spi_init ( void );
 static int32_t ext_rtc_spi_deinit ( void );
@@ -23,8 +23,6 @@ static int32_t ext_rtc_read_reg_spi_dma ( uint16_t bus_address, uint16_t reg_add
                                           uint8_t *read_data, uint16_t data_length );
 static int32_t ext_rtc_write_reg_spi_dma ( uint16_t bus_address, uint16_t reg_address,
                                            uint8_t *write_data, uint16_t data_length );
-static int32_t ext_rtc_get_access_lock ( void );
-static int32_t ext_rtc_release_access_lock ( void );
 
 /**
  * @brief Initialize the SPI bus if not already initialized.
@@ -35,7 +33,7 @@ static int32_t ext_rtc_spi_init ( void )
 {
   ext_rtc_return_code retval = RTC_OK;
 
-  if ( !spi_bus_init_status (rtc_spi_bus->Instance) )
+  if ( !spi_bus_init_status (self->rtc_spi_bus->Instance) )
   {
     retval = spi1_init ();
 
@@ -53,7 +51,7 @@ static int32_t ext_rtc_spi_deinit ( void )
 {
   int32_t retval = RTC_OK;
 
-  if ( spi_bus_init_status (rtc_spi_bus->Instance) )
+  if ( spi_bus_init_status (self->rtc_spi_bus->Instance) )
   {
     retval = spi1_deinit ();
   }
@@ -82,7 +80,7 @@ static int32_t ext_rtc_read_reg_spi_blocking ( uint16_t bus_address, uint16_t re
 
   HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
 
-  if ( HAL_SPI_TransmitReceive (rtc_spi_bus, &(write_buf[0]), read_data, data_length,
+  if ( HAL_SPI_TransmitReceive (self->rtc_spi_bus, &(write_buf[0]), read_data, data_length,
   RTC_SPI_TIMEOUT)
        != HAL_OK )
   {
@@ -117,7 +115,7 @@ static int32_t ext_rtc_write_reg_spi_blocking ( uint16_t bus_address, uint16_t r
 
   HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
 
-  if ( HAL_SPI_Transmit (rtc_spi_bus, write_buf, data_length + 1, RTC_SPI_TIMEOUT) != HAL_OK )
+  if ( HAL_SPI_Transmit (self->rtc_spi_bus, write_buf, data_length + 1, RTC_SPI_TIMEOUT) != HAL_OK )
   {
     retval = RTC_SPI_ERROR;
   }
@@ -148,7 +146,8 @@ static int32_t ext_rtc_read_reg_spi_dma ( uint16_t bus_address, uint16_t reg_add
 
   HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
 
-  if ( HAL_SPI_TransmitReceive_DMA (rtc_spi_bus, write_buf, read_data, data_length) != HAL_OK )
+  if ( HAL_SPI_TransmitReceive_DMA (self->rtc_spi_bus, write_buf, read_data, data_length)
+       != HAL_OK )
   {
     retval = RTC_SPI_ERROR;
     goto done;
@@ -190,7 +189,7 @@ static int32_t ext_rtc_write_reg_spi_dma ( uint16_t bus_address, uint16_t reg_ad
 
   HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
 
-  if ( HAL_SPI_Transmit_DMA (rtc_spi_bus, write_buf, data_length + 1) != HAL_OK )
+  if ( HAL_SPI_Transmit_DMA (self->rtc_spi_bus, write_buf, data_length + 1) != HAL_OK )
   {
     retval = RTC_SPI_ERROR;
     goto done;
