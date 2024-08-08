@@ -13,6 +13,15 @@
 
 static Ext_RTC *self;
 
+/* Core struct functions */
+static ext_rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms );
+static ext_rtc_return_code _ext_rtc_refresh_watchdog ( void );
+static ext_rtc_return_code _ext_rtc_set_date_time ( struct tm input_date_time );
+static ext_rtc_return_code _ext_rtc_get_date_time ( struct tm *return_date_time );
+static ext_rtc_return_code _ext_rtc_get_timestamp ( uint64_t *return_timestamp );
+static ext_rtc_return_code _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting );
+
+/* SPI driver functions */
 static int32_t ext_rtc_spi_init ( void );
 static int32_t ext_rtc_spi_deinit ( void );
 static int32_t ext_rtc_read_reg_spi_blocking ( uint16_t bus_address, uint16_t reg_address,
@@ -23,6 +32,75 @@ static int32_t ext_rtc_read_reg_spi_dma ( uint16_t bus_address, uint16_t reg_add
                                           uint8_t *read_data, uint16_t data_length );
 static int32_t ext_rtc_write_reg_spi_dma ( uint16_t bus_address, uint16_t reg_address,
                                            uint8_t *write_data, uint16_t data_length );
+
+/**
+ * @brief Initialize the Ext_RTC struct
+ * @param  struct_ptr:= Global struct pointer, saved locally as static pointer
+ * @param  rtc_spi_bus:= Handle for SPI bus
+ * @param  messaging_queue:= Pointer to global messaging queue for inbound requests
+ * @retval ext_rtc_return_code
+ */
+ext_rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus,
+                                   TX_QUEUE *messaging_queue )
+{
+  ext_rtc_return_code return_code = RTC_SUCCESS;
+
+  return return_code;
+}
+
+/**
+ * @brief Initialize the Ext_RTC struct
+ * @param  struct_ptr:= Global struct pointer, saved locally as static pointer
+ * @param  rtc_spi_bus:= Handle for SPI bus
+ * @param  messaging_queue:= Pointer to global messaging queue for inbound requests
+ * @retval ext_rtc_return_code
+ */
+static ext_rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms );
+
+/**
+ * @brief Initialize the Ext_RTC struct
+ * @param  struct_ptr:= Global struct pointer, saved locally as static pointer
+ * @param  rtc_spi_bus:= Handle for SPI bus
+ * @param  messaging_queue:= Pointer to global messaging queue for inbound requests
+ * @retval ext_rtc_return_code
+ */
+static ext_rtc_return_code _ext_rtc_refresh_watchdog ( void );
+
+/**
+ * @brief Initialize the Ext_RTC struct
+ * @param  struct_ptr:= Global struct pointer, saved locally as static pointer
+ * @param  rtc_spi_bus:= Handle for SPI bus
+ * @param  messaging_queue:= Pointer to global messaging queue for inbound requests
+ * @retval ext_rtc_return_code
+ */
+static ext_rtc_return_code _ext_rtc_set_date_time ( struct tm input_date_time );
+
+/**
+ * @brief Initialize the Ext_RTC struct
+ * @param  struct_ptr:= Global struct pointer, saved locally as static pointer
+ * @param  rtc_spi_bus:= Handle for SPI bus
+ * @param  messaging_queue:= Pointer to global messaging queue for inbound requests
+ * @retval ext_rtc_return_code
+ */
+static ext_rtc_return_code _ext_rtc_get_date_time ( struct tm *return_date_time );
+
+/**
+ * @brief Initialize the Ext_RTC struct
+ * @param  struct_ptr:= Global struct pointer, saved locally as static pointer
+ * @param  rtc_spi_bus:= Handle for SPI bus
+ * @param  messaging_queue:= Pointer to global messaging queue for inbound requests
+ * @retval ext_rtc_return_code
+ */
+static ext_rtc_return_code _ext_rtc_get_timestamp ( uint64_t *return_timestamp );
+
+/**
+ * @brief  Set the alarm
+ * @param  struct_ptr:= Global struct pointer, saved locally as static pointer
+ * @param  rtc_spi_bus:= Handle for SPI bus
+ * @param  messaging_queue:= Pointer to global messaging queue for inbound requests
+ * @retval ext_rtc_return_code
+ */
+static ext_rtc_return_code _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting );
 
 /**
  * @brief Initialize the SPI bus if not already initialized.

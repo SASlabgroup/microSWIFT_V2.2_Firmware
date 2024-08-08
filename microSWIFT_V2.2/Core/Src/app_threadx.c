@@ -43,6 +43,7 @@
 #include "NEDWaves/mem_replacements.h"
 #include "configuration.h"
 #include "linked_list.h"
+#include "testing_hooks.h"
 
 // Waves files
 #include "NEDWaves/NEDwaves_memlight.h"
@@ -130,10 +131,10 @@ extern Iridium_message_storage sbd_message_queue;
 // Count the sample windows --> stored in NO_INIT RAM
 extern uint32_t sample_window_counter;
 // Structs
-GNSS *gnss;
-Iridium *iridium;
-RF_Switch *rf_switch;
-Battery *battery;
+GNSS gnss;
+Iridium iridium;
+RF_Switch rf_switch;
+Battery battery;
 Ext_RTC rtc;
 // Handles for all the STM32 peripherals
 Device_Handles device_handles;
@@ -142,9 +143,9 @@ Device_Handles device_handles;
 #if CT_ENABLED
 
 TX_THREAD ct_thread;
-CT* ct;
-CHAR* ct_data;
-ct_samples* samples_buf;
+CT ct;
+CHAR ct_data;
+ct_samples samples_buf;
 
 #endif
 // Only if a temperature sensor is present
@@ -1059,9 +1060,9 @@ void ct_thread_entry(ULONG thread_input){
         real16_T half_salinity;
         real16_T half_temp;
         int fail_counter;
-        
+
         register_watchdog_refresh ();
-        
+
         //
         // Run tests if needed
           if ( tests.ct_thread_test != NULL )

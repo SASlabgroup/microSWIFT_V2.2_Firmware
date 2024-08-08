@@ -12,6 +12,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <time.h>
+#include "ext_rtc.h"
 
 #define BCD_ERROR 0xFF
 
@@ -1647,20 +1648,6 @@ typedef union
 
 typedef struct
 {
-  uint8_t alarm_second;
-  uint8_t alarm_minute;
-  uint8_t alarm_hour;
-  uint8_t alarm_day;
-  weekday_t alarm_weekday;
-  bool second_alarm_en;
-  bool minute_alarm_en;
-  bool hour_alarm_en;
-  bool day_alarm_en;
-  bool weekday_alarm_en;
-} pcf2131_alarm_struct;
-
-typedef struct
-{
   // Enable seconds interrupt
   bool sec_irq_en;
   // Enable minutes interrupt
@@ -1691,8 +1678,8 @@ int32_t pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_init_ptr init
                                         dev_read_ptr bus_read_fn, void *optional_handle );
 int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm *input_date_time );
 int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_time );
-int32_t pcf2131_set_alarm ( dev_ctx_t *dev_handle, pcf2131_alarm_struct *alarm_setting );
-int32_t pcf2131_get_alarm ( dev_ctx_t *dev_handle, pcf2131_alarm_struct *return_alarm_setting );
+int32_t pcf2131_set_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *alarm_setting );
+int32_t pcf2131_get_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *return_alarm_setting );
 int32_t pcf2131_config_int_a ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config );
 int32_t pcf2131_config_int_b ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config );
 int32_t pcf2131_temp_comp_config ( dev_ctx_t *dev_handle, bool en );
