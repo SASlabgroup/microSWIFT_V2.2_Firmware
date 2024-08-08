@@ -31,7 +31,7 @@ static int32_t ext_rtc_write_reg_spi_dma ( uint16_t bus_address, uint16_t reg_ad
  */
 static int32_t ext_rtc_spi_init ( void )
 {
-  ext_rtc_return_code retval = RTC_OK;
+  ext_rtc_return_code retval = RTC_SUCCESS;
 
   if ( !spi_bus_init_status (self->rtc_spi_bus->Instance) )
   {
@@ -49,7 +49,7 @@ static int32_t ext_rtc_spi_init ( void )
  */
 static int32_t ext_rtc_spi_deinit ( void )
 {
-  int32_t retval = RTC_OK;
+  int32_t retval = RTC_SUCCESS;
 
   if ( spi_bus_init_status (self->rtc_spi_bus->Instance) )
   {
@@ -71,7 +71,7 @@ static int32_t ext_rtc_read_reg_spi_blocking ( uint16_t bus_address, uint16_t re
                                                uint8_t *read_data, uint16_t data_length )
 {
   (void) bus_address;
-  int32_t retval = RTC_OK;
+  int32_t retval = RTC_SUCCESS;
   uint8_t write_buf[RTC_SPI_BUF_SIZE] =
     { 0 };
   write_buf[0] = (uint8_t) (reg_address | PCF2131_SPI_READ_BIT);
@@ -104,7 +104,7 @@ static int32_t ext_rtc_write_reg_spi_blocking ( uint16_t bus_address, uint16_t r
                                                 uint8_t *write_data, uint16_t data_length )
 {
   (void) bus_address;
-  int32_t retval = RTC_OK;
+  int32_t retval = RTC_SUCCESS;
   uint8_t write_buf[RTC_SPI_BUF_SIZE + 1] =
     { 0 };
 
@@ -137,7 +137,7 @@ static int32_t ext_rtc_read_reg_spi_dma ( uint16_t bus_address, uint16_t reg_add
                                           uint8_t *read_data, uint16_t data_length )
 {
   (void) bus_address;
-  int32_t retval = RTC_OK;
+  int32_t retval = RTC_SUCCESS;
   uint8_t write_buf[RTC_SPI_BUF_SIZE] =
     { 0 };
   write_buf[0] = (uint8_t) (reg_address | PCF2131_SPI_READ_BIT);
@@ -178,7 +178,7 @@ static int32_t ext_rtc_write_reg_spi_dma ( uint16_t bus_address, uint16_t reg_ad
                                            uint8_t *write_data, uint16_t data_length )
 {
   (void) bus_address;
-  int32_t retval = RTC_OK;
+  int32_t retval = RTC_SUCCESS;
   uint8_t write_buf[RTC_SPI_BUF_SIZE + 1] =
     { 0 };
 

@@ -2,6 +2,7 @@
 Lengthy list of TODOs:
 
 [ ] Change all non-threadx objects to static allocation -- remove from App_ThreadX_Init()
+    [ ] Give GNSS a FIFO for messages
 [ ] Make a control thread
     [ ] Move startup and end-of-cycle thread functions inside
     [ ] make event loop handler type deal to look for error flags or something
