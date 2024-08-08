@@ -10,6 +10,7 @@
 
 #include "tx_api.h"
 #include "ext_rtc_api.h"
+#include "spi.h"
 #include "time.h"
 #include "pcf2131_reg.h"
 

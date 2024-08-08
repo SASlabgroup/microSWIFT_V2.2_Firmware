@@ -1245,6 +1245,8 @@ void waves_thread_entry ( ULONG thread_input )
     tests.temperature_thread_test (NULL);
   }
 
+  register_watchdog_refresh ();
+
 // Function return parameters
   real16_T E[42];
   real16_T Dp;
@@ -1257,8 +1259,6 @@ void waves_thread_entry ( ULONG thread_input )
   signed char b1[42];
   signed char b2[42];
   unsigned char check[42];
-
-  register_watchdog_refresh ();
 
   /* Call the entry-point 'NEDwaves_memlight'. */
   NEDwaves_memlight (north, east, down, gnss->sample_window_freq, &Hs, &Tp, &Dp, E, &b_fmin,
@@ -1320,6 +1320,15 @@ void iridium_thread_entry ( ULONG thread_input )
   real16_T voltage;
   float sbd_timestamp = iridium->get_timestamp ();
   bool queue_empty = iridium->storage_queue->num_msgs_enqueued == 0;
+
+  register_watchdog_refresh ();
+
+  //
+  // Run tests if needed
+  if ( tests.iridium_thread_test != NULL )
+  {
+    tests.iridium_thread_test (NULL);
+  }
 
   register_watchdog_refresh ();
 
@@ -1478,6 +1487,15 @@ void end_of_cycle_thread_entry ( ULONG thread_input )
 
 // Must put this thread to sleep for a short while to allow other threads to terminate
   tx_thread_sleep (1);
+
+  register_watchdog_refresh ();
+
+  //
+  // Run tests if needed
+  if ( tests.shutdown_test != NULL )
+  {
+    tests.shutdown_test (NULL);
+  }
 
   register_watchdog_refresh ();
 
