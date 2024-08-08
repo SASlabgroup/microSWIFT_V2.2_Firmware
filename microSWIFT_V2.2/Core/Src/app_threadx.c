@@ -33,6 +33,7 @@
 #include "stdint.h"
 #include "stdbool.h"
 #include "string.h"
+#include "ext_rtc.h"
 #include "gnss.h"
 #include "battery.h"
 #include "ct_sensor.h"
@@ -135,9 +136,7 @@ RF_Switch *rf_switch;
 Battery *battery;
 Ext_RTC rtc;
 // Handles for all the STM32 peripherals
-Device_Handles *device_handles;
-// The watchdog hour elapsed timer flag
-bool watchdog_hour_timer_elapsed = false;
+Device_Handles device_handles;
 
 // Only included if there is a CT sensor
 #if CT_ENABLED
@@ -433,7 +432,22 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
         }
 #endif
 
-  device_handles = handles;
+#if SD_CARD_ENABLED
+  device_handles.sd_card_handle = &hsdmmc1;
+#endif
+  device_handles.core_spi_handle = &hspi1;
+  device_handles.core_i2c_handle = &hi2c1;
+  device_handles.iridium_uart_handle = &huart4;
+  device_handles.gnss_uart_handle = &huart1;
+  device_handles.ct_uart_handle = &huart5;
+  device_handles.ext_flash_handle = &hospi1;
+  device_handles.aux_spi_1_handle = &hspi2;
+  device_handles.aux_spi_2_handle = &hspi3;
+  device_handles.aux_i2c_1_handle = &hi2c2;
+  device_handles.aux_i2c_2_handle = &hi2c3;
+  device_handles.aux_uart_1_handle = &huart2;
+  device_handles.aux_uart_2_handle = &huart3;
+
   configuration.samples_per_window = TOTAL_SAMPLES_PER_WINDOW;
   configuration.iridium_max_transmit_time = IRIDIUM_MAX_TRANSMIT_TIME;
   configuration.gnss_sampling_rate = GNSS_SAMPLING_RATE;
@@ -441,7 +455,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   configuration.gnss_max_acquisition_wait_time = GNSS_MAX_ACQUISITION_WAIT_TIME;
   configuration.total_ct_samples = TOTAL_CT_SAMPLES;
   configuration.windows_per_hour = SAMPLE_WINDOWS_PER_HOUR;
-  configuration.reset_reason = handles->reset_reason;
+  configuration.reset_reason = HAL_RCC_GetResetSource ();
 
   /* USER CODE END App_ThreadX_MEM_POOL */
   /* USER CODE BEGIN App_ThreadX_Init */

@@ -69,6 +69,9 @@
 // If there is a Blue Robotics I2C temperature sensor presen
 #define TEMPERATURE_ENABLED true
 
+// If there is a logging SD card
+#define SD_CARD_ENABLED false
+
 typedef struct microSWIFT_configuration
 {
   uint32_t samples_per_window;

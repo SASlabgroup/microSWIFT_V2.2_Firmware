@@ -5,5 +5,5 @@
 
 USER_OBJS :=
 
-LIBS :=
+LIBS := -l:I-CUBE-CANOPEN_CM33_GCC.a
 
