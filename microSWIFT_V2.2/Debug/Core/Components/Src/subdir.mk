@@ -8,6 +8,7 @@ C_SRCS += \
 ../Core/Components/Src/battery.c \
 ../Core/Components/Src/ct_sensor.c \
 ../Core/Components/Src/ext_rtc.c \
+../Core/Components/Src/ext_rtc_api.c \
 ../Core/Components/Src/gnss.c \
 ../Core/Components/Src/iridium.c \
 ../Core/Components/Src/rf_switch.c \
@@ -17,6 +18,7 @@ OBJS += \
 ./Core/Components/Src/battery.o \
 ./Core/Components/Src/ct_sensor.o \
 ./Core/Components/Src/ext_rtc.o \
+./Core/Components/Src/ext_rtc_api.o \
 ./Core/Components/Src/gnss.o \
 ./Core/Components/Src/iridium.o \
 ./Core/Components/Src/rf_switch.o \
@@ -26,6 +28,7 @@ C_DEPS += \
 ./Core/Components/Src/battery.d \
 ./Core/Components/Src/ct_sensor.d \
 ./Core/Components/Src/ext_rtc.d \
+./Core/Components/Src/ext_rtc_api.d \
 ./Core/Components/Src/gnss.d \
 ./Core/Components/Src/iridium.d \
 ./Core/Components/Src/rf_switch.d \
@@ -39,7 +42,7 @@ Core/Components/Src/%.o Core/Components/Src/%.su Core/Components/Src/%.cyclo: ..
 clean: clean-Core-2f-Components-2f-Src
 
 clean-Core-2f-Components-2f-Src:
-	-$(RM) ./Core/Components/Src/battery.cyclo ./Core/Components/Src/battery.d ./Core/Components/Src/battery.o ./Core/Components/Src/battery.su ./Core/Components/Src/ct_sensor.cyclo ./Core/Components/Src/ct_sensor.d ./Core/Components/Src/ct_sensor.o ./Core/Components/Src/ct_sensor.su ./Core/Components/Src/ext_rtc.cyclo ./Core/Components/Src/ext_rtc.d ./Core/Components/Src/ext_rtc.o ./Core/Components/Src/ext_rtc.su ./Core/Components/Src/gnss.cyclo ./Core/Components/Src/gnss.d ./Core/Components/Src/gnss.o ./Core/Components/Src/gnss.su ./Core/Components/Src/iridium.cyclo ./Core/Components/Src/iridium.d ./Core/Components/Src/iridium.o ./Core/Components/Src/iridium.su ./Core/Components/Src/rf_switch.cyclo ./Core/Components/Src/rf_switch.d ./Core/Components/Src/rf_switch.o ./Core/Components/Src/rf_switch.su ./Core/Components/Src/temp_sensor.cyclo ./Core/Components/Src/temp_sensor.d ./Core/Components/Src/temp_sensor.o ./Core/Components/Src/temp_sensor.su
+	-$(RM) ./Core/Components/Src/battery.cyclo ./Core/Components/Src/battery.d ./Core/Components/Src/battery.o ./Core/Components/Src/battery.su ./Core/Components/Src/ct_sensor.cyclo ./Core/Components/Src/ct_sensor.d ./Core/Components/Src/ct_sensor.o ./Core/Components/Src/ct_sensor.su ./Core/Components/Src/ext_rtc.cyclo ./Core/Components/Src/ext_rtc.d ./Core/Components/Src/ext_rtc.o ./Core/Components/Src/ext_rtc.su ./Core/Components/Src/ext_rtc_api.cyclo ./Core/Components/Src/ext_rtc_api.d ./Core/Components/Src/ext_rtc_api.o ./Core/Components/Src/ext_rtc_api.su ./Core/Components/Src/gnss.cyclo ./Core/Components/Src/gnss.d ./Core/Components/Src/gnss.o ./Core/Components/Src/gnss.su ./Core/Components/Src/iridium.cyclo ./Core/Components/Src/iridium.d ./Core/Components/Src/iridium.o ./Core/Components/Src/iridium.su ./Core/Components/Src/rf_switch.cyclo ./Core/Components/Src/rf_switch.d ./Core/Components/Src/rf_switch.o ./Core/Components/Src/rf_switch.su ./Core/Components/Src/temp_sensor.cyclo ./Core/Components/Src/temp_sensor.d ./Core/Components/Src/temp_sensor.o ./Core/Components/Src/temp_sensor.su
 
 .PHONY: clean-Core-2f-Components-2f-Src
 

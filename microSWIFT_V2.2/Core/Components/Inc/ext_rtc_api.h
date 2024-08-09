@@ -16,6 +16,16 @@
 #define RTC_QUEUE_MAX_WAIT_TICKS 5
 #define RTC_FLAG_MAX_WAIT_TICKS 5
 
+typedef enum
+{
+  RTC_SUCCESS = 0,
+  RTC_SPI_ERROR = -1,
+  RTC_PARAMETERS_INVALID = -2,
+  RTC_TIMESTAMP_ALREADY_IN_USE = -3,
+  RTC_MESSAGE_QUEUE_ERROR = -4,
+  RTC_TIMEOUT = -5
+} rtc_return_code;
+
 // @formatter:off
 /* Looku table for fast conversion from BCD to decimal */
 uint8_t bcd_to_dec[256] =
@@ -177,10 +187,9 @@ typedef struct
 // Generic message type for request -- used to create uniform request size
 typedef union
 {
-  rtc_get_time_t get_time;
-  rtc_set_time_t set_time;
+  rtc_get_time_t get_set_time;
   rtc_config_watchdog_t config_watchdog;
-  rtc_get_timestamp_t get_timestamp;
+  rtc_get_timestamp_t get_set_timestamp;
   rtc_set_alarm_t set_alarm;
 } rtc_data_t;
 
@@ -205,13 +214,13 @@ typedef struct
 // Interface functions
 void rtc_server_init ( TX_QUEUE *request_queue, TX_SEMAPHORE *watchdog_refresh_semaphore );
 void rtc_server_refresh_watchdog ( void );
-ext_rtc_return_code rtc_server_get_time ( struct tm *return_time_struct, UINT complete_flag );
-ext_rtc_return_code rtc_server_set_time ( struct tm *input_time_struct, UINT complete_flag );
-ext_rtc_return_code rtc_server_config_watchdog ( uint32_t *period_ms, UINT complete_flag );
-ext_rtc_return_code rtc_server_set_timestamp ( rtc_timestamp_t *which_timestamp,
-                                               UINT complete_flag );
-ext_rtc_return_code rtc_server_get_timestamp ( rtc_timestamp_t *which_timestamp,
-                                               UINT complete_flag );
-ext_rtc_return_code rtc_server_set_alarm ( rtc_set_alarm_t *alarm_settings, UINT complete_flag );
+rtc_return_code rtc_server_get_time ( struct tm *return_time_struct, UINT complete_flag );
+rtc_return_code rtc_server_set_time ( struct tm input_time_struct, UINT complete_flag );
+rtc_return_code rtc_server_config_watchdog ( uint32_t period_ms, UINT complete_flag );
+rtc_return_code rtc_server_set_timestamp ( rtc_timestamp_t which_timestamp, UINT complete_flag );
+rtc_return_code rtc_server_get_timestamp ( rtc_timestamp_t which_timestamp, UINT complete_flag );
+rtc_return_code rtc_server_set_alarm ( rtc_set_alarm_t *alarm_settings, UINT complete_flag );
+// Generic do-all function
+rtc_return_code rtc_server_process_request ( rtc_request_message *request );
 
 #endif /* COMPONENTS_INC_EXT_RTC_API_H_ */
