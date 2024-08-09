@@ -13,6 +13,9 @@
 #include "pcf2131_reg.h"
 #include "limits.h"
 
+#define RTC_QUEUE_MAX_WAIT_TICKS 5
+#define RTC_FLAG_MAX_WAIT_TICKS 5
+
 // @formatter:off
 /* Looku table for fast conversion from BCD to decimal */
 uint8_t bcd_to_dec[256] =
@@ -104,10 +107,9 @@ typedef enum
   GET_TIME = 0,
   SET_TIME = 1,
   CONFIG_WATCHDOG = 2,
-  REFRESH_WATCHDOG = 3,
-  SET_TIMESTAMP = 4,
-  GET_TIMESTAMP = 5,
-  SET_ALARM = 6
+  SET_TIMESTAMP = 3,
+  GET_TIMESTAMP = 4,
+  SET_ALARM = 5
 } rtc_request_t;
 
 // Event group flags for signalling completion
@@ -170,7 +172,7 @@ typedef struct
   bool hour_alarm_en;
   bool day_alarm_en;
   bool weekday_alarm_en;
-} rtc_alarm_t;
+} rtc_set_alarm_t;
 
 // Generic message type for request -- used to create uniform request size
 typedef union
@@ -186,11 +188,30 @@ typedef union
 typedef struct
 {
   int32_t request; // Use type rtc_request_t
-  rtc_data_t *input_parameters;
+  // For set requests, this contains input data
+  // For get requests, this is written back to
+  rtc_data_t *input_output_struct;
   UINT complete_flag;
   int32_t *return_code;
 } rtc_request_message;
 
+typedef struct
+{
+  TX_QUEUE *request_queue;
+  TX_SEMAPHORE *watchdog_refresh_semaphore;
+  TX_EVENT_FLAGS_GROUP *complete_flags;
+} rtc_server;
+
 // Interface functions
+void rtc_server_init ( TX_QUEUE *request_queue, TX_SEMAPHORE *watchdog_refresh_semaphore );
+void rtc_server_refresh_watchdog ( void );
+ext_rtc_return_code rtc_server_get_time ( struct tm *return_time_struct, UINT complete_flag );
+ext_rtc_return_code rtc_server_set_time ( struct tm *input_time_struct, UINT complete_flag );
+ext_rtc_return_code rtc_server_config_watchdog ( uint32_t *period_ms, UINT complete_flag );
+ext_rtc_return_code rtc_server_set_timestamp ( rtc_timestamp_t *which_timestamp,
+                                               UINT complete_flag );
+ext_rtc_return_code rtc_server_get_timestamp ( rtc_timestamp_t *which_timestamp,
+                                               UINT complete_flag );
+ext_rtc_return_code rtc_server_set_alarm ( rtc_set_alarm_t *alarm_settings, UINT complete_flag );
 
 #endif /* COMPONENTS_INC_EXT_RTC_API_H_ */

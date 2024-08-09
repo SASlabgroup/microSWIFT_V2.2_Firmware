@@ -22,7 +22,10 @@ typedef enum
 {
   RTC_SUCCESS = 0,
   RTC_SPI_ERROR = -1,
-  RTC_PARAMETERS_INVALID = -2
+  RTC_PARAMETERS_INVALID = -2,
+  RTC_TIMESTAMP_ALREADY_IN_USE = -3,
+  RTC_MESSAGE_QUEUE_ERROR = -4,
+  RTC_TIMEOUT = -5
 } ext_rtc_return_code;
 
 typedef struct
