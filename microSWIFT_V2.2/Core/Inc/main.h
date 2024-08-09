@@ -111,6 +111,8 @@ void Error_Handler(void);
 #define CORE_SPI_MOSI_GPIO_Port GPIOA
 #define RTC_TIMESTAMP_3_Pin GPIO_PIN_0
 #define RTC_TIMESTAMP_3_GPIO_Port GPIOB
+#define RTC_INT_B_Pin GPIO_PIN_2
+#define RTC_INT_B_GPIO_Port GPIOB
 #define AUX_GPIO_11_Pin GPIO_PIN_11
 #define AUX_GPIO_11_GPIO_Port GPIOF
 #define RTC_INT_A_Pin GPIO_PIN_12
@@ -148,9 +150,6 @@ void Error_Handler(void);
 #define AUX_UART_2_RX_GPIO_Port GPIOB
 #define AUX_GPIO_0_Pin GPIO_PIN_14
 #define AUX_GPIO_0_GPIO_Port GPIOD
-#define RTC_INT_B_Pin GPIO_PIN_15
-#define RTC_INT_B_GPIO_Port GPIOD
-#define RTC_INT_B_EXTI_IRQn EXTI15_IRQn
 #define SD_D0_Pin GPIO_PIN_8
 #define SD_D0_GPIO_Port GPIOC
 #define GNSS_UART_TX_Pin GPIO_PIN_9

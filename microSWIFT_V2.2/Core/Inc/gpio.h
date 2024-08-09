@@ -40,11 +40,17 @@ typedef struct
 } gpio_pin_struct;
 /* USER CODE END Private defines */
 
-void MX_GPIO_Init ( void );
+void MX_GPIO_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-inline GPIO_PinState gpio_read_pin ( gpio_pin_struct pin );
-inline void gpio_write_pin ( gpio_pin_struct pin, GPIO_PinState state );
+inline GPIO_PinState gpio_read_pin ( gpio_pin_struct pin )
+{
+  return HAL_GPIO_ReadPin (pin.port, pin.pin);
+}
+inline void gpio_write_pin ( gpio_pin_struct pin, GPIO_PinState state )
+{
+  HAL_GPIO_WritePin (pin.port, pin.pin, state);
+}
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
