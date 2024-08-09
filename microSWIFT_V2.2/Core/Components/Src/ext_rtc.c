@@ -22,7 +22,7 @@ static ext_rtc_return_code _ext_rtc_get_date_time ( struct tm *return_date_time 
 static ext_rtc_return_code _ext_rtc_set_timestamp ( rtc_timestamp_t which_timestamp );
 static ext_rtc_return_code _ext_rtc_get_timestamp ( rtc_timestamp_t which_timestamp,
                                                     time_t *return_timestamp );
-static ext_rtc_return_code _ext_rtc_set_alarm ( rtc_set_alarm_t alarm_setting );
+static ext_rtc_return_code _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting );
 
 /* SPI driver functions */
 static int32_t _ext_rtc_spi_init ( void );
@@ -51,14 +51,14 @@ static int32_t _ext_rtc_write_reg_spi_dma ( void *unused_handle, uint16_t unused
  * @retval ext_rtc_return_code
  */
 ext_rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus,
-                                   TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP complete_flags )
+                                   TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP *complete_flags )
 {
   int32_t ret;
   uint8_t register_read = 0;
   // Grab the global struct pointer
   self = struct_ptr;
 
-  self->request_queue = messaging_queue;
+  self->request_queue = request_queue;
   self->complete_flags = complete_flags;
   self->rtc_spi_bus = rtc_spi_bus;
   self->int_a_pin.port = RTC_INT_A_GPIO_Port;
@@ -79,13 +79,13 @@ ext_rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_s
   self->ts3_in_use = false;
   self->ts4_in_use = false;
 
-  self->ext_rtc_config_watchdog = _ext_rtc_config_watchdog;
-  self->ext_rtc_refresh_watchdog = _ext_rtc_refresh_watchdog;
-  self->ext_rtc_set_date_time = _ext_rtc_set_date_time;
-  self->ext_rtc_get_date_time = _ext_rtc_get_date_time;
-  self->ext_rtc_set_timestamp = _ext_rtc_set_timestamp;
-  self->ext_rtc_get_timestamp = _ext_rtc_get_timestamp;
-  self->ext_rtc_set_alarm = _ext_rtc_set_alarm;
+  self->config_watchdog = _ext_rtc_config_watchdog;
+  self->refresh_watchdog = _ext_rtc_refresh_watchdog;
+  self->set_date_time = _ext_rtc_set_date_time;
+  self->get_date_time = _ext_rtc_get_date_time;
+  self->set_timestamp = _ext_rtc_set_timestamp;
+  self->get_timestamp = _ext_rtc_get_timestamp;
+  self->set_alarm = _ext_rtc_set_alarm;
 
   // Register dev_ctx functions
   if ( pcf2131_register_io_functions (&self->dev_ctx, _ext_rtc_spi_init, _ext_rtc_spi_deinit,
@@ -190,7 +190,7 @@ static ext_rtc_return_code _ext_rtc_get_timestamp ( rtc_timestamp_t which_timest
  * @param  alarm_setting:= Settings to be applied to the alarm
  * @retval ext_rtc_return_code
  */
-static ext_rtc_return_code _ext_rtc_set_alarm ( ext_rtc_set_alarm alarm_setting )
+static ext_rtc_return_code _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting )
 {
   ext_rtc_return_code return_code = RTC_SUCCESS;
 

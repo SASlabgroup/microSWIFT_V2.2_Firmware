@@ -133,7 +133,7 @@ typedef enum
   TURBIDITY_REQUEST_PROCESSED = (1 << 5),
   IRIDIUM_REQUEST_PROCESSED = (1 << 6),
   AUX_PERIPHERAL_1_REQUEST_PROCESSED = (1 << 7)
-};
+} rtc_complete_flags_t;
 
 // Define the timestamps
 typedef enum
@@ -169,28 +169,13 @@ typedef struct
   time_t timestamp;
 } rtc_get_timestamp_t;
 
-// Message struct for SET_ALARM request
-typedef struct
-{
-  uint8_t alarm_second;
-  uint8_t alarm_minute;
-  uint8_t alarm_hour;
-  uint8_t alarm_day;
-  weekday_t alarm_weekday;
-  bool second_alarm_en;
-  bool minute_alarm_en;
-  bool hour_alarm_en;
-  bool day_alarm_en;
-  bool weekday_alarm_en;
-} rtc_set_alarm_t;
-
 // Generic message type for request -- used to create uniform request size
 typedef union
 {
   rtc_get_time_t get_set_time;
   rtc_config_watchdog_t config_watchdog;
   rtc_get_timestamp_t get_set_timestamp;
-  rtc_set_alarm_t set_alarm;
+  rtc_alarm_struct set_alarm;
 } rtc_data_t;
 
 // Generic message request format
@@ -219,7 +204,7 @@ rtc_return_code rtc_server_set_time ( struct tm input_time_struct, UINT complete
 rtc_return_code rtc_server_config_watchdog ( uint32_t period_ms, UINT complete_flag );
 rtc_return_code rtc_server_set_timestamp ( rtc_timestamp_t which_timestamp, UINT complete_flag );
 rtc_return_code rtc_server_get_timestamp ( rtc_timestamp_t which_timestamp, UINT complete_flag );
-rtc_return_code rtc_server_set_alarm ( rtc_set_alarm_t *alarm_settings, UINT complete_flag );
+rtc_return_code rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UINT complete_flag );
 // Generic do-all function
 rtc_return_code rtc_server_process_request ( rtc_request_message *request );
 

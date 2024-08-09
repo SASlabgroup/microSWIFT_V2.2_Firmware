@@ -46,17 +46,16 @@ typedef struct
   bool ts3_in_use;
   bool ts4_in_use;
 
-  ext_rtc_return_code (*ext_rtc_config_watchdog) ( uint32_t period_ms );
-  ext_rtc_return_code (*ext_rtc_refresh_watchdog) ( void );
-  ext_rtc_return_code (*ext_rtc_set_date_time) ( struct tm input_date_time );
-  ext_rtc_return_code (*ext_rtc_get_date_time) ( struct tm *return_date_time );
-  ext_rtc_return_code (*ext_rtc_set_timestamp) ( rtc_timestamp_t which_timestamp );
-  ext_rtc_return_code (*ext_rtc_get_timestamp) ( rtc_timestamp_t which_timestamp,
-                                                 time_t *return_timestamp );
-  ext_rtc_return_code (*ext_rtc_set_alarm) ( rtc_set_alarm_t alarm_setting );
+  ext_rtc_return_code (*config_watchdog) ( uint32_t period_ms );
+  ext_rtc_return_code (*refresh_watchdog) ( void );
+  ext_rtc_return_code (*set_date_time) ( struct tm input_date_time );
+  ext_rtc_return_code (*get_date_time) ( struct tm *return_date_time );
+  ext_rtc_return_code (*set_timestamp) ( rtc_timestamp_t which_timestamp );
+  ext_rtc_return_code (*get_timestamp) ( rtc_timestamp_t which_timestamp, time_t *return_timestamp );
+  ext_rtc_return_code (*set_alarm) ( rtc_alarm_struct alarm_setting );
 } Ext_RTC;
 
 ext_rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus,
-                                   TX_QUEUE *messaging_queue, TX_EVENT_FLAGS_GROUP complete_flags );
+                                   TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP *complete_flags );
 
 #endif /* COMPONENTS_INC_EXT_RTC_H_ */

@@ -153,7 +153,7 @@ rtc_return_code rtc_server_get_timestamp ( rtc_timestamp_t which_timestamp, UINT
   return ret;
 }
 
-rtc_return_code rtc_server_set_alarm ( rtc_set_alarm_t *alarm_settings, UINT complete_flag )
+rtc_return_code rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UINT complete_flag )
 {
   ext_rtc_return_code ret = RTC_SUCCESS;
   rtc_request_message queue_msg;

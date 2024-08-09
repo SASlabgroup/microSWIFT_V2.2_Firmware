@@ -98,6 +98,8 @@ TX_THREAD iridium_thread;
 TX_EVENT_FLAGS_GROUP thread_control_flags;
 // Flags for errors
 TX_EVENT_FLAGS_GROUP error_flags;
+// RTC complete flags
+TX_EVENT_FLAGS_GROUP rtc_complete_flags;
 // Comms buses semaphores
 TX_SEMAPHORE ext_rtc_spi_sema;
 TX_SEMAPHORE aux_spi_1_spi_sema;
@@ -214,7 +216,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   // Create the control thread. HIGHEST priority level and no preemption possible, auto-start
   ret = tx_thread_create(&control_thread, "control thread", control_thread_entry, 0, pointer,
-                         THREAD_XXL_STACK_SIZE, HIGHEST_PRIORITY, HIGHEST_PRIORITY,
+                         THREAD_XXL_STACK_SIZE, VERY_HIGH_PRIORITY, HIGHEST_PRIORITY,
                          TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
@@ -229,7 +231,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   // Create the rtc thread. VERY_HIGH priority level and no preemption possible, auto-start
   ret = tx_thread_create(&rtc_thread, "rtc thread", rtc_thread_entry, 0, pointer,
-                         THREAD_MEDIUM_STACK_SIZE, VERY_HIGH_PRIORITY, HIGHEST_PRIORITY,
+                         THREAD_MEDIUM_STACK_SIZE, HIGHEST_PRIORITY, HIGHEST_PRIORITY,
                          TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
@@ -541,20 +543,107 @@ ULONG App_ThreadX_LowPower_Timer_Adjust ( void )
 /* USER CODE BEGIN 1 */
 
 /**
- * @brief  Watchdog thread entry
- *         This thread will wait for the watchdog semaphore to be put before refreshing
- *         the IWDG.
+ * @brief  RTC thread. Manages all RTC operations.
+ *
+ * @note   This is a server style thread to manage shared hardware. Multiple threads require access
+ *         to the RTC, so all operations happen in this thread. There are two methods of notifying
+ *         this thread that there is work to do:
+ *
+ *         1) A watchdog semaphore -- if this semaphore ever has a count greater than 0, the
+ *            RTC will refresh the watchdog.
+ *
+ *         2) For all other RTC requests, functions in ext_rtc_api.h are called which place a
+ *            rtc_request_message on the queue, which contains all the required information for an
+ *            RTC operation. The return code is written back via pointer provided in the queue
+ *            message.
+ *
  * @param  ULONG thread_input - unused
  * @retval void
  */
 void rtc_thread_entry ( ULONG thread_input )
 {
-  int32_t ret;
+  UNUSED(thread_input);
+  Ext_RTC rtc;
+  ext_rtc_return_code ret;
+  UINT tx_ret;
+  rtc_request_message req;
 
-//ret = ext_rtc_init(&rtc, )
+  ret = ext_rtc_init (&rtc, device_handles.core_spi_handle, &rtc_messaging_queue,
+                      &rtc_complete_flags);
+
+  if ( ret != EXT_RTC_SUCCESS )
+  {
+    // TODO: set some error flag, inform Control thread somehow
+  }
+
   while ( 1 )
   {
+    // Check for a watchdog refresh
+    tx_ret = tx_semaphore_get (&watchdog_refresh_semaphore, TX_NO_WAIT);
+    if ( tx_ret == TX_SUCCESS )
+    {
+      rtc.refresh_watchdog ();
+    }
 
+    // See if we have any requests on the queue
+    tx_ret = tx_queue_receive (&rtc_messaging_queue, &req, TX_NO_WAIT);
+    if ( tx_ret == TX_SUCCESS )
+    {
+      switch ( req.request )
+      {
+        case GET_TIME:
+
+          *req.return_code = rtc.get_date_time (&req.input_output_struct->get_set_time.time_struct);
+          (void) tx_event_flags_set (&rtc_complete_flags, req.complete_flag, TX_OR);
+
+          break;
+
+        case SET_TIME:
+
+          *req.return_code = rtc.set_date_time (req.input_output_struct->get_set_time.time_struct);
+          (void) tx_event_flags_set (&rtc_complete_flags, req.complete_flag, TX_OR);
+
+          break;
+
+        case CONFIG_WATCHDOG:
+
+          *req.return_code = rtc.config_watchdog (
+              req.input_output_struct->config_watchdog.period_ms);
+          (void) tx_event_flags_set (&rtc_complete_flags, req.complete_flag, TX_OR);
+
+          break;
+
+        case SET_TIMESTAMP:
+
+          *req.return_code = rtc.set_timestamp (
+              req.input_output_struct->get_set_timestamp.which_timestamp);
+          (void) tx_event_flags_set (&rtc_complete_flags, req.complete_flag, TX_OR);
+
+          break;
+
+        case GET_TIMESTAMP:
+
+          *req.return_code = rtc.get_timestamp (
+              req.input_output_struct->get_set_timestamp.which_timestamp,
+              &req.input_output_struct->get_set_timestamp.timestamp);
+          (void) tx_event_flags_set (&rtc_complete_flags, req.complete_flag, TX_OR);
+
+          break;
+
+        case SET_ALARM:
+
+          *req.return_code = rtc.set_alarm (req.input_output_struct->set_alarm);
+          (void) tx_event_flags_set (&rtc_complete_flags, req.complete_flag, TX_OR);
+          break;
+
+        default:
+
+          // TODO: set some error flag, inform Control thread somehow
+          break;
+      }
+    }
+
+    tx_thread_sleep (1);
   }
 }
 

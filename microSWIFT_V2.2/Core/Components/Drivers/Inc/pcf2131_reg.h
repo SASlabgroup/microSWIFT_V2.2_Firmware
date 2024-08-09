@@ -1586,13 +1586,27 @@ typedef struct
   bool timestamp_4_irq_en;
 } pcf2131_irq_config_struct;
 
+typedef struct
+{
+  uint8_t alarm_second;
+  uint8_t alarm_minute;
+  uint8_t alarm_hour;
+  uint8_t alarm_day;
+  weekday_t alarm_weekday;
+  bool second_alarm_en;
+  bool minute_alarm_en;
+  bool hour_alarm_en;
+  bool day_alarm_en;
+  bool weekday_alarm_en;
+} rtc_alarm_struct;
+
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*################################## Function Declarations #######################################*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
-void pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_init_ptr init_fn,
-                                     dev_deinit_ptr deinit_fn, dev_write_ptr bus_write_fn,
-                                     dev_read_ptr bus_read_fn, void *optional_handle );
+int32_t pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_init_ptr init_fn,
+                                        dev_deinit_ptr deinit_fn, dev_write_ptr bus_write_fn,
+                                        dev_read_ptr bus_read_fn, void *optional_handle );
 int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm *input_date_time );
 int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_time );
 int32_t pcf2131_set_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *alarm_setting );
