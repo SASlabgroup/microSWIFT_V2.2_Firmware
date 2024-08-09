@@ -20,8 +20,9 @@ static ext_rtc_return_code _ext_rtc_refresh_watchdog ( void );
 static ext_rtc_return_code _ext_rtc_set_date_time ( struct tm input_date_time );
 static ext_rtc_return_code _ext_rtc_get_date_time ( struct tm *return_date_time );
 static ext_rtc_return_code _ext_rtc_set_timestamp ( rtc_timestamp_t which_timestamp );
-static ext_rtc_return_code _ext_rtc_get_timestamp ( uint64_t *return_timestamp );
-static ext_rtc_return_code _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting );
+static ext_rtc_return_code _ext_rtc_get_timestamp ( rtc_timestamp_t which_timestamp,
+                                                    time_t *return_timestamp );
+static ext_rtc_return_code _ext_rtc_set_alarm ( rtc_set_alarm_t alarm_setting );
 
 /* SPI driver functions */
 static int32_t _ext_rtc_spi_init ( void );
@@ -189,7 +190,7 @@ static ext_rtc_return_code _ext_rtc_get_timestamp ( rtc_timestamp_t which_timest
  * @param  alarm_setting:= Settings to be applied to the alarm
  * @retval ext_rtc_return_code
  */
-static ext_rtc_return_code _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting )
+static ext_rtc_return_code _ext_rtc_set_alarm ( ext_rtc_set_alarm alarm_setting )
 {
   ext_rtc_return_code return_code = RTC_SUCCESS;
 

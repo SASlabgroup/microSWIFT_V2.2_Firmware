@@ -20,12 +20,12 @@
 
 typedef enum
 {
-  RTC_SUCCESS = 0,
-  RTC_SPI_ERROR = -1,
-  RTC_PARAMETERS_INVALID = -2,
-  RTC_TIMESTAMP_ALREADY_IN_USE = -3,
-  RTC_MESSAGE_QUEUE_ERROR = -4,
-  RTC_TIMEOUT = -5
+  EXT_RTC_SUCCESS = 0,
+  EXT_RTC_SPI_ERROR = -1,
+  EXT_RTC_PARAMETERS_INVALID = -2,
+  EXT_RTC_TIMESTAMP_ALREADY_IN_USE = -3,
+  EXT_RTC_MESSAGE_QUEUE_ERROR = -4,
+  EXT_RTC_TIMEOUT = -5
 } ext_rtc_return_code;
 
 typedef struct
@@ -53,7 +53,7 @@ typedef struct
   ext_rtc_return_code (*ext_rtc_set_timestamp) ( rtc_timestamp_t which_timestamp );
   ext_rtc_return_code (*ext_rtc_get_timestamp) ( rtc_timestamp_t which_timestamp,
                                                  time_t *return_timestamp );
-  ext_rtc_return_code (*ext_rtc_set_alarm) ( rtc_alarm_struct alarm_setting );
+  ext_rtc_return_code (*ext_rtc_set_alarm) ( rtc_set_alarm_t alarm_setting );
 } Ext_RTC;
 
 ext_rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus,
