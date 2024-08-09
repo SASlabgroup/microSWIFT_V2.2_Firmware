@@ -1454,7 +1454,7 @@ typedef enum
 {
   LATCHED_SIGNAL = 0,
   PULSED_SIGNAL = 1
-} watchdog_int_signal_t;
+} int_signal_behavior_t;
 
 typedef enum
 {
@@ -1469,7 +1469,7 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   watchdog_time_source_t clock_source :2;
   uint8_t dash_bit :3;
-  watchdog_int_signal_t irq_signal_behavior :1;
+  int_signal_behavior_t irq_signal_behavior :1;
   uint8_t T_bit :1;
   uint8_t interrupt_enable :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
@@ -1613,6 +1613,7 @@ int32_t pcf2131_set_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *alarm_setti
 int32_t pcf2131_get_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *return_alarm_setting );
 int32_t pcf2131_config_int_a ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config );
 int32_t pcf2131_config_int_b ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config );
+int32_t pcf2131_config_int_signal_behavior ( dev_ctx_t *dev_handle, int_signal_behavior_t behavior );
 int32_t pcf2131_temp_comp_config ( dev_ctx_t *dev_handle, bool en );
 int32_t pcf2131_set_stop_bit ( dev_ctx_t *dev_handle );
 int32_t pcf2131_clear_stop_bit ( dev_ctx_t *dev_handle );
@@ -1640,8 +1641,7 @@ int32_t pcf2131_software_reset ( dev_ctx_t *dev_handle );
 int32_t pcf2131_clear_prescalar ( dev_ctx_t *dev_handle );
 int32_t pcf2131_clear_timestamps ( dev_ctx_t *dev_handle );
 int32_t pcf2131_clear_prescalar_and_timestamps ( dev_ctx_t *dev_handle );
-int32_t pcf2131_watchdog_irq_signal_config ( dev_ctx_t *dev_handle,
-                                             watchdog_int_signal_t signal_config );
+int32_t pcf2131_watchdog_irq_config ( dev_ctx_t *dev_handle, bool enable );
 int32_t pcf2131_watchdog_config_time_source ( dev_ctx_t *dev_handle,
                                               watchdog_time_source_t time_source );
 int32_t pcf2131_set_watchdog_timer_value ( dev_ctx_t *dev_handle, uint8_t timer_value );

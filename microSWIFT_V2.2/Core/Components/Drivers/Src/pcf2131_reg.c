@@ -108,6 +108,13 @@ int32_t pcf2131_config_int_a ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct 
   return ret;
 }
 
+int32_t pcf2131_config_int_signal_behavior ( dev_ctx_t *dev_handle, int_signal_behavior_t behavior )
+{
+  int32_t ret = PCF2131_OK;
+
+  return ret;
+}
+
 int32_t pcf2131_config_int_b ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config )
 {
   int32_t ret = PCF2131_OK;
@@ -298,8 +305,7 @@ int32_t pcf2131_clear_prescalar_and_timestamps ( dev_ctx_t *dev_handle )
   return ret;
 }
 
-int32_t pcf2131_watchdog_irq_signal_config ( dev_ctx_t *dev_handle,
-                                             watchdog_int_signal_t signal_config )
+int32_t pcf2131_watchdog_irq_config ( dev_ctx_t *dev_handle, bool enable )
 {
   int32_t ret = PCF2131_OK;
 

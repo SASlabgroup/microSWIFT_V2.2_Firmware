@@ -17,6 +17,9 @@
 
 #define RTC_SPI_TIMEOUT 25
 #define RTC_SPI_BUF_SIZE 8
+#define RTC_WATCHDOG_MIN_REFRESH 10000
+#define SECONDS_TO_MILLISECONDS(x) (x * 1000)
+#define MILLISECONDS_TO_SECONDS(x) (x / 1000)
 
 typedef enum
 {
