@@ -79,6 +79,8 @@ ext_rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_s
   self->ts3_in_use = false;
   self->ts4_in_use = false;
 
+  self->watchdog_refresh_time_val = 0;
+
   self->config_watchdog = _ext_rtc_config_watchdog;
   self->refresh_watchdog = _ext_rtc_refresh_watchdog;
   self->set_date_time = _ext_rtc_set_date_time;
@@ -124,45 +126,37 @@ static ext_rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
 {
   int32_t ret = RTC_SUCCESS;
   watchdog_time_source_t clock_select;
-  uint8_t timer_period;
 
   // We'll establish a minimum refresh interval of 10 seconds
-  if ( period_ms < RTC_WATCHDOG_MIN_REFRESH )
+  if ( (period_ms < RTC_WATCHDOG_MIN_REFRESH) || (period_ms > PCF2131_1_64HZ_CLK_MAX_PERIOD_MS) )
   {
     return EXT_RTC_PARAMETERS_INVALID;
   }
 
   // Figure out what watchdog clock rate to use
   // Reference Table 59 in datasheet
-  if ( period_ms > SECONDS_TO_MILLISECONDS(1020) )
+  if ( period_ms > PCF2131_1_4HZ_CLK_MAX_PERIOD_MS )
   {
-
-    if ( period_ms > SECONDS_TO_MILLISECONDS(16320) )
-    {
-      // Unacheivably long interval
-      return EXT_RTC_PARAMETERS_INVALID;
-    }
-
     clock_select = HZ_1_64;
-    timer_period = (uint8_t) (MILLISECONDS_TO_SECONDS(
+    self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
         (uint32) round (((float) period_ms) * (1.0f / 64.0f)) + 1));
   }
-  else if ( period_ms > (63744) )
+  else if ( period_ms > (PCF2131_4HZ_CLK_MAX_PERIOD_MS) )
   {
     clock_select = HZ_1_4;
-    timer_period = (uint8_t) (MILLISECONDS_TO_SECONDS(
+    self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
         (uint32) round (((float) period_ms) * (1.0f / 4.0f)) + 1));
   }
-  else if ( period_ms > 3984 )
+  else if ( period_ms > PCF2131_64HZ_CLK_MAX_PERIOD_MS )
   {
     clock_select = HZ_4;
-    timer_period = (uint8_t) (MILLISECONDS_TO_SECONDS(
+    self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
         (uint32) round (((float) period_ms) * 4.0f) + 1));
   }
   else
   {
     clock_select = HZ_64;
-    timer_period = (uint8_t) (MILLISECONDS_TO_SECONDS(
+    self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
         (uint32) round (((float) period_ms) * 64.0f) + 1));
   }
 
@@ -172,7 +166,7 @@ static ext_rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
     return EXT_RTC_SPI_ERROR;
   }
 
-  ret = pcf2131_set_watchdog_timer_value (&self->dev_ctx, timer_period);
+  ret = pcf2131_set_watchdog_timer_value (&self->dev_ctx, self->watchdog_refresh_time_val);
   if ( ret != PCF2131_OK )
   {
     return EXT_RTC_SPI_ERROR;
@@ -195,6 +189,12 @@ static ext_rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
 static ext_rtc_return_code _ext_rtc_refresh_watchdog ( void )
 {
   ext_rtc_return_code return_code = RTC_SUCCESS;
+
+  if ( pcf2131_set_watchdog_timer_value (&self->dev_ctx,
+                                         self->watchdog_refresh_time_val) != PCF2131_OK )
+  {
+    return_code = EXT_RTC_SPI_ERROR;
+  }
 
   return return_code;
 }

@@ -49,6 +49,8 @@ typedef struct
   bool ts3_in_use;
   bool ts4_in_use;
 
+  uint8_t watchdog_refresh_time_val;
+
   ext_rtc_return_code (*config_watchdog) ( uint32_t period_ms );
   ext_rtc_return_code (*refresh_watchdog) ( void );
   ext_rtc_return_code (*set_date_time) ( struct tm input_date_time );
