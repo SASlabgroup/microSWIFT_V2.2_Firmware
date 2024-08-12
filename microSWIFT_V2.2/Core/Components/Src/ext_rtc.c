@@ -139,25 +139,25 @@ static ext_rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
   {
     clock_select = HZ_1_64;
     self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
-        (uint32) round (((float) period_ms) * (1.0f / 64.0f)) + 1));
+        round (((float) period_ms) * (1.0f / 64.0f)) + 1));
   }
   else if ( period_ms > (PCF2131_4HZ_CLK_MAX_PERIOD_MS) )
   {
     clock_select = HZ_1_4;
     self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
-        (uint32) round (((float) period_ms) * (1.0f / 4.0f)) + 1));
+        round (((float) period_ms) * (1.0f / 4.0f)) + 1));
   }
   else if ( period_ms > PCF2131_64HZ_CLK_MAX_PERIOD_MS )
   {
     clock_select = HZ_4;
     self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
-        (uint32) round (((float) period_ms) * 4.0f) + 1));
+        round (((float) period_ms) * 4.0f) + 1));
   }
   else
   {
     clock_select = HZ_64;
     self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
-        (uint32) round (((float) period_ms) * 64.0f) + 1));
+        round (((float) period_ms) * 64.0f) + 1));
   }
 
   ret = pcf2131_watchdog_config_time_source (&self->dev_ctx, clock_select);
@@ -172,13 +172,13 @@ static ext_rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
     return EXT_RTC_SPI_ERROR;
   }
 
-  ret = pcf2131_watchdog_irq_signal_config (&self->dev_ctx, true);
+  ret = pcf2131_watchdog_irq_config (&self->dev_ctx, true);
   if ( ret != PCF2131_OK )
   {
     return EXT_RTC_SPI_ERROR;
   }
 
-  return return_code;
+  return ret;
 }
 
 /**
@@ -188,15 +188,15 @@ static ext_rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
  */
 static ext_rtc_return_code _ext_rtc_refresh_watchdog ( void )
 {
-  ext_rtc_return_code return_code = RTC_SUCCESS;
+  int32_t ret = RTC_SUCCESS;
 
-  if ( pcf2131_set_watchdog_timer_value (&self->dev_ctx,
-                                         self->watchdog_refresh_time_val) != PCF2131_OK )
+  ret = pcf2131_set_watchdog_timer_value (&self->dev_ctx, self->watchdog_refresh_time_val);
+  if ( ret != PCF2131_OK )
   {
-    return_code = EXT_RTC_SPI_ERROR;
+    ret = EXT_RTC_SPI_ERROR;
   }
 
-  return return_code;
+  return ret;
 }
 
 /**
@@ -206,9 +206,16 @@ static ext_rtc_return_code _ext_rtc_refresh_watchdog ( void )
  */
 static ext_rtc_return_code _ext_rtc_set_date_time ( struct tm input_date_time )
 {
-  ext_rtc_return_code return_code = RTC_SUCCESS;
+  int32_t ret = RTC_SUCCESS;
 
-  return return_code;
+  ret = pcf2131_set_date_time (&self->dev_ctx, &input_date_time);
+
+  if ( ret != PCF2131_OK )
+  {
+    ret = EXT_RTC_SPI_ERROR;
+  }
+
+  return ret;
 }
 
 /**
@@ -218,9 +225,16 @@ static ext_rtc_return_code _ext_rtc_set_date_time ( struct tm input_date_time )
  */
 static ext_rtc_return_code _ext_rtc_get_date_time ( struct tm *return_date_time )
 {
-  ext_rtc_return_code return_code = RTC_SUCCESS;
+  int32_t ret = RTC_SUCCESS;
 
-  return return_code;
+  ret = pcf2131_get_date_time (&self->dev_ctx, return_date_time);
+
+  if ( ret != PCF2131_OK )
+  {
+    return_code = EXT_RTC_SPI_ERROR;
+  }
+
+  return ret;
 }
 
 /**
@@ -230,7 +244,9 @@ static ext_rtc_return_code _ext_rtc_get_date_time ( struct tm *return_date_time 
  */
 static ext_rtc_return_code _ext_rtc_set_timestamp ( rtc_timestamp_t which_timestamp )
 {
+  int32_t ret = RTX_SUCCESS;
 
+  return ret;
 }
 
 /**
@@ -242,9 +258,9 @@ static ext_rtc_return_code _ext_rtc_set_timestamp ( rtc_timestamp_t which_timest
 static ext_rtc_return_code _ext_rtc_get_timestamp ( rtc_timestamp_t which_timestamp,
                                                     time_t *return_timestamp )
 {
-  ext_rtc_return_code return_code = RTC_SUCCESS;
+  int32_t ret = RTX_SUCCESS;
 
-  return return_code;
+  return ret;
 }
 
 /**
@@ -254,9 +270,9 @@ static ext_rtc_return_code _ext_rtc_get_timestamp ( rtc_timestamp_t which_timest
  */
 static ext_rtc_return_code _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting )
 {
-  ext_rtc_return_code return_code = RTC_SUCCESS;
+  int32_t ret = RTX_SUCCESS;
 
-  return return_code;
+  return ret;
 }
 
 /**
