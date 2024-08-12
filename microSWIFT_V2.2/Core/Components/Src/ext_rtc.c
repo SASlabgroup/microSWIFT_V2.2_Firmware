@@ -15,14 +15,14 @@
 static Ext_RTC *self;
 
 /* Core struct functions */
-static ext_rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms );
-static ext_rtc_return_code _ext_rtc_refresh_watchdog ( void );
-static ext_rtc_return_code _ext_rtc_set_date_time ( struct tm input_date_time );
-static ext_rtc_return_code _ext_rtc_get_date_time ( struct tm *return_date_time );
-static ext_rtc_return_code _ext_rtc_set_timestamp ( rtc_timestamp_t which_timestamp );
-static ext_rtc_return_code _ext_rtc_get_timestamp ( rtc_timestamp_t which_timestamp,
-                                                    time_t *return_timestamp );
-static ext_rtc_return_code _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting );
+static rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms );
+static rtc_return_code _ext_rtc_refresh_watchdog ( void );
+static rtc_return_code _ext_rtc_set_date_time ( struct tm input_date_time );
+static rtc_return_code _ext_rtc_get_date_time ( struct tm *return_date_time );
+static rtc_return_code _ext_rtc_set_timestamp ( pcf2131_timestamp_t which_timestamp );
+static rtc_return_code _ext_rtc_get_timestamp ( pcf2131_timestamp_t which_timestamp,
+                                                time_t *return_timestamp );
+static rtc_return_code _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting );
 
 /* SPI driver functions */
 static int32_t _ext_rtc_spi_init ( void );
@@ -48,10 +48,10 @@ static int32_t _ext_rtc_write_reg_spi_dma ( void *unused_handle, uint16_t unused
  * @param  struct_ptr:= Global struct pointer, saved locally as static pointer
  * @param  rtc_spi_bus:= Handle for SPI bus
  * @param  messaging_queue:= Pointer to global messaging queue for inbound requests
- * @retval ext_rtc_return_code
+ * @retval rtc_return_code
  */
-ext_rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus,
-                                   TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP *complete_flags )
+rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus,
+                               TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP *complete_flags )
 {
   int32_t ret;
   uint8_t register_read = 0;
@@ -65,19 +65,23 @@ ext_rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_s
   self->int_a_pin.pin = RTC_INT_A_Pin;
   self->int_b_pin.port = RTC_INT_B_GPIO_Port;
   self->int_b_pin.pin = RTC_INT_B_Pin;
-  self->ts_1_pin.port = RTC_TIMESTAMP_1_GPIO_Port;
-  self->ts_1_pin.pin = RTC_TIMESTAMP_1_Pin;
-  self->ts_2_pin.port = RTC_TIMESTAMP_2_GPIO_Port;
-  self->ts_2_pin.pin = RTC_TIMESTAMP_2_Pin;
-  self->ts_3_pin.port = RTC_TIMESTAMP_3_GPIO_Port;
-  self->ts_3_pin.pin = RTC_TIMESTAMP_3_Pin;
-  self->ts_4_pin.port = RTC_TIMESTAMP_4_GPIO_Port;
-  self->ts_4_pin.pin = RTC_TIMESTAMP_4_Pin;
 
-  self->ts1_in_use = false;
-  self->ts2_in_use = false;
-  self->ts3_in_use = false;
-  self->ts4_in_use = false;
+  self->ts_pins[0].port = RTC_TIMESTAMP_1_GPIO_Port;
+  self->ts_pins[0].pin = RTC_TIMESTAMP_1_Pin;
+
+  self->ts_pins[1].port = RTC_TIMESTAMP_2_GPIO_Port;
+  self->ts_pins[1].pin = RTC_TIMESTAMP_2_Pin;
+
+  self->ts_pins[2].port = RTC_TIMESTAMP_3_GPIO_Port;
+  self->ts_pins[2].pin = RTC_TIMESTAMP_3_Pin;
+
+  self->ts_pins[3].port = RTC_TIMESTAMP_4_GPIO_Port;
+  self->ts_pins[3].pin = RTC_TIMESTAMP_4_Pin;
+
+  self->ts_in_use[0] = false;
+  self->ts_in_use[1] = false;
+  self->ts_in_use[2] = false;
+  self->ts_in_use[3] = false;
 
   self->watchdog_refresh_time_val = 0;
 
@@ -120,9 +124,9 @@ ext_rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_s
  * @brief  Configure the watchdog, hook it up to INT pin, set the timer.
  *         !!! The watchdog will start after this function returns success !!!
  * @param  period_ms:= Watchdog refresh interval in milliseconds
- * @retval ext_rtc_return_code
+ * @retval rtc_return_code
  */
-static ext_rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
+static rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
 {
   int32_t ret = RTC_SUCCESS;
   watchdog_time_source_t clock_select;
@@ -130,7 +134,7 @@ static ext_rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
   // We'll establish a minimum refresh interval of 10 seconds
   if ( (period_ms < RTC_WATCHDOG_MIN_REFRESH) || (period_ms > PCF2131_1_64HZ_CLK_MAX_PERIOD_MS) )
   {
-    return EXT_RTC_PARAMETERS_INVALID;
+    return RTC_PARAMETERS_INVALID;
   }
 
   // Figure out what watchdog clock rate to use
@@ -163,19 +167,19 @@ static ext_rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
   ret = pcf2131_watchdog_config_time_source (&self->dev_ctx, clock_select);
   if ( ret != PCF2131_OK )
   {
-    return EXT_RTC_SPI_ERROR;
+    return RTC_SPI_ERROR;
   }
 
   ret = pcf2131_set_watchdog_timer_value (&self->dev_ctx, self->watchdog_refresh_time_val);
   if ( ret != PCF2131_OK )
   {
-    return EXT_RTC_SPI_ERROR;
+    return RTC_SPI_ERROR;
   }
 
   ret = pcf2131_watchdog_irq_config (&self->dev_ctx, true);
   if ( ret != PCF2131_OK )
   {
-    return EXT_RTC_SPI_ERROR;
+    return RTC_SPI_ERROR;
   }
 
   return ret;
@@ -184,16 +188,16 @@ static ext_rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
 /**
  * @brief  Refresh the watchdog.
  * @param  None
- * @retval ext_rtc_return_code
+ * @retval rtc_return_code
  */
-static ext_rtc_return_code _ext_rtc_refresh_watchdog ( void )
+static rtc_return_code _ext_rtc_refresh_watchdog ( void )
 {
   int32_t ret = RTC_SUCCESS;
 
   ret = pcf2131_set_watchdog_timer_value (&self->dev_ctx, self->watchdog_refresh_time_val);
   if ( ret != PCF2131_OK )
   {
-    ret = EXT_RTC_SPI_ERROR;
+    ret = RTC_SPI_ERROR;
   }
 
   return ret;
@@ -202,9 +206,9 @@ static ext_rtc_return_code _ext_rtc_refresh_watchdog ( void )
 /**
  * @brief  Set the RTC date and Timer registers
  * @param  input_date_time:= struct tm containing the desired time settings
- * @retval ext_rtc_return_code
+ * @retval rtc_return_code
  */
-static ext_rtc_return_code _ext_rtc_set_date_time ( struct tm input_date_time )
+static rtc_return_code _ext_rtc_set_date_time ( struct tm input_date_time )
 {
   int32_t ret = RTC_SUCCESS;
 
@@ -212,7 +216,7 @@ static ext_rtc_return_code _ext_rtc_set_date_time ( struct tm input_date_time )
 
   if ( ret != PCF2131_OK )
   {
-    ret = EXT_RTC_SPI_ERROR;
+    ret = RTC_SPI_ERROR;
   }
 
   return ret;
@@ -221,9 +225,9 @@ static ext_rtc_return_code _ext_rtc_set_date_time ( struct tm input_date_time )
 /**
  * @brief  Get the current date/time from the RTC
  * @param  return_date_time:= Return pointer for struct tm
- * @retval ext_rtc_return_code
+ * @retval rtc_return_code
  */
-static ext_rtc_return_code _ext_rtc_get_date_time ( struct tm *return_date_time )
+static rtc_return_code _ext_rtc_get_date_time ( struct tm *return_date_time )
 {
   int32_t ret = RTC_SUCCESS;
 
@@ -231,7 +235,7 @@ static ext_rtc_return_code _ext_rtc_get_date_time ( struct tm *return_date_time 
 
   if ( ret != PCF2131_OK )
   {
-    return_code = EXT_RTC_SPI_ERROR;
+    ret = RTC_SPI_ERROR;
   }
 
   return ret;
@@ -240,11 +244,28 @@ static ext_rtc_return_code _ext_rtc_get_date_time ( struct tm *return_date_time 
 /**
  * @brief  Set a timestamp.
  * @param  which_timestamp:= Which timestamp (1-4) to set
- * @retval ext_rtc_return_code
+ * @retval rtc_return_code
  */
-static ext_rtc_return_code _ext_rtc_set_timestamp ( rtc_timestamp_t which_timestamp )
+static rtc_return_code _ext_rtc_set_timestamp ( pcf2131_timestamp_t which_timestamp )
 {
-  int32_t ret = RTX_SUCCESS;
+  int32_t ret = RTC_SUCCESS;
+
+  if ( (which_timestamp < TIMESTAMP_1) || (which_timestamp > TIMESTAMP_4) )
+  {
+    return RTC_PARAMETERS_INVALID;
+  }
+
+  if ( self->ts_in_use[which_timestamp] )
+  {
+    return RTC_TIMESTAMP_ALREADY_IN_USE;
+  }
+
+  // Active low pins
+  gpio_write_pin (self->ts_pins[which_timestamp], GPIO_PIN_RESET);
+  tx_thread_sleep (1);
+  gpio_write_pin (self->ts_pins[which_timestamp], GPIO_PIN_SET);
+
+  self->ts_in_use[which_timestamp] = true;
 
   return ret;
 }
@@ -253,12 +274,41 @@ static ext_rtc_return_code _ext_rtc_set_timestamp ( rtc_timestamp_t which_timest
  * @brief  Get a timestamp.
  * @param  which_timestamp:= Which timestamp (1-4) to read
  * @param  return_timestamp:= Timestamp as time_t
- * @retval ext_rtc_return_code
+ * @retval rtc_return_code
  */
-static ext_rtc_return_code _ext_rtc_get_timestamp ( rtc_timestamp_t which_timestamp,
-                                                    time_t *return_timestamp )
+static rtc_return_code _ext_rtc_get_timestamp ( pcf2131_timestamp_t which_timestamp,
+                                                time_t *return_timestamp )
 {
-  int32_t ret = RTX_SUCCESS;
+  int32_t ret = RTC_SUCCESS;
+  struct tm timestamp_struct;
+
+  if ( (which_timestamp < TIMESTAMP_1) || (which_timestamp > TIMESTAMP_4) )
+  {
+    return RTC_PARAMETERS_INVALID;
+  }
+
+  if ( !self->ts_in_use[which_timestamp] )
+  {
+    return RTC_TIMESTAMP_NOT_SET;
+  }
+
+  // Grab the timestamp
+  ret = pcf2131_get_timestamp (&self->dev_ctx, which_timestamp, &timestamp_struct);
+  if ( ret != PCF2131_OK )
+  {
+    return RTC_SPI_ERROR;
+  }
+
+  // Clear the timestamp flag
+  ret = pcf2131_clear_timestamp_flag (&self->dev_ctx, which_timestamp);
+  if ( ret != PCF2131_OK )
+  {
+    return RTC_SPI_ERROR;
+  }
+
+  self->ts_in_use[which_timestamp] = false;
+
+  *return_timestamp = mktime (&timestamp_struct);
 
   return ret;
 }
@@ -266,11 +316,11 @@ static ext_rtc_return_code _ext_rtc_get_timestamp ( rtc_timestamp_t which_timest
 /**
  * @brief  Set the alarm
  * @param  alarm_setting:= Settings to be applied to the alarm
- * @retval ext_rtc_return_code
+ * @retval rtc_return_code
  */
-static ext_rtc_return_code _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting )
+static rtc_return_code _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting )
 {
-  int32_t ret = RTX_SUCCESS;
+  int32_t ret = RTC_SUCCESS;
 
   return ret;
 }
@@ -278,11 +328,11 @@ static ext_rtc_return_code _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting )
 /**
  * @brief Initialize the SPI bus if not already initialized.
  * @param  None
- * @retval ext_rtc_return_code
+ * @retval rtc_return_code
  */
 static int32_t _ext_rtc_spi_init ( void )
 {
-  ext_rtc_return_code retval = PCF2131_OK;
+  rtc_return_code retval = PCF2131_OK;
 
   if ( !spi_bus_init_status (self->rtc_spi_bus->Instance) )
   {
@@ -296,7 +346,7 @@ static int32_t _ext_rtc_spi_init ( void )
 /**
  * @brief Deinitialize the SPI bus if it has not already been.
  * @param  None
- * @retval ext_rtc_return_code
+ * @retval rtc_return_code
  */
 static int32_t _ext_rtc_spi_deinit ( void )
 {
@@ -316,7 +366,7 @@ static int32_t _ext_rtc_spi_deinit ( void )
  * @param  reg_address - register address
  * @param  read_data - read data return pointer
  * @param  data_length - read data length in bytes
- * @retval ext_rtc_return_code
+ * @retval rtc_return_code
  */
 static int32_t _ext_rtc_read_reg_spi_blocking ( void *unused_handle, uint16_t unused_bus_address,
                                                 uint16_t reg_address, uint8_t *read_data,
@@ -351,7 +401,7 @@ static int32_t _ext_rtc_read_reg_spi_blocking ( void *unused_handle, uint16_t un
  * @param  reg_address - register address
  * @param  write_data - write data buffer pointer
  * @param  data_length - write data length in bytes
- * @retval ext_rtc_return_code
+ * @retval rtc_return_code
  */
 static int32_t _ext_rtc_write_reg_spi_blocking ( void *unused_handle, uint16_t unused_bus_address,
                                                  uint16_t reg_address, uint8_t *write_data,
@@ -386,7 +436,7 @@ static int32_t _ext_rtc_write_reg_spi_blocking ( void *unused_handle, uint16_t u
  * @param  reg_address - register address
  * @param  read_data - read data return pointer
  * @param  data_length - read data length in bytes
- * @retval ext_rtc_return_code
+ * @retval rtc_return_code
  */
 static int32_t _ext_rtc_read_reg_spi_dma ( void *unused_handle, uint16_t unused_bus_address,
                                            uint16_t reg_address, uint8_t *read_data,
@@ -429,7 +479,7 @@ done:
  * @param  reg_address - register address
  * @param  write_data - write data buffer pointer
  * @param  data_length - write data length in bytes
- * @retval ext_rtc_return_code
+ * @retval rtc_return_code
  */
 static int32_t _ext_rtc_write_reg_spi_dma ( void *unused_handle, uint16_t unused_bus_address,
                                             uint16_t reg_address, uint8_t *write_data,

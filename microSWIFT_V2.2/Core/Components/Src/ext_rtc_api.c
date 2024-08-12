@@ -25,7 +25,7 @@ void rtc_server_refresh_watchdog ( void )
 
 rtc_return_code rtc_server_get_time ( struct tm *return_time_struct, UINT complete_flag )
 {
-  ext_rtc_return_code ret = RTC_SUCCESS;
+  rtc_return_code ret = RTC_SUCCESS;
   rtc_request_message queue_msg;
   ULONG event_flags;
 
@@ -51,7 +51,7 @@ rtc_return_code rtc_server_get_time ( struct tm *return_time_struct, UINT comple
 
 rtc_return_code rtc_server_set_time ( struct tm input_time_struct, UINT complete_flag )
 {
-  ext_rtc_return_code ret = RTC_SUCCESS;
+  rtc_return_code ret = RTC_SUCCESS;
   rtc_request_message queue_msg;
   ULONG event_flags;
 
@@ -77,7 +77,7 @@ rtc_return_code rtc_server_set_time ( struct tm input_time_struct, UINT complete
 
 rtc_return_code rtc_server_config_watchdog ( uint32_t period_ms, UINT complete_flag )
 {
-  ext_rtc_return_code ret = RTC_SUCCESS;
+  rtc_return_code ret = RTC_SUCCESS;
   rtc_request_message queue_msg;
   ULONG event_flags;
 
@@ -101,9 +101,9 @@ rtc_return_code rtc_server_config_watchdog ( uint32_t period_ms, UINT complete_f
   return ret;
 }
 
-rtc_return_code rtc_server_set_timestamp ( rtc_timestamp_t which_timestamp, UINT complete_flag )
+rtc_return_code rtc_server_set_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag )
 {
-  ext_rtc_return_code ret = RTC_SUCCESS;
+  rtc_return_code ret = RTC_SUCCESS;
   rtc_request_message queue_msg;
   ULONG event_flags;
 
@@ -127,9 +127,9 @@ rtc_return_code rtc_server_set_timestamp ( rtc_timestamp_t which_timestamp, UINT
   return ret;
 }
 
-rtc_return_code rtc_server_get_timestamp ( rtc_timestamp_t which_timestamp, UINT complete_flag )
+rtc_return_code rtc_server_get_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag )
 {
-  ext_rtc_return_code ret = RTC_SUCCESS;
+  rtc_return_code ret = RTC_SUCCESS;
   rtc_request_message queue_msg;
   ULONG event_flags;
 
@@ -155,7 +155,7 @@ rtc_return_code rtc_server_get_timestamp ( rtc_timestamp_t which_timestamp, UINT
 
 rtc_return_code rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UINT complete_flag )
 {
-  ext_rtc_return_code ret = RTC_SUCCESS;
+  rtc_return_code ret = RTC_SUCCESS;
   rtc_request_message queue_msg;
   ULONG event_flags;
 
@@ -181,7 +181,7 @@ rtc_return_code rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UINT com
 
 rtc_return_code rtc_server_process_request ( rtc_request_message *request )
 {
-  ext_rtc_return_code ret = RTC_SUCCESS;
+  rtc_return_code ret = RTC_SUCCESS;
   ULONG event_flags;
 
   if ( tx_queue_send (self.request_queue, request, RTC_QUEUE_MAX_WAIT_TICKS) != TX_SUCCESS )

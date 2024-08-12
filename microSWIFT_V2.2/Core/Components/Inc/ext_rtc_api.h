@@ -22,8 +22,9 @@ typedef enum
   RTC_SPI_ERROR = -1,
   RTC_PARAMETERS_INVALID = -2,
   RTC_TIMESTAMP_ALREADY_IN_USE = -3,
-  RTC_MESSAGE_QUEUE_ERROR = -4,
-  RTC_TIMEOUT = -5
+  RTC_TIMESTAMP_NOT_SET = -4,
+  RTC_MESSAGE_QUEUE_ERROR = -5,
+  RTC_TIMEOUT = -6
 } rtc_return_code;
 
 // @formatter:off
@@ -135,15 +136,6 @@ typedef enum
   AUX_PERIPHERAL_1_REQUEST_PROCESSED = (1 << 7)
 } rtc_complete_flags_t;
 
-// Define the timestamps
-typedef enum
-{
-  TIMESTAMP_1 = 1,
-  TIMESTAMP_2 = 2,
-  TIMESTAMP_3 = 3,
-  TIMESTAMP_4 = 4
-} rtc_timestamp_t;
-
 // Message struct for GET_TIME request
 typedef struct
 {
@@ -202,8 +194,8 @@ void rtc_server_refresh_watchdog ( void );
 rtc_return_code rtc_server_get_time ( struct tm *return_time_struct, UINT complete_flag );
 rtc_return_code rtc_server_set_time ( struct tm input_time_struct, UINT complete_flag );
 rtc_return_code rtc_server_config_watchdog ( uint32_t period_ms, UINT complete_flag );
-rtc_return_code rtc_server_set_timestamp ( rtc_timestamp_t which_timestamp, UINT complete_flag );
-rtc_return_code rtc_server_get_timestamp ( rtc_timestamp_t which_timestamp, UINT complete_flag );
+rtc_return_code rtc_server_set_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag );
+rtc_return_code rtc_server_get_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag );
 rtc_return_code rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UINT complete_flag );
 // Generic do-all function
 rtc_return_code rtc_server_process_request ( rtc_request_message *request );

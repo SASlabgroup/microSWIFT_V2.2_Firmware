@@ -1568,6 +1568,15 @@ typedef union
 /**************************************************************************************************/
 /*********************************** Misc structs, enums, and typedefs ****************************/
 /**************************************************************************************************/
+// Define the timestamps
+typedef enum
+{
+  TIMESTAMP_1 = 0,
+  TIMESTAMP_2 = 1,
+  TIMESTAMP_3 = 2,
+  TIMESTAMP_4 = 3,
+  NUMBER_OF_TIMESTAMPS = 4
+} pcf2131_timestamp_t;
 
 typedef struct
 {
@@ -1620,6 +1629,8 @@ int32_t pcf2131_get_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *return_alar
 int32_t pcf2131_config_int_a ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config );
 int32_t pcf2131_config_int_b ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config );
 int32_t pcf2131_config_int_signal_behavior ( dev_ctx_t *dev_handle, int_signal_behavior_t behavior );
+int32_t pcf2131_get_timestamp ( dev_ctx_t *dev_handle, pcf2131_timestamp_t which_timestamp,
+                                struct tm *return_date_time );
 int32_t pcf2131_temp_comp_config ( dev_ctx_t *dev_handle, bool en );
 int32_t pcf2131_set_stop_bit ( dev_ctx_t *dev_handle );
 int32_t pcf2131_clear_stop_bit ( dev_ctx_t *dev_handle );
@@ -1633,7 +1644,6 @@ int32_t pcf2131_get_alarm_flag ( dev_ctx_t *dev_handle, bool *return_flag );
 int32_t pcf2131_clear_alarm_flag ( dev_ctx_t *dev_handle );
 int32_t pcf2131_get_battery_switch_over_flag ( dev_ctx_t *dev_handle, bool *return_flag );
 int32_t pcf2131_clear_battery_switch_over_flag ( dev_ctx_t *dev_handle );
-int32_t pcf2131_config_timestamp_flag ( dev_ctx_t *dev_handle, uint8_t which_timestamp, bool en );
 int32_t pcf2131_get_timestamp_flag ( dev_ctx_t *dev_handle, uint8_t which_timestamp,
 bool *return_flag );
 int32_t pcf2131_clear_timestamp_flag ( dev_ctx_t *dev_handle, uint8_t which_timestamp );
