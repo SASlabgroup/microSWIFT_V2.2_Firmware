@@ -322,6 +322,12 @@ static rtc_return_code _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting )
 {
   int32_t ret = RTC_SUCCESS;
 
+  ret = pcf2131_set_alarm (&self->dev_ctx, &alarm_setting);
+  if ( ret != PCF2131_OK )
+  {
+    return RTC_SPI_ERROR;
+  }
+
   return ret;
 }
 

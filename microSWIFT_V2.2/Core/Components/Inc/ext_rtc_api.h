@@ -157,7 +157,7 @@ typedef struct
 // Message struct for GET_TIMESTAMP request
 typedef struct
 {
-  rtc_timestamp_t which_timestamp;
+  pcf2131_timestamp_t which_timestamp;
   time_t timestamp;
 } rtc_get_timestamp_t;
 
