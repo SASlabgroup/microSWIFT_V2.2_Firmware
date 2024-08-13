@@ -179,6 +179,7 @@ rtc_return_code rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UINT com
   return ret;
 }
 
+// Requires request message to be filled out
 rtc_return_code rtc_server_process_request ( rtc_request_message *request )
 {
   rtc_return_code ret = RTC_SUCCESS;

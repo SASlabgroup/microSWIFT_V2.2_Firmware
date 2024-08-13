@@ -564,14 +564,14 @@ void rtc_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   Ext_RTC rtc;
-  ext_rtc_return_code ret;
+  rtc_return_code ret;
   UINT tx_ret;
   rtc_request_message req;
 
   ret = ext_rtc_init (&rtc, device_handles.core_spi_handle, &rtc_messaging_queue,
                       &rtc_complete_flags);
 
-  if ( ret != EXT_RTC_SUCCESS )
+  if ( ret != RTC_SUCCESS )
   {
     // TODO: set some error flag, inform Control thread somehow
   }
