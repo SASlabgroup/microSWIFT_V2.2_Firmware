@@ -35,6 +35,7 @@ typedef struct
 
   uint8_t watchdog_refresh_time_val;
 
+  rtc_return_code (*setup_rtc) ( void );
   rtc_return_code (*config_watchdog) ( uint32_t period_ms );
   rtc_return_code (*refresh_watchdog) ( void );
   rtc_return_code (*set_date_time) ( struct tm input_date_time );

@@ -15,6 +15,7 @@
 static Ext_RTC *self;
 
 /* Core struct functions */
+static rtc_return_code _ext_rtc_setup_rtc ( void );
 static rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms );
 static rtc_return_code _ext_rtc_refresh_watchdog ( void );
 static rtc_return_code _ext_rtc_set_date_time ( struct tm input_date_time );
@@ -85,6 +86,7 @@ rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_b
 
   self->watchdog_refresh_time_val = 0;
 
+  self->setup_rtc = _ext_rtc_setup_rtc;
   self->config_watchdog = _ext_rtc_config_watchdog;
   self->refresh_watchdog = _ext_rtc_refresh_watchdog;
   self->set_date_time = _ext_rtc_set_date_time;
@@ -115,9 +117,26 @@ rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_b
     return RTC_SPI_ERROR;
   }
 
-#error "set up power management and interrupts here"
-
   return RTC_SUCCESS;
+}
+
+/**
+ * @brief  Apply all required RTC settings, with the exception of the watchdog timer.
+ * @param  None
+ * @retval rtc_return_code
+ */
+static rtc_return_code _ext_rtc_setup_rtc ( void )
+{
+  int32_t ret = RTC_SUCCESS;
+  /* set up:
+   * power management
+   * clock output
+   * temperature measurement period
+   * interrupts
+   * OTP refresh?
+   */
+
+  return ret;
 }
 
 /**
