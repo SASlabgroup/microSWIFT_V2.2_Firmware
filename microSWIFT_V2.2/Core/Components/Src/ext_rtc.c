@@ -212,6 +212,17 @@ static rtc_return_code _ext_rtc_set_date_time ( struct tm input_date_time )
 {
   int32_t ret = RTC_SUCCESS;
 
+  // Convert to BCD format
+  struct_tm_dec_to_bcd (&input_date_time);
+
+  if ( (input_date_time.tm_sec == BCD_ERROR) || (input_date_time.tm_min == BCD_ERROR)
+       || (input_date_time.tm_hour == BCD_ERROR) || (input_date_time.tm_mday == BCD_ERROR)
+       || (input_date_time.tm_mon == BCD_ERROR) || (input_date_time.tm_year == BCD_ERROR)
+       || (input_date_time.tm_year == BCD_ERROR) )
+  {
+    return RTC_PARAMETERS_INVALID;
+  }
+
   ret = pcf2131_set_date_time (&self->dev_ctx, &input_date_time);
 
   if ( ret != PCF2131_OK )
@@ -237,6 +248,9 @@ static rtc_return_code _ext_rtc_get_date_time ( struct tm *return_date_time )
   {
     ret = RTC_SPI_ERROR;
   }
+
+  // Convert to decimal
+  struct_tm_bcd_to_dec (&return_date_time);
 
   return ret;
 }

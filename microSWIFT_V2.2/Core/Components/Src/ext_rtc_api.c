@@ -199,3 +199,33 @@ rtc_return_code rtc_server_process_request ( rtc_request_message *request )
   return ret;
 }
 
+void struct_tm_dec_to_bcd ( struct tm *struct_ptr )
+{
+  struct_ptr->tm_sec = (struct_ptr->tm_sec > 59) ?
+      BCD_ERROR : dec_to_bcd[struct_ptr->tm_sec];
+  struct_ptr->tm_min = (struct_ptr->tm_min > 59) ?
+      BCD_ERROR : dec_to_bcd[struct_ptr->tm_min];
+  struct_ptr->tm_hour = (struct_ptr->tm_hour > 23) ?
+      BCD_ERROR : dec_to_bcd[struct_ptr->tm_hour];
+  struct_ptr->tm_mday = (struct_ptr->tm_mday > 31) ?
+      BCD_ERROR : dec_to_bcd[struct_ptr->tm_mday];
+  struct_ptr->tm_mon = (struct_ptr->tm_mon > 11) ?
+      BCD_ERROR : dec_to_bcd[struct_ptr->tm_mon];
+  struct_ptr->tm_year = (struct_ptr->tm_year - 1900 > 99) ?
+      BCD_ERROR : dec_to_bcd[struct_ptr->tm_year];
+  struct_ptr->tm_wday = (struct_ptr->tm_wday > 6) ?
+      BCD_ERROR : dec_to_bcd[struct_ptr->tm_wday];
+}
+
+// Not guaranteed to be safe...
+void struct_tm_bcd_to_dec ( struct tm *struct_ptr )
+{
+  struct_ptr->tm_sec = bcd_to_dec[struct_ptr->tm_sec];
+  struct_ptr->tm_min = bcd_to_dec[struct_ptr->tm_sec];
+  struct_ptr->tm_hour = bcd_to_dec[struct_ptr->tm_sec];
+  struct_ptr->tm_mday = bcd_to_dec[struct_ptr->tm_sec];
+  struct_ptr->tm_mon = bcd_to_dec[struct_ptr->tm_sec];
+  struct_ptr->tm_year = bcd_to_dec[struct_ptr->tm_sec];
+  struct_ptr->tm_wday = bcd_to_dec[struct_ptr->tm_sec];
+}
+

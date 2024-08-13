@@ -29,6 +29,8 @@ typedef enum
 
 // @formatter:off
 /* Looku table for fast conversion from BCD to decimal */
+#define BCD_ERROR 0xFF
+
 uint8_t bcd_to_dec[256] =
 {
   // 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
@@ -200,4 +202,7 @@ rtc_return_code rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UINT com
 // Generic do-all function
 rtc_return_code rtc_server_process_request ( rtc_request_message *request );
 
+/* Helper functions */
+void struct_tm_dec_to_bcd ( struct tm *struct_ptr );
+void struct_tm_bcd_to_dec ( struct tm *struct_ptr );
 #endif /* COMPONENTS_INC_EXT_RTC_API_H_ */
