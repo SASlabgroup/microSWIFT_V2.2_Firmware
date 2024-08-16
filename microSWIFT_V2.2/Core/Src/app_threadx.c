@@ -195,11 +195,11 @@ void temperature_thread_entry ( ULONG thread_input );
 /* USER CODE END PFP */
 
 /**
- * @brief  Application ThreadX Initialization.
- * @param memory_ptr: memory pointer
- * @retval int
- */
-UINT App_ThreadX_Init ( VOID *memory_ptr )
+  * @brief  Application ThreadX Initialization.
+  * @param memory_ptr: memory pointer
+  * @retval int
+  */
+UINT App_ThreadX_Init(VOID *memory_ptr)
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -474,18 +474,18 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   return ret;
 }
 
-/**
- * @brief  Function that implements the kernel's initialization.
- * @param  None
- * @retval None
- */
-void MX_ThreadX_Init ( void )
+  /**
+  * @brief  Function that implements the kernel's initialization.
+  * @param  None
+  * @retval None
+  */
+void MX_ThreadX_Init(void)
 {
   /* USER CODE BEGIN  Before_Kernel_Start */
 
   /* USER CODE END  Before_Kernel_Start */
 
-  tx_kernel_enter ();
+  tx_kernel_enter();
 
   /* USER CODE BEGIN  Kernel_Start_Error */
 
@@ -493,11 +493,11 @@ void MX_ThreadX_Init ( void )
 }
 
 /**
- * @brief  App_ThreadX_LowPower_Timer_Setup
- * @param  count : TX timer count
- * @retval None
- */
-void App_ThreadX_LowPower_Timer_Setup ( ULONG count )
+  * @brief  App_ThreadX_LowPower_Timer_Setup
+  * @param  count : TX timer count
+  * @retval None
+  */
+void App_ThreadX_LowPower_Timer_Setup(ULONG count)
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Timer_Setup */
 
@@ -505,11 +505,11 @@ void App_ThreadX_LowPower_Timer_Setup ( ULONG count )
 }
 
 /**
- * @brief  App_ThreadX_LowPower_Enter
- * @param  None
- * @retval None
- */
-void App_ThreadX_LowPower_Enter ( void )
+  * @brief  App_ThreadX_LowPower_Enter
+  * @param  None
+  * @retval None
+  */
+void App_ThreadX_LowPower_Enter(void)
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Enter */
 
@@ -517,11 +517,11 @@ void App_ThreadX_LowPower_Enter ( void )
 }
 
 /**
- * @brief  App_ThreadX_LowPower_Exit
- * @param  None
- * @retval None
- */
-void App_ThreadX_LowPower_Exit ( void )
+  * @brief  App_ThreadX_LowPower_Exit
+  * @param  None
+  * @retval None
+  */
+void App_ThreadX_LowPower_Exit(void)
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Exit */
 
@@ -529,11 +529,11 @@ void App_ThreadX_LowPower_Exit ( void )
 }
 
 /**
- * @brief  App_ThreadX_LowPower_Timer_Adjust
- * @param  None
- * @retval Amount of time (in ticks)
- */
-ULONG App_ThreadX_LowPower_Timer_Adjust ( void )
+  * @brief  App_ThreadX_LowPower_Timer_Adjust
+  * @param  None
+  * @retval Amount of time (in ticks)
+  */
+ULONG App_ThreadX_LowPower_Timer_Adjust(void)
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Timer_Adjust */
   return 0;

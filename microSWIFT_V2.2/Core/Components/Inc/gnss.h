@@ -10,33 +10,23 @@
 #define SRC_GPS_H_
 
 #include "configuration.h"
-#include "byte_array.h"
-#include "app_threadx.h"
-#include "tx_api.h"
-#include "tx_user.h"
-#include "main.h"
-#include "stdint.h"
-#include "string.h"
-#include "stm32u5xx_hal.h"
-#include "stm32u5xx_ll_dma.h"
-#include "stdio.h"
-#include "stdbool.h"
 #include "u_ubx_protocol.h"
-#include "u_error_common.h"
+#include "tx_api.h"
+#include "time.h"
 
 // Return codes
 typedef enum gnss_error_code
 {
   // Error/ success codes
   GNSS_SUCCESS = 0,
-  GNSS_UART_ERROR = -1,
+  GNSS_UNKNOWN_ERROR = -1,
   GNSS_LOCATION_INVALID = -2,
   GNSS_VELOCITY_INVALID = -3,
   GNSS_NO_SAMPLES_ERROR = -4,
   GNSS_TIMEOUT_ERROR = -5,
   GNSS_BUSY_ERROR = -6,
   GNSS_NO_MESSAGE_RECEIVED = -7,
-  GNSS_UNKNOW_ERROR = -8,
+  GNSS_UART_ERROR = -8,
   GNSS_CONFIG_ERROR = -9,
   GNSS_SELF_TEST_FAILED = -10,
   GNSS_MESSAGE_PROCESS_ERROR = -11,
@@ -52,7 +42,7 @@ typedef enum gnss_error_code
 // Macros
 #define CONFIG_BUFFER_SIZE 600
 #define CONFIGURATION_ARRAY_SIZE 164
-#define MAX_POSSIBLE_VELOCITY 10000	// 10000 mm/s = 10 m/s
+#define MAX_POSSIBLE_VELOCITY 10000     // 10000 mm/s = 10 m/s
 #define UBX_NAV_PVT_MESSAGE_CLASS 0x01
 #define UBX_NAV_PVT_MESSAGE_ID 0x07
 #define UBX_NAV_PVT_MESSAGE_LENGTH 100
@@ -115,8 +105,6 @@ typedef struct GNSS
   UART_HandleTypeDef *gnss_uart_handle;
   DMA_HandleTypeDef *gnss_rx_dma_handle;
   DMA_HandleTypeDef *gnss_tx_dma_handle;
-  // Handle to the RTC
-  RTC_HandleTypeDef *rtc_handle;
   // Event flags
   TX_EVENT_FLAGS_GROUP *control_flags;
   TX_EVENT_FLAGS_GROUP *error_flags;
@@ -141,9 +129,9 @@ typedef struct GNSS
   int32_t current_latitude;
   int32_t current_longitude;
   // The start time for the sampling window
-  uint32_t sample_window_start_time;
+  time_t sample_window_start_time;
   // The start time for the sampling window
-  uint32_t sample_window_stop_time;
+  time_t sample_window_stop_time;
   // The true calculated sample window frequency
   double sample_window_freq;
   // Increment with each sample or running average
@@ -181,9 +169,8 @@ void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
                  UART_HandleTypeDef *gnss_uart_handle, DMA_HandleTypeDef *gnss_rx_dma_handle,
                  DMA_HandleTypeDef *gnss_tx_dma_handle, TX_EVENT_FLAGS_GROUP *control_flags,
                  TX_EVENT_FLAGS_GROUP *error_flags, TIM_HandleTypeDef *timer,
-                 uint8_t *ubx_process_buf, uint8_t *config_response_buffer,
-                 RTC_HandleTypeDef *rtc_handle, float *GNSS_N_Array, float *GNSS_E_Array,
-                 float *GNSS_D_Array );
+                 uint8_t *ubx_process_buf, uint8_t *config_response_buffer, float *GNSS_N_Array,
+                 float *GNSS_E_Array, float *GNSS_D_Array );
 // watchdog refresh function
 extern void register_watchdog_refresh ();
 

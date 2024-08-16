@@ -87,14 +87,14 @@ int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_ti
   return ret;
 }
 
-int32_t pcf2131_set_alarm ( dev_ctx_t *dev_handle, pcf2131_alarm_struct *alarm_setting )
+int32_t pcf2131_set_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *alarm_setting )
 {
   int32_t ret = PCF2131_OK;
 
   return ret;
 }
 
-int32_t pcf2131_get_alarm ( dev_ctx_t *dev_handle, pcf2131_alarm_struct *return_alarm_setting )
+int32_t pcf2131_get_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *return_alarm_setting )
 {
   int32_t ret = PCF2131_OK;
 

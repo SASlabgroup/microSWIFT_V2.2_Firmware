@@ -565,22 +565,22 @@ int32_t uart4_init ( void )
     huart4.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
     if ( HAL_UART_Init (&huart4) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
     if ( HAL_UARTEx_SetTxFifoThreshold (&huart4, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
     if ( HAL_UARTEx_SetRxFifoThreshold (&huart4, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
     if ( HAL_UARTEx_DisableFifoMode (&huart4) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
 
-    uart4_init_Status = true;
+    uart4_init_status = true;
   }
 
   return UART_OK;
@@ -603,19 +603,19 @@ int32_t uart5_init ( void )
     huart5.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
     if ( HAL_UART_Init (&huart5) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
     if ( HAL_UARTEx_SetTxFifoThreshold (&huart5, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
     if ( HAL_UARTEx_SetRxFifoThreshold (&huart5, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
     if ( HAL_UARTEx_DisableFifoMode (&huart5) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
   }
 
@@ -639,19 +639,19 @@ int32_t usart1_init ( void )
     huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
     if ( HAL_UART_Init (&huart1) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
     if ( HAL_UARTEx_SetTxFifoThreshold (&huart1, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
     if ( HAL_UARTEx_SetRxFifoThreshold (&huart1, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
     if ( HAL_UARTEx_DisableFifoMode (&huart1) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
   }
 
@@ -675,19 +675,19 @@ int32_t usart2_init ( void )
     huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
     if ( HAL_UART_Init (&huart2) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
     if ( HAL_UARTEx_SetTxFifoThreshold (&huart2, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
     if ( HAL_UARTEx_SetRxFifoThreshold (&huart2, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
     if ( HAL_UARTEx_DisableFifoMode (&huart2) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
   }
 
@@ -711,19 +711,19 @@ int32_t usart3_init ( void )
     huart3.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
     if ( HAL_UART_Init (&huart3) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
     if ( HAL_UARTEx_SetTxFifoThreshold (&huart3, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
     if ( HAL_UARTEx_SetRxFifoThreshold (&huart3, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
     if ( HAL_UARTEx_DisableFifoMode (&huart3) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
   }
 
@@ -739,10 +739,10 @@ int32_t uart4_deinit ( void )
 
     if ( HAL_UART_DeInit (&huart4) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
 
-    uart4_init_Status = false;
+    uart4_init_status = false;
   }
 
   return ret;
@@ -757,10 +757,10 @@ int32_t uart5_deinit ( void )
 
     if ( HAL_UART_DeInit (&huart5) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
 
-    uart5_init_Status = false;
+    uart5_init_status = false;
   }
 
   return ret;
@@ -775,10 +775,10 @@ int32_t usart1_deinit ( void )
 
     if ( HAL_UART_DeInit (&huart1) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
 
-    usart1_init_Status = false;
+    usart1_init_status = false;
   }
 
   return ret;
@@ -793,10 +793,10 @@ int32_t usart2_deinit ( void )
 
     if ( HAL_UART_DeInit (&huart2) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
 
-    usart2_init_Status = false;
+    usart2_init_status = false;
   }
 
   return ret;
@@ -811,34 +811,34 @@ int32_t usart3_deinit ( void )
 
     if ( HAL_UART_DeInit (&huart3) != HAL_OK )
     {
-      return UART_ERROR;
+      return UART_ERR;
     }
 
-    usart3_init_Status = false;
+    usart3_init_status = false;
   }
 
   return ret;
 }
 
-bool uart_init_status ( USART_TypeDef *instance )
+bool uart_init_status ( UART_HandleTypeDef *port )
 {
-  if ( instance == UART4 )
+  if ( port->Instance == UART4 )
   {
     return uart4_init_status;
   }
-  if ( instance == UART5 )
+  if ( port->Instance == UART5 )
   {
     return uart5_init_status;
   }
-  if ( instance == USART1 )
+  if ( port->Instance == USART1 )
   {
     return usart1_init_status;
   }
-  if ( instance == USART2 )
+  if ( port->Instance == USART2 )
   {
     return usart2_init_status;
   }
-  if ( instance == USART3 )
+  if ( port->Instance == USART3 )
   {
     return usart3_init_status;
   }

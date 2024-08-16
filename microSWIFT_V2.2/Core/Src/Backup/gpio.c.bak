@@ -36,7 +36,6 @@
  PC14-OSC32_IN (PC14)   ------> RCC_OSC32_IN
  PC15-OSC32_OUT (PC15)   ------> RCC_OSC32_OUT
  VREF+   ------> VREFBUF_OUT
- PB2   ------> PWR_WKUP1
  PA13 (JTMS/SWDIO)   ------> DEBUG_JTMS-SWDIO
  PA14 (JTCK/SWCLK)   ------> DEBUG_JTCK-SWCLK
  PB3 (JTDO/TRACESWO)   ------> DEBUG_JTDO-SWO
@@ -62,7 +61,7 @@ void MX_GPIO_Init ( void )
       GPIOE,
       CT_FET_Pin | GNSS_FET_Pin | IRIDIUM_FET_Pin | TEMP_FET_Pin | LIGHT_FET_Pin | AUX_GPIO_1_Pin
       | AUX_GPIO_2_Pin | AUX_GPIO_3_Pin | AUX_GPIO_4_Pin | AUX_GPIO_5_Pin | AUX_GPIO_6_Pin
-      | AUX_GPIO_7_Pin | AUX_GPIO_8_Pin | RF_SWITCH_EN_Pin | RF_SWITCH_VCTRL_Pin,
+      | AUX_GPIO_7_Pin | AUX_GPIO_8_Pin | RF_SWITCH_EN_Pin | RF_SWITCH_VCTL_Pin,
       GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
@@ -96,7 +95,7 @@ void MX_GPIO_Init ( void )
   GPIO_InitStruct.Pin = CT_FET_Pin | GNSS_FET_Pin | IRIDIUM_FET_Pin | TEMP_FET_Pin | LIGHT_FET_Pin
                         | AUX_GPIO_1_Pin | AUX_GPIO_2_Pin | AUX_GPIO_3_Pin | AUX_GPIO_4_Pin
                         | AUX_GPIO_5_Pin | AUX_GPIO_6_Pin | AUX_GPIO_7_Pin | AUX_GPIO_8_Pin
-                        | RF_SWITCH_EN_Pin | RF_SWITCH_VCTRL_Pin;
+                        | RF_SWITCH_EN_Pin | RF_SWITCH_VCTL_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -156,6 +155,12 @@ void MX_GPIO_Init ( void )
   HAL_GPIO_Init (GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PtPin */
+  GPIO_InitStruct.Pin = RTC_INT_B_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init (RTC_INT_B_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PtPin */
   GPIO_InitStruct.Pin = RTC_INT_A_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
@@ -169,11 +174,11 @@ void MX_GPIO_Init ( void )
   HAL_GPIO_Init (GPIOG, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PD8 PD9 PD10 PD11
-   PD12 PD13 PD0 PD1
-   PD3 PD4 PD7 */
+   PD12 PD13 PD15 PD0
+   PD1 PD3 PD4 PD7 */
   GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12
-                        | GPIO_PIN_13 | GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_3 | GPIO_PIN_4
-                        | GPIO_PIN_7;
+                        | GPIO_PIN_13 | GPIO_PIN_15 | GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_3
+                        | GPIO_PIN_4 | GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init (GPIOD, &GPIO_InitStruct);
@@ -184,12 +189,6 @@ void MX_GPIO_Init ( void )
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init (GPIOD, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PtPin */
-  GPIO_InitStruct.Pin = RTC_INT_B_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init (RTC_INT_B_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PG2 PG3 PG4 PG5
    PG6 PG9 PG12 PG15 */
@@ -208,9 +207,6 @@ void MX_GPIO_Init ( void )
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority (EXTI12_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ (EXTI12_IRQn);
-
-  HAL_NVIC_SetPriority (EXTI15_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ (EXTI15_IRQn);
 
 }
 

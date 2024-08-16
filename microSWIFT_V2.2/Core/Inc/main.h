@@ -1,21 +1,21 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.h
-  * @brief          : Header for main.c file.
-  *                   This file contains the common defines of the application.
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2024 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.h
+ * @brief          : Header for main.c file.
+ *                   This file contains the common defines of the application.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2024 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
@@ -162,6 +162,10 @@ void Error_Handler(void);
 #define SD_CK_GPIO_Port GPIOC
 #define SD_CMD_Pin GPIO_PIN_2
 #define SD_CMD_GPIO_Port GPIOD
+#define IRIDIUM_OnOff_Pin GPIO_PIN_3
+#define IRIDIUM_OnOff_GPIO_Port GPIOD
+#define BUS_5V_FET_Pin GPIO_PIN_4
+#define BUS_5V_FET_GPIO_Port GPIOD
 #define AUX_SPI_2_MOSI_Pin GPIO_PIN_6
 #define AUX_SPI_2_MOSI_GPIO_Port GPIOD
 #define AUX_SPI_2_MISO_Pin GPIO_PIN_10
@@ -174,8 +178,8 @@ void Error_Handler(void);
 #define RTC_SPI_CS_GPIO_Port GPIOB
 #define RF_SWITCH_EN_Pin GPIO_PIN_0
 #define RF_SWITCH_EN_GPIO_Port GPIOE
-#define RF_SWITCH_VCTRL_Pin GPIO_PIN_1
-#define RF_SWITCH_VCTRL_GPIO_Port GPIOE
+#define RF_SWITCH_VCTL_Pin GPIO_PIN_1
+#define RF_SWITCH_VCTL_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
 

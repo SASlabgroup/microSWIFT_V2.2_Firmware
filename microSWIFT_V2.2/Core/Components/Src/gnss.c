@@ -7,6 +7,18 @@
  */
 
 #include "gnss.h"
+#include "byte_array.h"
+#include "app_threadx.h"
+#include "tx_api.h"
+#include "main.h"
+#include "string.h"
+#include "stm32u5xx_hal.h"
+#include "stm32u5xx_ll_dma.h"
+#include "stdio.h"
+#include "stdbool.h"
+#include "u_ubx_protocol.h"
+#include "u_error_common.h"
+#include "ext_rtc_api.h"
 
 static GNSS *self;
 
@@ -31,7 +43,7 @@ static void process_frame_sync_messages ( uint8_t *process_buf );
 static gnss_error_code_t enable_high_performance_mode ( void );
 static gnss_error_code_t query_high_performance_mode ( void );
 static void get_checksum ( uint8_t *ck_a, uint8_t *ck_b, uint8_t *buffer, uint32_t num_bytes )__attribute__((unused));
-static uint32_t get_timestamp ( void );
+static time_t get_timestamp ( void );
 static void reset_struct_fields ( void );
 
 /**
@@ -43,9 +55,8 @@ void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
                  UART_HandleTypeDef *gnss_uart_handle, DMA_HandleTypeDef *gnss_rx_dma_handle,
                  DMA_HandleTypeDef *gnss_tx_dma_handle, TX_EVENT_FLAGS_GROUP *control_flags,
                  TX_EVENT_FLAGS_GROUP *error_flags, TIM_HandleTypeDef *timer,
-                 uint8_t *ubx_process_buf, uint8_t *config_response_buffer,
-                 RTC_HandleTypeDef *rtc_handle, float *GNSS_N_Array, float *GNSS_E_Array,
-                 float *GNSS_D_Array )
+                 uint8_t *ubx_process_buf, uint8_t *config_response_buffer, float *GNSS_N_Array,
+                 float *GNSS_E_Array, float *GNSS_D_Array )
 {
   self = struct_ptr;
   // initialize everything
@@ -53,7 +64,6 @@ void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
   self->gnss_uart_handle = gnss_uart_handle;
   self->gnss_rx_dma_handle = gnss_rx_dma_handle;
   self->gnss_tx_dma_handle = gnss_tx_dma_handle;
-  self->rtc_handle = rtc_handle;
   self->GNSS_N_Array = GNSS_N_Array;
   self->GNSS_E_Array = GNSS_E_Array;
   self->GNSS_D_Array = GNSS_D_Array;
@@ -83,7 +93,7 @@ void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
  * Configure the MAX-M10S chip by sending a series of UBX_CFG_VALSET messages
  *
  * @return GNSS_SUCCESS or
- * 		   GNSS_CONFIG_ERROR if response was not received
+ *                 GNSS_CONFIG_ERROR if response was not received
  */
 static gnss_error_code_t gnss_config ( void )
 {
@@ -186,8 +196,7 @@ static gnss_error_code_t gnss_sync_and_start_reception (
   {
     register_watchdog_refresh ();
     // Grab 5 UBX_NAV_PVT messages
-    HAL_UART_Receive_DMA (self->gnss_uart_handle, &(msg_buf[0]),
-    INITIAL_STAGES_BUFFER_SIZE);
+    HAL_UART_Receive_DMA (self->gnss_uart_handle, &(msg_buf[0]), INITIAL_STAGES_BUFFER_SIZE);
 
     if ( tx_event_flags_get (self->control_flags, GNSS_CONFIG_RECVD, TX_OR_CLEAR, &actual_flags,
                              max_ticks_to_get_message)
@@ -452,7 +461,7 @@ static gnss_error_code_t gnss_get_running_average_velocities ( void )
  * @param put_to_sleep - true to command sleep, false to wake up
  *
  * @return GNSS_CONFIG_ERROR - command failed
- * 		   GNSS_SUCCESS - command succeeded
+ *                 GNSS_SUCCESS - command succeeded
  */
 static gnss_error_code_t gnss_sleep ( bool put_to_sleep )
 {
@@ -482,10 +491,10 @@ static void gnss_on_off ( GPIO_PinState pin_state )
 static void gnss_cycle_power ( void )
 {
   self->on_off (GPIO_PIN_RESET);
-//	HAL_Delay(25);
+//      HAL_Delay(25);
   tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
   self->on_off (GPIO_PIN_SET);
-//	HAL_Delay(25);
+//      HAL_Delay(25);
   tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
 }
 
@@ -586,13 +595,13 @@ static gnss_error_code_t gnss_reset_timer ( uint16_t timeout_in_minutes )
  *        time information.
  *
  * @return GNSS_SUCCESS or
- * 		   GNSS_RTC_ERROR - if setting RTC returned an error
+ *                 GNSS_RTC_ERROR - if setting RTC returned an error
  */
 static gnss_error_code_t gnss_set_rtc ( uint8_t *msg_payload )
 {
   gnss_error_code_t return_code = GNSS_SUCCESS;
-  RTC_DateTypeDef rtc_date;
-  RTC_TimeTypeDef rtc_time;
+  rtc_return_code rtc_ret = RTC_SUCCESS;
+  struct tm time;
 
   uint16_t year = (int16_t) get_two_bytes (msg_payload, UBX_NAV_PVT_YEAR_INDEX, AS_LITTLE_ENDIAN);
   uint8_t month = msg_payload[UBX_NAV_PVT_MONTH_INDEX];
@@ -610,26 +619,16 @@ static gnss_error_code_t gnss_set_rtc ( uint8_t *msg_payload )
     return return_code;
   }
 
-  // Set the date
-  rtc_date.Date = day;
-  rtc_date.Month = month;
-  rtc_date.Year = year - 2000; // RTC takes a 2 digit year
-  // We are not using weekday, but the time will be set incorrectly if this field is not initialized
-  // Value for WeekDay will not have any effect on time/date
-  rtc_date.WeekDay = RTC_WEEKDAY_MONDAY;
-  if ( HAL_RTC_SetDate (self->rtc_handle, &rtc_date, RTC_FORMAT_BIN) != HAL_OK )
-  {
-    return_code = GNSS_RTC_ERROR;
-    self->rtc_error = true;
-    tx_event_flags_set (self->error_flags, RTC_ERROR, TX_OR);
-    return return_code;
-  }
-  // Set the time
-  rtc_time.Hours = hour;
-  rtc_time.Minutes = min;
-  rtc_time.Seconds = sec;
-  rtc_time.SecondFraction = 0;
-  if ( HAL_RTC_SetTime (self->rtc_handle, &rtc_time, RTC_FORMAT_BIN) != HAL_OK )
+  time.tm_year = year;
+  time.tm_mon = month;
+  time.tm_mday = day;
+  time.tm_hour = hour;
+  time.tm_min = min;
+  time.tm_sec = sec;
+
+  rtc_ret = rtc_server_set_time (time, GNSS_REQUEST_PROCESSED);
+
+  if ( rtc_ret != RTC_SUCCESS )
   {
     return_code = GNSS_RTC_ERROR;
     self->rtc_error = true;
@@ -649,7 +648,7 @@ static gnss_error_code_t gnss_set_rtc ( uint8_t *msg_payload )
  *
  * @param self- GNSS struct
  * @param config_array - byte array containing a UBX_CFG_VALSET msg with up to
- * 		  64 keys
+ *                64 keys
  */
 static gnss_error_code_t send_config ( uint8_t *config_array, size_t message_size,
                                        uint8_t response_class, uint8_t response_id )
@@ -688,8 +687,7 @@ static gnss_error_code_t send_config ( uint8_t *config_array, size_t message_siz
     HAL_UARTEx_ReceiveToIdle_DMA (self->gnss_uart_handle, self->config_response_buf,
     FRAME_SYNC_RX_SIZE);
 
-    tx_return = tx_event_flags_get (self->control_flags, GNSS_CONFIG_RECVD,
-    TX_OR_CLEAR,
+    tx_return = tx_event_flags_get (self->control_flags, GNSS_CONFIG_RECVD, TX_OR_CLEAR,
                                     &actual_flags, frame_sync_ticks);
     // If the flag is not present, then we are idle
     if ( tx_return == TX_NO_EVENTS )
@@ -731,8 +729,7 @@ static gnss_error_code_t send_config ( uint8_t *config_array, size_t message_siz
 
   }
 
-  HAL_UART_Receive_DMA (self->gnss_uart_handle, self->config_response_buf,
-  CONFIG_BUFFER_SIZE);
+  HAL_UART_Receive_DMA (self->gnss_uart_handle, self->config_response_buf, CONFIG_BUFFER_SIZE);
 
   // Make sure we receive the response within the right amount of time
   if ( tx_event_flags_get (self->control_flags, GNSS_CONFIG_RECVD, TX_OR_CLEAR, &actual_flags,
@@ -831,7 +828,7 @@ static gnss_error_code_t stop_start_gnss ( bool send_stop )
   {
     HAL_UART_DMAStop (self->gnss_uart_handle);
     self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
-//		HAL_Delay(10);
+//              HAL_Delay(10);
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     return GNSS_UART_ERROR;
 
@@ -1125,103 +1122,22 @@ static void get_checksum ( uint8_t *ck_a, uint8_t *ck_b, uint8_t *buffer, uint32
 /**
  * Helper method to generate a timestamp from the RTC.
  *
- * @param self - GNSS struct
- * @return timestamp as uint32_t
+ * @return timestamp as time_t
  */
-static uint32_t get_timestamp ( void )
+static time_t get_timestamp ( void )
 {
-  uint32_t timestamp = 0;
-  bool is_leap_year = false;
-  uint8_t num_leap_years_since_2000 = 0;
-  uint16_t julian_date_first_of_month = 0;
-  RTC_DateTypeDef rtc_date;
-  RTC_TimeTypeDef rtc_time;
+  rtc_return_code rtc_ret = RTC_SUCCESS;
+  struct tm time;
 
-  // Get the date and time
-  HAL_RTC_GetTime (self->rtc_handle, &rtc_time, RTC_FORMAT_BIN);
-  HAL_RTC_GetDate (self->rtc_handle, &rtc_date, RTC_FORMAT_BIN);
-
-  // Let's make a timestamp (yay...)
-  // Years first
-  timestamp += SECONDS_1970_TO_2000;
-  timestamp += rtc_date.Year * SECONDS_IN_YEAR;
-  num_leap_years_since_2000 = rtc_date.Year / 4;
-  timestamp += num_leap_years_since_2000 * SECONDS_IN_DAY;
-
-  // Years are only represented with 2 digits. We'll set 0 as the year 2000, so anything
-  // evenly divisible by 4 is a leap year (2000, 2004, 2008, etc)
-  is_leap_year = rtc_date.Year % 4 == 0;
-
-  switch ( rtc_date.Month )
+  rtc_ret = rtc_server_get_time (&time, GNSS_REQUEST_PROCESSED);
+  if ( rtc_ret != RTC_SUCCESS )
   {
-    case RTC_MONTH_JANUARY:
-      // No months to account for!!!
-      break;
-
-    case RTC_MONTH_FEBRUARY:
-      julian_date_first_of_month = 32;
-      break;
-
-    case RTC_MONTH_MARCH:
-      julian_date_first_of_month = (is_leap_year) ?
-          61 : 60;
-      break;
-
-    case RTC_MONTH_APRIL:
-      julian_date_first_of_month = (is_leap_year) ?
-          92 : 91;
-      break;
-
-    case RTC_MONTH_MAY:
-      julian_date_first_of_month = (is_leap_year) ?
-          122 : 121;
-      break;
-
-    case RTC_MONTH_JUNE:
-      julian_date_first_of_month = (is_leap_year) ?
-          153 : 152;
-      break;
-
-    case RTC_MONTH_JULY:
-      julian_date_first_of_month = (is_leap_year) ?
-          183 : 182;
-      break;
-
-    case RTC_MONTH_AUGUST:
-      julian_date_first_of_month = (is_leap_year) ?
-          214 : 213;
-      break;
-
-    case RTC_MONTH_SEPTEMBER:
-      julian_date_first_of_month = (is_leap_year) ?
-          245 : 244;
-      break;
-
-    case RTC_MONTH_OCTOBER:
-      julian_date_first_of_month = (is_leap_year) ?
-          275 : 274;
-      break;
-
-    case RTC_MONTH_NOVEMBER:
-      julian_date_first_of_month = (is_leap_year) ?
-          306 : 305;
-      break;
-
-    case RTC_MONTH_DECEMBER:
-      julian_date_first_of_month = (is_leap_year) ?
-          336 : 335;
-      break;
-
-    default:
-      break;
+    return -1;
   }
-  timestamp += julian_date_first_of_month * SECONDS_IN_DAY;
-  timestamp += (rtc_date.Date - 1) * SECONDS_IN_DAY;
-  timestamp += rtc_time.Hours * SECONDS_IN_HOUR;
-  timestamp += rtc_time.Minutes * SECONDS_IN_MIN;
-  timestamp += rtc_time.Seconds;
-  // Not including fractions of a second
-  return timestamp;
+
+  time.tm_isdst = -1;
+
+  return mktime (&time);
 }
 
 /**

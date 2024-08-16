@@ -37,10 +37,5 @@ void tests_init ( void )
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 static bool rtc_test ( void *unused )
 {
-  ext_rtc_return_code ret;
-  ext_rtc rtc_struct;
-
-  ret = ext_rtc_init (&rtc_struct, NULL);
-
   return false;
 }

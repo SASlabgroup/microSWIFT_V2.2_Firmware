@@ -59,7 +59,7 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOE, CT_FET_Pin|GNSS_FET_Pin|IRIDIUM_FET_Pin|TEMP_FET_Pin
                           |LIGHT_FET_Pin|AUX_GPIO_1_Pin|AUX_GPIO_2_Pin|AUX_GPIO_3_Pin
                           |AUX_GPIO_4_Pin|AUX_GPIO_5_Pin|AUX_GPIO_6_Pin|AUX_GPIO_7_Pin
-                          |AUX_GPIO_8_Pin|RF_SWITCH_EN_Pin|RF_SWITCH_VCTRL_Pin, GPIO_PIN_RESET);
+                          |AUX_GPIO_8_Pin|RF_SWITCH_EN_Pin|RF_SWITCH_VCTL_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, TURBIDITY_FET_Pin|RTC_TIMESTAMP_4_Pin|RTC_TIMESTAMP_2_Pin|SD_D0_Pin
@@ -79,7 +79,7 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOG, AUX_GPIO_15_Pin|AUX_GPIO_16_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, AUX_GPIO_0_Pin|SD_CMD_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, AUX_GPIO_0_Pin|SD_CMD_Pin|IRIDIUM_OnOff_Pin|BUS_5V_FET_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : PEPin PEPin PEPin PEPin
                            PEPin PEPin PEPin PEPin
@@ -88,7 +88,7 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pin = CT_FET_Pin|GNSS_FET_Pin|IRIDIUM_FET_Pin|TEMP_FET_Pin
                           |LIGHT_FET_Pin|AUX_GPIO_1_Pin|AUX_GPIO_2_Pin|AUX_GPIO_3_Pin
                           |AUX_GPIO_4_Pin|AUX_GPIO_5_Pin|AUX_GPIO_6_Pin|AUX_GPIO_7_Pin
-                          |AUX_GPIO_8_Pin|RF_SWITCH_EN_Pin|RF_SWITCH_VCTRL_Pin;
+                          |AUX_GPIO_8_Pin|RF_SWITCH_EN_Pin|RF_SWITCH_VCTL_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -169,16 +169,16 @@ void MX_GPIO_Init(void)
 
   /*Configure GPIO pins : PD8 PD9 PD10 PD11
                            PD12 PD13 PD15 PD0
-                           PD1 PD3 PD4 PD7 */
+                           PD1 PD7 */
   GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11
                           |GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_15|GPIO_PIN_0
-                          |GPIO_PIN_1|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_7;
+                          |GPIO_PIN_1|GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PDPin PDPin */
-  GPIO_InitStruct.Pin = AUX_GPIO_0_Pin|SD_CMD_Pin;
+  /*Configure GPIO pins : PDPin PDPin PDPin PDPin */
+  GPIO_InitStruct.Pin = AUX_GPIO_0_Pin|SD_CMD_Pin|IRIDIUM_OnOff_Pin|BUS_5V_FET_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;

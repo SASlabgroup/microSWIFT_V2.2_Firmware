@@ -8,6 +8,7 @@
 #include "spi.h"
 #include "app_threadx.h"
 #include "usart.h"
+#include "gnss.h"
 
 /**
  * @brief Tx Transfer completed callback.

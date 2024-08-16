@@ -557,7 +557,7 @@ int32_t spi1_deinit ( void )
 {
   int32_t ret = SPI_OK;
 
-  if ( HAL_SPI_DeInit (hspi1) != HAL_OK )
+  if ( HAL_SPI_DeInit (&hspi1) != HAL_OK )
   {
     ret = SPI_ERROR;
   }
@@ -571,7 +571,7 @@ int32_t spi2_deinit ( void )
 {
   int32_t ret = SPI_OK;
 
-  if ( HAL_SPI_DeInit (hspi2) != HAL_OK )
+  if ( HAL_SPI_DeInit (&hspi2) != HAL_OK )
   {
     ret = SPI_ERROR;
   }
@@ -585,7 +585,7 @@ int32_t spi3_deinit ( void )
 {
   int32_t ret = SPI_OK;
 
-  if ( HAL_SPI_DeInit (hspi3) != HAL_OK )
+  if ( HAL_SPI_DeInit (&hspi3) != HAL_OK )
   {
     ret = SPI_ERROR;
   }

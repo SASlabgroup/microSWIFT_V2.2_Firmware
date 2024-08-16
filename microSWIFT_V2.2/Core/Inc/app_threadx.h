@@ -84,37 +84,37 @@ typedef enum error_flags
   MODEM_ERROR = 1 << 4,
   MEMORY_ALLOC_ERROR = 1 << 5,
   DMA_ERROR = 1 << 6,
-UART_ERROR = 1 << 7,
-RTC_ERROR = 1 << 8,
-WATCHDOG_RESET = 1 << 9,
-SOFTWARE_RESET = 1 << 10,
-GNSS_RESOLUTION_ERROR = 1 << 11,
-SAMPLE_WINDOW_ERROR = 1 << 12,
-MEMORY_CORRUPTION_ERROR = 1 << 13,
-GNSS_EXITED_EARLY = 1 << 14,
-ADC_CONVERSION_ERROR = 1 << 15,
-GNSS_FRAME_SYNC_ERROR = 1 << 16,
-FLASH_OPERATION_SUCCESS = 1 << 17,
-FLASH_OPERATION_UNKNOWN_ERROR = 1 << 18,
-FLASH_OPERATION_STORAGE_FULL = 1 << 19,
-FLASH_OPERATION_ERASE_ERROR = 1 << 20,
-FLASH_OPERATION_PROGRAM_ERROR = 1 << 21,
-TEMPERATURE_ERROR = 1 << 22
+  UART_ERROR = 1 << 7,
+  RTC_ERROR = 1 << 8,
+  WATCHDOG_RESET = 1 << 9,
+  SOFTWARE_RESET = 1 << 10,
+  GNSS_RESOLUTION_ERROR = 1 << 11,
+  SAMPLE_WINDOW_ERROR = 1 << 12,
+  MEMORY_CORRUPTION_ERROR = 1 << 13,
+  GNSS_EXITED_EARLY = 1 << 14,
+  ADC_CONVERSION_ERROR = 1 << 15,
+  GNSS_FRAME_SYNC_ERROR = 1 << 16,
+  FLASH_OPERATION_SUCCESS = 1 << 17,
+  FLASH_OPERATION_UNKNOWN_ERROR = 1 << 18,
+  FLASH_OPERATION_STORAGE_FULL = 1 << 19,
+  FLASH_OPERATION_ERASE_ERROR = 1 << 20,
+  FLASH_OPERATION_PROGRAM_ERROR = 1 << 21,
+  TEMPERATURE_ERROR = 1 << 22
 } error_flags_t;
 
 typedef enum led_sequence
 {
-INITIAL_LED_SEQUENCE = 1,
-TEST_PASSED_LED_SEQUENCE = 2,
-TEST_NON_CRITICAL_FAULT_LED_SEQUENCE = 3,
-TEST_CRITICAL_FAULT_LED_SEQUENCE = 4
+  INITIAL_LED_SEQUENCE = 1,
+  TEST_PASSED_LED_SEQUENCE = 2,
+  TEST_NON_CRITICAL_FAULT_LED_SEQUENCE = 3,
+  TEST_CRITICAL_FAULT_LED_SEQUENCE = 4
 } led_sequence_t;
 
 typedef enum self_test_status
 {
-SELF_TEST_PASSED = 2,
-SELF_TEST_NON_CRITICAL_FAULT = 3,
-SELF_TEST_CRITICAL_FAULT = 4
+  SELF_TEST_PASSED = 2,
+  SELF_TEST_NON_CRITICAL_FAULT = 3,
+  SELF_TEST_CRITICAL_FAULT = 4
 } self_test_status_t;
 
 extern TX_SEMAPHORE ext_rtc_spi_sema;
@@ -137,19 +137,19 @@ typedef struct
 #if SD_CARD_ENABLED
   SD_HandleTypeDef *sd_handle;
 #endif
-SPI_HandleTypeDef *core_spi_handle;
-I2C_HandleTypeDef *core_i2c_handle;
-UART_HandleTypeDef *iridium_uart_handle;
-UART_HandleTypeDef *gnss_uart_handle;
-UART_HandleTypeDef *ct_uart_handle;
-OSPI_HandleTypeDef *ext_flash_handle;
+  SPI_HandleTypeDef *core_spi_handle;
+  I2C_HandleTypeDef *core_i2c_handle;
+  UART_HandleTypeDef *iridium_uart_handle;
+  UART_HandleTypeDef *gnss_uart_handle;
+  UART_HandleTypeDef *ct_uart_handle;
+  OSPI_HandleTypeDef *ext_flash_handle;
 // Expansion/ spares
-SPI_HandleTypeDef *aux_spi_1_handle;
-SPI_HandleTypeDef *aux_spi_2_handle;
-I2C_HandleTypeDef *aux_i2c_1_handle;
-I2C_HandleTypeDef *aux_i2c_2_handle;
-UART_HandleTypeDef *aux_uart_1_handle;
-UART_HandleTypeDef *aux_uart_2_handle;
+  SPI_HandleTypeDef *aux_spi_1_handle;
+  SPI_HandleTypeDef *aux_spi_2_handle;
+  I2C_HandleTypeDef *aux_i2c_1_handle;
+  I2C_HandleTypeDef *aux_i2c_2_handle;
+  UART_HandleTypeDef *aux_uart_1_handle;
+  UART_HandleTypeDef *aux_uart_2_handle;
 } Device_Handles;
 /* USER CODE END ET */
 

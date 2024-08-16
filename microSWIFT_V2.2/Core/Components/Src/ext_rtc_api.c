@@ -25,12 +25,13 @@ void rtc_server_refresh_watchdog ( void )
 
 rtc_return_code rtc_server_get_time ( struct tm *return_time_struct, UINT complete_flag )
 {
-  rtc_return_code ret = RTC_SUCCESS;
-  rtc_request_message queue_msg;
+  int32_t ret = RTC_SUCCESS;
+  rtc_request_message queue_msg =
+    { 0 };
   ULONG event_flags;
 
   queue_msg.request = GET_TIME;
-  queue_msg.input_output_struct->get_set_time = return_time_struct;
+  queue_msg.input_output_struct->get_set_time.time_struct = *return_time_struct;
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 
@@ -51,12 +52,13 @@ rtc_return_code rtc_server_get_time ( struct tm *return_time_struct, UINT comple
 
 rtc_return_code rtc_server_set_time ( struct tm input_time_struct, UINT complete_flag )
 {
-  rtc_return_code ret = RTC_SUCCESS;
-  rtc_request_message queue_msg;
+  int32_t ret = RTC_SUCCESS;
+  rtc_request_message queue_msg =
+    { 0 };
   ULONG event_flags;
 
   queue_msg.request = SET_TIME;
-  queue_msg.input_output_struct->get_set_time = &input_time_struct;
+  queue_msg.input_output_struct->get_set_time.time_struct = input_time_struct;
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 
@@ -77,12 +79,13 @@ rtc_return_code rtc_server_set_time ( struct tm input_time_struct, UINT complete
 
 rtc_return_code rtc_server_config_watchdog ( uint32_t period_ms, UINT complete_flag )
 {
-  rtc_return_code ret = RTC_SUCCESS;
-  rtc_request_message queue_msg;
+  int32_t ret = RTC_SUCCESS;
+  rtc_request_message queue_msg =
+    { 0 };
   ULONG event_flags;
 
   queue_msg.request = CONFIG_WATCHDOG;
-  queue_msg.input_output_struct->config_watchdog = &period_ms;
+  queue_msg.input_output_struct->config_watchdog.period_ms = period_ms;
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 
@@ -103,12 +106,13 @@ rtc_return_code rtc_server_config_watchdog ( uint32_t period_ms, UINT complete_f
 
 rtc_return_code rtc_server_set_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag )
 {
-  rtc_return_code ret = RTC_SUCCESS;
-  rtc_request_message queue_msg;
+  int32_t ret = RTC_SUCCESS;
+  rtc_request_message queue_msg =
+    { 0 };
   ULONG event_flags;
 
   queue_msg.request = SET_TIMESTAMP;
-  queue_msg.input_output_struct->get_set_timestamp = &which_timestamp;
+  queue_msg.input_output_struct->get_set_timestamp.which_timestamp = which_timestamp;
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 
@@ -129,12 +133,13 @@ rtc_return_code rtc_server_set_timestamp ( pcf2131_timestamp_t which_timestamp, 
 
 rtc_return_code rtc_server_get_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag )
 {
-  rtc_return_code ret = RTC_SUCCESS;
-  rtc_request_message queue_msg;
+  int32_t ret = RTC_SUCCESS;
+  rtc_request_message queue_msg =
+    { 0 };
   ULONG event_flags;
 
   queue_msg.request = GET_TIMESTAMP;
-  queue_msg.input_output_struct->get_set_timestamp = &which_timestamp;
+  queue_msg.input_output_struct->get_set_timestamp.which_timestamp = which_timestamp;
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 
@@ -155,8 +160,9 @@ rtc_return_code rtc_server_get_timestamp ( pcf2131_timestamp_t which_timestamp, 
 
 rtc_return_code rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UINT complete_flag )
 {
-  rtc_return_code ret = RTC_SUCCESS;
-  rtc_request_message queue_msg;
+  int32_t ret = RTC_SUCCESS;
+  rtc_request_message queue_msg =
+    { 0 };
   ULONG event_flags;
 
   queue_msg.request = SET_ALARM;
@@ -182,7 +188,7 @@ rtc_return_code rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UINT com
 // Requires request message to be filled out
 rtc_return_code rtc_server_process_request ( rtc_request_message *request )
 {
-  rtc_return_code ret = RTC_SUCCESS;
+  int32_t ret = RTC_SUCCESS;
   ULONG event_flags;
 
   if ( tx_queue_send (self.request_queue, request, RTC_QUEUE_MAX_WAIT_TICKS) != TX_SUCCESS )
@@ -190,7 +196,7 @@ rtc_return_code rtc_server_process_request ( rtc_request_message *request )
     return RTC_MESSAGE_QUEUE_ERROR;
   }
 
-  if ( tx_event_flags_get (self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
+  if ( tx_event_flags_get (self.complete_flags, request->complete_flag, TX_OR_CLEAR, &event_flags,
   RTC_FLAG_MAX_WAIT_TICKS)
        != TX_SUCCESS )
   {

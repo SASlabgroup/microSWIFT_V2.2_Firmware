@@ -130,8 +130,6 @@ typedef struct Iridium
   // Event flags
   TX_EVENT_FLAGS_GROUP *control_flags;
   TX_EVENT_FLAGS_GROUP *error_flags;
-  // Handle to the RTC
-  RTC_HandleTypeDef *rtc_handle;
   // pointer to the message array
   sbd_message_type_52 *current_message;
   // Pointer to the error message payload buffer
@@ -183,9 +181,9 @@ void iridium_init ( Iridium *struct_ptr, microSWIFT_configuration *global_config
                     UART_HandleTypeDef *iridium_uart_handle,
                     DMA_HandleTypeDef *iridium_rx_dma_handle, TIM_HandleTypeDef *timer,
                     DMA_HandleTypeDef *iridium_tx_dma_handle, TX_EVENT_FLAGS_GROUP *control_flags,
-                    TX_EVENT_FLAGS_GROUP *error_flags, RTC_HandleTypeDef *rtc_handle,
-                    sbd_message_type_52 *current_message, uint8_t *error_message_buffer,
-                    uint8_t *response_buffer, Iridium_message_storage *storage_queue );
+                    TX_EVENT_FLAGS_GROUP *error_flags, sbd_message_type_52 *current_message,
+                    uint8_t *error_message_buffer, uint8_t *response_buffer,
+                    Iridium_message_storage *storage_queue );
 // watchdog refresh function
 extern void register_watchdog_refresh ();
 

@@ -1,21 +1,21 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.h
-  * @brief          : Header for main.c file.
-  *                   This file contains the common defines of the application.
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2024 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.h
+ * @brief          : Header for main.c file.
+ *                   This file contains the common defines of the application.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2024 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
@@ -50,7 +50,7 @@ extern "C" {
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-void Error_Handler(void);
+void Error_Handler ( void );
 
 /* USER CODE BEGIN EFP */
 
@@ -111,6 +111,8 @@ void Error_Handler(void);
 #define CORE_SPI_MOSI_GPIO_Port GPIOA
 #define RTC_TIMESTAMP_3_Pin GPIO_PIN_0
 #define RTC_TIMESTAMP_3_GPIO_Port GPIOB
+#define RTC_INT_B_Pin GPIO_PIN_2
+#define RTC_INT_B_GPIO_Port GPIOB
 #define AUX_GPIO_11_Pin GPIO_PIN_11
 #define AUX_GPIO_11_GPIO_Port GPIOF
 #define RTC_INT_A_Pin GPIO_PIN_12
@@ -148,9 +150,6 @@ void Error_Handler(void);
 #define AUX_UART_2_RX_GPIO_Port GPIOB
 #define AUX_GPIO_0_Pin GPIO_PIN_14
 #define AUX_GPIO_0_GPIO_Port GPIOD
-#define RTC_INT_B_Pin GPIO_PIN_15
-#define RTC_INT_B_GPIO_Port GPIOD
-#define RTC_INT_B_EXTI_IRQn EXTI15_IRQn
 #define SD_D0_Pin GPIO_PIN_8
 #define SD_D0_GPIO_Port GPIOC
 #define GNSS_UART_TX_Pin GPIO_PIN_9
@@ -175,8 +174,8 @@ void Error_Handler(void);
 #define RTC_SPI_CS_GPIO_Port GPIOB
 #define RF_SWITCH_EN_Pin GPIO_PIN_0
 #define RF_SWITCH_EN_GPIO_Port GPIOE
-#define RF_SWITCH_VCTRL_Pin GPIO_PIN_1
-#define RF_SWITCH_VCTRL_GPIO_Port GPIOE
+#define RF_SWITCH_VCTL_Pin GPIO_PIN_1
+#define RF_SWITCH_VCTL_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
 

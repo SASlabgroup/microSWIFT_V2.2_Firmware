@@ -29,14 +29,11 @@ extern "C" {
 #include "main.h"
 
 /* USER CODE BEGIN Includes */
-#define UART_OK 0
-#define UART_ERROR -1
+#include "stdbool.h"
 
-#define CT_UART UART4
-#define IRIDIUM_UART UART5
-#define GNSS_UART USART1
-#define AUX_UART_1 USART2
-#define AUX_UART_2 USART3
+#define UART_OK 0
+#define UART_ERR -1
+
 /* USER CODE END Includes */
 
 extern UART_HandleTypeDef huart4;
@@ -50,7 +47,11 @@ extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN Private defines */
-
+#define CT_UART UART4
+#define IRIDIUM_UART UART5
+#define GNSS_UART USART1
+#define AUX_UART_1 USART2
+#define AUX_UART_2 USART3
 /* USER CODE END Private defines */
 
 void MX_UART4_Init(void);
@@ -72,7 +73,7 @@ int32_t usart1_deinit ( void );
 int32_t usart2_deinit ( void );
 int32_t usart3_deinit ( void );
 
-bool uart_init_status ( USART_TypeDef *instance );
+bool uart_init_status ( UART_HandleTypeDef *port );
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
