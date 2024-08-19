@@ -25,8 +25,8 @@
 
 /* USER CODE END Includes */
 
-DMA_NodeTypeDef GNSS_LL_Node;
-DMA_QListTypeDef GNSS_LL_Queue;
+DMA_NodeTypeDef gnss_dma_linked_list_node;
+DMA_QListTypeDef gnss_dma_linked_list;
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
@@ -44,53 +44,41 @@ DMA_QListTypeDef GNSS_LL_Queue;
 /* USER CODE END PM */
 
 /**
-  * @brief  DMA Linked-list YourQueueName configuration
+  * @brief  DMA Linked-list gnss_dma_linked_list configuration
   * @param  None
   * @retval None
   */
-HAL_StatusTypeDef MX_GNSS_LL_Queue_Config(void)
+HAL_StatusTypeDef MX_gnss_dma_linked_list_Config(void)
 {
   HAL_StatusTypeDef ret = HAL_OK;
   /* DMA node configuration declaration */
   DMA_NodeConfTypeDef pNodeConfig;
-//  DMA_HandleTypeDef handle_GPDMA1_Channel0 = handle_GPDMA1_Channel0;
-
 
   /* Set node configuration ################################################*/
-  pNodeConfig.NodeType = DMA_GPDMA_LINEAR_NODE;
-  pNodeConfig.Init.Request = GPDMA1_REQUEST_LPUART1_RX;
+  pNodeConfig.NodeType = DMA_LPDMA_LINEAR_NODE;
+  pNodeConfig.Init.Request = GPDMA1_REQUEST_USART1_RX;
   pNodeConfig.Init.BlkHWRequest = DMA_BREQ_SINGLE_BURST;
   pNodeConfig.Init.Direction = DMA_PERIPH_TO_MEMORY;
   pNodeConfig.Init.SrcInc = DMA_SINC_FIXED;
   pNodeConfig.Init.DestInc = DMA_DINC_INCREMENTED;
   pNodeConfig.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_BYTE;
   pNodeConfig.Init.DestDataWidth = DMA_DEST_DATAWIDTH_BYTE;
-  pNodeConfig.Init.SrcBurstLength = 1;
-  pNodeConfig.Init.DestBurstLength = 1;
-  pNodeConfig.Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT0|DMA_DEST_ALLOCATED_PORT0;
-  pNodeConfig.Init.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;
-//  pNodeConfig.RepeatBlockConfig.RepeatCount = 1;
-//  pNodeConfig.RepeatBlockConfig.SrcAddrOffset = 0;
-//  pNodeConfig.RepeatBlockConfig.DestAddrOffset = 0;
-//  pNodeConfig.RepeatBlockConfig.BlkSrcAddrOffset = 0;
-//  pNodeConfig.RepeatBlockConfig.BlkDestAddrOffset = 0;
+  pNodeConfig.Init.TransferEventMode = DMA_TCEM_EACH_LL_ITEM_TRANSFER;
   pNodeConfig.TriggerConfig.TriggerPolarity = DMA_TRIG_POLARITY_MASKED;
   pNodeConfig.DataHandlingConfig.DataExchange = DMA_EXCHANGE_NONE;
   pNodeConfig.DataHandlingConfig.DataAlignment = DMA_DATA_RIGHTALIGN_ZEROPADDED;
   pNodeConfig.SrcAddress = 0;
   pNodeConfig.DstAddress = 0;
-  pNodeConfig.DataSize = 100;
+  pNodeConfig.DataSize = 0;
 
-//  handle_GPDMA1_Channel0.InitLinkedList.LinkedListMode = DMA_LINKEDLIST_CIRCULAR;
+  /* Build gnss_dma_linked_list_node Node */
+  ret |= HAL_DMAEx_List_BuildNode(&pNodeConfig, &gnss_dma_linked_list_node);
 
-  /* Build GNSS_LL_Node Node */
-  ret |= HAL_DMAEx_List_BuildNode(&pNodeConfig, &GNSS_LL_Node);
+  /* Insert gnss_dma_linked_list_node to Queue */
+  ret |= HAL_DMAEx_List_InsertNode_Tail(&gnss_dma_linked_list, &gnss_dma_linked_list_node);
 
-  /* Insert GNSS_LL_Node to Queue */
-  ret |= HAL_DMAEx_List_InsertNode_Tail(&GNSS_LL_Queue, &GNSS_LL_Node);
+  ret |= HAL_DMAEx_List_SetCircularMode(&gnss_dma_linked_list);
 
-  ret |= HAL_DMAEx_List_SetCircularMode(&GNSS_LL_Queue);
-
-  return ret;
+   return ret;
 }
 

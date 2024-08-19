@@ -146,7 +146,6 @@ typedef struct
   TIM_HandleTypeDef *gnss_minutes_timer;
   TIM_HandleTypeDef *iridium_minutes_timer;
   DMA_HandleTypeDef *gnss_uart_rx_dma_handle;
-  DMA_HandleTypeDef *gnss_uart_tx_dma_handle;
 // Expansion/ spares
   SPI_HandleTypeDef *aux_spi_1_handle;
   SPI_HandleTypeDef *aux_spi_2_handle;

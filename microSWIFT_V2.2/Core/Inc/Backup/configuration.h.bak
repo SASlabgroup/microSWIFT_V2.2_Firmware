@@ -72,6 +72,10 @@
 // If there is a logging SD card
 #define SD_CARD_ENABLED false
 
+#define WATCHDOG_ENABLED false
+
+#define WATCHDOG_PERIOD 30000 //ms
+
 typedef struct microSWIFT_configuration
 {
   uint32_t samples_per_window;

@@ -74,7 +74,7 @@
 
 #define WATCHDOG_ENABLED false
 
-#define WATCHDOG_PERIOD 30000 //ms
+#define WATCHDOG_PERIOD 60000 // 1 min (in ms)
 
 typedef struct microSWIFT_configuration
 {

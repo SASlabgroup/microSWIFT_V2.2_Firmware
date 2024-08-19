@@ -80,8 +80,6 @@ typedef enum thread_priorities
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-// Our DMA linked list queue needed to use circular mode with GNSS UART DMA
-extern DMA_QListTypeDef GNSS_LL_Queue;
 // The configuration struct
 microSWIFT_configuration configuration;
 // The SBD message we'll assemble
@@ -123,18 +121,18 @@ emxArray_real32_T *north;
 emxArray_real32_T *east;
 emxArray_real32_T *down;
 // The primary DMA buffer for GNSS UBX messages
-uint8_t *ubx_DMA_message_buf;
+uint8_t ubx_DMA_message_buf[UBX_MESSAGE_SIZE * 2];
 // Buffer for messages ready to process
-uint8_t *ubx_message_process_buf;
+uint8_t ubx_message_process_buf[UBX_MESSAGE_SIZE * 2];
 // The configuration response buffer for GNSS
-uint8_t *gnss_config_response_buf;
+uint8_t gnss_config_response_buf[GNSS_CONFIG_BUFFER_SIZE];
 // Iridium buffers
-uint8_t *iridium_response_message;
-uint8_t *iridium_error_message;
+uint8_t iridium_response_message[IRIDIUM_MAX_RESPONSE_SIZE];
+uint8_t iridium_error_message[IRIDIUM_ERROR_MESSAGE_PAYLOAD_SIZE + IRIDIUM_CHECKSUM_LENGTH + 64];
 // Messages that failed to send are stored here
-extern Iridium_message_storage sbd_message_queue;
+Iridium_message_storage sbd_message_queue;
 // Count the sample windows --> stored in NO_INIT RAM
-extern uint32_t sample_window_counter;
+uint32_t sample_window_counter;
 // Structs
 GNSS gnss;
 Iridium iridium;
@@ -295,94 +293,8 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
-  //
-  // The rf switch struct
-  ret = tx_byte_allocate (byte_pool, (VOID**) &rf_switch, sizeof(RF_Switch) + 100, TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-  //
-  // The UBX message array
-  ret = tx_byte_allocate (byte_pool, (VOID**) &ubx_DMA_message_buf, (UBX_MESSAGE_SIZE * 2) + 100,
-  TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-  //
-  // The UBX process buffer
-  ret = tx_byte_allocate (byte_pool, (VOID**) &ubx_message_process_buf,
-                          (UBX_MESSAGE_SIZE * 2) + 100, TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-  //
-  // The GNSS config response buffer
-  ret = tx_byte_allocate (byte_pool, (VOID**) &gnss_config_response_buf, CONFIG_BUFFER_SIZE,
-  TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-  //
-  // The gnss struct
-  ret = tx_byte_allocate (byte_pool, (VOID**) &gnss, sizeof(GNSS) + 100, TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-  //
-  // The Iridium error message payload array
-  ret = tx_byte_allocate (byte_pool, (VOID**) &iridium_error_message,
-  IRIDIUM_ERROR_MESSAGE_PAYLOAD_SIZE + 100 + IRIDIUM_CHECKSUM_LENGTH,
-                          TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-  //
-  // The Iridium response message array
-  ret = tx_byte_allocate (byte_pool, (VOID**) &iridium_response_message,
-  IRIDIUM_MAX_RESPONSE_SIZE + 100,
-                          TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-  //
-  // The iridium struct
-  ret = tx_byte_allocate (byte_pool, (VOID**) &iridium, sizeof(Iridium) + 100, TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-  //
-  // The current window SBD message
-  ret = tx_byte_allocate (byte_pool, (VOID**) &sbd_message, sizeof(sbd_message_type_52) + 100,
-  TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-  //
-  // The battery struct
-  ret = tx_byte_allocate (byte_pool, (VOID**) &battery, sizeof(Battery) + 100, TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
 
 #if TEMPERATURE_ENABLED
-
-  //
-  // The temperature struct
-  ret = tx_byte_allocate (byte_pool, (VOID**) &temperature, sizeof(Temperature) + 100, TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
 
   //
   // Allocate stack for the temperature thread
@@ -656,6 +568,7 @@ void rtc_thread_entry ( ULONG thread_input )
  */
 void control_thread_entry ( ULONG thread_input )
 {
+  UNUSED(thread_input);
 
 }
 
@@ -716,11 +629,10 @@ void startup_thread_entry ( ULONG thread_input )
   down = argInit_1xUnbounded_real32_T (&configuration);
 
 // Initialize the structs
-  gnss_init (&gnss, &configuration, device_handles.GNSS_uart, device_handles.GNSS_rx_dma_handle,
-             device_handles.GNSS_tx_dma_handle, &thread_control_flags, &error_flags,
-             device_handles.gnss_timer, &(ubx_message_process_buf[0]),
-             &(gnss_config_response_buf[0]), device_handles.hrtc, north->data, east->data,
-             down->data);
+  gnss_init (&gnss, &configuration, device_handles.gnss_uart_handle,
+             device_handles.gnss_uart_rx_dma_handle, &thread_control_flags, &error_flags,
+             device_handles.gnss_minutes_timer, &(ubx_message_process_buf[0]),
+             &(gnss_config_response_buf[0]), north->data, east->data, down->data);
 
   iridium_init (iridium, &configuration, device_handles.Iridium_uart,
                 device_handles.Iridium_rx_dma_handle, device_handles.iridium_timer,

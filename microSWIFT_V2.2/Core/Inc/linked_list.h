@@ -29,11 +29,12 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
+extern DMA_NodeTypeDef gnss_dma_linked_list_node;
+extern DMA_QListTypeDef gnss_dma_linked_list;
+
 /* Exported types ------------------------------------------------------------*/
-extern DMA_NodeTypeDef GNSS_LL_Node;
-extern DMA_QListTypeDef GNSS_LL_Queue;
 /* Exported constants --------------------------------------------------------*/
-HAL_StatusTypeDef MX_GNSS_LL_Queue_Config ( void );
+HAL_StatusTypeDef MX_gnss_dma_linked_list_Config ( void );
 
 #ifdef __cplusplus
 }

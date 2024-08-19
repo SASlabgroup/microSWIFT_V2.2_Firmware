@@ -22,7 +22,7 @@
 #include "usart.h"
 #include "tim.h"
 #include "linked_list.h"
-#include "gpdma.h"
+#include "lpdma.h"
 
 static GNSS *self;
 
@@ -58,17 +58,16 @@ static gnss_error_code_t start_GNSS_UART_DMA ( uint8_t *buffer, size_t buffer_si
  */
 void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
                  UART_HandleTypeDef *gnss_uart_handle, DMA_HandleTypeDef *gnss_rx_dma_handle,
-                 DMA_HandleTypeDef *gnss_tx_dma_handle, TX_EVENT_FLAGS_GROUP *control_flags,
-                 TX_EVENT_FLAGS_GROUP *error_flags, TIM_HandleTypeDef *timer,
-                 uint8_t *ubx_process_buf, uint8_t *config_response_buffer, float *GNSS_N_Array,
-                 float *GNSS_E_Array, float *GNSS_D_Array )
+                 TX_EVENT_FLAGS_GROUP *control_flags, TX_EVENT_FLAGS_GROUP *error_flags,
+                 TIM_HandleTypeDef *timer, uint8_t *ubx_process_buf,
+                 uint8_t *config_response_buffer, float *GNSS_N_Array, float *GNSS_E_Array,
+                 float *GNSS_D_Array )
 {
   self = struct_ptr;
   // initialize everything
   self->global_config = global_config;
   self->gnss_uart_handle = gnss_uart_handle;
   self->gnss_rx_dma_handle = gnss_rx_dma_handle;
-  self->gnss_tx_dma_handle = gnss_tx_dma_handle;
   self->GNSS_N_Array = GNSS_N_Array;
   self->GNSS_E_Array = GNSS_E_Array;
   self->GNSS_D_Array = GNSS_D_Array;
@@ -1125,11 +1124,11 @@ static void reset_struct_fields ( void )
 }
 
 /**
- * @brief  callback function to start GNSS UART DMA reception. Passed to GNSS->self_test
+ * @brief  Helper function to get UART Rx in DMA circular mode
  *
- * @param  uart_handle - handle for uart port
- *             buffer - buffer to store UBX messages in
- *             buffer_size - capacity of the bufer
+
+ * @param  buffer - buffer to store UBX messages in
+ * @param  buffer_size - capacity of the bufer
  *
  * @retval GNSS_SUCCESS or
  *         GNS_UART_ERROR
@@ -1147,27 +1146,16 @@ static gnss_error_code_t start_GNSS_UART_DMA ( uint8_t *buffer, size_t msg_size 
 
   HAL_UART_DMAStop (self->gnss_uart_handle);
 
-  hal_return_code = MX_GNSS_LL_Queue_Config ();
+  hal_return_code = MX_gnss_dma_linked_list_Config ();
 
   if ( hal_return_code != HAL_OK )
   {
     return_code = GNSS_UART_ERROR;
   }
 
-  self->gnss_rx_dma_handle->InitLinkedList.Priority = DMA_LOW_PRIORITY_HIGH_WEIGHT;
-  self->gnss_rx_dma_handle->InitLinkedList.LinkStepMode = DMA_LSM_FULL_EXECUTION;
-  self->gnss_rx_dma_handle->InitLinkedList.LinkAllocatedPort = DMA_LINK_ALLOCATED_PORT0;
-  self->gnss_rx_dma_handle->InitLinkedList.TransferEventMode = DMA_TCEM_LAST_LL_ITEM_TRANSFER;
-  self->gnss_rx_dma_handle->InitLinkedList.LinkedListMode = DMA_LINKEDLIST_CIRCULAR;
-
-  if ( HAL_DMAEx_List_Init (self->gnss_rx_dma_handle) != HAL_OK )
-  {
-    return_code = GNSS_UART_ERROR;
-  }
-
   __HAL_LINKDMA(self->gnss_uart_handle, hdmarx, *self->gnss_rx_dma_handle);
 
-  hal_return_code = HAL_DMAEx_List_LinkQ (self->gnss_rx_dma_handle, &GNSS_LL_Queue);
+  hal_return_code = HAL_DMAEx_List_LinkQ (self->gnss_rx_dma_handle, &gnss_dma_linked_list);
   if ( hal_return_code != HAL_OK )
   {
     return_code = GNSS_UART_ERROR;

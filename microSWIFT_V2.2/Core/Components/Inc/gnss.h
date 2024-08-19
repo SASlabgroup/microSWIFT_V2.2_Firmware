@@ -40,7 +40,7 @@ typedef enum gnss_error_code
 } gnss_error_code_t;
 
 // Macros
-#define CONFIG_BUFFER_SIZE 600
+#define GNSS_CONFIG_BUFFER_SIZE 600
 #define CONFIGURATION_ARRAY_SIZE 164
 #define MAX_POSSIBLE_VELOCITY 10000     // 10000 mm/s = 10 m/s
 #define UBX_NAV_PVT_MESSAGE_CLASS 0x01
@@ -104,7 +104,6 @@ typedef struct GNSS
   // The UART and DMA handle for the GNSS interface
   UART_HandleTypeDef *gnss_uart_handle;
   DMA_HandleTypeDef *gnss_rx_dma_handle;
-  DMA_HandleTypeDef *gnss_tx_dma_handle;
   // Event flags
   TX_EVENT_FLAGS_GROUP *control_flags;
   TX_EVENT_FLAGS_GROUP *error_flags;
@@ -165,10 +164,10 @@ typedef struct GNSS
 /* Function declarations */
 void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
                  UART_HandleTypeDef *gnss_uart_handle, DMA_HandleTypeDef *gnss_rx_dma_handle,
-                 DMA_HandleTypeDef *gnss_tx_dma_handle, TX_EVENT_FLAGS_GROUP *control_flags,
-                 TX_EVENT_FLAGS_GROUP *error_flags, TIM_HandleTypeDef *timer,
-                 uint8_t *ubx_process_buf, uint8_t *config_response_buffer, float *GNSS_N_Array,
-                 float *GNSS_E_Array, float *GNSS_D_Array );
+                 TX_EVENT_FLAGS_GROUP *control_flags, TX_EVENT_FLAGS_GROUP *error_flags,
+                 TIM_HandleTypeDef *timer, uint8_t *ubx_process_buf,
+                 uint8_t *config_response_buffer, float *GNSS_N_Array, float *GNSS_E_Array,
+                 float *GNSS_D_Array );
 // watchdog refresh function
 extern void register_watchdog_refresh ();
 

@@ -234,45 +234,15 @@ static void iridium_on_off ( GPIO_PinState pin_state )
 static iridium_error_code_t iridium_reset_iridium_uart ( uint16_t baud_rate )
 {
 
-  if ( HAL_UART_DeInit (self->iridium_uart_handle) != HAL_OK )
-  {
-    return IRIDIUM_UART_ERROR;
-  }
-  self->iridium_uart_handle->Instance = IRIDIUM_UART_INSTANCE;
-  self->iridium_uart_handle->Init.BaudRate = baud_rate;
-  self->iridium_uart_handle->Init.WordLength = UART_WORDLENGTH_8B;
-  self->iridium_uart_handle->Init.StopBits = UART_STOPBITS_1;
-  self->iridium_uart_handle->Init.Parity = UART_PARITY_NONE;
-  self->iridium_uart_handle->Init.Mode = UART_MODE_TX_RX;
-  self->iridium_uart_handle->Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  self->iridium_uart_handle->Init.OverSampling = UART_OVERSAMPLING_16;
-  self->iridium_uart_handle->Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  self->iridium_uart_handle->Init.ClockPrescaler = UART_PRESCALER_DIV1;
-  self->iridium_uart_handle->AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if ( HAL_UART_Init (self->iridium_uart_handle) != HAL_OK )
-  {
-    return IRIDIUM_UART_ERROR;
-  }
-  if ( HAL_UARTEx_SetTxFifoThreshold (self->iridium_uart_handle, UART_TXFIFO_THRESHOLD_1_8)
-       != HAL_OK )
-  {
-    return IRIDIUM_UART_ERROR;
-  }
-  if ( HAL_UARTEx_SetRxFifoThreshold (self->iridium_uart_handle, UART_RXFIFO_THRESHOLD_1_8)
-       != HAL_OK )
-  {
-    return IRIDIUM_UART_ERROR;
-  }
-  if ( HAL_UARTEx_DisableFifoMode (self->iridium_uart_handle) != HAL_OK )
+  if ( uart4_deinit () != UART_OK )
   {
     return IRIDIUM_UART_ERROR;
   }
 
-  LL_DMA_ResetChannel (GPDMA1, IRIDIUM_LL_TX_DMA_HANDLE);
-  LL_DMA_ResetChannel (GPDMA1, IRIDIUM_LL_RX_DMA_HANDLE);
-
-  __HAL_DMA_DISABLE_IT(self->iridium_rx_dma_handle, DMA_IT_HT);
-  __HAL_DMA_DISABLE_IT(self->iridium_tx_dma_handle, DMA_IT_HT);
+  if ( uart4_init () != UART_OK )
+  {
+    return IRIDIUM_UART_ERROR;
+  }
 
   return IRIDIUM_SUCCESS;
 }

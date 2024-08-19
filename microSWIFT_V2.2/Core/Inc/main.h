@@ -69,8 +69,6 @@ void Error_Handler(void);
 #define LIGHT_FET_GPIO_Port GPIOE
 #define TURBIDITY_FET_Pin GPIO_PIN_13
 #define TURBIDITY_FET_GPIO_Port GPIOC
-#define AUX_I2C_1_SDA_Pin GPIO_PIN_0
-#define AUX_I2C_1_SDA_GPIO_Port GPIOF
 #define AUX_I2C_1_SCL_Pin GPIO_PIN_1
 #define AUX_I2C_1_SCL_GPIO_Port GPIOF
 #define AUX_GPIO_9_Pin GPIO_PIN_2
@@ -79,8 +77,6 @@ void Error_Handler(void);
 #define CT_UART_TX_GPIO_Port GPIOF
 #define CT_UART_RX_Pin GPIO_PIN_4
 #define CT_UART_RX_GPIO_Port GPIOF
-#define AUX_GPIO_10_Pin GPIO_PIN_5
-#define AUX_GPIO_10_GPIO_Port GPIOF
 #define FLASH_IO3_Pin GPIO_PIN_6
 #define FLASH_IO3_GPIO_Port GPIOF
 #define FLASH_IO2_Pin GPIO_PIN_7
@@ -103,6 +99,8 @@ void Error_Handler(void);
 #define IRIDIUM_UART_RX_GPIO_Port GPIOA
 #define RTC_TIMESTAMP_1_Pin GPIO_PIN_2
 #define RTC_TIMESTAMP_1_GPIO_Port GPIOA
+#define FLASH_NCS_Pin GPIO_PIN_4
+#define FLASH_NCS_GPIO_Port GPIOA
 #define CORE_SPI_SCK_Pin GPIO_PIN_5
 #define CORE_SPI_SCK_GPIO_Port GPIOA
 #define CORE_SPI_MISO_Pin GPIO_PIN_6
@@ -136,8 +134,6 @@ void Error_Handler(void);
 #define AUX_GPIO_3_GPIO_Port GPIOE
 #define AUX_GPIO_4_Pin GPIO_PIN_10
 #define AUX_GPIO_4_GPIO_Port GPIOE
-#define FLASH_NCS_Pin GPIO_PIN_11
-#define FLASH_NCS_GPIO_Port GPIOE
 #define AUX_GPIO_5_Pin GPIO_PIN_12
 #define AUX_GPIO_5_GPIO_Port GPIOE
 #define AUX_GPIO_6_Pin GPIO_PIN_13
@@ -146,8 +142,10 @@ void Error_Handler(void);
 #define AUX_GPIO_7_GPIO_Port GPIOE
 #define AUX_GPIO_8_Pin GPIO_PIN_15
 #define AUX_GPIO_8_GPIO_Port GPIOE
-#define AUX_UART_2_RX_Pin GPIO_PIN_11
-#define AUX_UART_2_RX_GPIO_Port GPIOB
+#define AUX_I2C_1_SDA_Pin GPIO_PIN_11
+#define AUX_I2C_1_SDA_GPIO_Port GPIOB
+#define AUX_UART_2_RX_Pin GPIO_PIN_9
+#define AUX_UART_2_RX_GPIO_Port GPIOD
 #define AUX_GPIO_0_Pin GPIO_PIN_14
 #define AUX_GPIO_0_GPIO_Port GPIOD
 #define SD_D0_Pin GPIO_PIN_8
@@ -158,6 +156,8 @@ void Error_Handler(void);
 #define GNSS_UART_RX_GPIO_Port GPIOA
 #define AUX_SPI_2_SCK_Pin GPIO_PIN_10
 #define AUX_SPI_2_SCK_GPIO_Port GPIOC
+#define AUX_SPI_2_MISO_Pin GPIO_PIN_11
+#define AUX_SPI_2_MISO_GPIO_Port GPIOC
 #define SD_CK_Pin GPIO_PIN_12
 #define SD_CK_GPIO_Port GPIOC
 #define SD_CMD_Pin GPIO_PIN_2
@@ -168,8 +168,6 @@ void Error_Handler(void);
 #define BUS_5V_FET_GPIO_Port GPIOD
 #define AUX_SPI_2_MOSI_Pin GPIO_PIN_6
 #define AUX_SPI_2_MOSI_GPIO_Port GPIOD
-#define AUX_SPI_2_MISO_Pin GPIO_PIN_10
-#define AUX_SPI_2_MISO_GPIO_Port GPIOG
 #define CORE_I2C_SDA_Pin GPIO_PIN_13
 #define CORE_I2C_SDA_GPIO_Port GPIOG
 #define CORE_I2C_SCL_Pin GPIO_PIN_14
