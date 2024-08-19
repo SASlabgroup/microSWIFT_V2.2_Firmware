@@ -1,21 +1,21 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * File Name          : linked_list.h
-  * Description        : This file provides code for the configuration
-  *                      of the LinkedList.
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2023 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * File Name          : linked_list.h
+ * Description        : This file provides code for the configuration
+ *                      of the LinkedList.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2023 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
@@ -30,8 +30,10 @@
 #include "main.h"
 
 /* Exported types ------------------------------------------------------------*/
+extern DMA_NodeTypeDef GNSS_LL_Node;
+extern DMA_QListTypeDef GNSS_LL_Queue;
 /* Exported constants --------------------------------------------------------*/
-HAL_StatusTypeDef MX_GNSS_LL_Queue_Config(void);
+HAL_StatusTypeDef MX_GNSS_LL_Queue_Config ( void );
 
 #ifdef __cplusplus
 }

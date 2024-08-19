@@ -16,6 +16,12 @@ GNSS
 ****
 
 [ ] Give GNSS a FIFO for messages
+[ ] Rework DMA transfers
+    [ ] Circular mode shouldn't start until the linked list is set up -- remove the DMA stop/ abort
+        calls early on, but test to make sure this is correct
+    [ ] Clean up all the functions for switching to circular
+    [ ] Study this: 
+    https://github.com/STMicroelectronics/STM32CubeU5/tree/main/Projects/NUCLEO-U575ZI-Q/Examples/UART/UART_ReceptionToIdle_CircularDMA
 [ ] Generalize UART to a better degree
 [ ] Move the callback function for setting up DMA to inside gnss.c
 [ ] See if initialization and configuration can be improved -- there has to be a better way to

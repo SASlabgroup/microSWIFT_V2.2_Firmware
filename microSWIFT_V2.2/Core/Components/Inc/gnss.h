@@ -150,9 +150,7 @@ typedef struct GNSS
   bool timer_timeout;
   // Function pointers
   gnss_error_code_t (*config) ( void );
-  gnss_error_code_t (*sync_and_start_reception) (
-      gnss_error_code_t (*start_dma) ( struct GNSS*, uint8_t*, size_t ), uint8_t *buffer,
-      size_t msg_size );
+  gnss_error_code_t (*sync_and_start_reception) ( uint8_t *buffer, size_t msg_size );
   gnss_error_code_t (*get_location) ( float *latitude, float *longitude );
   gnss_error_code_t (*get_running_average_velocities) ( void );
   void (*process_message) ( void );
@@ -160,7 +158,7 @@ typedef struct GNSS
   void (*on_off) ( GPIO_PinState pin_state );
   void (*cycle_power) ( void );
   gnss_error_code_t (*set_rtc) ( uint8_t *msg_payload );
-  gnss_error_code_t (*reset_uart) ( uint16_t baud_rate );
+  gnss_error_code_t (*reset_uart) ( void );
   gnss_error_code_t (*reset_timer) ( uint16_t timeout_in_minutes );
 } GNSS;
 

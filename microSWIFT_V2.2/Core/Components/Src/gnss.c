@@ -21,12 +21,13 @@
 #include "ext_rtc_api.h"
 #include "usart.h"
 #include "tim.h"
+#include "linked_list.h"
+#include "gpdma.h"
 
 static GNSS *self;
 
 static gnss_error_code_t gnss_config ( void );
-static gnss_error_code_t gnss_sync_and_start_reception (
-    gnss_error_code_t (*start_dma) ( GNSS*, uint8_t*, size_t ), uint8_t *buffer, size_t msg_size );
+static gnss_error_code_t gnss_sync_and_start_reception ( uint8_t *buffer, size_t msg_size );
 static gnss_error_code_t gnss_get_location ( float *latitude, float *longitude );
 static gnss_error_code_t gnss_get_running_average_velocities ( void );
 static void gnss_process_message ( void );
@@ -34,7 +35,7 @@ static gnss_error_code_t gnss_sleep ( bool put_to_sleep );
 static void gnss_on_off ( GPIO_PinState pin_state );
 static void gnss_cycle_power ( void );
 static gnss_error_code_t gnss_set_rtc ( uint8_t *msg_payload );
-static gnss_error_code_t gnss_reset_uart ( uint16_t baud_rate );
+static gnss_error_code_t gnss_reset_uart ( void );
 static gnss_error_code_t gnss_reset_timer ( uint16_t timeout_in_minutes );
 
 // Static helper functions
@@ -47,6 +48,8 @@ static gnss_error_code_t query_high_performance_mode ( void );
 static void get_checksum ( uint8_t *ck_a, uint8_t *ck_b, uint8_t *buffer, uint32_t num_bytes )__attribute__((unused));
 static time_t get_timestamp ( void );
 static void reset_struct_fields ( void );
+// GNSS DMA circular mode callback
+static gnss_error_code_t start_GNSS_UART_DMA ( uint8_t *buffer, size_t buffer_size );
 
 /**
  * Initialize the GNSS struct
@@ -128,7 +131,7 @@ static gnss_error_code_t gnss_config ( void )
 
   if ( return_code != GNSS_SUCCESS )
   {
-    self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+    self->reset_uart ();
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     return return_code;
   }
@@ -155,12 +158,12 @@ static gnss_error_code_t gnss_config ( void )
   if ( return_code != GNSS_SUCCESS )
   {
 
-    self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+    self->reset_uart ();
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     return return_code;
   }
 
-  self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+  self->reset_uart ();
 
   // Now set high performance mode (if enabled)
   if ( self->global_config->gnss_high_performance_mode )
@@ -177,8 +180,7 @@ static gnss_error_code_t gnss_config ( void )
  *
  * @return gnss_error_code_t
  */
-static gnss_error_code_t gnss_sync_and_start_reception (
-    gnss_error_code_t (*start_dma) ( GNSS*, uint8_t*, size_t ), uint8_t *buffer, size_t msg_size )
+static gnss_error_code_t gnss_sync_and_start_reception ( uint8_t *buffer, size_t msg_size )
 {
   gnss_error_code_t return_code = GNSS_SELF_TEST_FAILED;
   ULONG actual_flags;
@@ -208,7 +210,7 @@ static gnss_error_code_t gnss_sync_and_start_reception (
       self->cycle_power ();
       HAL_UART_DMAStop (self->gnss_uart_handle);
       HAL_Delay (3);
-      self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+      self->reset_uart ();
       continue;
     }
 
@@ -226,7 +228,7 @@ static gnss_error_code_t gnss_sync_and_start_reception (
       // Short delay to help get the frame sync'd
       HAL_UART_DMAStop (self->gnss_uart_handle);
       HAL_Delay (3);
-      self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+      self->reset_uart ();
     }
   }
 
@@ -239,15 +241,15 @@ static gnss_error_code_t gnss_sync_and_start_reception (
 
   // Just to be overly sure we're starting the sampling window from a fresh slate
   reset_struct_fields ();
-  self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+  self->reset_uart ();
 
-  return_code = start_dma (self, &(buffer[0]), msg_size);
+  return_code = start_GNSS_UART_DMA (&(buffer[0]), msg_size);
   register_watchdog_refresh ();
   // Make sure we start right next time around in case there was an issue starting DMA
   if ( return_code == GNSS_UART_ERROR )
   {
     HAL_UART_DMAStop (self->gnss_uart_handle);
-    self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+    self->reset_uart ();
     memset (&(buffer[0]), 0, msg_size);
 
     tx_event_flags_set (self->error_flags, GNSS_ERROR, TX_OR);
@@ -506,7 +508,7 @@ static void gnss_cycle_power ( void )
  * @param self - GNSS struct
  * @param baud_rate - baud rate to set port to
  */
-static gnss_error_code_t gnss_reset_uart ( uint16_t baud_rate )
+static gnss_error_code_t gnss_reset_uart ( void )
 {
 
   if ( usart1_deinit () != UART_OK )
@@ -646,7 +648,7 @@ static gnss_error_code_t send_config ( uint8_t *config_array, size_t message_siz
     if ( tx_return == TX_NO_EVENTS )
     {
       HAL_UART_DMAStop (self->gnss_uart_handle);
-      self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+      self->reset_uart ();
       HAL_Delay (1);
       break;
     }
@@ -659,7 +661,7 @@ static gnss_error_code_t send_config ( uint8_t *config_array, size_t message_siz
   if ( frame_sync_attempts == MAX_FRAME_SYNC_ATTEMPTS )
   {
     HAL_UART_DMAStop (self->gnss_uart_handle);
-    self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+    self->reset_uart ();
 
     return GNSS_BUSY_ERROR;
   }
@@ -676,7 +678,7 @@ static gnss_error_code_t send_config ( uint8_t *config_array, size_t message_siz
        != TX_SUCCESS )
   {
     HAL_UART_DMAStop (self->gnss_uart_handle);
-    self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+    self->reset_uart ();
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     return GNSS_UART_ERROR;
 
@@ -690,7 +692,7 @@ static gnss_error_code_t send_config ( uint8_t *config_array, size_t message_siz
        != TX_SUCCESS )
   {
     HAL_UART_DMAStop (self->gnss_uart_handle);
-    self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+    self->reset_uart ();
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     return GNSS_UART_ERROR;
   }
@@ -723,7 +725,7 @@ static gnss_error_code_t send_config ( uint8_t *config_array, size_t message_siz
         if ( response_msg_class == response_class && response_msg_id == response_id )
         {
           // This is an acknowledgement of our configuration message
-          self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+          self->reset_uart ();
           return GNSS_SUCCESS;
         }
       }
@@ -735,7 +737,7 @@ static gnss_error_code_t send_config ( uint8_t *config_array, size_t message_siz
 
   // If we made it here, the ack message was not in the buffer
   HAL_UART_DMAStop (self->gnss_uart_handle);
-  self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+  self->reset_uart ();
   tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
   return GNSS_CONFIG_ERROR;
 }
@@ -762,7 +764,7 @@ static gnss_error_code_t stop_start_gnss ( bool send_stop )
                             sizeof(message_payload), cfg_rst_message))
        < 0 )
   {
-    self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+    self->reset_uart ();
     return GNSS_CONFIG_ERROR;
   }
 
@@ -770,7 +772,7 @@ static gnss_error_code_t stop_start_gnss ( bool send_stop )
                                sizeof(cfg_rst_message)))
        != HAL_OK )
   {
-    self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+    self->reset_uart ();
     return GNSS_CONFIG_ERROR;
   }
 
@@ -780,7 +782,7 @@ static gnss_error_code_t stop_start_gnss ( bool send_stop )
        != TX_SUCCESS )
   {
     HAL_UART_DMAStop (self->gnss_uart_handle);
-    self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+    self->reset_uart ();
 //              HAL_Delay(10);
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     return GNSS_UART_ERROR;
@@ -888,7 +890,7 @@ static gnss_error_code_t enable_high_performance_mode ( void )
         if ( config_step_attempts == MAX_CONFIG_STEP_ATTEMPTS )
         {
           HAL_UART_DMAStop (self->gnss_uart_handle);
-          self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+          self->reset_uart ();
           tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
           return_code = GNSS_HIGH_PERFORMANCE_ENABLE_ERROR;
           return return_code;
@@ -922,7 +924,7 @@ static gnss_error_code_t enable_high_performance_mode ( void )
         if ( config_step_attempts == MAX_CONFIG_STEP_ATTEMPTS )
         {
           HAL_UART_DMAStop (self->gnss_uart_handle);
-          self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+          self->reset_uart ();
           tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
           return_code = GNSS_CONFIG_ERROR;
           return return_code;
@@ -950,7 +952,7 @@ static gnss_error_code_t enable_high_performance_mode ( void )
   if ( config_step_attempts == MAX_CONFIG_STEP_ATTEMPTS )
   {
     HAL_UART_DMAStop (self->gnss_uart_handle);
-    self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+    self->reset_uart ();
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     return_code = GNSS_CONFIG_ERROR;
     return return_code;
@@ -994,7 +996,7 @@ static gnss_error_code_t query_high_performance_mode ( void )
        != TX_SUCCESS )
   {
     HAL_UART_DMAStop (self->gnss_uart_handle);
-    self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+    self->reset_uart ();
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     return GNSS_UART_ERROR;
 
@@ -1012,7 +1014,7 @@ static gnss_error_code_t query_high_performance_mode ( void )
        != TX_SUCCESS )
   {
     HAL_UART_DMAStop (self->gnss_uart_handle);
-    self->reset_uart (GNSS_DEFAULT_BAUD_RATE);
+    self->reset_uart ();
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     return GNSS_UART_ERROR;
   }
@@ -1120,4 +1122,66 @@ static void reset_struct_fields ( void )
   self->rtc_error = false;
   self->all_samples_processed = false;
   self->timer_timeout = false;
+}
+
+/**
+ * @brief  callback function to start GNSS UART DMA reception. Passed to GNSS->self_test
+ *
+ * @param  uart_handle - handle for uart port
+ *             buffer - buffer to store UBX messages in
+ *             buffer_size - capacity of the bufer
+ *
+ * @retval GNSS_SUCCESS or
+ *         GNS_UART_ERROR
+ */
+static gnss_error_code_t start_GNSS_UART_DMA ( uint8_t *buffer, size_t msg_size )
+{
+  gnss_error_code_t return_code = GNSS_SUCCESS;
+  HAL_StatusTypeDef hal_return_code;
+
+  register_watchdog_refresh ();
+
+  self->reset_uart ();
+
+  memset (&(buffer[0]), 0, UBX_MESSAGE_SIZE * 2);
+
+  HAL_UART_DMAStop (self->gnss_uart_handle);
+
+  hal_return_code = MX_GNSS_LL_Queue_Config ();
+
+  if ( hal_return_code != HAL_OK )
+  {
+    return_code = GNSS_UART_ERROR;
+  }
+
+  self->gnss_rx_dma_handle->InitLinkedList.Priority = DMA_LOW_PRIORITY_HIGH_WEIGHT;
+  self->gnss_rx_dma_handle->InitLinkedList.LinkStepMode = DMA_LSM_FULL_EXECUTION;
+  self->gnss_rx_dma_handle->InitLinkedList.LinkAllocatedPort = DMA_LINK_ALLOCATED_PORT0;
+  self->gnss_rx_dma_handle->InitLinkedList.TransferEventMode = DMA_TCEM_LAST_LL_ITEM_TRANSFER;
+  self->gnss_rx_dma_handle->InitLinkedList.LinkedListMode = DMA_LINKEDLIST_CIRCULAR;
+
+  if ( HAL_DMAEx_List_Init (self->gnss_rx_dma_handle) != HAL_OK )
+  {
+    return_code = GNSS_UART_ERROR;
+  }
+
+  __HAL_LINKDMA(self->gnss_uart_handle, hdmarx, *self->gnss_rx_dma_handle);
+
+  hal_return_code = HAL_DMAEx_List_LinkQ (self->gnss_rx_dma_handle, &GNSS_LL_Queue);
+  if ( hal_return_code != HAL_OK )
+  {
+    return_code = GNSS_UART_ERROR;
+  }
+
+  hal_return_code = HAL_UARTEx_ReceiveToIdle_DMA (self->gnss_uart_handle, (uint8_t*) &(buffer[0]),
+                                                  msg_size);
+//  No need for the half-transfer complete interrupt, so disable it
+  __HAL_DMA_DISABLE_IT(self->gnss_rx_dma_handle, DMA_IT_HT);
+
+  if ( hal_return_code != HAL_OK )
+  {
+    return_code = GNSS_UART_ERROR;
+  }
+
+  return return_code;
 }

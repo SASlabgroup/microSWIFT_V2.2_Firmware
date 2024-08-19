@@ -168,16 +168,14 @@ TX_BYTE_POOL waves_byte_pool;
 /* USER CODE BEGIN PFP */
 extern void SystemClock_Config ( void );
 // Static functions
+static self_test_status_t startup_procedure ( void );
 static self_test_status_t initial_power_on_self_test ( void );
 static void led_sequence ( uint8_t sequence );
 static void jump_to_end_of_window ( ULONG error_bits_to_set );
 static void send_error_message ( ULONG error_flags );
-static void restart_watchdog_hour_timer ( TIM_HandleTypeDef *timer_handle );
 #if CT_ENABLED
 static void jump_to_waves(void);
 #endif
-// GNSS DMA circular mode callback
-gnss_error_code_t start_GNSS_UART_DMA ( GNSS *gnss_struct_ptr, uint8_t *buffer, size_t buffer_size );
 // Externally visible functions
 void shut_it_all_down ( void );
 void register_watchdog_refresh ( void );
@@ -651,6 +649,17 @@ void rtc_thread_entry ( ULONG thread_input )
 }
 
 /**
+ * @brief  Control thread entry
+ *         Primary control thread, manages all other threads and meta state
+ * @param  ULONG thread_input - unused
+ * @retval void
+ */
+void control_thread_entry ( ULONG thread_input )
+{
+
+}
+
+/**
  * @brief  Startup thread entry
  *         This thread will start all peripherals and do a systems check to
  *         make sure we're good to start the processing cycle
@@ -659,12 +668,10 @@ void rtc_thread_entry ( ULONG thread_input )
  */
 void startup_thread_entry ( ULONG thread_input )
 {
-  self_test_status_t self_test_status;
+  self_test_status_t self_test_status = SELF_TEST_PASSED;
   ULONG actual_flags = 0;
   UINT tx_return;
   int fail_counter = 0;
-
-  register_watchdog_refresh ();
 
 //
 // Run tests if needed
@@ -673,22 +680,23 @@ void startup_thread_entry ( ULONG thread_input )
     tests.startup_test (NULL);
   }
 
-// In no case should there be an hour between sampling windows, so this timer will prevent from refreshing the watchdog in
-// the event it has been an hour since the timer was last set
-  restart_watchdog_hour_timer (device_handles->watchdog_hour_timer);
+#if WATCHDOG_ENABLED
+  if (rtc_server_config_watchdog (WATCHDOG_PERIOD, CONTROL_THREAD_REQUEST_PROCESSED) != RTC_SUCCESS) {
+    self_test_status = SELF_TEST_CRITICAL_FAULT;
+    return self_teszt_status;
+  }
+#endif
 
-  register_watchdog_refresh ();
-
-// Zero out the sbd message struct
+  // Zero out the sbd message struct
   memset (&sbd_message, 0, sizeof(sbd_message));
 
-// Set the watchdog reset or software reset flags
-  if ( device_handles->reset_reason & RCC_RESET_FLAG_IWDG )
+  // Set the watchdog reset or software reset flags
+  if ( configuration.reset_reason & RCC_RESET_FLAG_PIN )
   {
     tx_event_flags_set (&error_flags, WATCHDOG_RESET, TX_OR);
   }
 
-  if ( device_handles->reset_reason & RCC_RESET_FLAG_SW )
+  if ( configuration.reset_reason & RCC_RESET_FLAG_SW )
   {
     tx_event_flags_set (&error_flags, SOFTWARE_RESET, TX_OR);
   }
@@ -708,31 +716,31 @@ void startup_thread_entry ( ULONG thread_input )
   down = argInit_1xUnbounded_real32_T (&configuration);
 
 // Initialize the structs
-  gnss_init (gnss, &configuration, device_handles->GNSS_uart, device_handles->GNSS_rx_dma_handle,
-             device_handles->GNSS_tx_dma_handle, &thread_control_flags, &error_flags,
-             device_handles->gnss_timer, &(ubx_message_process_buf[0]),
-             &(gnss_config_response_buf[0]), device_handles->hrtc, north->data, east->data,
+  gnss_init (&gnss, &configuration, device_handles.GNSS_uart, device_handles.GNSS_rx_dma_handle,
+             device_handles.GNSS_tx_dma_handle, &thread_control_flags, &error_flags,
+             device_handles.gnss_timer, &(ubx_message_process_buf[0]),
+             &(gnss_config_response_buf[0]), device_handles.hrtc, north->data, east->data,
              down->data);
 
-  iridium_init (iridium, &configuration, device_handles->Iridium_uart,
-                device_handles->Iridium_rx_dma_handle, device_handles->iridium_timer,
-                device_handles->Iridium_tx_dma_handle, &thread_control_flags, &error_flags,
-                device_handles->hrtc, &sbd_message, iridium_error_message, iridium_response_message,
+  iridium_init (iridium, &configuration, device_handles.Iridium_uart,
+                device_handles.Iridium_rx_dma_handle, device_handles.iridium_timer,
+                device_handles.Iridium_tx_dma_handle, &thread_control_flags, &error_flags,
+                device_handles.hrtc, &sbd_message, iridium_error_message, iridium_response_message,
                 &sbd_message_queue);
 
 #if CT_ENABLED
-        ct_init(ct, &configuration, device_handles->CT_uart, device_handles->CT_dma_handle,
+        ct_init(ct, &configuration, device_handles.CT_uart, device_handles.CT_dma_handle,
                                         &thread_control_flags, &error_flags, ct_data, samples_buf);
 #endif
 
 #if TEMPERATURE_ENABLED
-  temperature_init (temperature, device_handles->temp_i2c_handle, &thread_control_flags,
+  temperature_init (temperature, device_handles.temp_i2c_handle, &thread_control_flags,
                     &error_flags, TEMP_PWR_GPIO_Port, TEMP_PWR_Pin, true);
 #endif
 
   rf_switch_init (rf_switch);
 
-  battery_init (battery, device_handles->battery_adc, &thread_control_flags, &error_flags);
+  battery_init (battery, device_handles.battery_adc, &thread_control_flags, &error_flags);
 
   tx_return = tx_event_flags_get (&thread_control_flags, FULL_CYCLE_COMPLETE, TX_OR_CLEAR,
                                   &actual_flags, TX_NO_WAIT);
@@ -1628,9 +1636,9 @@ void end_of_cycle_thread_entry ( ULONG thread_input )
 //      // Only used for low power modes lower than stop2.
 //      HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN7_HIGH_3);
 
-  HAL_RTC_GetTime (device_handles->hrtc, &initial_rtc_time, RTC_FORMAT_BIN);
+  HAL_RTC_GetTime (device_handles.hrtc, &initial_rtc_time, RTC_FORMAT_BIN);
 // Must call GetDate to keep the RTC happy, even if you don't use it
-  HAL_RTC_GetDate (device_handles->hrtc, &rtc_date, RTC_FORMAT_BIN);
+  HAL_RTC_GetDate (device_handles.hrtc, &rtc_date, RTC_FORMAT_BIN);
 
 #ifdef SHORT_SLEEP
         wake_up_minute = initial_rtc_time.Minutes >= 59 ? (initial_rtc_time.Minutes + 1) - 60 :
@@ -1665,8 +1673,8 @@ void end_of_cycle_thread_entry ( ULONG thread_input )
   {
 
     // Get the date and time
-    HAL_RTC_GetTime (device_handles->hrtc, &rtc_time, RTC_FORMAT_BIN);
-    HAL_RTC_GetDate (device_handles->hrtc, &rtc_date, RTC_FORMAT_BIN);
+    HAL_RTC_GetTime (device_handles.hrtc, &rtc_time, RTC_FORMAT_BIN);
+    HAL_RTC_GetDate (device_handles.hrtc, &rtc_date, RTC_FORMAT_BIN);
 
     // We should be restarting the window at the top of the hour. If the initial time and just
     // checked time differ in hours, then we should start a new window. This should never occur,
@@ -1696,7 +1704,7 @@ void end_of_cycle_thread_entry ( ULONG thread_input )
 
     // If something goes wrong setting the alarm, force an RTC reset and go to the next window.
     // With luck, the RTC will get set again on the next window and everything will be cool.
-    if ( HAL_RTC_SetAlarm_IT (device_handles->hrtc, &alarm, RTC_FORMAT_BIN) != HAL_OK )
+    if ( HAL_RTC_SetAlarm_IT (device_handles.hrtc, &alarm, RTC_FORMAT_BIN) != HAL_OK )
     {
       shut_it_all_down ();
       HAL_NVIC_SystemReset ();
@@ -1725,7 +1733,7 @@ void end_of_cycle_thread_entry ( ULONG thread_input )
   register_watchdog_refresh ();
 
 // Disable the RTC Alarm and clear flags
-  HAL_RTC_DeactivateAlarm (device_handles->hrtc, RTC_ALARM_A);
+  HAL_RTC_DeactivateAlarm (device_handles.hrtc, RTC_ALARM_A);
   __HAL_RTC_WAKEUPTIMER_CLEAR_FLAG (hrtc, RTC_CLEAR_WUTF);
   __HAL_RTC_ALARM_CLEAR_FLAG (hrtc, RTC_CLEAR_ALRAF);
   HAL_NVIC_ClearPendingIRQ (RTC_IRQn);
@@ -1826,69 +1834,6 @@ static void led_sequence ( led_sequence_t sequence )
 }
 
 /**
- * @brief  callback function to start GNSS UART DMA reception. Passed to GNSS->self_test
- *
- * @param  uart_handle - handle for uart port
- *             buffer - buffer to store UBX messages in
- *             buffer_size - capacity of the bufer
- *
- * @retval GNSS_SUCCESS or
- *         GNS_UART_ERROR
- */
-gnss_error_code_t start_GNSS_UART_DMA ( GNSS *gnss_struct_ptr, uint8_t *buffer, size_t msg_size )
-{
-  gnss_error_code_t return_code = GNSS_SUCCESS;
-  HAL_StatusTypeDef hal_return_code;
-
-  register_watchdog_refresh ();
-
-  gnss->reset_uart (GNSS_DEFAULT_BAUD_RATE);
-
-  memset (&(buffer[0]), 0, UBX_MESSAGE_SIZE * 2);
-
-  HAL_UART_DMAStop (gnss_struct_ptr->gnss_uart_handle);
-
-  hal_return_code = MX_GNSS_LL_Queue_Config ();
-
-  if ( hal_return_code != HAL_OK )
-  {
-    return_code = GNSS_UART_ERROR;
-  }
-
-  gnss_struct_ptr->gnss_rx_dma_handle->InitLinkedList.Priority = DMA_LOW_PRIORITY_HIGH_WEIGHT;
-  gnss_struct_ptr->gnss_rx_dma_handle->InitLinkedList.LinkStepMode = DMA_LSM_FULL_EXECUTION;
-  gnss_struct_ptr->gnss_rx_dma_handle->InitLinkedList.LinkAllocatedPort = DMA_LINK_ALLOCATED_PORT0;
-  gnss_struct_ptr->gnss_rx_dma_handle->InitLinkedList.TransferEventMode =
-  DMA_TCEM_LAST_LL_ITEM_TRANSFER;
-  gnss_struct_ptr->gnss_rx_dma_handle->InitLinkedList.LinkedListMode = DMA_LINKEDLIST_CIRCULAR;
-
-  if ( HAL_DMAEx_List_Init (gnss_struct_ptr->gnss_rx_dma_handle) != HAL_OK )
-  {
-    return_code = GNSS_UART_ERROR;
-  }
-
-  __HAL_LINKDMA(gnss_struct_ptr->gnss_uart_handle, hdmarx, *gnss_struct_ptr->gnss_rx_dma_handle);
-
-  hal_return_code = HAL_DMAEx_List_LinkQ (gnss_struct_ptr->gnss_rx_dma_handle, &GNSS_LL_Queue);
-  if ( hal_return_code != HAL_OK )
-  {
-    return_code = GNSS_UART_ERROR;
-  }
-
-  hal_return_code = HAL_UARTEx_ReceiveToIdle_DMA (gnss_struct_ptr->gnss_uart_handle,
-                                                  (uint8_t*) &(buffer[0]), msg_size);
-//  No need for the half-transfer complete interrupt, so disable it
-  __HAL_DMA_DISABLE_IT(gnss->gnss_rx_dma_handle, DMA_IT_HT);
-
-  if ( hal_return_code != HAL_OK )
-  {
-    return_code = GNSS_UART_ERROR;
-  }
-
-  return return_code;
-}
-
-/**
  * @brief  Power down all peripheral FETs and set RF switch to GNSS input
  *
  * @param  void
@@ -1922,16 +1867,13 @@ void shut_it_all_down ( void )
 void register_watchdog_refresh ( void )
 {
 #if WATCHDOG_ENABLED
-  if ( !watchdog_hour_timer_elapsed )
-  {
-    tx_semaphore_put (&watchdog_semaphore);
-  }
-  else
-  {
-    // Drain the watchdog refresh semaphore
-    while ( tx_semaphore_get (&watchdog_semaphore, TX_NO_WAIT) == TX_SUCCESS );
-  }
+   (void) tx_semaphore_put (&watchdog_semaphore);
 #endif
+}
+
+static self_test_status_t startup_procedure ( void )
+{
+
 }
 
 /**
@@ -2407,63 +2349,11 @@ static void send_error_message ( ULONG error_flags )
 
   return_code = iridium->transmit_error_message (error_message);
 
-  if ( (return_code == IRIDIUM_SUCCESS) && (device_handles->reset_reason != 0) )
+  if ( (return_code == IRIDIUM_SUCCESS) && (device_handles.reset_reason != 0) )
   {
     // Only want to send this message once, so clear reset_reason
-    device_handles->reset_reason = 0;
+    device_handles.reset_reason = 0;
   }
-}
-
-static void restart_watchdog_hour_timer ( TIM_HandleTypeDef *timer_handle )
-{
-
-  if ( HAL_TIM_Base_Stop_IT (timer_handle) != HAL_OK )
-  {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
-  }
-
-  TIM_ClockConfigTypeDef sClockSourceConfig =
-    { 0 };
-  TIM_MasterConfigTypeDef sMasterConfig =
-    { 0 };
-
-  /* USER CODE BEGIN TIM15_Init 1 */
-
-  /* USER CODE END TIM15_Init 1 */
-  timer_handle->Instance = TIM15;
-  timer_handle->Init.Prescaler = 12000;
-  timer_handle->Init.CounterMode = TIM_COUNTERMODE_UP;
-  timer_handle->Init.Period = 59999;
-  timer_handle->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  timer_handle->Init.RepetitionCounter = 60 - 1;
-  timer_handle->Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if ( HAL_TIM_Base_Init (timer_handle) != HAL_OK )
-  {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
-  }
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if ( HAL_TIM_ConfigClockSource (timer_handle, &sClockSourceConfig) != HAL_OK )
-  {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if ( HAL_TIMEx_MasterConfigSynchronization (timer_handle, &sMasterConfig) != HAL_OK )
-  {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
-  }
-
-  if ( HAL_TIM_Base_Start_IT (timer_handle) != HAL_OK )
-  {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
-  }
-
-  watchdog_hour_timer_elapsed = false;
 }
 
 /* USER CODE END 1 */
