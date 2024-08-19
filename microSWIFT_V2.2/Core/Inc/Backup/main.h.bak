@@ -50,7 +50,7 @@ extern "C" {
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-void Error_Handler ( void );
+void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 
@@ -162,6 +162,10 @@ void Error_Handler ( void );
 #define SD_CK_GPIO_Port GPIOC
 #define SD_CMD_Pin GPIO_PIN_2
 #define SD_CMD_GPIO_Port GPIOD
+#define IRIDIUM_OnOff_Pin GPIO_PIN_3
+#define IRIDIUM_OnOff_GPIO_Port GPIOD
+#define BUS_5V_FET_Pin GPIO_PIN_4
+#define BUS_5V_FET_GPIO_Port GPIOD
 #define AUX_SPI_2_MOSI_Pin GPIO_PIN_6
 #define AUX_SPI_2_MOSI_GPIO_Port GPIOD
 #define AUX_SPI_2_MISO_Pin GPIO_PIN_10

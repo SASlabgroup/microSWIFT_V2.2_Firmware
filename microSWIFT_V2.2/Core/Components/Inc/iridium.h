@@ -8,16 +8,8 @@
 #ifndef SRC_IRIDIUM_H_
 #define SRC_IRIDIUM_H_
 
-#include "app_threadx.h"
 #include "tx_api.h"
-#include "main.h"
-#include "stdint.h"
 #include "NEDWaves/rtwhalf.h"
-#include "string.h"
-#include "stm32u5xx_hal.h"
-#include "stm32u5xx_hal_tim.h"
-#include "stm32u5xx_ll_dma.h"
-#include "stdio.h"
 #include "stdbool.h"
 #include "time.h"
 #include "configuration.h"
@@ -151,9 +143,8 @@ typedef struct Iridium
   void (*sleep) ( GPIO_PinState pin_state );
   void (*on_off) ( GPIO_PinState pin_state );
   void (*cycle_power) ( void );
-  iridium_error_code_t (*store_in_flash) ( void );
   iridium_error_code_t (*reset_uart) ( uint16_t baud_rate );
-  iridium_error_code_t (*reset_timer) ( uint8_t timeout_in_minutes );
+  iridium_error_code_t (*reset_timer) ( uint16_t timeout_in_minutes );
   iridium_error_code_t (*queue_add) ( sbd_message_type_52 *payload );
   iridium_error_code_t (*queue_get) ( uint8_t *msg_index );
   void (*queue_flush) ( void );

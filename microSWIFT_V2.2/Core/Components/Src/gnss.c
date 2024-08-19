@@ -19,6 +19,8 @@
 #include "u_ubx_protocol.h"
 #include "u_error_common.h"
 #include "ext_rtc_api.h"
+#include "usart.h"
+#include "tim.h"
 
 static GNSS *self;
 
@@ -507,43 +509,15 @@ static void gnss_cycle_power ( void )
 static gnss_error_code_t gnss_reset_uart ( uint16_t baud_rate )
 {
 
-  if ( HAL_UART_DeInit (self->gnss_uart_handle) != HAL_OK )
+  if ( usart1_deinit () != UART_OK )
   {
     return GNSS_UART_ERROR;
   }
 
-  self->gnss_uart_handle->Instance = self->gnss_uart_handle->Instance;
-  self->gnss_uart_handle->Init.BaudRate = baud_rate;
-  self->gnss_uart_handle->Init.WordLength = UART_WORDLENGTH_8B;
-  self->gnss_uart_handle->Init.StopBits = UART_STOPBITS_1;
-  self->gnss_uart_handle->Init.Parity = UART_PARITY_NONE;
-  self->gnss_uart_handle->Init.Mode = UART_MODE_TX_RX;
-  self->gnss_uart_handle->Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  self->gnss_uart_handle->Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  self->gnss_uart_handle->AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  self->gnss_uart_handle->FifoMode = UART_FIFOMODE_DISABLE;
-  if ( HAL_UART_Init (self->gnss_uart_handle) != HAL_OK )
+  if ( usart1_init () != UART_OK )
   {
     return GNSS_UART_ERROR;
   }
-  if ( HAL_UARTEx_SetTxFifoThreshold (self->gnss_uart_handle, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK )
-  {
-    return GNSS_UART_ERROR;
-  }
-  if ( HAL_UARTEx_SetRxFifoThreshold (self->gnss_uart_handle, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK )
-  {
-    return GNSS_UART_ERROR;
-  }
-  if ( HAL_UARTEx_DisableFifoMode (self->gnss_uart_handle) != HAL_OK )
-  {
-    return GNSS_UART_ERROR;
-  }
-
-  LL_DMA_ResetChannel (GPDMA1, LL_DMA_CHANNEL_0);
-  LL_DMA_ResetChannel (GPDMA1, LL_DMA_CHANNEL_4);
-
-  __HAL_DMA_DISABLE_IT(self->gnss_rx_dma_handle, DMA_IT_HT);
-  __HAL_DMA_DISABLE_IT(self->gnss_tx_dma_handle, DMA_IT_HT);
 
   return GNSS_SUCCESS;
 }
@@ -556,33 +530,12 @@ static gnss_error_code_t gnss_reset_uart ( uint16_t baud_rate )
  */
 static gnss_error_code_t gnss_reset_timer ( uint16_t timeout_in_minutes )
 {
-  if ( HAL_TIM_Base_DeInit (self->minutes_timer) != HAL_OK )
+  (void) timer_16_deinit ();
+
+  if ( timer_16_init (timeout_in_minutes) != TIMER_OK )
   {
     return GNSS_TIMER_ERROR;
   }
-  // For debugging, not practical to set the timeout to 0
-  if ( timeout_in_minutes == 0 )
-  {
-    self->minutes_timer->Init.Period = 1;
-    self->minutes_timer->Init.RepetitionCounter = 0;
-  }
-  else
-  {
-    self->minutes_timer->Init.Period = 59999;
-    self->minutes_timer->Init.RepetitionCounter = timeout_in_minutes - 1;
-  }
-
-  self->minutes_timer->Instance = GNSS_TIMER_INSTANCE;
-  self->minutes_timer->Init.Prescaler = 12000;
-  self->minutes_timer->Init.CounterMode = TIM_COUNTERMODE_UP;
-  self->minutes_timer->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  self->minutes_timer->Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if ( HAL_TIM_Base_Init (self->minutes_timer) != HAL_OK )
-  {
-    return GNSS_TIMER_ERROR;
-  }
-
-  __HAL_TIM_CLEAR_FLAG(self->minutes_timer, TIM_FLAG_UPDATE);
 
   return GNSS_SUCCESS;
 }

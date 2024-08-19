@@ -1,9 +1,9 @@
 /* USER CODE BEGIN Header */
 /**
  ******************************************************************************
- * @file    usart.h
+ * @file    tim.h
  * @brief   This file contains all the function prototypes for
- *          the usart.c file
+ *          the tim.c file
  ******************************************************************************
  * @attention
  *
@@ -18,8 +18,8 @@
  */
 /* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __USART_H__
-#define __USART_H__
+#ifndef __TIM_H__
+#define __TIM_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,56 +29,31 @@ extern "C" {
 #include "main.h"
 
 /* USER CODE BEGIN Includes */
-#include "stdbool.h"
-
-#define UART_OK 0
-#define UART_ERR -1
 
 /* USER CODE END Includes */
 
-extern UART_HandleTypeDef huart4;
+extern TIM_HandleTypeDef htim16;
 
-extern UART_HandleTypeDef huart5;
-
-extern UART_HandleTypeDef huart1;
-
-extern UART_HandleTypeDef huart2;
-
-extern UART_HandleTypeDef huart3;
+extern TIM_HandleTypeDef htim17;
 
 /* USER CODE BEGIN Private defines */
-#define CT_UART UART4
-#define IRIDIUM_UART UART5
-#define GNSS_UART USART1
-#define AUX_UART_1 USART2
-#define AUX_UART_2 USART3
+#define TIMER_OK 0
+#define TIMER_ERROR -1
 /* USER CODE END Private defines */
 
-void MX_UART4_Init(void);
-void MX_UART5_Init(void);
-void MX_USART1_UART_Init(void);
-void MX_USART2_UART_Init(void);
-void MX_USART3_UART_Init(void);
+void MX_TIM16_Init ( void );
+void MX_TIM17_Init ( void );
 
 /* USER CODE BEGIN Prototypes */
-int32_t uart4_init ( void );
-int32_t uart5_init ( void );
-int32_t usart1_init ( void );
-int32_t usart2_init ( void );
-int32_t usart3_init ( void );
-
-int32_t uart4_deinit ( void );
-int32_t uart5_deinit ( void );
-int32_t usart1_deinit ( void );
-int32_t usart2_deinit ( void );
-int32_t usart3_deinit ( void );
-
-bool uart_init_status ( UART_HandleTypeDef *port );
+int32_t timer_16_init ( uint16_t num_minutes );
+int32_t timer_17_init ( uint16_t num_minutes );
+int32_t timer_16_deinit ( void );
+int32_t timer_17_deinit ( void );
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __USART_H__ */
+#endif /* __TIM_H__ */
 

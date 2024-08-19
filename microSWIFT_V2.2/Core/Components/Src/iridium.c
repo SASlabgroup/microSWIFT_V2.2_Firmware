@@ -6,6 +6,23 @@
  */
 
 #include "iridium.h"
+#include "app_threadx.h"
+#include "tx_api.h"
+#include "main.h"
+#include "stdint.h"
+#include "NEDWaves/rtwhalf.h"
+#include "string.h"
+#include "stm32u5xx_hal.h"
+#include "stm32u5xx_hal_tim.h"
+#include "stm32u5xx_ll_dma.h"
+#include "stdio.h"
+#include "stdbool.h"
+#include "time.h"
+#include "configuration.h"
+#include "ext_rtc_api.h"
+#include "usart.h"
+#include "tim.h"
+
 // Object pointer
 static Iridium *self;
 // Object functions
@@ -15,7 +32,7 @@ static iridium_error_code_t iridium_self_test ( void );
 static void iridium_sleep ( GPIO_PinState pin_state );
 static void iridium_on_off ( GPIO_PinState pin_state );
 static iridium_error_code_t iridium_reset_iridium_uart ( uint16_t baud_rate );
-static iridium_error_code_t iridium_reset_timer ( uint8_t timeout_in_minutes );
+static iridium_error_code_t iridium_reset_timer ( uint16_t timeout_in_minutes );
 static iridium_error_code_t iridium_storage_queue_add ( sbd_message_type_52 *payload );
 static iridium_error_code_t iridium_storage_queue_get ( uint8_t *msg_index );
 static void iridium_storage_queue_flush ( void );
@@ -25,7 +42,6 @@ static void iridium_cycle_power ( void );
 static float iridium_get_timestamp ( void );
 
 // Helper functions
-static iridium_error_code_t iridium_store_in_flash ( void );
 static void get_checksum ( uint8_t *payload, size_t payload_size );
 static iridium_error_code_t send_basic_command_message ( const char *command, uint8_t response_size,
                                                          uint32_t wait_time );
@@ -81,7 +97,6 @@ void iridium_init ( Iridium *struct_ptr, microSWIFT_configuration *global_config
   self->sleep = iridium_sleep;
   self->on_off = iridium_on_off;
   self->cycle_power = iridium_cycle_power;
-  self->store_in_flash = iridium_store_in_flash;
   self->reset_uart = iridium_reset_iridium_uart;
   self->reset_timer = iridium_reset_timer;
   self->queue_add = iridium_storage_queue_add;
@@ -209,29 +224,6 @@ static void iridium_on_off ( GPIO_PinState pin_state )
 }
 
 /**
- * Store an unsent message in flash memory.
- * !!!
- * This function has not been implimented yet!
- * !!!
- *
- * @param self - Iridium struct
- *
- * @return iridium_error_code_t
- */
-static iridium_error_code_t iridium_store_in_flash ( void )
-{
-  iridium_error_code_t return_code = IRIDIUM_SUCCESS;
-
-  HAL_FLASH_Unlock ();
-
-  // TODO: This will get implimented later to take the contents of the
-  //       storage queue and stuff it in flash at some high page(s)
-
-  HAL_FLASH_Lock ();
-  return return_code;
-}
-
-/**
  * Reset the Iridium UART.
  *
  * @param self - Iridium struct
@@ -294,35 +286,14 @@ static iridium_error_code_t iridium_reset_iridium_uart ( uint16_t baud_rate )
  * @return IRIDIUM_SUCCESS or
  * 		   IRIDIUM_TIMER_ERROR on error when trying to initialize timer
  */
-static iridium_error_code_t iridium_reset_timer ( uint8_t timeout_in_minutes )
+static iridium_error_code_t iridium_reset_timer ( uint16_t timeout_in_minutes )
 {
-  if ( HAL_TIM_Base_DeInit (self->timer) != HAL_OK )
+  (void) timer_17_deinit ();
+
+  if ( timer_17_init (timeout_in_minutes) != TIMER_OK )
   {
     return IRIDIUM_TIMER_ERROR;
   }
-  // For debugging, not practical to set the timeout to 0
-  if ( timeout_in_minutes <= 0 )
-  {
-    self->timer->Init.Period = 1;
-    self->timer->Init.RepetitionCounter = 0;
-  }
-  else
-  {
-    self->timer->Init.Period = 59999;
-    self->timer->Init.RepetitionCounter = timeout_in_minutes - 1;
-  }
-
-  self->timer->Instance = IRIDIUM_TIMER_INSTANCE;
-  self->timer->Init.Prescaler = 12000;
-  self->timer->Init.CounterMode = TIM_COUNTERMODE_UP;
-  self->timer->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  self->timer->Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if ( HAL_TIM_Base_Init (self->timer) != HAL_OK )
-  {
-    return IRIDIUM_TIMER_ERROR;
-  }
-
-  __HAL_TIM_CLEAR_FLAG(self->timer, TIM_FLAG_UPDATE);
 
   return IRIDIUM_SUCCESS;
 }
@@ -916,26 +887,18 @@ static void iridium_cycle_power ( void )
  */
 static float iridium_get_timestamp ( void )
 {
-  time_t timestamp = 0;
-  RTC_DateTypeDef rtc_date;
-  RTC_TimeTypeDef rtc_time;
-  struct tm time =
-    { 0 };
+  rtc_return_code rtc_ret = RTC_SUCCESS;
+  struct tm time;
 
-  // Get the date and time
-  HAL_RTC_GetTime (self->rtc_handle, &rtc_time, RTC_FORMAT_BIN);
-  HAL_RTC_GetDate (self->rtc_handle, &rtc_date, RTC_FORMAT_BIN);
+  rtc_ret = rtc_server_get_time (&time, IRIDIUM_REQUEST_PROCESSED);
+  if ( rtc_ret != RTC_SUCCESS )
+  {
+    return -1;
+  }
 
-  time.tm_sec = rtc_time.Seconds;
-  time.tm_min = rtc_time.Minutes;
-  time.tm_hour = rtc_time.Hours;
-  time.tm_mday = rtc_date.Date;
-  time.tm_mon = rtc_date.Month - 1;
-  time.tm_year = (rtc_date.Year + 2000) - 1900;
+  time.tm_isdst = -1;
 
-  timestamp = mktime (&time);
-
-  return (float) timestamp;
+  return (float) mktime (&time);
 }
 
 /**

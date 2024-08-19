@@ -143,6 +143,8 @@ typedef struct
   UART_HandleTypeDef *gnss_uart_handle;
   UART_HandleTypeDef *ct_uart_handle;
   OSPI_HandleTypeDef *ext_flash_handle;
+  TIM_HandleTypeDef *gnss_minutes_timer;
+  TIM_HandleTypeDef *iridium_minutes_timer;
 // Expansion/ spares
   SPI_HandleTypeDef *aux_spi_1_handle;
   SPI_HandleTypeDef *aux_spi_2_handle;
@@ -155,7 +157,7 @@ typedef struct
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-#define WAVES_MEM_POOL_SIZE 650000
+#define WAVES_MEM_POOL_SIZE 651264
 /* USER CODE END EC */
 
 /* Private defines -----------------------------------------------------------*/
@@ -187,8 +189,8 @@ typedef struct
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-UINT App_ThreadX_Init(VOID *memory_ptr);
-void MX_ThreadX_Init(void);
+UINT App_ThreadX_Init ( VOID *memory_ptr );
+void MX_ThreadX_Init ( void );
 
 /* USER CODE BEGIN EFP */
 void MX_ThreadX_Init ( void );

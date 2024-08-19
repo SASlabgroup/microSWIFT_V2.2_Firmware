@@ -1,17 +1,43 @@
 
 Lengthy list of TODOs:
 
+****************************************************************************************************
+General
+****
+
+[ ] Figure out how to disable watchdog in debug mode
+[ ] Change end of cycle sleep to shutdown mode, wakeup on int <a,b> from RTC
+[ ] Make sure everything sticks to the principle that there are no infinite loops
+[ ] Ditch watchdog hour timer and all that baggage
+[ ] Modify linker script -- add external memory if necessary
+    
+****************************************************************************************************
+GNSS
+****
+
+[ ] Give GNSS a FIFO for messages
+[ ] Generalize UART to a better degree
+[ ] Move the callback function for setting up DMA to inside gnss.c
+[ ] See if initialization and configuration can be improved -- there has to be a better way to
+    get the config done
+[ ] Reorg functions and clean up comments
+
+****************************************************************************************************
+Iridium
+****
+
+[ ] Switch UART over to using a generic uart driver
+[ ] Reorg functions and clean up comments
+
+****************************************************************************************************
+ThreadX
+****
+
 [ ] Change all non-threadx objects to static allocation -- remove from App_ThreadX_Init()
-    [ ] Give GNSS a FIFO for messages
 [ ] Make a control thread
     [ ] Move startup and end-of-cycle thread functions inside
     [ ] make event loop handler type deal to look for error flags or something
-[ ] Figure out how to disable watchdog in debug mode
 [ ] Fill out Tx low power functions and see if things work with Stop1 mode
     [ ] Non-critical, if it makes everything fall apart, ditch it
-[ ] Change end of cycle sleep to shutdown mode, wakeup on int <a,b> from RTC
 [ ] Figure out how to get threads running concurrently: i.e. CT sampling while GNSS wrapping up
     [ ] Should be easy with control thread
-[ ] Do we keep watchdog hour timer????
-    [ ] Short answer, NO! Long answer, still no.
-
