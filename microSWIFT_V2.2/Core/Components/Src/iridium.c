@@ -64,20 +64,16 @@ static const char *send_sbd = "AT+SBDIX\r";
  * @return void
  */
 void iridium_init ( Iridium *struct_ptr, microSWIFT_configuration *global_config,
-                    UART_HandleTypeDef *iridium_uart_handle,
-                    DMA_HandleTypeDef *iridium_rx_dma_handle, TIM_HandleTypeDef *timer,
-                    DMA_HandleTypeDef *iridium_tx_dma_handle, TX_EVENT_FLAGS_GROUP *control_flags,
-                    TX_EVENT_FLAGS_GROUP *error_flags, sbd_message_type_52 *current_message,
-                    uint8_t *error_message_buffer, uint8_t *response_buffer,
-                    Iridium_message_storage *storage_queue )
+                    UART_HandleTypeDef *iridium_uart_handle, TIM_HandleTypeDef *timer,
+                    TX_EVENT_FLAGS_GROUP *control_flags, TX_EVENT_FLAGS_GROUP *error_flags,
+                    sbd_message_type_52 *current_message, uint8_t *error_message_buffer,
+                    uint8_t *response_buffer, Iridium_message_storage *storage_queue )
 {
   // Assign the object pointer
   self = struct_ptr;
 
   self->global_config = global_config;
   self->iridium_uart_handle = iridium_uart_handle;
-  self->iridium_rx_dma_handle = iridium_rx_dma_handle;
-  self->iridium_tx_dma_handle = iridium_tx_dma_handle;
   self->timer = timer;
   self->control_flags = control_flags;
   self->error_flags = error_flags;

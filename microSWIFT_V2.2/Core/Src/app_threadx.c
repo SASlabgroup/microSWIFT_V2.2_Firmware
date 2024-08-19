@@ -29,7 +29,6 @@
 #include "stddef.h"
 #include <math.h>
 #include "stm32u5xx_hal.h"
-#include "stm32u5xx_ll_dma.h"
 #include "stdint.h"
 #include "stdbool.h"
 #include "string.h"
@@ -45,6 +44,8 @@
 #include "linked_list.h"
 #include "testing_hooks.h"
 #include "tim.h"
+#include "lpdma.h"
+#include "adc.h"
 
 // Waves files
 #include "NEDWaves/NEDwaves_memlight.h"
@@ -146,14 +147,14 @@ Device_Handles device_handles;
 
 TX_THREAD ct_thread;
 CT ct;
-CHAR ct_data;
-ct_samples samples_buf;
+CHAR ct_data[CT_DATA_ARRAY_SIZE];
+ct_samples ct_samples_buf[TOTAL_CT_SAMPLES];
 
 #endif
 // Only if a temperature sensor is present
 #if TEMPERATURE_ENABLED
 
-Temperature *temperature;
+Temperature temperature;
 TX_THREAD temperature_thread;
 
 #endif
@@ -172,18 +173,14 @@ static void led_sequence ( uint8_t sequence );
 static void jump_to_end_of_window ( ULONG error_bits_to_set );
 static void send_error_message ( ULONG error_flags );
 #if CT_ENABLED
-static void jump_to_waves(void);
+static void jump_to_waves ( void );
 #endif
 // Externally visible functions
 void shut_it_all_down ( void );
 void register_watchdog_refresh ( void );
 
-#if IMU_ENABLED
-void imu_thread_entry(ULONG thread_input);
-#endif
-
 #if CT_ENABLED
-void ct_thread_entry(ULONG thread_input);
+void ct_thread_entry ( ULONG thread_input );
 #endif
 
 #if TEMPERATURE_ENABLED
@@ -192,11 +189,11 @@ void temperature_thread_entry ( ULONG thread_input );
 /* USER CODE END PFP */
 
 /**
- * @brief  Application ThreadX Initialization.
- * @param memory_ptr: memory pointer
- * @retval int
- */
-UINT App_ThreadX_Init ( VOID *memory_ptr )
+  * @brief  Application ThreadX Initialization.
+  * @param memory_ptr: memory pointer
+  * @retval int
+  */
+UINT App_ThreadX_Init(VOID *memory_ptr)
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -316,35 +313,21 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
 
 // Only is there is a CT sensor present
 #if CT_ENABLED
-        //
-        // Allocate stack for the CT thread
-        ret = tx_byte_allocate(byte_pool, (VOID**) &pointer, THREAD_EXTRA_LARGE_STACK_SIZE, TX_NO_WAIT);
-        if (ret != TX_SUCCESS){
-          return ret;
-        }
-        // Create the CT thread. VERY_HIGH priority, no preemption-threshold
-        ret = tx_thread_create(&ct_thread, "ct thread", ct_thread_entry, 0, pointer,
-                        THREAD_EXTRA_LARGE_STACK_SIZE, HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
-        if (ret != TX_SUCCESS){
-          return ret;
-        }
-        //
-        // The ct struct
-        ret = tx_byte_allocate(byte_pool, (VOID**) &ct, sizeof(CT) + 100, TX_NO_WAIT);
-        if (ret != TX_SUCCESS){
-                return ret;
-        }
-        // The CT input data buffer array
-        ret = tx_byte_allocate(byte_pool, (VOID**) &ct_data, CT_DATA_ARRAY_SIZE + 100, TX_NO_WAIT);
-        if (ret != TX_SUCCESS){
-          return ret;
-        }
-        // The CT samples array
-        ret = tx_byte_allocate(byte_pool, (VOID**) &samples_buf, TOTAL_CT_SAMPLES * sizeof(ct_samples) + 100,
-                        TX_NO_WAIT);
-        if (ret != TX_SUCCESS){
-          return ret;
-        }
+  //
+  // Allocate stack for the CT thread
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, THREAD_EXTRA_LARGE_STACK_SIZE, TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+  // Create the CT thread. VERY_HIGH priority, no preemption-threshold
+  ret = tx_thread_create(&ct_thread, "ct thread", ct_thread_entry, 0, pointer,
+                         THREAD_EXTRA_LARGE_STACK_SIZE, HIGH_PRIORITY, HIGHEST_PRIORITY,
+                         TX_NO_TIME_SLICE, TX_DONT_START);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
 #endif
 
 #if SD_CARD_ENABLED
@@ -358,6 +341,8 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   device_handles.ext_flash_handle = &hospi1;
   device_handles.gnss_minutes_timer = &htim16;
   device_handles.iridium_minutes_timer = &htim17;
+  device_handles.gnss_uart_rx_dma_handle = &handle_LPDMA1_Channel0;
+  device_handles.battery_adc = &hadc1;
   device_handles.aux_spi_1_handle = &hspi2;
   device_handles.aux_spi_2_handle = &hspi3;
   device_handles.aux_i2c_1_handle = &hi2c2;
@@ -387,18 +372,18 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   return ret;
 }
 
-/**
- * @brief  Function that implements the kernel's initialization.
- * @param  None
- * @retval None
- */
-void MX_ThreadX_Init ( void )
+  /**
+  * @brief  Function that implements the kernel's initialization.
+  * @param  None
+  * @retval None
+  */
+void MX_ThreadX_Init(void)
 {
   /* USER CODE BEGIN  Before_Kernel_Start */
 
   /* USER CODE END  Before_Kernel_Start */
 
-  tx_kernel_enter ();
+  tx_kernel_enter();
 
   /* USER CODE BEGIN  Kernel_Start_Error */
 
@@ -406,11 +391,11 @@ void MX_ThreadX_Init ( void )
 }
 
 /**
- * @brief  App_ThreadX_LowPower_Timer_Setup
- * @param  count : TX timer count
- * @retval None
- */
-void App_ThreadX_LowPower_Timer_Setup ( ULONG count )
+  * @brief  App_ThreadX_LowPower_Timer_Setup
+  * @param  count : TX timer count
+  * @retval None
+  */
+void App_ThreadX_LowPower_Timer_Setup(ULONG count)
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Timer_Setup */
 
@@ -418,11 +403,11 @@ void App_ThreadX_LowPower_Timer_Setup ( ULONG count )
 }
 
 /**
- * @brief  App_ThreadX_LowPower_Enter
- * @param  None
- * @retval None
- */
-void App_ThreadX_LowPower_Enter ( void )
+  * @brief  App_ThreadX_LowPower_Enter
+  * @param  None
+  * @retval None
+  */
+void App_ThreadX_LowPower_Enter(void)
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Enter */
 
@@ -430,11 +415,11 @@ void App_ThreadX_LowPower_Enter ( void )
 }
 
 /**
- * @brief  App_ThreadX_LowPower_Exit
- * @param  None
- * @retval None
- */
-void App_ThreadX_LowPower_Exit ( void )
+  * @brief  App_ThreadX_LowPower_Exit
+  * @param  None
+  * @retval None
+  */
+void App_ThreadX_LowPower_Exit(void)
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Exit */
 
@@ -442,11 +427,11 @@ void App_ThreadX_LowPower_Exit ( void )
 }
 
 /**
- * @brief  App_ThreadX_LowPower_Timer_Adjust
- * @param  None
- * @retval Amount of time (in ticks)
- */
-ULONG App_ThreadX_LowPower_Timer_Adjust ( void )
+  * @brief  App_ThreadX_LowPower_Timer_Adjust
+  * @param  None
+  * @retval Amount of time (in ticks)
+  */
+ULONG App_ThreadX_LowPower_Timer_Adjust(void)
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Timer_Adjust */
   return 0;
@@ -594,9 +579,11 @@ void startup_thread_entry ( ULONG thread_input )
   }
 
 #if WATCHDOG_ENABLED
-  if (rtc_server_config_watchdog (WATCHDOG_PERIOD, CONTROL_THREAD_REQUEST_PROCESSED) != RTC_SUCCESS) {
+  if ( rtc_server_config_watchdog (WATCHDOG_PERIOD, CONTROL_THREAD_REQUEST_PROCESSED)
+       != RTC_SUCCESS )
+  {
     self_test_status = SELF_TEST_CRITICAL_FAULT;
-    return self_teszt_status;
+    return self_test_status;
   }
 #endif
 
@@ -622,37 +609,36 @@ void startup_thread_entry ( ULONG thread_input )
     HAL_NVIC_SystemReset ();
   }
 
-// These structs are being allocated to the waves_byte_pool, and have no overlap with tx_app_byte_pool
-// Each struct has a float array written to by GNSS. These are freed after processing in waves thread.
+  // These structs are being allocated to the waves_byte_pool, and have no overlap with tx_app_byte_pool
+  // Each struct has a float array written to by GNSS. These are freed after processing in waves thread.
   north = argInit_1xUnbounded_real32_T (&configuration);
   east = argInit_1xUnbounded_real32_T (&configuration);
   down = argInit_1xUnbounded_real32_T (&configuration);
 
-// Initialize the structs
+  // Initialize the peripherals
   gnss_init (&gnss, &configuration, device_handles.gnss_uart_handle,
              device_handles.gnss_uart_rx_dma_handle, &thread_control_flags, &error_flags,
              device_handles.gnss_minutes_timer, &(ubx_message_process_buf[0]),
              &(gnss_config_response_buf[0]), north->data, east->data, down->data);
 
-  iridium_init (iridium, &configuration, device_handles.Iridium_uart,
-                device_handles.Iridium_rx_dma_handle, device_handles.iridium_timer,
-                device_handles.Iridium_tx_dma_handle, &thread_control_flags, &error_flags,
-                device_handles.hrtc, &sbd_message, iridium_error_message, iridium_response_message,
+  iridium_init (&iridium, &configuration, device_handles.iridium_uart_handle,
+                device_handles.iridium_minutes_timer, &thread_control_flags, &error_flags,
+                &sbd_message, &(iridium_error_message[0]), &(iridium_response_message[0]),
                 &sbd_message_queue);
 
 #if CT_ENABLED
-        ct_init(ct, &configuration, device_handles.CT_uart, device_handles.CT_dma_handle,
-                                        &thread_control_flags, &error_flags, ct_data, samples_buf);
+  ct_init (&ct, &configuration, device_handles.ct_uart_handle, &thread_control_flags, &error_flags,
+           &(ct_data[0]), &(ct_samples_buf[0]));
 #endif
 
 #if TEMPERATURE_ENABLED
-  temperature_init (temperature, device_handles.temp_i2c_handle, &thread_control_flags,
-                    &error_flags, TEMP_PWR_GPIO_Port, TEMP_PWR_Pin, true);
+  temperature_init (&temperature, device_handles.core_i2c_handle, &thread_control_flags,
+                    &error_flags, TEMP_FET_GPIO_Port, TEMP_FET_Pin, true);
 #endif
 
-  rf_switch_init (rf_switch);
+  rf_switch_init (&rf_switch);
 
-  battery_init (battery, device_handles.battery_adc, &thread_control_flags, &error_flags);
+  battery_init (&battery, device_handles.battery_adc, &thread_control_flags, &error_flags);
 
   tx_return = tx_event_flags_get (&thread_control_flags, FULL_CYCLE_COMPLETE, TX_OR_CLEAR,
                                   &actual_flags, TX_NO_WAIT);
@@ -675,11 +661,12 @@ void startup_thread_entry ( ULONG thread_input )
       tx_thread_reset (&gnss_thread);
     }
 #if CT_ENABLED
-                tx_return = tx_thread_reset(&ct_thread);
-                if (tx_return == TX_NOT_DONE){
-                        tx_thread_terminate(&ct_thread);
-                        tx_thread_reset(&ct_thread);
-                }
+    tx_return = tx_thread_reset (&ct_thread);
+    if ( tx_return == TX_NOT_DONE )
+    {
+      tx_thread_terminate (&ct_thread);
+      tx_thread_reset (&ct_thread);
+    }
 #endif
 
 #if TEMPERATURE_ENABLED
@@ -820,7 +807,7 @@ void startup_thread_entry ( ULONG thread_input )
  */
 void gnss_thread_entry ( ULONG thread_input )
 {
-
+  UNUSED(thread_input);
   gnss_error_code_t gnss_return_code;
   int number_of_no_sample_errors = 0;
   float last_lat = 0;
@@ -894,7 +881,8 @@ void gnss_thread_entry ( ULONG thread_input )
 
 // Wait until we get a series of good UBX_NAV_PVT messages and are
 // tracking a good number of satellites before moving on
-  if ( gnss->sync_and_start_reception (start_GNSS_UART_DMA, ubx_DMA_message_buf, UBX_MESSAGE_SIZE)
+  if ( gnss->sync_and_start_reception (start_GNSS_UART_DMA, ubx_DMA_message_buf,
+  UBX_MESSAGE_SIZE)
        != GNSS_SUCCESS )
   {
     // If we were unable to get good GNSS reception and start the DMA transfer loop, then
@@ -1032,12 +1020,13 @@ void gnss_thread_entry ( ULONG thread_input )
 
 #if CT_ENABLED
 
-          if (tx_thread_resume(&ct_thread) != TX_SUCCESS){
-                  shut_it_all_down();
-                  HAL_NVIC_SystemReset();
-          }
+  if ( tx_thread_resume (&ct_thread) != TX_SUCCESS )
+  {
+    shut_it_all_down ();
+    HAL_NVIC_SystemReset ();
+  }
 
-  #elif TEMPERATURE_ENABLED
+#elif TEMPERATURE_ENABLED
 
   if ( tx_thread_resume (&temperature_thread) != TX_SUCCESS )
   {
@@ -1060,117 +1049,129 @@ void gnss_thread_entry ( ULONG thread_input )
 
 #if CT_ENABLED
 /**
-  * @brief  ct_thread_entry
-  *         This thread will handle the CT sensor, capture readings, and getting averages..
-  *
-  * @param  ULONG thread_input - unused
-  * @retval void
-  */
-void ct_thread_entry(ULONG thread_input){
+ * @brief  ct_thread_entry
+ *         This thread will handle the CT sensor, capture readings, and getting averages..
+ *
+ * @param  ULONG thread_input - unused
+ * @retval void
+ */
+void ct_thread_entry ( ULONG thread_input )
+{
 //      ULONG actual_flags;
-        ct_error_code_t ct_return_code;
-        uint32_t ct_parsing_error_counter;
-        real16_T half_salinity;
-        real16_T half_temp;
-        int fail_counter;
+  ct_error_code_t ct_return_code;
+  uint32_t ct_parsing_error_counter;
+  real16_T half_salinity;
+  real16_T half_temp;
+  int fail_counter;
 
-        register_watchdog_refresh ();
+  register_watchdog_refresh ();
 
-        //
-        // Run tests if needed
-          if ( tests.ct_thread_test != NULL )
-          {
-            tests.ct_thread_test (NULL);
-          }
+  //
+  // Run tests if needed
+  if ( tests.ct_thread_test != NULL )
+  {
+    tests.ct_thread_test (NULL);
+  }
 
-        register_watchdog_refresh();
+  register_watchdog_refresh ();
 
-        // Set the mean salinity and temp values to error values in the event the sensor fails
-        half_salinity.bitPattern = CT_AVERAGED_VALUE_ERROR_CODE;
-        half_temp.bitPattern = CT_AVERAGED_VALUE_ERROR_CODE;
+  // Set the mean salinity and temp values to error values in the event the sensor fails
+  half_salinity.bitPattern = CT_AVERAGED_VALUE_ERROR_CODE;
+  half_temp.bitPattern = CT_AVERAGED_VALUE_ERROR_CODE;
 
-        memcpy(&sbd_message.mean_salinity, &half_salinity, sizeof(real16_T));
-        memcpy(&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
+  memcpy (&sbd_message.mean_salinity, &half_salinity, sizeof(real16_T));
+  memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
 
-        // The first message will have a different frame length from a header, so adjust the fail
-        // counter appropriately
-        fail_counter = -1;
-        // Turn on the CT sensor, warm it up, and frame sync
-        while (fail_counter < MAX_SELF_TEST_RETRIES) {
+  // The first message will have a different frame length from a header, so adjust the fail
+  // counter appropriately
+  fail_counter = -1;
+  // Turn on the CT sensor, warm it up, and frame sync
+  while ( fail_counter < MAX_SELF_TEST_RETRIES )
+  {
 
-                register_watchdog_refresh();
+    register_watchdog_refresh ();
 
-                ct_return_code = ct->self_test(false);
-                if (ct_return_code != CT_SUCCESS) {
-                        tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 10);
-                        fail_counter++;
+    ct_return_code = ct->self_test (false);
+    if ( ct_return_code != CT_SUCCESS )
+    {
+      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+      fail_counter++;
 
-                } else {
+    }
+    else
+    {
 
-                        break;
-                }
-        }
+      break;
+    }
+  }
 
-        if (fail_counter == MAX_SELF_TEST_RETRIES) {
+  if ( fail_counter == MAX_SELF_TEST_RETRIES )
+  {
 
-                register_watchdog_refresh();
-                jump_to_waves();
-        }
+    register_watchdog_refresh ();
+    jump_to_waves ();
+  }
 
-        // Take our samples
-        ct_parsing_error_counter = 0;
-        while (ct->total_samples < configuration.total_ct_samples) {
+  // Take our samples
+  ct_parsing_error_counter = 0;
+  while ( ct->total_samples < configuration.total_ct_samples )
+  {
 
-                register_watchdog_refresh();
-                ct_return_code = ct->parse_sample();
+    register_watchdog_refresh ();
+    ct_return_code = ct->parse_sample ();
 
-                if (ct_return_code == CT_PARSING_ERROR) {
-                        ct_parsing_error_counter++;
-                }
+    if ( ct_return_code == CT_PARSING_ERROR )
+    {
+      ct_parsing_error_counter++;
+    }
 
-                if ((ct_parsing_error_counter >= 10) || (ct_return_code == CT_UART_ERROR)) {
-                        // If there are too many parsing errors or a UART error occurs, then
-                        // stop trying and
-                        register_watchdog_refresh();
-                        jump_to_waves();
-                }
+    if ( (ct_parsing_error_counter >= 10) || (ct_return_code == CT_UART_ERROR) )
+    {
+      // If there are too many parsing errors or a UART error occurs, then
+      // stop trying and
+      register_watchdog_refresh ();
+      jump_to_waves ();
+    }
 
-                if (ct_return_code == CT_DONE_SAMPLING) {
-                        break;
-                }
-        }
+    if ( ct_return_code == CT_DONE_SAMPLING )
+    {
+      break;
+    }
+  }
 
-        register_watchdog_refresh();
+  register_watchdog_refresh ();
 
-        // Turn off the CT sensor
-        ct->on_off(GPIO_PIN_RESET);
-        // Deinit UART and DMA to prevent spurious interrupts
-        HAL_UART_DeInit(ct->ct_uart_handle);
-        HAL_DMA_DeInit(ct->ct_dma_handle);
+  // Turn off the CT sensor
+  ct->on_off (GPIO_PIN_RESET);
+  // Deinit UART and DMA to prevent spurious interrupts
+  HAL_UART_DeInit (ct->ct_uart_handle);
+  HAL_DMA_DeInit (ct->ct_dma_handle);
 
-        // Got our samples, now average them
-        ct_return_code = ct->get_averages();
-        // Make sure something didn't go terribly wrong
-        if (ct_return_code == CT_NOT_ENOUGH_SAMPLES) {
-                register_watchdog_refresh();
-                jump_to_waves();
-        }
+  // Got our samples, now average them
+  ct_return_code = ct->get_averages ();
+  // Make sure something didn't go terribly wrong
+  if ( ct_return_code == CT_NOT_ENOUGH_SAMPLES )
+  {
+    register_watchdog_refresh ();
+    jump_to_waves ();
+  }
 
-        // Now set the mean salinity and temp values to the real ones
-        half_salinity = floatToHalf((float)ct->averages.salinity);
-        half_temp = floatToHalf((float)ct->averages.temp);
+  // Now set the mean salinity and temp values to the real ones
+  half_salinity = floatToHalf ((float) ct->averages.salinity);
+  half_temp = floatToHalf ((float) ct->averages.temp);
 
-        memcpy(&sbd_message.mean_salinity, &half_salinity, sizeof(real16_T));
-        memcpy(&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
+  memcpy (&sbd_message.mean_salinity, &half_salinity, sizeof(real16_T));
+  memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
 
-        register_watchdog_refresh();
+  register_watchdog_refresh ();
 
-        if (tx_thread_resume(&waves_thread) != TX_SUCCESS){
-                shut_it_all_down();
-                HAL_NVIC_SystemReset();
-        }
+  if ( tx_thread_resume (&waves_thread) != TX_SUCCESS )
+  {
+    shut_it_all_down ();
+    HAL_NVIC_SystemReset ();
+  }
 
-        tx_thread_terminate(&ct_thread);
+  tx_thread_terminate (&ct_thread);
 }
 #endif
 
@@ -1184,6 +1185,7 @@ void ct_thread_entry(ULONG thread_input){
  */
 void temperature_thread_entry ( ULONG thread_input )
 {
+  UNUSED(thread_input);
   temperature_error_code_t temp_return_code;
   real16_T half_salinity;
   real16_T half_temp;
@@ -1249,7 +1251,7 @@ void temperature_thread_entry ( ULONG thread_input )
  */
 void waves_thread_entry ( ULONG thread_input )
 {
-
+  UNUSED(thread_input);
   register_watchdog_refresh ();
 
   //
@@ -1321,6 +1323,7 @@ void waves_thread_entry ( ULONG thread_input )
  */
 void iridium_thread_entry ( ULONG thread_input )
 {
+  UNUSED(thread_input);
   iridium_error_code_t iridium_return_code;
   ULONG actual_error_flags = 0;
   ULONG error_occured_flags = GNSS_ERROR | MODEM_ERROR | MEMORY_ALLOC_ERROR | DMA_ERROR | UART_ERROR
@@ -1491,6 +1494,7 @@ void iridium_thread_entry ( ULONG thread_input )
  */
 void end_of_cycle_thread_entry ( ULONG thread_input )
 {
+  UNUSED(thread_input);
   RTC_AlarmTypeDef alarm =
     { 0 };
   RTC_TimeTypeDef initial_rtc_time;
@@ -1520,8 +1524,8 @@ void end_of_cycle_thread_entry ( ULONG thread_input )
 //      Clear any pending interrupts, See Errata section 2.2.4
 
 #if CT_ENABLED
-        HAL_NVIC_DisableIRQ(UART4_IRQn);
-        HAL_NVIC_ClearPendingIRQ(UART4_IRQn);
+  HAL_NVIC_DisableIRQ (UART4_IRQn);
+  HAL_NVIC_ClearPendingIRQ (UART4_IRQn);
 #endif
 
   HAL_NVIC_DisableIRQ (GPDMA1_Channel0_IRQn);
@@ -1651,7 +1655,7 @@ void end_of_cycle_thread_entry ( ULONG thread_input )
   HAL_NVIC_ClearPendingIRQ (RTC_IRQn);
 
 #if CT_ENABLED
-        HAL_NVIC_EnableIRQ(UART4_IRQn);
+  HAL_NVIC_EnableIRQ (UART4_IRQn);
 #endif
   HAL_NVIC_EnableIRQ (GPDMA1_Channel0_IRQn);
   HAL_NVIC_EnableIRQ (GPDMA1_Channel1_IRQn);
@@ -1779,7 +1783,7 @@ void shut_it_all_down ( void )
 void register_watchdog_refresh ( void )
 {
 #if WATCHDOG_ENABLED
-   (void) tx_semaphore_put (&watchdog_semaphore);
+  (void) tx_semaphore_put (&watchdog_semaphore);
 #endif
 }
 
@@ -1804,7 +1808,7 @@ static self_test_status_t initial_power_on_self_test ( void )
   iridium_error_code_t iridium_return_code;
 
 #if CT_ENABLED
-        ct_error_code_t ct_return_code;
+  ct_error_code_t ct_return_code;
 #endif
 
 #if TEMPERATURE_ENABLED
@@ -1938,41 +1942,46 @@ static self_test_status_t initial_power_on_self_test ( void )
   tx_event_flags_set (&thread_control_flags, IRIDIUM_READY, TX_OR);
 
 #if CT_ENABLED
-        ///////////////////////////////////////////////////////////////////////////////////////////////
-        /////////////////////////// CT STARTUP SEQUENCE ///////////////////////////////////////////////
-        // Make sure we get good data from the CT sensor
-        // The first message will have a different frame length from a header, so adjust the fail
-        // counter appropriately
-        fail_counter = -1;
-        while (fail_counter < MAX_SELF_TEST_RETRIES) {
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  /////////////////////////// CT STARTUP SEQUENCE ///////////////////////////////////////////////
+  // Make sure we get good data from the CT sensor
+  // The first message will have a different frame length from a header, so adjust the fail
+  // counter appropriately
+  fail_counter = -1;
+  while ( fail_counter < MAX_SELF_TEST_RETRIES )
+  {
 
-                register_watchdog_refresh();
+    register_watchdog_refresh ();
 
-                ct_return_code = ct->self_test(false);
-                if (ct_return_code != CT_SUCCESS) {
+    ct_return_code = ct->self_test (false);
+    if ( ct_return_code != CT_SUCCESS )
+    {
 
-                        tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 10);
-                        fail_counter++;
+      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+      fail_counter++;
 
-                } else {
+    }
+    else
+    {
 
-                        return_code = SELF_TEST_PASSED;
-                        break;
-                }
-        }
+      return_code = SELF_TEST_PASSED;
+      break;
+    }
+  }
 
-        if (fail_counter == MAX_SELF_TEST_RETRIES) {
+  if ( fail_counter == MAX_SELF_TEST_RETRIES )
+  {
 
-                return_code = SELF_TEST_NON_CRITICAL_FAULT;
-                tx_event_flags_set(&error_flags, CT_ERROR, TX_OR);
-        }
+    return_code = SELF_TEST_NON_CRITICAL_FAULT;
+    tx_event_flags_set (&error_flags, CT_ERROR, TX_OR);
+  }
 
-        // We can turn off the CT sensor for now
-        ct->on_off(GPIO_PIN_RESET);
+  // We can turn off the CT sensor for now
+  ct->on_off (GPIO_PIN_RESET);
 
-        // Regardless of if the self-test passed, we'll still set it as ready and try again
-        // in the sample window
-        tx_event_flags_set(&thread_control_flags, CT_READY, TX_OR);
+  // Regardless of if the self-test passed, we'll still set it as ready and try again
+  // in the sample window
+  tx_event_flags_set (&thread_control_flags, CT_READY, TX_OR);
 
 #else
 
@@ -2062,25 +2071,26 @@ static void jump_to_end_of_window ( ULONG error_bits_to_set )
 
 #if CT_ENABLED
 /**
-  * @brief  Break out of the CT thread and jump to Waves thread
-  *
-  * @param  void
-  *
-  * @retval void
-  */
-static void jump_to_waves(void)
+ * @brief  Break out of the CT thread and jump to Waves thread
+ *
+ * @param  void
+ *
+ * @retval void
+ */
+static void jump_to_waves ( void )
 {
-        ct->on_off(GPIO_PIN_RESET);
-        // Deinit UART and DMA to prevent spurious interrupts
-        HAL_UART_DeInit(ct->ct_uart_handle);
-        HAL_DMA_DeInit(ct->ct_dma_handle);
+  ct->on_off (GPIO_PIN_RESET);
+  // Deinit UART and DMA to prevent spurious interrupts
+  HAL_UART_DeInit (ct->ct_uart_handle);
+  HAL_DMA_DeInit (ct->ct_dma_handle);
 
-        if (tx_thread_resume(&waves_thread) != TX_SUCCESS){
-                shut_it_all_down();
-                HAL_NVIC_SystemReset();
-        }
+  if ( tx_thread_resume (&waves_thread) != TX_SUCCESS )
+  {
+    shut_it_all_down ();
+    HAL_NVIC_SystemReset ();
+  }
 
-        tx_thread_terminate(&ct_thread);
+  tx_thread_terminate (&ct_thread);
 }
 #endif
 

@@ -10,14 +10,8 @@
 
 #include "app_threadx.h"
 #include "tx_api.h"
-#include "main.h"
 #include "generic_uart_driver.h"
 #include "stdint.h"
-#include "string.h"
-#include "stm32u5xx_hal.h"
-#include "stm32u5xx_ll_dma.h"
-#include "stdio.h"
-#include "stdbool.h"
 #include "configuration.h"
 
 #ifdef DEBUGGING_FAST_CYCLE
@@ -75,8 +69,8 @@ typedef struct CT
 } CT;
 
 ct_error_code_t ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
-                          UART_HandleTypeDef *ct_uart_handle, DMA_HandleTypeDef *ct_dma_handle,
-                          TX_EVENT_FLAGS_GROUP *control_flags, TX_EVENT_FLAGS_GROUP *error_flags,
-                          char *data_buf, ct_samples *samples_buf );
+                          UART_HandleTypeDef *ct_uart_handle, TX_EVENT_FLAGS_GROUP *control_flags,
+                          TX_EVENT_FLAGS_GROUP *error_flags, char *data_buf,
+                          ct_samples *samples_buf );
 
 #endif /* SRC_CT_H_ */

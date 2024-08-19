@@ -29,12 +29,9 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
-extern DMA_NodeTypeDef gnss_dma_linked_list_node;
-extern DMA_QListTypeDef gnss_dma_linked_list;
-
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
-HAL_StatusTypeDef MX_gnss_dma_linked_list_Config ( void );
+HAL_StatusTypeDef MX_gnss_dma_linked_list_Config(void);
 
 #ifdef __cplusplus
 }

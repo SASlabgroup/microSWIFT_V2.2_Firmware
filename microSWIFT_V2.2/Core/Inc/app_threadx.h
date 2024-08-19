@@ -146,6 +146,7 @@ typedef struct
   TIM_HandleTypeDef *gnss_minutes_timer;
   TIM_HandleTypeDef *iridium_minutes_timer;
   DMA_HandleTypeDef *gnss_uart_rx_dma_handle;
+  ADC_HandleTypeDef *battery_adc;
 // Expansion/ spares
   SPI_HandleTypeDef *aux_spi_1_handle;
   SPI_HandleTypeDef *aux_spi_2_handle;
@@ -190,8 +191,8 @@ typedef struct
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-UINT App_ThreadX_Init ( VOID *memory_ptr );
-void MX_ThreadX_Init ( void );
+UINT App_ThreadX_Init(VOID *memory_ptr);
+void MX_ThreadX_Init(void);
 
 /* USER CODE BEGIN EFP */
 void MX_ThreadX_Init ( void );

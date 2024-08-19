@@ -10,6 +10,11 @@
  */
 
 #include "temp_sensor.h"
+#include "main.h"
+#include "stdbool.h"
+#include "stm32u5xx_hal.h"
+#include "configuration.h"
+
 // Object instance pointer
 static Temperature *self;
 

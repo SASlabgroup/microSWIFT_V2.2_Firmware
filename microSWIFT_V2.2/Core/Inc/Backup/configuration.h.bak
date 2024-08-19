@@ -61,7 +61,7 @@
 #define GNSS_HIGH_PERFORMANCE_MODE_ENABLED false
 
 // If there is a CT sensor present
-#define CT_ENABLED false
+#define CT_ENABLED true
 
 // The number of samples for the CT sensor to take. Result will be averaged
 #define TOTAL_CT_SAMPLES 10
@@ -69,12 +69,14 @@
 // If there is a Blue Robotics I2C temperature sensor presen
 #define TEMPERATURE_ENABLED true
 
+#define TOTAL_TEMPERATURE_SAMPLES 10
+
 // If there is a logging SD card
 #define SD_CARD_ENABLED false
 
-#define WATCHDOG_ENABLED false
+#define WATCHDOG_ENABLED true
 
-#define WATCHDOG_PERIOD 30000 //ms
+#define WATCHDOG_PERIOD 60000 // 1 min (in ms)
 
 typedef struct microSWIFT_configuration
 {

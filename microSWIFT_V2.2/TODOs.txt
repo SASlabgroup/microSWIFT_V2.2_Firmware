@@ -5,17 +5,23 @@ Lengthy list of TODOs:
 General
 ****
 
+[ ] Check all init calls in startup procedure to make sure bus peripheral is starting properly
+[ ] Redo all GPIO bare pin calls -- FET pins, etc -- to use GPIO functions in gpio.c. Make sure to
+    pass in GPIO pin/port definitions and include them in the structs.
 [ ] Figure out how to disable watchdog in debug mode
 [ ] Change end of cycle sleep to shutdown mode, wakeup on int <a,b> from RTC
 [ ] Make sure everything sticks to the principle that there are no infinite loops
 [ ] Ditch watchdog hour timer and all that baggage
 [ ] Modify linker script -- add external memory if necessary
 [ ] Make a thread to handle UART console port comms... Will use USART 6, 115200 baud, 8N1
-    
+[ ] Ensure all possible error conditions (including interrupts, default handler, etc) will not
+    result in a forever loop -- all unexpected conditions should software reset.    
+
 ****************************************************************************************************
 GNSS
 ****
 
+[ ] Move buffers to inside GNSS struct
 [ ] Give GNSS a FIFO for messages
 [ ] Rework DMA transfers
     [ ] Circular mode shouldn't start until the linked list is set up -- remove the DMA stop/ abort
@@ -35,8 +41,22 @@ GNSS
 Iridium
 ****
 
+[ ] Move buffers to inside Iridium struct
 [ ] Switch UART over to using a generic uart driver
 [ ] Reorg functions and clean up comments
+
+****************************************************************************************************
+CT
+****
+
+[ ] Move buffers to inside CT struct
+[ ] Switch over to generic UART driver
+
+****************************************************************************************************
+Termperature
+****
+
+[ ] Move buffers to inside Temperature struct
 
 ****************************************************************************************************
 ThreadX

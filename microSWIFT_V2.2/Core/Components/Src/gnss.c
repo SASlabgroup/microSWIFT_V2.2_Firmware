@@ -13,7 +13,6 @@
 #include "main.h"
 #include "string.h"
 #include "stm32u5xx_hal.h"
-#include "stm32u5xx_ll_dma.h"
 #include "stdio.h"
 #include "stdbool.h"
 #include "u_ubx_protocol.h"
@@ -617,7 +616,7 @@ static gnss_error_code_t send_config ( uint8_t *config_array, size_t message_siz
        * (((float) FRAME_SYNC_RX_SIZE * 8.0) / (float) GNSS_DEFAULT_BAUD_RATE))
       + 1);
   int ticks_to_receive_msgs = round (
-      (((float) ((float) CONFIG_BUFFER_SIZE / (float) UBX_NAV_PVT_MESSAGE_LENGTH))
+      (((float) ((float) GNSS_CONFIG_BUFFER_SIZE / (float) UBX_NAV_PVT_MESSAGE_LENGTH))
        * ((float) ((float) TX_TIMER_TICKS_PER_SECOND
                    / (float) self->global_config->gnss_sampling_rate)))
       + 1);
@@ -865,7 +864,7 @@ static gnss_error_code_t enable_high_performance_mode ( void )
     {
       case GNSS_NAK_MESSAGE_RECEIVED:
         // Zero out the config response buffer
-        memset (self->config_response_buf, 0, CONFIG_BUFFER_SIZE);
+        memset (self->config_response_buf, 0, GNSS_CONFIG_BUFFER_SIZE);
         config_step_attempts = 0;
 
         // Now send over the command to enable high performance mode
@@ -970,7 +969,7 @@ static gnss_error_code_t query_high_performance_mode ( void )
 {
   gnss_error_code_t return_code;
   ULONG actual_flags;
-  uint8_t msg_buf[CONFIG_BUFFER_SIZE];
+  uint8_t msg_buf[GNSS_CONFIG_BUFFER_SIZE];
   char payload[UBX_NAV_PVT_PAYLOAD_LENGTH];
   const char *buf_start = (const char*) self->config_response_buf;
   const char *buf_end = buf_start;

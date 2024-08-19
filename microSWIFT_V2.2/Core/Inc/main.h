@@ -144,8 +144,12 @@ void Error_Handler(void);
 #define AUX_GPIO_8_GPIO_Port GPIOE
 #define AUX_I2C_1_SDA_Pin GPIO_PIN_11
 #define AUX_I2C_1_SDA_GPIO_Port GPIOB
+#define EXT_LED_RED_Pin GPIO_PIN_8
+#define EXT_LED_RED_GPIO_Port GPIOD
 #define AUX_UART_2_RX_Pin GPIO_PIN_9
 #define AUX_UART_2_RX_GPIO_Port GPIOD
+#define EXT_LED_GREEN_Pin GPIO_PIN_10
+#define EXT_LED_GREEN_GPIO_Port GPIOD
 #define AUX_GPIO_0_Pin GPIO_PIN_14
 #define AUX_GPIO_0_GPIO_Port GPIOD
 #define SD_D0_Pin GPIO_PIN_8

@@ -5,6 +5,17 @@
  *      Author: Phil
  */
 
+#include "app_threadx.h"
+#include "tx_api.h"
+#include "main.h"
+#include "generic_uart_driver.h"
+#include "stdint.h"
+#include "string.h"
+#include "stm32u5xx_hal.h"
+#include "stm32u5xx_ll_dma.h"
+#include "stdio.h"
+#include "stdbool.h"
+#include "configuration.h"
 #include "ct_sensor.h"
 
 // Object instance pointer
@@ -29,9 +40,9 @@ static const char *salinity_units = "PSU";
  * @return void
  */
 ct_error_code_t ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
-                          UART_HandleTypeDef *ct_uart_handle, DMA_HandleTypeDef *ct_dma_handle,
-                          TX_EVENT_FLAGS_GROUP *control_flags, TX_EVENT_FLAGS_GROUP *error_flags,
-                          char *data_buf, ct_samples *samples_buf )
+                          UART_HandleTypeDef *ct_uart_handle, TX_EVENT_FLAGS_GROUP *control_flags,
+                          TX_EVENT_FLAGS_GROUP *error_flags, char *data_buf,
+                          ct_samples *samples_buf )
 {
   // Assign object pointer
   self = struct_ptr;
@@ -51,7 +62,15 @@ ct_error_code_t ct_init ( CT *struct_ptr, microSWIFT_configuration *global_confi
   memset (&(self->data_buf[0]), 0, CT_DATA_ARRAY_SIZE);
   memset (&(self->samples_buf[0]), 0, self->global_config->total_ct_samples * sizeof(ct_samples));
 
-  return generic_uart_init (&self->uart_driver, &huart5, &ct_uart_sema, uart5_init, uart5_deinit);
+  generic_uart_register_io_functions (&self->uart_driver, &huart5, &ct_uart_sema, uart5_init,
+                                      uart5_deinit, NULL, NULL);
+
+  if ( self->uart_driver.init () != UART_OK )
+  {
+    return CT_UART_ERROR;
+  }
+
+  return CT_SUCCESS;
 }
 
 /**
