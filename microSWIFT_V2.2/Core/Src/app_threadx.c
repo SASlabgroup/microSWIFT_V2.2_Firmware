@@ -174,7 +174,7 @@ static void jump_to_end_of_window ( ULONG error_bits_to_set );
 static void send_error_message ( ULONG error_flags );
 #if CT_ENABLED
 static void jump_to_waves ( void );
-#endif
+#endif // #if CT_ENABLED
 // Externally visible functions
 void shut_it_all_down ( void );
 void register_watchdog_refresh ( void );
@@ -189,11 +189,11 @@ void temperature_thread_entry ( ULONG thread_input );
 /* USER CODE END PFP */
 
 /**
-  * @brief  Application ThreadX Initialization.
-  * @param memory_ptr: memory pointer
-  * @retval int
-  */
-UINT App_ThreadX_Init(VOID *memory_ptr)
+ * @brief  Application ThreadX Initialization.
+ * @param memory_ptr: memory pointer
+ * @retval int
+ */
+UINT App_ThreadX_Init ( VOID *memory_ptr )
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -357,7 +357,6 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   configuration.gnss_max_acquisition_wait_time = GNSS_MAX_ACQUISITION_WAIT_TIME;
   configuration.total_ct_samples = TOTAL_CT_SAMPLES;
   configuration.windows_per_hour = SAMPLE_WINDOWS_PER_HOUR;
-  configuration.reset_reason = HAL_RCC_GetResetSource ();
 
   /* USER CODE END App_ThreadX_MEM_POOL */
   /* USER CODE BEGIN App_ThreadX_Init */
@@ -372,18 +371,18 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   return ret;
 }
 
-  /**
-  * @brief  Function that implements the kernel's initialization.
-  * @param  None
-  * @retval None
-  */
-void MX_ThreadX_Init(void)
+/**
+ * @brief  Function that implements the kernel's initialization.
+ * @param  None
+ * @retval None
+ */
+void MX_ThreadX_Init ( void )
 {
   /* USER CODE BEGIN  Before_Kernel_Start */
 
   /* USER CODE END  Before_Kernel_Start */
 
-  tx_kernel_enter();
+  tx_kernel_enter ();
 
   /* USER CODE BEGIN  Kernel_Start_Error */
 
@@ -391,11 +390,11 @@ void MX_ThreadX_Init(void)
 }
 
 /**
-  * @brief  App_ThreadX_LowPower_Timer_Setup
-  * @param  count : TX timer count
-  * @retval None
-  */
-void App_ThreadX_LowPower_Timer_Setup(ULONG count)
+ * @brief  App_ThreadX_LowPower_Timer_Setup
+ * @param  count : TX timer count
+ * @retval None
+ */
+void App_ThreadX_LowPower_Timer_Setup ( ULONG count )
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Timer_Setup */
 
@@ -403,11 +402,11 @@ void App_ThreadX_LowPower_Timer_Setup(ULONG count)
 }
 
 /**
-  * @brief  App_ThreadX_LowPower_Enter
-  * @param  None
-  * @retval None
-  */
-void App_ThreadX_LowPower_Enter(void)
+ * @brief  App_ThreadX_LowPower_Enter
+ * @param  None
+ * @retval None
+ */
+void App_ThreadX_LowPower_Enter ( void )
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Enter */
 
@@ -415,11 +414,11 @@ void App_ThreadX_LowPower_Enter(void)
 }
 
 /**
-  * @brief  App_ThreadX_LowPower_Exit
-  * @param  None
-  * @retval None
-  */
-void App_ThreadX_LowPower_Exit(void)
+ * @brief  App_ThreadX_LowPower_Exit
+ * @param  None
+ * @retval None
+ */
+void App_ThreadX_LowPower_Exit ( void )
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Exit */
 
@@ -427,11 +426,11 @@ void App_ThreadX_LowPower_Exit(void)
 }
 
 /**
-  * @brief  App_ThreadX_LowPower_Timer_Adjust
-  * @param  None
-  * @retval Amount of time (in ticks)
-  */
-ULONG App_ThreadX_LowPower_Timer_Adjust(void)
+ * @brief  App_ThreadX_LowPower_Timer_Adjust
+ * @param  None
+ * @retval Amount of time (in ticks)
+ */
+ULONG App_ThreadX_LowPower_Timer_Adjust ( void )
 {
   /* USER CODE BEGIN  App_ThreadX_LowPower_Timer_Adjust */
   return 0;
@@ -554,6 +553,112 @@ void rtc_thread_entry ( ULONG thread_input )
 void control_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
+  self_test_status_t self_test_status = SELF_TEST_PASSED;
+  ULONG actual_flags = 0;
+  UINT tx_return;
+  int fail_counter = 0;
+  uint32_t reset_reason;
+
+  //
+  // Run tests if needed
+  if ( tests.startup_test != NULL )
+  {
+    tests.startup_test (NULL);
+  }
+
+#if WATCHDOG_ENABLED
+  if ( rtc_server_config_watchdog (WATCHDOG_PERIOD, CONTROL_THREAD_REQUEST_PROCESSED)
+       != RTC_SUCCESS )
+  {
+    self_test_status = SELF_TEST_CRITICAL_FAULT;
+    return self_test_status;
+  }
+#endif
+
+  reset_reason = HAL_RCC_GetResetSource ();
+
+  // Set the watchdog reset or software reset flags
+  if ( reset_reason & RCC_RESET_FLAG_PIN )
+  {
+    tx_event_flags_set (&error_flags, WATCHDOG_RESET, TX_OR);
+  }
+
+  if ( reset_reason & RCC_RESET_FLAG_SW )
+  {
+    tx_event_flags_set (&error_flags, SOFTWARE_RESET, TX_OR);
+  }
+
+  waves_memory_pool_init (&waves_byte_pool);
+
+  if ( waves_memory_pool_create (&(waves_byte_pool_buffer[0]), WAVES_MEM_POOL_SIZE) != TX_SUCCESS )
+  {
+    shut_it_all_down ();
+    HAL_NVIC_SystemReset ();
+  }
+
+  // These structs are being allocated to the waves_byte_pool, and have no overlap with tx_app_byte_pool
+  // Each struct has a float array written to by GNSS. These are freed after processing in waves thread.
+  north = argInit_1xUnbounded_real32_T (&configuration);
+  east = argInit_1xUnbounded_real32_T (&configuration);
+  down = argInit_1xUnbounded_real32_T (&configuration);
+
+  // Initialize the peripherals
+  gnss_init (&gnss, &configuration, device_handles.gnss_uart_handle,
+             device_handles.gnss_uart_rx_dma_handle, &thread_control_flags, &error_flags,
+             device_handles.gnss_minutes_timer, &(ubx_message_process_buf[0]),
+             &(gnss_config_response_buf[0]), north->data, east->data, down->data);
+
+  iridium_init (&iridium, &configuration, device_handles.iridium_uart_handle,
+                device_handles.iridium_minutes_timer, &thread_control_flags, &error_flags,
+                &sbd_message, &(iridium_error_message[0]), &(iridium_response_message[0]),
+                &sbd_message_queue);
+
+#if CT_ENABLED
+  ct_init (&ct, &configuration, device_handles.ct_uart_handle, &thread_control_flags, &error_flags,
+           &(ct_data[0]), &(ct_samples_buf[0]));
+#endif
+
+#if TEMPERATURE_ENABLED
+  temperature_init (&temperature, device_handles.core_i2c_handle, &thread_control_flags,
+                    &error_flags, TEMP_FET_GPIO_Port, TEMP_FET_Pin, true);
+#endif
+
+  rf_switch_init (&rf_switch);
+
+  battery_init (&battery, device_handles.battery_adc, &thread_control_flags, &error_flags);
+
+  self_test_status = startup_procedure ();
+
+  switch ( self_test_status )
+  {
+    case SELF_TEST_PASSED:
+      led_sequence (TEST_PASSED_LED_SEQUENCE);
+      break;
+
+    case SELF_TEST_NON_CRITICAL_FAULT:
+      led_sequence (TEST_NON_CRITICAL_FAULT_LED_SEQUENCE);
+      break;
+
+    case SELF_TEST_CRITICAL_FAULT:
+      shut_it_all_down ();
+      // Stay stuck here
+      for ( int i = 0; i < 25; i++ )
+      {
+        register_watchdog_refresh ();
+        led_sequence (SELF_TEST_CRITICAL_FAULT);
+      }
+      HAL_NVIC_SystemReset ();
+
+    default:
+      // If we got here, there's probably a memory corruption
+      shut_it_all_down ();
+      // Stay stuck here
+      while ( 1 )
+      {
+        register_watchdog_refresh ();
+        led_sequence (SELF_TEST_CRITICAL_FAULT);
+      }
+  }
 
 }
 
@@ -1789,7 +1894,130 @@ void register_watchdog_refresh ( void )
 
 static self_test_status_t startup_procedure ( void )
 {
+  UINT tx_return;
 
+  tx_return = tx_event_flags_get (&thread_control_flags, FULL_CYCLE_COMPLETE, TX_OR_CLEAR,
+                                  &actual_flags, TX_NO_WAIT);
+  // If this is a subsequent window, just setup the GNSS, skip the rest
+  if ( tx_return == TX_SUCCESS )
+  {
+
+    // Increment the sample window counter
+    sample_window_counter++;
+
+    register_watchdog_refresh ();
+
+    HAL_GPIO_WritePin (GPIOF, EXT_LED_GREEN_Pin, GPIO_PIN_SET);
+
+    // Reset all threads
+    tx_return = tx_thread_reset (&gnss_thread);
+    if ( tx_return == TX_NOT_DONE )
+    {
+      tx_thread_terminate (&gnss_thread);
+      tx_thread_reset (&gnss_thread);
+    }
+#if CT_ENABLED
+    tx_return = tx_thread_reset (&ct_thread);
+    if ( tx_return == TX_NOT_DONE )
+    {
+      tx_thread_terminate (&ct_thread);
+      tx_thread_reset (&ct_thread);
+    }
+#endif
+
+#if TEMPERATURE_ENABLED
+    tx_return = tx_thread_reset (&temperature_thread);
+    if ( tx_return == TX_NOT_DONE )
+    {
+      tx_thread_terminate (&temperature_thread);
+      tx_thread_reset (&temperature_thread);
+    }
+#endif
+    tx_return = tx_thread_reset (&waves_thread);
+    if ( tx_return == TX_NOT_DONE )
+    {
+      tx_thread_terminate (&waves_thread);
+      tx_thread_reset (&waves_thread);
+    }
+    tx_return = tx_thread_reset (&iridium_thread);
+    if ( tx_return == TX_NOT_DONE )
+    {
+      tx_thread_terminate (&iridium_thread);
+      tx_thread_reset (&iridium_thread);
+    }
+    tx_return = tx_thread_reset (&end_of_cycle_thread);
+    if ( tx_return == TX_NOT_DONE )
+    {
+      tx_thread_terminate (&end_of_cycle_thread);
+      tx_thread_reset (&end_of_cycle_thread);
+    }
+
+    // Power up the RF switch
+    rf_switch->power_on ();
+
+    // Check if there was a GNSS error. If so, reconfigure device
+    tx_return = tx_event_flags_get (&thread_control_flags, GNSS_CONFIG_REQUIRED,
+    TX_OR_CLEAR,
+                                    &actual_flags, TX_NO_WAIT);
+    if ( tx_return == TX_SUCCESS )
+    {
+      fail_counter = 0;
+      while ( fail_counter < MAX_SELF_TEST_RETRIES )
+      {
+
+        register_watchdog_refresh ();
+
+        if ( gnss->config () != GNSS_SUCCESS )
+        {
+          // Config didn't work, cycle power and try again
+          gnss->cycle_power ();
+          fail_counter++;
+        }
+        else
+        {
+          break;
+        }
+      }
+    }
+    // If we couldn't configure the GNSS, send a reset vector
+    if ( fail_counter == MAX_SELF_TEST_RETRIES )
+    {
+      shut_it_all_down ();
+      HAL_NVIC_SystemReset ();
+    }
+
+    // Kick off the GNSS thread
+    if ( tx_thread_resume (&gnss_thread) != TX_SUCCESS )
+    {
+      shut_it_all_down ();
+      HAL_NVIC_SystemReset ();
+    }
+  }
+
+  // This is first time power up, test everything and flash LED sequence
+  else
+  {
+    register_watchdog_refresh ();
+    // Flash some lights to let the user know its on and working
+    led_sequence (INITIAL_LED_SEQUENCE);
+
+    rf_switch->power_on ();
+
+    register_watchdog_refresh ();
+
+    self_test_status = initial_power_on_self_test ();
+
+    register_watchdog_refresh ();
+
+    // Kick off the GNSS thread
+    if ( tx_thread_resume (&gnss_thread) != TX_SUCCESS )
+    {
+      shut_it_all_down ();
+      HAL_NVIC_SystemReset ();
+    }
+  }
+
+  return self_test_status;
 }
 
 /**

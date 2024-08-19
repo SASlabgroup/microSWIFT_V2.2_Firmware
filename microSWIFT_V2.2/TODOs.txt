@@ -5,6 +5,8 @@ Lengthy list of TODOs:
 General
 ****
 
+[ ] Make generic green/red led on/off functions
+    [ ] Need to move the pins and use throughole LEDs for the prototype
 [ ] Check all init calls in startup procedure to make sure bus peripheral is starting properly
 [ ] Redo all GPIO bare pin calls -- FET pins, etc -- to use GPIO functions in gpio.c. Make sure to
     pass in GPIO pin/port definitions and include them in the structs.
@@ -62,8 +64,9 @@ Termperature
 ThreadX
 ****
 
-[ ] Enable ThreadX stack checking
 [ ] Figure out the required main memory pool size
+[ ] Find a new way to identify subsequent windows since we will go into shutdown mode after the end
+    of the sample window
 [ ] Change all non-threadx objects to static allocation -- remove from App_ThreadX_Init()
 [ ] Make a control thread
     [ ] Move startup and end-of-cycle thread functions inside
