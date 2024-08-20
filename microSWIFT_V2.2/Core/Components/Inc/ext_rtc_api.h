@@ -15,7 +15,7 @@
 #include "tx_api.h"
 
 #define RTC_QUEUE_MAX_WAIT_TICKS 2
-#define RTC_FLAG_MAX_WAIT_TICKS 2
+#define RTC_FLAG_MAX_WAIT_TICKS 5
 
 typedef enum
 {
@@ -31,9 +31,9 @@ typedef enum
 // Which request function does a requester want performed
 typedef enum
 {
-  GET_TIME = 0,
-  SET_TIME = 1,
-  CONFIG_WATCHDOG = 2,
+  REFRESH_WATCHDOG = 0,
+  GET_TIME = 1,
+  SET_TIME = 2,
   SET_TIMESTAMP = 3,
   GET_TIMESTAMP = 4,
   SET_ALARM = 5
@@ -42,14 +42,15 @@ typedef enum
 // Event group flags for signalling completion
 typedef enum
 {
-  CONTROL_THREAD_REQUEST_PROCESSED = (1 << 0),
-  GNSS_REQUEST_PROCESSED = (1 << 1),
-  CT_REQUEST_PROCESSED = (1 << 2),
-  TEMPERATURE_REQUEST_PROCESSED = (1 << 3),
-  LIGHT_REQUEST_PROCESSED = (1 << 4),
-  TURBIDITY_REQUEST_PROCESSED = (1 << 5),
-  IRIDIUM_REQUEST_PROCESSED = (1 << 6),
-  AUX_PERIPHERAL_1_REQUEST_PROCESSED = (1 << 7)
+//  WATCHDOG_REFRESH_PROCESSED = ((ULONG) 1 << 0),
+  CONTROL_THREAD_REQUEST_PROCESSED = ((ULONG) 1 << 1),
+  GNSS_REQUEST_PROCESSED = ((ULONG) 1 << 2),
+  CT_REQUEST_PROCESSED = ((ULONG) 1 << 3),
+  TEMPERATURE_REQUEST_PROCESSED = ((ULONG) 1 << 4),
+  LIGHT_REQUEST_PROCESSED = ((ULONG) 1 << 5),
+  TURBIDITY_REQUEST_PROCESSED = ((ULONG) 1 << 6),
+  IRIDIUM_REQUEST_PROCESSED = ((ULONG) 1 << 7),
+  AUX_PERIPHERAL_1_REQUEST_PROCESSED = ((ULONG) 1 << 8),
 } rtc_complete_flags_t;
 
 // Message struct for GET_TIME request
@@ -63,12 +64,6 @@ typedef struct
 {
   struct tm time_struct;
 } rtc_set_time_t;
-
-// Message struct for CONFIG_WATCHDOG request
-typedef struct
-{
-  uint32_t period_ms;
-} rtc_config_watchdog_t;
 
 // Message struct for GET_TIMESTAMP request
 typedef struct
@@ -107,10 +102,9 @@ typedef struct
 // Interface functions
 void rtc_server_init ( TX_QUEUE *request_queue, TX_SEMAPHORE *watchdog_refresh_semaphore,
                        TX_EVENT_FLAGS_GROUP *complete_flags );
-void rtc_server_refresh_watchdog ( void );
+rtc_return_code rtc_server_refresh_watchdog ( void );
 rtc_return_code rtc_server_get_time ( struct tm *return_time_struct, UINT complete_flag );
 rtc_return_code rtc_server_set_time ( struct tm input_time_struct, UINT complete_flag );
-rtc_return_code rtc_server_config_watchdog ( uint32_t period_ms, UINT complete_flag );
 rtc_return_code rtc_server_set_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag );
 rtc_return_code rtc_server_get_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag );
 rtc_return_code rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UINT complete_flag );

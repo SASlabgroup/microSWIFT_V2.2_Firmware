@@ -69,6 +69,8 @@ void Error_Handler(void);
 #define LIGHT_FET_GPIO_Port GPIOE
 #define TURBIDITY_FET_Pin GPIO_PIN_13
 #define TURBIDITY_FET_GPIO_Port GPIOC
+#define LOGGER_UART_TX_Pin GPIO_PIN_0
+#define LOGGER_UART_TX_GPIO_Port GPIOF
 #define AUX_I2C_1_SCL_Pin GPIO_PIN_1
 #define AUX_I2C_1_SCL_GPIO_Port GPIOF
 #define AUX_GPIO_9_Pin GPIO_PIN_2
@@ -77,6 +79,8 @@ void Error_Handler(void);
 #define CT_UART_TX_GPIO_Port GPIOF
 #define CT_UART_RX_Pin GPIO_PIN_4
 #define CT_UART_RX_GPIO_Port GPIOF
+#define AUX_GPIO_10_Pin GPIO_PIN_5
+#define AUX_GPIO_10_GPIO_Port GPIOF
 #define FLASH_IO3_Pin GPIO_PIN_6
 #define FLASH_IO3_GPIO_Port GPIOF
 #define FLASH_IO2_Pin GPIO_PIN_7
@@ -91,6 +95,8 @@ void Error_Handler(void);
 #define VBATT_ADC_IN_GPIO_Port GPIOC
 #define RTC_TIMESTAMP_4_Pin GPIO_PIN_1
 #define RTC_TIMESTAMP_4_GPIO_Port GPIOC
+#define LOGGER_UART_RX_Pin GPIO_PIN_2
+#define LOGGER_UART_RX_GPIO_Port GPIOC
 #define RTC_TIMESTAMP_2_Pin GPIO_PIN_3
 #define RTC_TIMESTAMP_2_GPIO_Port GPIOC
 #define IRIDIUM_UART_TX_Pin GPIO_PIN_0
@@ -115,7 +121,6 @@ void Error_Handler(void);
 #define AUX_GPIO_11_GPIO_Port GPIOF
 #define RTC_INT_A_Pin GPIO_PIN_12
 #define RTC_INT_A_GPIO_Port GPIOF
-#define RTC_INT_A_EXTI_IRQn EXTI12_IRQn
 #define AUX_GPIO_12_Pin GPIO_PIN_13
 #define AUX_GPIO_12_GPIO_Port GPIOF
 #define AUX_GPIO_13_Pin GPIO_PIN_14

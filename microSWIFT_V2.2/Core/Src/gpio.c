@@ -66,7 +66,7 @@ void MX_GPIO_Init(void)
                           |SD_CK_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOF, AUX_GPIO_9_Pin|GPIO_PIN_5|AUX_GPIO_11_Pin|AUX_GPIO_12_Pin
+  HAL_GPIO_WritePin(GPIOF, AUX_GPIO_9_Pin|AUX_GPIO_10_Pin|AUX_GPIO_11_Pin|AUX_GPIO_12_Pin
                           |AUX_GPIO_13_Pin|AUX_GPIO_14_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
@@ -104,9 +104,9 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PFPin PF5 PFPin PFPin
+  /*Configure GPIO pins : PFPin PFPin PFPin PFPin
                            PFPin PFPin */
-  GPIO_InitStruct.Pin = AUX_GPIO_9_Pin|GPIO_PIN_5|AUX_GPIO_11_Pin|AUX_GPIO_12_Pin
+  GPIO_InitStruct.Pin = AUX_GPIO_9_Pin|AUX_GPIO_10_Pin|AUX_GPIO_11_Pin|AUX_GPIO_12_Pin
                           |AUX_GPIO_13_Pin|AUX_GPIO_14_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -204,10 +204,6 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI12_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI12_IRQn);
 
 }
 

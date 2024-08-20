@@ -169,20 +169,6 @@ void DebugMon_Handler(void)
 /******************************************************************************/
 
 /**
-  * @brief This function handles EXTI Line12 interrupt.
-  */
-void EXTI12_IRQHandler(void)
-{
-  /* USER CODE BEGIN EXTI12_IRQn 0 */
-
-  /* USER CODE END EXTI12_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(RTC_INT_A_Pin);
-  /* USER CODE BEGIN EXTI12_IRQn 1 */
-
-  /* USER CODE END EXTI12_IRQn 1 */
-}
-
-/**
   * @brief This function handles TIM6 global interrupt.
   */
 void TIM6_IRQHandler(void)

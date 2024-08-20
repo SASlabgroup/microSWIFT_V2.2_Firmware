@@ -18,6 +18,11 @@ General
 [ ] Make a thread to handle UART console port comms... Will use USART 6, 115200 baud, 8N1
 [ ] Ensure all possible error conditions (including interrupts, default handler, etc) will not
     result in a forever loop -- all unexpected conditions should software reset.    
+    
+****************************************************************************************************
+Control
+****
+[ ] Figure out how to identify first time power on and subsequent power on.
 
 ****************************************************************************************************
 GNSS

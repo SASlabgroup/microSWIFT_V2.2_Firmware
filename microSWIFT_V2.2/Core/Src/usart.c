@@ -351,7 +351,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
   /** Initializes the peripherals clock
   */
     PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_UART5;
-    PeriphClkInit.Uart5ClockSelection = RCC_UART5CLKSOURCE_PCLK1;
+    PeriphClkInit.Uart5ClockSelection = RCC_UART5CLKSOURCE_SYSCLK;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
     {
       Error_Handler();
@@ -422,7 +422,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
   /** Initializes the peripherals clock
   */
     PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2;
-    PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
+    PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_SYSCLK;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
     {
       Error_Handler();
@@ -506,7 +506,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
   /** Initializes the peripherals clock
   */
     PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART6;
-    PeriphClkInit.Usart6ClockSelection = RCC_USART6CLKSOURCE_PCLK1;
+    PeriphClkInit.Usart6ClockSelection = RCC_USART6CLKSOURCE_SYSCLK;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
     {
       Error_Handler();
@@ -521,19 +521,19 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     PF0     ------> USART6_TX
     PC2     ------> USART6_RX
     */
-    GPIO_InitStruct.Pin = GPIO_PIN_0;
+    GPIO_InitStruct.Pin = LOGGER_UART_TX_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF7_USART6;
-    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+    HAL_GPIO_Init(LOGGER_UART_TX_GPIO_Port, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = GPIO_PIN_2;
+    GPIO_InitStruct.Pin = LOGGER_UART_RX_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF7_USART6;
-    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+    HAL_GPIO_Init(LOGGER_UART_RX_GPIO_Port, &GPIO_InitStruct);
 
     /* USART6 interrupt Init */
     HAL_NVIC_SetPriority(USART6_IRQn, 0, 0);
@@ -657,9 +657,9 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
     PF0     ------> USART6_TX
     PC2     ------> USART6_RX
     */
-    HAL_GPIO_DeInit(GPIOF, GPIO_PIN_0);
+    HAL_GPIO_DeInit(LOGGER_UART_TX_GPIO_Port, LOGGER_UART_TX_Pin);
 
-    HAL_GPIO_DeInit(GPIOC, GPIO_PIN_2);
+    HAL_GPIO_DeInit(LOGGER_UART_RX_GPIO_Port, LOGGER_UART_RX_Pin);
 
     /* USART6 interrupt Deinit */
     HAL_NVIC_DisableIRQ(USART6_IRQn);

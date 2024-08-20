@@ -113,8 +113,6 @@ TX_SEMAPHORE gnss_uart_sema;
 TX_SEMAPHORE aux_uart_1_sema;
 TX_SEMAPHORE aux_uart_2_sema;
 TX_SEMAPHORE sd_card_sema;
-// Watchdog refresh semaphore
-TX_SEMAPHORE watchdog_refresh_semaphore;
 // Server/client message queue for RTC (including watchdog function)
 TX_QUEUE rtc_messaging_queue;
 // The data structures for Waves
@@ -165,27 +163,40 @@ TX_BYTE_POOL waves_byte_pool;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
+
+// Threads
+static void rtc_thread_entry ( ULONG thread_input );
+static void control_thread_entry ( ULONG thread_input );
+static void gnss_thread_entry ( ULONG thread_input );
+static void waves_thread_entry ( ULONG thread_input );
+static void iridium_thread_entry ( ULONG thread_input );
+
+#if CT_ENABLED
+static void ct_thread_entry ( ULONG thread_input );
+#endif // #if CT_ENABLED
+
+#if TEMPERATURE_ENABLED
+static void temperature_thread_entry ( ULONG thread_input );
+#endif // #if TEMPERATURE_ENABLED
+
+// Extern functions
 extern void SystemClock_Config ( void );
+
 // Static functions
 static self_test_status_t startup_procedure ( void );
 static self_test_status_t initial_power_on_self_test ( void );
 static void led_sequence ( uint8_t sequence );
 static void jump_to_end_of_window ( ULONG error_bits_to_set );
 static void send_error_message ( ULONG error_flags );
+
 #if CT_ENABLED
 static void jump_to_waves ( void );
 #endif // #if CT_ENABLED
+
 // Externally visible functions
 void shut_it_all_down ( void );
 void register_watchdog_refresh ( void );
 
-#if CT_ENABLED
-void ct_thread_entry ( ULONG thread_input );
-#endif
-
-#if TEMPERATURE_ENABLED
-void temperature_thread_entry ( ULONG thread_input );
-#endif
 /* USER CODE END PFP */
 
 /**
@@ -226,7 +237,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   // Create the rtc thread. VERY_HIGH priority level and no preemption possible, auto-start
   ret = tx_thread_create(&rtc_thread, "rtc thread", rtc_thread_entry, 0, pointer,
                          THREAD_MEDIUM_STACK_SIZE, HIGHEST_PRIORITY, HIGHEST_PRIORITY,
-                         TX_NO_TIME_SLICE, TX_AUTO_START);
+                         TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -389,54 +400,6 @@ void MX_ThreadX_Init ( void )
   /* USER CODE END  Kernel_Start_Error */
 }
 
-/**
- * @brief  App_ThreadX_LowPower_Timer_Setup
- * @param  count : TX timer count
- * @retval None
- */
-void App_ThreadX_LowPower_Timer_Setup ( ULONG count )
-{
-  /* USER CODE BEGIN  App_ThreadX_LowPower_Timer_Setup */
-
-  /* USER CODE END  App_ThreadX_LowPower_Timer_Setup */
-}
-
-/**
- * @brief  App_ThreadX_LowPower_Enter
- * @param  None
- * @retval None
- */
-void App_ThreadX_LowPower_Enter ( void )
-{
-  /* USER CODE BEGIN  App_ThreadX_LowPower_Enter */
-
-  /* USER CODE END  App_ThreadX_LowPower_Enter */
-}
-
-/**
- * @brief  App_ThreadX_LowPower_Exit
- * @param  None
- * @retval None
- */
-void App_ThreadX_LowPower_Exit ( void )
-{
-  /* USER CODE BEGIN  App_ThreadX_LowPower_Exit */
-
-  /* USER CODE END  App_ThreadX_LowPower_Exit */
-}
-
-/**
- * @brief  App_ThreadX_LowPower_Timer_Adjust
- * @param  None
- * @retval Amount of time (in ticks)
- */
-ULONG App_ThreadX_LowPower_Timer_Adjust ( void )
-{
-  /* USER CODE BEGIN  App_ThreadX_LowPower_Timer_Adjust */
-  return 0;
-  /* USER CODE END  App_ThreadX_LowPower_Timer_Adjust */
-}
-
 /* USER CODE BEGIN 1 */
 
 /**
@@ -457,9 +420,10 @@ ULONG App_ThreadX_LowPower_Timer_Adjust ( void )
  * @param  ULONG thread_input - unused
  * @retval void
  */
-void rtc_thread_entry ( ULONG thread_input )
+static void rtc_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
+  TX_THREAD *this_thread = &rtc_thread;
   Ext_RTC rtc;
   rtc_return_code ret;
   UINT tx_ret;
@@ -473,71 +437,69 @@ void rtc_thread_entry ( ULONG thread_input )
     // TODO: set some error flag, inform Control thread somehow
   }
 
+#if WATCHDOG_ENABLED
+  // Initialize the watchdog
+  ret = rtc_server_config_watchdog (WATCHDOG_PERIOD, CONTROL_THREAD_REQUEST_PROCESSED);
+
+  if ( ret != RTC_SUCCESS )
+  {
+    shut_it_all_down ();
+    // Stay stuck here
+    for ( int i = 0; i < 25; i++ )
+    {
+      led_sequence (SELF_TEST_CRITICAL_FAULT);
+    }
+    HAL_NVIC_SystemReset ();
+  }
+#endif
+
   while ( 1 )
   {
-    // Check for a watchdog refresh
-    tx_ret = tx_semaphore_get (&watchdog_refresh_semaphore, TX_NO_WAIT);
-    if ( tx_ret == TX_SUCCESS )
-    {
-      rtc.refresh_watchdog ();
-    }
-
     // See if we have any requests on the queue
-    tx_ret = tx_queue_receive (&rtc_messaging_queue, &req, TX_NO_WAIT);
+    tx_ret = tx_queue_receive (&rtc_messaging_queue, &req, TX_WAIT_FOREVER);
     if ( tx_ret == TX_SUCCESS )
     {
       switch ( req.request )
       {
+        case REFRESH_WATCHDOG:
+          ret = rtc.refresh_watchdog ();
+          break;
+
         case GET_TIME:
-
-          *req.return_code = rtc.get_date_time (&req.input_output_struct->get_set_time.time_struct);
-          (void) tx_event_flags_set (&rtc_complete_flags, req.complete_flag, TX_OR);
-
+          ret = rtc.get_date_time (&req.input_output_struct->get_set_time.time_struct);
           break;
 
         case SET_TIME:
 
-          *req.return_code = rtc.set_date_time (req.input_output_struct->get_set_time.time_struct);
-          (void) tx_event_flags_set (&rtc_complete_flags, req.complete_flag, TX_OR);
-
-          break;
-
-        case CONFIG_WATCHDOG:
-
-          *req.return_code = rtc.config_watchdog (
-              req.input_output_struct->config_watchdog.period_ms);
-          (void) tx_event_flags_set (&rtc_complete_flags, req.complete_flag, TX_OR);
-
+          ret = rtc.set_date_time (req.input_output_struct->get_set_time.time_struct);
           break;
 
         case SET_TIMESTAMP:
-
-          *req.return_code = rtc.set_timestamp (
-              req.input_output_struct->get_set_timestamp.which_timestamp);
-          (void) tx_event_flags_set (&rtc_complete_flags, req.complete_flag, TX_OR);
-
+          ret = rtc.set_timestamp (req.input_output_struct->get_set_timestamp.which_timestamp);
           break;
 
         case GET_TIMESTAMP:
-
-          *req.return_code = rtc.get_timestamp (
-              req.input_output_struct->get_set_timestamp.which_timestamp,
-              &req.input_output_struct->get_set_timestamp.timestamp);
-          (void) tx_event_flags_set (&rtc_complete_flags, req.complete_flag, TX_OR);
-
+          ret = rtc.get_timestamp (req.input_output_struct->get_set_timestamp.which_timestamp,
+                                   &req.input_output_struct->get_set_timestamp.timestamp);
           break;
 
         case SET_ALARM:
-
-          *req.return_code = rtc.set_alarm (req.input_output_struct->set_alarm);
-          (void) tx_event_flags_set (&rtc_complete_flags, req.complete_flag, TX_OR);
+          ret = rtc.set_alarm (req.input_output_struct->set_alarm);
           break;
 
         default:
-
-          // TODO: set some error flag, inform Control thread somehow
+          ret = RTC_PARAMETERS_INVALID;
           break;
       }
+
+      if ( ret != RTC_SUCCESS )
+      {
+        (void) tx_event_flags_set (&ERROR_FLAGS, RTC_ERROR, TX_OR);
+        (void) tx_thread_suspend (this_thread);
+      }
+
+      *req.return_code = ret;
+      (void) tx_event_flags_set (&rtc_complete_flags, req.complete_flag, TX_OR);
     }
 
     tx_thread_sleep (1);
@@ -550,10 +512,11 @@ void rtc_thread_entry ( ULONG thread_input )
  * @param  ULONG thread_input - unused
  * @retval void
  */
-void control_thread_entry ( ULONG thread_input )
+static void control_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   self_test_status_t self_test_status = SELF_TEST_PASSED;
+
   ULONG actual_flags = 0;
   UINT tx_return;
   int fail_counter = 0;
@@ -566,18 +529,9 @@ void control_thread_entry ( ULONG thread_input )
     tests.startup_test (NULL);
   }
 
-#if WATCHDOG_ENABLED
-  if ( rtc_server_config_watchdog (WATCHDOG_PERIOD, CONTROL_THREAD_REQUEST_PROCESSED)
-       != RTC_SUCCESS )
-  {
-    self_test_status = SELF_TEST_CRITICAL_FAULT;
-    return self_test_status;
-  }
-#endif
-
+  // Set the watchdog reset or software reset flags
   reset_reason = HAL_RCC_GetResetSource ();
 
-  // Set the watchdog reset or software reset flags
   if ( reset_reason & RCC_RESET_FLAG_PIN )
   {
     tx_event_flags_set (&error_flags, WATCHDOG_RESET, TX_OR);
@@ -627,7 +581,17 @@ void control_thread_entry ( ULONG thread_input )
 
   battery_init (&battery, device_handles.battery_adc, &thread_control_flags, &error_flags);
 
-  self_test_status = startup_procedure ();
+  // Flash some lights to let the user know its on and working
+  led_sequence (INITIAL_LED_SEQUENCE);
+
+  rf_switch->power_on ();
+
+  register_watchdog_refresh ();
+
+  // Run the self test
+  self_test_status = initial_power_on_self_test ();
+
+  register_watchdog_refresh ();
 
   switch ( self_test_status )
   {
@@ -650,7 +614,7 @@ void control_thread_entry ( ULONG thread_input )
       HAL_NVIC_SystemReset ();
 
     default:
-      // If we got here, there's probably a memory corruption
+      // If we got here, there's probably memory corruption
       shut_it_all_down ();
       // Stay stuck here
       while ( 1 )
@@ -658,6 +622,13 @@ void control_thread_entry ( ULONG thread_input )
         register_watchdog_refresh ();
         led_sequence (SELF_TEST_CRITICAL_FAULT);
       }
+  }
+
+  // Kick off the GNSS thread
+  if ( tx_thread_resume (&gnss_thread) != TX_SUCCESS )
+  {
+    shut_it_all_down ();
+    HAL_NVIC_SystemReset ();
   }
 
 }
@@ -910,7 +881,7 @@ void startup_thread_entry ( ULONG thread_input )
  * @param  ULONG thread_input - unused
  * @retval void
  */
-void gnss_thread_entry ( ULONG thread_input )
+static void gnss_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   gnss_error_code_t gnss_return_code;
@@ -1160,7 +1131,7 @@ void gnss_thread_entry ( ULONG thread_input )
  * @param  ULONG thread_input - unused
  * @retval void
  */
-void ct_thread_entry ( ULONG thread_input )
+static void ct_thread_entry ( ULONG thread_input )
 {
 //      ULONG actual_flags;
   ct_error_code_t ct_return_code;
@@ -1288,7 +1259,7 @@ void ct_thread_entry ( ULONG thread_input )
  * @param  ULONG thread_input - unused
  * @retval void
  */
-void temperature_thread_entry ( ULONG thread_input )
+static void temperature_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   temperature_error_code_t temp_return_code;
@@ -1354,7 +1325,7 @@ void temperature_thread_entry ( ULONG thread_input )
  * @param  ULONG thread_input - unused
  * @retval void
  */
-void waves_thread_entry ( ULONG thread_input )
+static void waves_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   register_watchdog_refresh ();
@@ -1426,7 +1397,7 @@ void waves_thread_entry ( ULONG thread_input )
  * @param  ULONG thread_input - unused
  * @retval void
  */
-void iridium_thread_entry ( ULONG thread_input )
+static void iridium_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   iridium_error_code_t iridium_return_code;
@@ -1597,7 +1568,7 @@ void iridium_thread_entry ( ULONG thread_input )
  * @param  ULONG thread_input - unused
  * @retval void
  */
-void end_of_cycle_thread_entry ( ULONG thread_input )
+static void end_of_cycle_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   RTC_AlarmTypeDef alarm =

@@ -44,6 +44,27 @@
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+enum initialization_signals
+{
+  RTC_INIT_SUCCESS = ((ULONG) 1 << 0),
+  GNSS_INIT_SUCCESS = ((ULONG) 1 << 1),
+  CT_INIT_SUCCESS = ((ULONG) 1 << 2),
+  TEMPERATURE_INIT_SUCCESS = ((ULONG) 1 << 3),
+  TURBIDITY_INIT_SUCCESS = ((ULONG) 1 << 4),
+  LIGHT_INIT_SUCCESS = ((ULONG) 1 << 5),
+  ACCELEROMETER_INIT_SUCCESS = ((ULONG) 1 << 6),
+  AUX_SENSOR_1_INIT_SUCCESS = ((ULONG) 1 << 7),
+  AUX_SENSOR_2_INIT_SUCCESS = ((ULONG) 1 << 8),
+  AUX_SENSOR_3_INIT_SUCCESS = ((ULONG) 1 << 9),
+  AUX_SENSOR_4_INIT_SUCCESS = ((ULONG) 1 << 10)
+};
+
+enum error_flags
+{
+  RTC_ERROR,
+
+};
+
 typedef enum control_flags
 {
   // Ready states
@@ -129,7 +150,6 @@ extern TX_SEMAPHORE gnss_uart_sema;
 extern TX_SEMAPHORE aux_uart_1_sema;
 extern TX_SEMAPHORE aux_uart_2_sema;
 extern TX_SEMAPHORE sd_card_sema;
-extern TX_MUTEX rtc_lock;
 
 typedef struct
 {
@@ -191,16 +211,11 @@ typedef struct
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-UINT App_ThreadX_Init(VOID *memory_ptr);
-void MX_ThreadX_Init(void);
+UINT App_ThreadX_Init ( VOID *memory_ptr );
+void MX_ThreadX_Init ( void );
 
 /* USER CODE BEGIN EFP */
-void MX_ThreadX_Init ( void );
-void rtc_thread_entry ( ULONG thread_input );
-void control_thread_entry ( ULONG thread_input );
-void gnss_thread_entry ( ULONG thread_input );
-void waves_thread_entry ( ULONG thread_input );
-void iridium_thread_entry ( ULONG thread_input );
+
 /* USER CODE END EFP */
 
 /* USER CODE BEGIN 1 */

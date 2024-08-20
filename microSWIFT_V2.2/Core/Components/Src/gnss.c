@@ -666,7 +666,7 @@ static gnss_error_code_t send_config ( uint8_t *config_array, size_t message_siz
 
   // Start with a blank msg buf -- this will short cycle the for loop
   // below if a message was not received
-  memset (self->config_response_buf, 0, CONFIG_BUFFER_SIZE);
+  memset (self->config_response_buf, 0, GNSS_CONFIG_BUFFER_SIZE);
 
   // Send over the configuration settings
   HAL_UART_Transmit_DMA (self->gnss_uart_handle, &(config_array[0]), message_size);
@@ -682,7 +682,7 @@ static gnss_error_code_t send_config ( uint8_t *config_array, size_t message_siz
 
   }
 
-  HAL_UART_Receive_DMA (self->gnss_uart_handle, self->config_response_buf, CONFIG_BUFFER_SIZE);
+  HAL_UART_Receive_DMA (self->gnss_uart_handle, self->config_response_buf, GNSS_CONFIG_BUFFER_SIZE);
 
   // Make sure we receive the response within the right amount of time
   if ( tx_event_flags_get (self->control_flags, GNSS_CONFIG_RECVD, TX_OR_CLEAR, &actual_flags,
@@ -900,7 +900,7 @@ static gnss_error_code_t enable_high_performance_mode ( void )
         tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
 
         // Zero out the config response buffer
-        memset (self->config_response_buf, 0, CONFIG_BUFFER_SIZE);
+        memset (self->config_response_buf, 0, GNSS_CONFIG_BUFFER_SIZE);
         config_step_attempts = 0;
 
         // Now check to see if the changes stuck
@@ -1001,7 +1001,7 @@ static gnss_error_code_t query_high_performance_mode ( void )
   }
 
   // Zero out the config response buffer
-  memset (self->config_response_buf, 0, CONFIG_BUFFER_SIZE);
+  memset (self->config_response_buf, 0, GNSS_CONFIG_BUFFER_SIZE);
   memset (&(payload[0]), 0, UBX_NAV_PVT_PAYLOAD_LENGTH);
 
   // Grab the response (or lack thereof)

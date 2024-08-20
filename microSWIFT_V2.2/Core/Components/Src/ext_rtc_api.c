@@ -19,8 +19,15 @@ void rtc_server_init ( TX_QUEUE *request_queue, TX_SEMAPHORE *watchdog_refresh_s
 
 void rtc_server_refresh_watchdog ( void )
 {
-  // The RTC thread will monitor the semaphore, whenever there is a put, it will get and refresh
-  (void) tx_semaphore_put (self.watchdog_refresh_semaphore);
+  rtc_request_message queue_msg =
+    { 0 };
+
+  queue_msg.request = REFRESH_WATCHDOG;
+  queue_msg.input_output_struct = NULL;
+  queue_msg.complete_flag = 0;
+  queue_msg.return_code = 0;
+
+  (void) tx_queue_send (self.request_queue, &queue_msg, RTC_QUEUE_MAX_WAIT_TICKS);
 }
 
 rtc_return_code rtc_server_get_time ( struct tm *return_time_struct, UINT complete_flag )
@@ -59,33 +66,6 @@ rtc_return_code rtc_server_set_time ( struct tm input_time_struct, UINT complete
 
   queue_msg.request = SET_TIME;
   queue_msg.input_output_struct->get_set_time.time_struct = input_time_struct;
-  queue_msg.complete_flag = complete_flag;
-  queue_msg.return_code = &ret;
-
-  if ( tx_queue_send (self.request_queue, &queue_msg, RTC_QUEUE_MAX_WAIT_TICKS) != TX_SUCCESS )
-  {
-    return RTC_MESSAGE_QUEUE_ERROR;
-  }
-
-  if ( tx_event_flags_get (self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
-  RTC_FLAG_MAX_WAIT_TICKS)
-       != TX_SUCCESS )
-  {
-    return RTC_TIMEOUT;
-  }
-
-  return ret;
-}
-
-rtc_return_code rtc_server_config_watchdog ( uint32_t period_ms, UINT complete_flag )
-{
-  int32_t ret = RTC_SUCCESS;
-  rtc_request_message queue_msg =
-    { 0 };
-  ULONG event_flags;
-
-  queue_msg.request = CONFIG_WATCHDOG;
-  queue_msg.input_output_struct->config_watchdog.period_ms = period_ms;
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 
