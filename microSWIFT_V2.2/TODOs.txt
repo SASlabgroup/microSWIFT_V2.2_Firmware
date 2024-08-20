@@ -81,3 +81,10 @@ ThreadX
 [ ] Figure out how to get threads running concurrently: i.e. CT sampling while GNSS wrapping up
     [ ] Should be easy with control thread
     
+****************************************************************************************************
+Logger
+****
+
+[ ] Initialize in control, set the configuration flag if it is enabled
+[ ] logger functions first check if it is enabled, if not, return immediately
+[ ] must run in a server style thread...

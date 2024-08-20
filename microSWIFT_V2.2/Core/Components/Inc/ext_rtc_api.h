@@ -14,6 +14,7 @@
 #include "limits.h"
 #include "tx_api.h"
 
+#define RTC_QUEUE_LENGTH 16
 #define RTC_QUEUE_MAX_WAIT_TICKS 2
 #define RTC_FLAG_MAX_WAIT_TICKS 5
 
@@ -50,7 +51,8 @@ typedef enum
   LIGHT_REQUEST_PROCESSED = ((ULONG) 1 << 5),
   TURBIDITY_REQUEST_PROCESSED = ((ULONG) 1 << 6),
   IRIDIUM_REQUEST_PROCESSED = ((ULONG) 1 << 7),
-  AUX_PERIPHERAL_1_REQUEST_PROCESSED = ((ULONG) 1 << 8),
+  LOGGER_REQUEST_PROCESSED = ((ULONG) 1 << 8),
+  AUX_PERIPHERAL_1_REQUEST_PROCESSED = ((ULONG) 1 << 9)
 } rtc_complete_flags_t;
 
 // Message struct for GET_TIME request
@@ -76,7 +78,6 @@ typedef struct
 typedef union
 {
   rtc_get_time_t get_set_time;
-  rtc_config_watchdog_t config_watchdog;
   rtc_get_timestamp_t get_set_timestamp;
   rtc_alarm_struct set_alarm;
 } rtc_data_t;

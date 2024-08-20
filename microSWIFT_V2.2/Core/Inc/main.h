@@ -181,6 +181,8 @@ void Error_Handler(void);
 #define CORE_I2C_SDA_GPIO_Port GPIOG
 #define CORE_I2C_SCL_Pin GPIO_PIN_14
 #define CORE_I2C_SCL_GPIO_Port GPIOG
+#define UART_LOGGER_EN_Pin GPIO_PIN_15
+#define UART_LOGGER_EN_GPIO_Port GPIOG
 #define RTC_SPI_CS_Pin GPIO_PIN_6
 #define RTC_SPI_CS_GPIO_Port GPIOB
 #define RF_SWITCH_EN_Pin GPIO_PIN_0
