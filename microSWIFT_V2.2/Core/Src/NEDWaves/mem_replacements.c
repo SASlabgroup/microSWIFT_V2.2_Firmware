@@ -6,75 +6,107 @@
 
 #include "NEDWaves/mem_replacements.h"
 
+static NEDWaves_memory *waves_mem;
 
-TX_BYTE_POOL* memory_pool;
-
-void waves_memory_pool_init(TX_BYTE_POOL* pool)
+bool waves_memory_pool_init ( NEDWaves_memory *waves_mem_ptr,
+                              microSWIFT_configuration *configuration,
+                              VOID *pool_start,
+                              size_t pool_size )
 {
-	memory_pool = pool;
+  waves_mem = waves_mem_ptr;
+
+  waves_mem->init_success = false;
+
+  waves_mem->memory_pool = pool;
+  waves_mem->configuration = configuration;
+
+  ret = tx_byte_pool_create(waves_mem->memory_pool, "waves mem pool", pool_start, pool_size);
+
+  if ( ret == TX_SUCCESS )
+  {
+    waves_mem->north = argInit_1xUnbounded_real32_T (waves_mem->configuration);
+    waves_mem->east = argInit_1xUnbounded_real32_T (waves_mem->configuration);
+    waves_mem->down = argInit_1xUnbounded_real32_T (waves_mem->configuration);
+
+    if ( (waves_mem->north != NULL) && (waves_mem->east != NULL) && (waves_mem->down == NULL) )
+    {
+      waves_mem->init_success = true;
+    }
+  }
+
+  return waves_mem->init_success;
 }
 
-UINT waves_memory_pool_create(VOID* pool_start, size_t pool_size)
+bool waves_memory_pool_delete ()
 {
-	UINT ret = tx_byte_pool_create(memory_pool, "waves mem pool", pool_start, pool_size);
+  UINT ret = tx_byte_pool_delete (waves_mem->memory_pool);
 
-	return ret;
+  return (ret == TX_SUCCESS);
 }
 
-UINT waves_memory_pool_delete()
+bool waves_memory_get_raw_data_pointers ( float *north, float *east, float *down )
 {
-	UINT ret = tx_byte_pool_delete(memory_pool);
+  if ( waves_mem->init_success )
+  {
+    north = waves_mem->north->data;
+    east = waves_mem->east->data;
+    down = waves_mem->down->data;
+  }
+  else
+  {
+    north = NULL;
+    east = NULL;
+    down = NULL;
+  }
 
-	return ret;
+  return waves_mem->init_success;
 }
 
-float* get_waves_float_array(microSWIFT_configuration* config)
+void* malloc_replacement ( size_t size )
 {
-	return (float*) calloc_replacement(config->samples_per_window, sizeof(float));
+  CHAR *pointer = TX_NULL;
+  if ( size > 0 )
+  {
+    UINT ret = tx_byte_allocate (waves_mem->memory_pool, (VOID**) &pointer, (ULONG) size,
+    TX_NO_WAIT);
+    if ( ret != TX_SUCCESS )
+    {
+      return NULL;
+    }
+  }
+  return (void*) pointer;
 }
 
-void* malloc_replacement(size_t size)
+void* calloc_replacement ( size_t num, size_t size )
 {
-	CHAR *pointer = TX_NULL;
-	if (size > 0) {
-		UINT ret = tx_byte_allocate(memory_pool, (VOID**) &pointer, (ULONG)size, TX_NO_WAIT);
-		if (ret != TX_SUCCESS){
-		  return NULL;
-		}
-	}
-	return (void*)pointer;
+  CHAR *pointer = TX_NULL;
+  if ( size > 0 )
+  {
+    UINT ret = tx_byte_allocate (waves_mem->memory_pool, (VOID**) &pointer, (ULONG) (num * size),
+    TX_NO_WAIT);
+    if ( ret != TX_SUCCESS )
+    {
+      return NULL;
+    }
+
+    memset (pointer, 0, (num * size));
+  }
+  return (void*) pointer;
 }
 
-
-void* calloc_replacement(size_t num, size_t size)
+void free_replacement ( VOID *ptr )
 {
-	CHAR *pointer = TX_NULL;
-	if (size > 0) {
-		UINT ret = tx_byte_allocate(memory_pool, (VOID**) &pointer, (ULONG)(num * size), TX_NO_WAIT);
-		if (ret != TX_SUCCESS){
-		  return NULL;
-		}
-
-		memset(pointer, 0, (num * size));
-	}
-	return (void*)pointer;
+  tx_byte_release (ptr);
 }
 
-
-void free_replacement(VOID* ptr)
+emxArray_real32_T* argInit_1xUnbounded_real32_T ( microSWIFT_configuration *config )
 {
-	tx_byte_release(ptr);
+  emxArray_real32_T *result;
+  result = emxCreate_real32_T (1, config->samples_per_window);
+  return result;
 }
 
-
-emxArray_real32_T *argInit_1xUnbounded_real32_T(microSWIFT_configuration* config)
-{
-	emxArray_real32_T *result;
-	result = emxCreate_real32_T(1, config->samples_per_window);
-	return result;
-}
-
-double argInit_real_T(void)
+double argInit_real_T ( void )
 {
   return 0.0;
 }

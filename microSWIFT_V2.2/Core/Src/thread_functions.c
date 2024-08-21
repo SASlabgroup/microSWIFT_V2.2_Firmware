@@ -4,8 +4,42 @@
  *  Created on: Aug 20, 2024
  *      Author: philbush
  */
+
+#include "tx_api.h"
+#include "gnss.h"
+#include "ct_sensor.h"
+#include "iridium.h"
+#include "temp_sensor.h"
+
 self_test_status_t startup_procedure ( void )
 {
+
+  /*
+   *
+   *
+   *
+   *
+   *
+   *
+   *
+   *
+   *
+   * Initial LED Sequence
+   *
+   * Launch FileX, wait until it reports success
+   * Get the sample window counter, any other bookkeeping
+   * Launch waves thread, wait until it reports success
+   * Init RF switch, port to GNSS
+   * Init battery, take reading, shutdown
+   * Launch GNSS thread
+   * Launch Iridium
+   * Launch remaining threads based on configuration
+   *
+   *
+   * Collect the init success flags as TX_AND(CLEAR?) with a wait of some predetermined tick count
+   * return self test status
+   */
+
   UINT tx_return;
 
   tx_return = tx_event_flags_get (&thread_control_flags, FULL_CYCLE_COMPLETE, TX_OR_CLEAR,
@@ -368,6 +402,52 @@ self_test_status_t initial_power_on_self_test ( void )
   return return_code;
 }
 
+bool gnss_apply_config ( GNSS *gnss )
+{
+  int fail_counter = 0;
+  gnss_return_code_t gnss_return_code;
+  // turn on the GNSS FET
+  gnss->on_off (GPIO_PIN_SET);
+  // Wait for boot
+  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+
+  // Send the configuration commands to the GNSS unit.
+  while ( fail_counter < MAX_SELF_TEST_RETRIES )
+  {
+
+    register_watchdog_refresh ();
+
+    gnss_return_code = gnss->config ();
+    if ( gnss_return_code != GNSS_SUCCESS )
+    {
+      // Config didn't go through, try again
+      fail_counter++;
+
+    }
+    else
+    {
+
+      break;
+    }
+  }
+
+  if ( fail_counter == MAX_SELF_TEST_RETRIES )
+  {
+
+    return_code = SELF_TEST_CRITICAL_FAULT;
+    tx_event_flags_set (&error_flags, GNSS_ERROR, TX_OR);
+    return return_code;
+  }
+}
+
+bool ct_init_and_self_test ( CT *ct );
+bool temperature_init_and_self_test ( Temperature *temperature );
+bool turbidity_init_and_self_test ( void );
+bool light_init_and_self_test ( void );
+bool accelerometer_init_and_self_test ( void );
+bool waves_thread_init ( void );
+bool iridium_init_and_config ( Iridium *iridium );
+
 /**
  * @brief  Static function to flash a sequence of onboard LEDs to indicate
  * success or failure of self-test.
@@ -386,13 +466,13 @@ static void led_sequence ( led_sequence_t sequence )
     case INITIAL_LED_SEQUENCE:
       for ( int i = 0; i < 10; i++ )
       {
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_RED_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin (EXT_LED_RED_GPIO_Port, EXT_LED_RED_Pin, GPIO_PIN_SET);
         tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_GREEN_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin (EXT_LED_GREEN_GPIO_Port, EXT_LED_GREEN_Pin, GPIO_PIN_SET);
         tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_RED_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin (EXT_LED_RED_GPIO_Port, EXT_LED_RED_Pin, GPIO_PIN_RESET);
         tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_GREEN_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin (EXT_LED_GREEN_GPIO_Port, EXT_LED_GREEN_Pin, GPIO_PIN_RESET);
         tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
       }
       break;
@@ -400,9 +480,9 @@ static void led_sequence ( led_sequence_t sequence )
     case TEST_PASSED_LED_SEQUENCE:
       for ( int i = 0; i < 5; i++ )
       {
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_GREEN_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin (EXT_LED_GREEN_GPIO_Port, EXT_LED_GREEN_Pin, GPIO_PIN_RESET);
         tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_GREEN_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin (EXT_LED_GREEN_GPIO_Port, EXT_LED_GREEN_Pin, GPIO_PIN_SET);
         tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
       }
       break;
@@ -410,9 +490,9 @@ static void led_sequence ( led_sequence_t sequence )
     case TEST_NON_CRITICAL_FAULT_LED_SEQUENCE:
       for ( int i = 0; i < 20; i++ )
       {
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_GREEN_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin (EXT_LED_GREEN_GPIO_Port, EXT_LED_GREEN_Pin, GPIO_PIN_RESET);
         tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_GREEN_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin (EXT_LED_GREEN_GPIO_Port, EXT_LED_GREEN_Pin, GPIO_PIN_SET);
         tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
       }
       break;
@@ -420,9 +500,9 @@ static void led_sequence ( led_sequence_t sequence )
     case TEST_CRITICAL_FAULT_LED_SEQUENCE:
       for ( int i = 0; i < 10; i++ )
       {
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_RED_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin (EXT_LED_RED_GPIO_Port, EXT_LED_RED_Pin, GPIO_PIN_RESET);
         tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 2);
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_RED_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin (EXT_LED_RED_GPIO_Port, EXT_LED_RED_Pin, GPIO_PIN_SET);
         tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 2);
       }
       break;
@@ -557,8 +637,8 @@ static void send_error_message ( ULONG error_flags )
 
   if ( error_flags & GNSS_RESOLUTION_ERROR )
   {
-    if ( (string_ptr - &(error_message[0])) + strlen (gnss_resolution_error)
-         <= ERROR_MESSAGE_MAX_LENGTH )
+    if ( (string_ptr - &(error_message[0]))
+         + strlen (gnss_resolution_error) <= ERROR_MESSAGE_MAX_LENGTH )
     {
       memcpy (string_ptr, gnss_resolution_error, strlen (gnss_resolution_error));
       string_ptr += strlen (gnss_resolution_error);
@@ -567,8 +647,8 @@ static void send_error_message ( ULONG error_flags )
 
   if ( error_flags & SAMPLE_WINDOW_ERROR )
   {
-    if ( (string_ptr - &(error_message[0])) + strlen (sample_window_error)
-         <= ERROR_MESSAGE_MAX_LENGTH )
+    if ( (string_ptr - &(error_message[0]))
+         + strlen (sample_window_error) <= ERROR_MESSAGE_MAX_LENGTH )
     {
       memcpy (string_ptr, sample_window_error, strlen (sample_window_error));
       string_ptr += strlen (sample_window_error);
@@ -577,8 +657,8 @@ static void send_error_message ( ULONG error_flags )
 
   if ( error_flags & MEMORY_CORRUPTION_ERROR )
   {
-    if ( (string_ptr - &(error_message[0])) + strlen (memory_corruption_error)
-         <= ERROR_MESSAGE_MAX_LENGTH )
+    if ( (string_ptr - &(error_message[0]))
+         + strlen (memory_corruption_error) <= ERROR_MESSAGE_MAX_LENGTH )
     {
       memcpy (string_ptr, memory_corruption_error, strlen (memory_corruption_error));
       string_ptr += strlen (memory_corruption_error);
@@ -587,8 +667,8 @@ static void send_error_message ( ULONG error_flags )
 
   if ( error_flags & MEMORY_ALLOC_ERROR )
   {
-    if ( (string_ptr - &(error_message[0])) + strlen (memory_alloc_error)
-         <= ERROR_MESSAGE_MAX_LENGTH )
+    if ( (string_ptr - &(error_message[0]))
+         + strlen (memory_alloc_error) <= ERROR_MESSAGE_MAX_LENGTH )
     {
       memcpy (string_ptr, memory_alloc_error, strlen (memory_alloc_error));
       string_ptr += strlen (memory_alloc_error);
@@ -633,8 +713,8 @@ static void send_error_message ( ULONG error_flags )
 
   if ( error_flags & FLASH_OPERATION_UNKNOWN_ERROR )
   {
-    if ( (string_ptr - &(error_message[0])) + strlen (flash_unknown_error)
-         <= ERROR_MESSAGE_MAX_LENGTH )
+    if ( (string_ptr - &(error_message[0]))
+         + strlen (flash_unknown_error) <= ERROR_MESSAGE_MAX_LENGTH )
     {
       memcpy (string_ptr, flash_unknown_error, strlen (flash_unknown_error));
       string_ptr += strlen (flash_unknown_error);
@@ -643,8 +723,8 @@ static void send_error_message ( ULONG error_flags )
 
   if ( error_flags & FLASH_OPERATION_STORAGE_FULL )
   {
-    if ( (string_ptr - &(error_message[0])) + strlen (flash_storage_full)
-         <= ERROR_MESSAGE_MAX_LENGTH )
+    if ( (string_ptr - &(error_message[0]))
+         + strlen (flash_storage_full) <= ERROR_MESSAGE_MAX_LENGTH )
     {
       memcpy (string_ptr, flash_storage_full, strlen (flash_storage_full));
       string_ptr += strlen (flash_storage_full);
@@ -653,8 +733,7 @@ static void send_error_message ( ULONG error_flags )
 
   if ( error_flags & FLASH_OPERATION_ERASE_ERROR )
   {
-    if ( (string_ptr - &(error_message[0])) + strlen (flash_erase_error)
-         <= ERROR_MESSAGE_MAX_LENGTH )
+    if ( (string_ptr - &(error_message[0])) + strlen (flash_erase_error) <= ERROR_MESSAGE_MAX_LENGTH )
     {
       memcpy (string_ptr, flash_erase_error, strlen (flash_erase_error));
       string_ptr += strlen (flash_erase_error);
@@ -663,8 +742,8 @@ static void send_error_message ( ULONG error_flags )
 
   if ( error_flags & FLASH_OPERATION_PROGRAM_ERROR )
   {
-    if ( (string_ptr - &(error_message[0])) + strlen (flash_program_error)
-         <= ERROR_MESSAGE_MAX_LENGTH )
+    if ( (string_ptr - &(error_message[0]))
+         + strlen (flash_program_error) <= ERROR_MESSAGE_MAX_LENGTH )
     {
       memcpy (string_ptr, flash_program_error, strlen (flash_program_error));
       string_ptr += strlen (flash_program_error);

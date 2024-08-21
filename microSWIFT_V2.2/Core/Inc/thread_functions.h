@@ -8,8 +8,36 @@
 #ifndef INC_THREAD_FUNCTIONS_H_
 #define INC_THREAD_FUNCTIONS_H_
 
+#include "stdbool.h"
+
+typedef enum led_sequence
+{
+  INITIAL_LED_SEQUENCE = 1,
+  TEST_PASSED_LED_SEQUENCE = 2,
+  TEST_NON_CRITICAL_FAULT_LED_SEQUENCE = 3,
+  TEST_CRITICAL_FAULT_LED_SEQUENCE = 4
+} led_sequence_t;
+
+RTC_INIT_SUCCESS = ((ULONG) 1 << 0), GNSS_INIT_SUCCESS = ((ULONG) 1 << 1), CT_INIT_SUCCESS =
+    ((ULONG) 1 << 2), TEMPERATURE_INIT_SUCCESS = ((ULONG) 1 << 3), TURBIDITY_INIT_SUCCESS =
+    ((ULONG) 1 << 4), LIGHT_INIT_SUCCESS = ((ULONG) 1 << 5), ACCELEROMETER_INIT_SUCCESS = ((ULONG) 1
+                                                                                           << 6),
+    AUX_SENSOR_1_INIT_SUCCESS = ((ULONG) 1 << 7), AUX_SENSOR_2_INIT_SUCCESS = ((ULONG) 1 << 8),
+    AUX_SENSOR_3_INIT_SUCCESS = ((ULONG) 1 << 9), AUX_SENSOR_4_INIT_SUCCESS = ((ULONG) 1 << 10),
+    WAVES_THREAD_INIT_SUCCESS = ((ULONG) 1 << 11), IRIDIUM_INIT_SUCCESS = ((ULONG) 1 << 12)
+
 self_test_status_t startup_procedure ( void );
 self_test_status_t initial_power_on_self_test ( void );
+
+bool gnss_apply_config ( GNSS *gnss );
+bool ct_init_and_self_test ( CT *ct );
+bool temperature_init_and_self_test ( Temperature *temperature );
+bool turbidity_init_and_self_test ( void );
+bool light_init_and_self_test ( void );
+bool accelerometer_init_and_self_test ( void );
+bool waves_thread_init ( void );
+bool iridium_init_and_config ( Iridium *iridium );
+
 void led_sequence ( uint8_t sequence );
 void jump_to_end_of_window ( ULONG error_bits_to_set );
 void jump_to_waves ( void );

@@ -12,6 +12,7 @@ General
 [ ] Redo all GPIO bare pin calls -- FET pins, etc -- to use GPIO functions in gpio.c. Make sure to
     pass in GPIO pin/port definitions and include them in the structs.
 [ ] Figure out how to disable watchdog in debug mode
+	[ ] Likely just adjust the watchdog period to be very long
 [ ] Change end of cycle sleep to shutdown mode, wakeup on int <a,b> from RTC
 [ ] Make sure everything sticks to the principle that there are no infinite loops
 [ ] Ditch watchdog hour timer and all that baggage
@@ -25,7 +26,7 @@ Control
 ****
 [ ] Figure out how to identify first time power on and subsequent power on.
 [ ] Implement subsequent power on fasttrack
-[ ] Consider wrapping the initialization of north, east, down arrays into mem_replacements.c and
+[x] Consider wrapping the initialization of north, east, down arrays into mem_replacements.c and
     provide get/set functions for passing to GNSS and waves
 
 ****************************************************************************************************

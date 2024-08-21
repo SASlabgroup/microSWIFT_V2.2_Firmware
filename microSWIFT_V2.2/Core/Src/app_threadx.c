@@ -136,10 +136,6 @@ TX_SEMAPHORE aux_uart_2_sema;
 // Server/client message queue for RTC (including watchdog function)
 TX_QUEUE rtc_messaging_queue;
 TX_QUEUE logger_message_queue;
-// The data structures for Waves
-emxArray_real32_T *north;
-emxArray_real32_T *east;
-emxArray_real32_T *down;
 // Messages that failed to send are stored here
 Iridium_message_storage sbd_message_queue;
 
@@ -1017,6 +1013,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   uint8_t ubx_DMA_message_buf[UBX_MESSAGE_SIZE * 2];
   uint8_t ubx_message_process_buf[UBX_MESSAGE_SIZE * 2];
   uint8_t gnss_config_response_buf[GNSS_CONFIG_BUFFER_SIZE];
+  float *north, *east, *down;
 
   gnss_error_code_t gnss_return_code;
   int number_of_no_sample_errors = 0;
@@ -1033,15 +1030,24 @@ static void gnss_thread_entry ( ULONG thread_input )
                                    + 2;
   int32_t gnss_max_acq_time = 0;
 
+  // Make sure the waves thread has initialized properly before proceeding
+  while ( 1 )
+  {
+    if ( waves_memory_get_raw_data_pointers (north, east, down) )
+    {
+      break;
+    }
+  }
+
   gnss_init (&gnss, &configuration, device_handles.gnss_uart_handle,
              device_handles.gnss_uart_rx_dma_handle, &thread_control_flags, &error_flags,
              device_handles.gnss_minutes_timer, &(ubx_message_process_buf[0]),
-             &(gnss_config_response_buf[0]), north->data, east->data, down->data);
+             &(gnss_config_response_buf[0]), north, east, down);
 
   register_watchdog_refresh ();
 
-//
-// Run tests if needed
+  //
+  // Run tests if needed
   if ( tests.gnss_thread_test != NULL )
   {
     tests.gnss_thread_test (NULL);
@@ -1049,17 +1055,14 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   register_watchdog_refresh ();
 
-// Calculate the max acq time if we're running multiple windows per hour
+  // Calculate the max acquisition time if we're running multiple windows per hour
   if ( configuration.windows_per_hour > 1 )
   {
-
     // If its the first sample widnow after a power on, give more time, else
     // calculate the amount of time
     if ( sample_window_counter == 0 )
     {
-
       gnss_max_acq_time = configuration.gnss_max_acquisition_wait_time;
-
     }
     else
     {
@@ -1071,13 +1074,11 @@ static void gnss_thread_entry ( ULONG thread_input )
   }
   else
   {
-
     // Only 1 sample window per hour
     gnss_max_acq_time = configuration.gnss_max_acquisition_wait_time;
-
   }
 
-// Ensure we have valid settings such that gnss_max_acq_time if a positive value
+  // Ensure we have valid settings such that gnss_max_acq_time if a positive value
   while ( 1 >= gnss_max_acq_time )
   {
     // The watchdog will initiate a restart after it's window runs out
@@ -1086,7 +1087,7 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   register_watchdog_refresh ();
 
-// Grab the RF switch
+  // Grab the RF switch
   rf_switch->set_gnss_port ();
 
 // Start the timer for resolution stages
@@ -1519,22 +1520,19 @@ static void waves_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = &waves_thread;
+  NEDWaves_memory waves_mem;
 
-  waves_memory_pool_init (&waves_byte_pool);
-
-  if ( waves_memory_pool_create (&(waves_byte_pool_buffer[0]), WAVES_MEM_POOL_SIZE) != TX_SUCCESS )
+  if ( !waves_memory_pool_init (&waves_mem, &configuration, &(waves_byte_pool_buffer[0]),
+  WAVES_MEM_POOL_SIZE) )
   {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
+    uart_logger_log_line ("NED Waves memory pool failed to initialize.");
+    tx_thread_suspend (this_thread);
   }
 
-  // These structs are being allocated to the waves_byte_pool, and have no overlap with tx_app_byte_pool
-  // Each struct has a float array written to by GNSS. These are freed after processing in waves thread.
-  north = argInit_1xUnbounded_real32_T (&configuration);
-  east = argInit_1xUnbounded_real32_T (&configuration);
-  down = argInit_1xUnbounded_real32_T (&configuration);
-
   register_watchdog_refresh ();
+
+  (void) tx_event_flags_set (&error_flags, WAVES_THREAD_INIT_SUCCESS, TX_OR);
+  uart_logger_log_line ("NED Waves initialization successful.");
 
   //
   // Run tests if needed

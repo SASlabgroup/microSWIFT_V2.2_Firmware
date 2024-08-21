@@ -56,7 +56,9 @@ enum initialization_signals
   AUX_SENSOR_1_INIT_SUCCESS = ((ULONG) 1 << 7),
   AUX_SENSOR_2_INIT_SUCCESS = ((ULONG) 1 << 8),
   AUX_SENSOR_3_INIT_SUCCESS = ((ULONG) 1 << 9),
-  AUX_SENSOR_4_INIT_SUCCESS = ((ULONG) 1 << 10)
+  AUX_SENSOR_4_INIT_SUCCESS = ((ULONG) 1 << 10),
+  WAVES_THREAD_INIT_SUCCESS = ((ULONG) 1 << 11),
+  IRIDIUM_INIT_SUCCESS = ((ULONG) 1 << 12)
 };
 
 typedef enum control_flags
@@ -116,14 +118,6 @@ typedef enum error_flags
   FLASH_OPERATION_PROGRAM_ERROR = 1 << 21,
   TEMPERATURE_ERROR = 1 << 22
 } error_flags_t;
-
-typedef enum led_sequence
-{
-  INITIAL_LED_SEQUENCE = 1,
-  TEST_PASSED_LED_SEQUENCE = 2,
-  TEST_NON_CRITICAL_FAULT_LED_SEQUENCE = 3,
-  TEST_CRITICAL_FAULT_LED_SEQUENCE = 4
-} led_sequence_t;
 
 typedef enum self_test_status
 {
