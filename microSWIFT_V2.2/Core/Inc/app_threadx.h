@@ -113,13 +113,6 @@ typedef enum error_flags
   GNSS_SAMPLE_WINDOW_TIMEOUT = ((ULONG) 1 << 15)
 } error_flags_t;
 
-typedef enum self_test_status
-{
-  SELF_TEST_PASSED = 2,
-  SELF_TEST_NON_CRITICAL_FAULT = 3,
-  SELF_TEST_CRITICAL_FAULT = 4
-} self_test_status_t;
-
 extern TX_SEMAPHORE ext_rtc_spi_sema;
 extern TX_SEMAPHORE aux_spi_1_spi_sema;
 extern TX_SEMAPHORE aux_spi_2_spi_sema;

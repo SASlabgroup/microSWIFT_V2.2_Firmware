@@ -47,7 +47,6 @@ static gnss_error_code_t query_high_performance_mode ( void );
 static void get_checksum ( uint8_t *ck_a, uint8_t *ck_b, uint8_t *buffer, uint32_t num_bytes )__attribute__((unused));
 static time_t get_timestamp ( void );
 static void reset_struct_fields ( void );
-// GNSS DMA circular mode callback
 static gnss_error_code_t start_GNSS_UART_DMA ( uint8_t *buffer, size_t buffer_size );
 
 /**

@@ -5,6 +5,8 @@
  *      Author: philbush
  */
 
+#include "thread_functions.h"
+#include "stdbool.h"
 #include "tx_api.h"
 #include "main.h"
 #include "gnss.h"
@@ -16,7 +18,7 @@
 #include "accelerometer_sensor.h"
 #include "iridium.h"
 
-self_test_status_t startup_procedure ( void )
+bool startup_procedure ( void )
 {
 
   /*
@@ -446,6 +448,18 @@ bool is_first_sample_window ( void )
   return true;
 }
 
+ULONG get_current_flags ( TX_EVENT_FLAGS_GROUP *event_flags )
+{
+  ULONG current_flags = 0;
+  (void) tx_event_flags_get (event_flags, ALL_EVENT_FLAGS, TX_OR, &current_flags, TX_NO_WAIT);
+  return current_flags;
+}
+void clear_event_flags ( TX_EVENT_FLAGS_GROUP *event_flags )
+{
+  ULONG current_flags = 0;
+  (void) tx_event_flags_get (event_flags, ALL_EVENT_FLAGS, TX_OR_CLEAR, &current_flags, TX_NO_WAIT);
+}
+
 /**
  * @brief  Static function to flash a sequence of onboard LEDs to indicate
  * success or failure of self-test.
@@ -485,17 +499,7 @@ static void led_sequence ( led_sequence_t sequence )
       }
       break;
 
-    case TEST_NON_CRITICAL_FAULT_LED_SEQUENCE:
-      for ( int i = 0; i < 20; i++ )
-      {
-        HAL_GPIO_WritePin (EXT_LED_GREEN_GPIO_Port, EXT_LED_GREEN_Pin, GPIO_PIN_RESET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-        HAL_GPIO_WritePin (EXT_LED_GREEN_GPIO_Port, EXT_LED_GREEN_Pin, GPIO_PIN_SET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-      }
-      break;
-
-    case TEST_CRITICAL_FAULT_LED_SEQUENCE:
+    case TEST_FAILED_LED_SEQUENCE:
       for ( int i = 0; i < 10; i++ )
       {
         HAL_GPIO_WritePin (EXT_LED_RED_GPIO_Port, EXT_LED_RED_Pin, GPIO_PIN_RESET);
@@ -560,7 +564,7 @@ void jump_to_end_of_window ( ULONG error_bits_to_set )
 static void jump_to_waves ( void )
 {
   ct->on_off (GPIO_PIN_RESET);
-  // Deinit UART and DMA to prevent spurious interrupts
+// Deinit UART and DMA to prevent spurious interrupts
   HAL_UART_DeInit (ct->ct_uart_handle);
   HAL_DMA_DeInit (ct->ct_dma_handle);
 
