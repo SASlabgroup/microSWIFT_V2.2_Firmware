@@ -12,6 +12,7 @@
 #include "tx_api.h"
 #include "basic_stack.h"
 #include "stdarg.h"
+#include "stdbool.h"
 
 #define LOG_QUEUE_LENGTH 16
 
@@ -36,10 +37,13 @@ typedef struct
   TX_QUEUE *msg_que;
   // UART handle
   UART_HandleTypeDef *uart;
-  void (*send_log_line) ( void );
+  void (*send_log_line) ( log_line_buf *buf, size_t strlen );
+  void (*return_line_buffer) ( log_line_buf *buffer );
+  bool logger_enabled;
 } uart_logger;
 
-void uart_logger_init ( uart_logger logger, basic_stack_handle buffer_Stack, uint8_t *stack_mem,
+void uart_logger_init ( uart_logger *logger, basic_stack_handle buffer_stack, uint8_t *stack_mem,
                         TX_QUEUE *msg_que, UART_HandleTypeDef *uart_handle );
+void uart_logger_log_line ( const char *fmt, ... );
 
 #endif /* COMPONENTS_INC_LOGGER_H_ */

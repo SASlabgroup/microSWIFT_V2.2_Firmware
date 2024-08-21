@@ -71,9 +71,6 @@
 
 #define TOTAL_TEMPERATURE_SAMPLES 10
 
-// If there is a logging SD card
-#define SD_CARD_ENABLED false
-
 #define WATCHDOG_ENABLED true
 
 #define WATCHDOG_PERIOD 60000 // 1 min (in ms)

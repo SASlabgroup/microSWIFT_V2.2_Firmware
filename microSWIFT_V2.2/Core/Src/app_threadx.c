@@ -86,6 +86,8 @@ typedef enum thread_priorities
 microSWIFT_configuration configuration;
 // The SBD message we'll assemble
 sbd_message_type_52 sbd_message;
+// Handles for all the STM32 peripherals
+Device_Handles device_handles;
 // The primary byte pool from which all memory is allocated from
 TX_BYTE_POOL *byte_pool;
 // Our threads
@@ -96,6 +98,10 @@ TX_THREAD gnss_thread;
 TX_THREAD imu_thread;
 TX_THREAD waves_thread;
 TX_THREAD iridium_thread;
+TX_THREAD ct_thread;
+TX_THREAD temperature_thread;
+// Used to track initialization status of threads and components
+TX_EVENT_FLAGS_GROUP initialization_flags;
 // We'll use flags to dictate control flow between the threads
 TX_EVENT_FLAGS_GROUP thread_control_flags;
 // Flags for errors
@@ -121,47 +127,8 @@ TX_QUEUE logger_message_queue;
 emxArray_real32_T *north;
 emxArray_real32_T *east;
 emxArray_real32_T *down;
-// The primary DMA buffer for GNSS UBX messages
-uint8_t ubx_DMA_message_buf[UBX_MESSAGE_SIZE * 2];
-// Buffer for messages ready to process
-uint8_t ubx_message_process_buf[UBX_MESSAGE_SIZE * 2];
-// The configuration response buffer for GNSS
-uint8_t gnss_config_response_buf[GNSS_CONFIG_BUFFER_SIZE];
-// Iridium buffers
-uint8_t iridium_response_message[IRIDIUM_MAX_RESPONSE_SIZE];
-uint8_t iridium_error_message[IRIDIUM_ERROR_MESSAGE_PAYLOAD_SIZE + IRIDIUM_CHECKSUM_LENGTH + 64];
-// Logger stack buffer
-uint8_t logger_stack_buffer[sizeof(log_line_buf) * LOG_QUEUE_LENGTH];
-basic_stack_t logger_stack;
 // Messages that failed to send are stored here
 Iridium_message_storage sbd_message_queue;
-// Count the sample windows --> stored in NO_INIT RAM
-uint32_t sample_window_counter;
-// Structs
-GNSS gnss;
-Iridium iridium;
-RF_Switch rf_switch;
-Battery battery;
-uart_logger logger;
-// Handles for all the STM32 peripherals
-Device_Handles device_handles;
-
-// Only included if there is a CT sensor
-#if CT_ENABLED
-
-TX_THREAD ct_thread;
-CT ct;
-CHAR ct_data[CT_DATA_ARRAY_SIZE];
-ct_samples ct_samples_buf[TOTAL_CT_SAMPLES];
-
-#endif
-// Only if a temperature sensor is present
-#if TEMPERATURE_ENABLED
-
-Temperature temperature;
-TX_THREAD temperature_thread;
-
-#endif
 
 __ALIGN_BEGIN UCHAR waves_byte_pool_buffer[WAVES_MEM_POOL_SIZE] __ALIGN_END;
 TX_BYTE_POOL waves_byte_pool;
@@ -207,11 +174,11 @@ void register_watchdog_refresh ( void );
 /* USER CODE END PFP */
 
 /**
-  * @brief  Application ThreadX Initialization.
-  * @param memory_ptr: memory pointer
-  * @retval int
-  */
-UINT App_ThreadX_Init(VOID *memory_ptr)
+ * @brief  Application ThreadX Initialization.
+ * @param memory_ptr: memory pointer
+ * @retval int
+ */
+UINT App_ThreadX_Init ( VOID *memory_ptr )
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -219,139 +186,134 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   CHAR *pointer = TX_NULL;
   byte_pool = memory_ptr;
 
-  /***************************************************************************************************
-   ************************************** Threads *****************************************************
-   ***************************************************************************************************/
+  /************************************************************************************************
+   ************************************** Threads *************************************************
+   ************************************************************************************************/
   //
   // Allocate stack for the control thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, THREAD_XXL_STACK_SIZE, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, 8192, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the control thread. VERY_HIGH priority level and no preemption possible
-  ret = tx_thread_create(&control_thread, "control thread", control_thread_entry, 0, pointer,
-                         THREAD_XXL_STACK_SIZE, VERY_HIGH_PRIORITY, HIGHEST_PRIORITY,
-                         TX_NO_TIME_SLICE, TX_AUTO_START);
+  ret = tx_thread_create(&control_thread, "control thread", control_thread_entry, 0, pointer, 8192,
+                         VERY_HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   //
   // Allocate stack for the rtc thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, THREAD_MEDIUM_STACK_SIZE, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, 1024, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the rtc thread. HIGHEST priority level and no preemption possible
-  ret = tx_thread_create(&rtc_thread, "rtc thread", rtc_thread_entry, 0, pointer,
-                         THREAD_MEDIUM_STACK_SIZE, HIGHEST_PRIORITY, HIGHEST_PRIORITY,
-                         TX_NO_TIME_SLICE, TX_DONT_START);
+  ret = tx_thread_create(&rtc_thread, "rtc thread", rtc_thread_entry, 0, pointer, 1024,
+                         HIGHEST_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   //
   // Allocate stack for the logger thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, THREAD_MEDIUM_STACK_SIZE, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, 6144,
+  TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the logger thread. Low priority priority level and no preemption possible
-  ret = tx_thread_create(&logger_thread, "logger thread", logger_thread_entry, 0, pointer,
-                         THREAD_MEDIUM_STACK_SIZE, LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
-                         TX_DONT_START);
+  ret = tx_thread_create(&logger_thread, "logger thread", logger_thread_entry, 0, pointer, 6144,
+                         LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   //
   // Allocate stack for the gnss thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, THREAD_EXTRA_LARGE_STACK_SIZE, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, 4096, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the gnss thread. VERY_HIGH priority, no preemption-threshold
-  ret = tx_thread_create(&gnss_thread, "gnss thread", gnss_thread_entry, 0, pointer,
-                         THREAD_EXTRA_LARGE_STACK_SIZE, MID_PRIORITY, HIGHEST_PRIORITY,
-                         TX_NO_TIME_SLICE, TX_DONT_START);
+  ret = tx_thread_create(&gnss_thread, "gnss thread", gnss_thread_entry, 0, pointer, 4096,
+                         MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   //
   // Allocate stack for the waves thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, THREAD_XXL_STACK_SIZE, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, 8192, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the waves thread. MID priority, no preemption-threshold
-  ret = tx_thread_create(&waves_thread, "waves thread", waves_thread_entry, 0, pointer,
-                         THREAD_XXL_STACK_SIZE, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
-                         TX_DONT_START);
+  ret = tx_thread_create(&waves_thread, "waves thread", waves_thread_entry, 0, pointer, 8192,
+                         MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   //
   // Allocate stack for the Iridium thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, THREAD_EXTRA_LARGE_STACK_SIZE, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, 4096, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the Iridium thread. VERY_HIGH priority, no preemption-threshold
-  ret = tx_thread_create(&iridium_thread, "iridium thread", iridium_thread_entry, 0, pointer,
-                         THREAD_EXTRA_LARGE_STACK_SIZE, MID_PRIORITY, HIGHEST_PRIORITY,
-                         TX_NO_TIME_SLICE, TX_DONT_START);
+  ret = tx_thread_create(&iridium_thread, "iridium thread", iridium_thread_entry, 0, pointer, 4096,
+                         MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
-
-#if TEMPERATURE_ENABLED
   //
   // Allocate stack for the temperature thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, THREAD_LARGE_STACK_SIZE, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, 1024, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the temperature thread. VERY_HIGH priority, no preemption-threshold
   ret = tx_thread_create(&temperature_thread, "temperature thread", temperature_thread_entry, 0,
-                         pointer, THREAD_LARGE_STACK_SIZE, HIGH_PRIORITY, HIGHEST_PRIORITY,
-                         TX_NO_TIME_SLICE, TX_DONT_START);
+                         pointer, 1024, HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
+                         TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
-#endif
-
-#if CT_ENABLED
   //
   // Allocate stack for the CT thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, THREAD_EXTRA_LARGE_STACK_SIZE, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, 2048, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the CT thread. VERY_HIGH priority, no preemption-threshold
-  ret = tx_thread_create(&ct_thread, "ct thread", ct_thread_entry, 0, pointer,
-                         THREAD_EXTRA_LARGE_STACK_SIZE, HIGH_PRIORITY, HIGHEST_PRIORITY,
-                         TX_NO_TIME_SLICE, TX_DONT_START);
+  ret = tx_thread_create(&ct_thread, "ct thread", ct_thread_entry, 0, pointer, 2048, HIGH_PRIORITY,
+                         HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
-#endif
 
-  /***************************************************************************************************
-   ************************************** Event Flags *************************************************
-   ***************************************************************************************************/
+  /************************************************************************************************
+   ************************************** Event Flags *********************************************
+   ************************************************************************************************/
+  //
+  // For tracking initialization of components and threads
+  ret = tx_event_flags_create(&initialization_flags, "init flags");
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
   //
   // Create the event flags we'll use for triggering threads
   ret = tx_event_flags_create(&thread_control_flags, "thread flags");
@@ -374,9 +336,9 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
     return ret;
   }
 
-  /***************************************************************************************************
-   ************************************** Semaphores **************************************************
-   ***************************************************************************************************/
+  /************************************************************************************************
+   ************************************** Semaphores **********************************************
+   ************************************************************************************************/
   //
   // Semaphores to identify comms bus DMA Tx/Rx completion
   ret = tx_semaphore_create(&ext_rtc_spi_sema, "RTC SPI sema", 0);
@@ -445,9 +407,9 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
     return ret;
   }
 
-  /***************************************************************************************************
-   ************************************** Message Queues **********************************************
-   ***************************************************************************************************/
+  /************************************************************************************************
+   ************************************** Message Queues ******************************************
+   ************************************************************************************************/
   // Server message queue for RTC (including watchdog function) and UART Logger
   //
   // Allocate buffer space for the message queue
@@ -481,9 +443,6 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
     return ret;
   }
 
-#if SD_CARD_ENABLED
-  device_handles.sd_card_handle = &hsdmmc1;
-#endif
   device_handles.core_spi_handle = &hspi1;
   device_handles.core_i2c_handle = &hi2c1;
   device_handles.iridium_uart_handle = &huart4;
@@ -522,18 +481,18 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   return ret;
 }
 
-  /**
-  * @brief  Function that implements the kernel's initialization.
-  * @param  None
-  * @retval None
-  */
-void MX_ThreadX_Init(void)
+/**
+ * @brief  Function that implements the kernel's initialization.
+ * @param  None
+ * @retval None
+ */
+void MX_ThreadX_Init ( void )
 {
   /* USER CODE BEGIN  Before_Kernel_Start */
 
   /* USER CODE END  Before_Kernel_Start */
 
-  tx_kernel_enter();
+  tx_kernel_enter ();
 
   /* USER CODE BEGIN  Kernel_Start_Error */
 
@@ -574,12 +533,14 @@ static void rtc_thread_entry ( ULONG thread_input )
 
   if ( ret != RTC_SUCCESS )
   {
-    // TODO: set some error flag, inform Control thread somehow
+    (void) tx_event_flags_set (&error_flags, RTC_ERROR, TX_OR);
+    (void) tx_thread_suspend (this_thread);
+    uart_logger_log_line ("RTC failed to initialize.");
   }
 
 #if WATCHDOG_ENABLED
   // Initialize the watchdog
-  ret = rtc_server_config_watchdog (WATCHDOG_PERIOD, CONTROL_THREAD_REQUEST_PROCESSED);
+  ret = rtc.config_watchdog (WATCHDOG_PERIOD);
 
   if ( ret != RTC_SUCCESS )
   {
@@ -592,6 +553,9 @@ static void rtc_thread_entry ( ULONG thread_input )
     HAL_NVIC_SystemReset ();
   }
 #endif
+
+  (void) tx_event_flags_set (&error_flags, RTC_INIT_SUCCESS, TX_OR);
+  uart_logger_log_line ("RTC initialization successful.");
 
   while ( 1 )
   {
@@ -634,6 +598,7 @@ static void rtc_thread_entry ( ULONG thread_input )
 
       if ( ret != RTC_SUCCESS )
       {
+        uart_logger_log_line ("RTC error detected");
         (void) tx_event_flags_set (&error_flags, RTC_ERROR, TX_OR);
         (void) tx_thread_suspend (this_thread);
       }
@@ -654,11 +619,14 @@ static void rtc_thread_entry ( ULONG thread_input )
 static void logger_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
-  TX_THREAD *this_thread = &logger_thread;
   logger_message msg;
   UINT tx_ret;
+  // Logger stack buffer
+  uint8_t logger_stack_buffer[sizeof(log_line_buf) * LOG_QUEUE_LENGTH];
+  basic_stack_t logger_stack;
+  uart_logger logger;
 
-  uart_logger_init (&logger, &logger_stack, &(logger_Stack_buffer[0]), &logger_message_queue,
+  uart_logger_init (&logger, &logger_stack, &(logger_stack_buffer[0]), &logger_message_queue,
                     &huart6);
 
   while ( 1 )
@@ -666,7 +634,8 @@ static void logger_thread_entry ( ULONG thread_input )
     tx_ret = tx_queue_receive (&logger_message_queue, &msg, TX_WAIT_FOREVER);
     if ( tx_ret == TX_SUCCESS )
     {
-
+      logger.send_log_line (&(msg.str_buf[0]), msg.strlen);
+      logger.return_line_buffer (msg.str_buf);
     }
 
   }
@@ -682,6 +651,8 @@ static void control_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = &control_thread;
+  RF_Switch rf_switch;
+  Battery battery;
 
   self_test_status_t self_test_status = SELF_TEST_PASSED;
   ULONG actual_flags = 0;
@@ -1051,6 +1022,12 @@ void startup_thread_entry ( ULONG thread_input )
 static void gnss_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
+  TX_THREAD *this_thread = &gnss_thread;
+  GNSS gnss;
+  uint8_t ubx_DMA_message_buf[UBX_MESSAGE_SIZE * 2];
+  uint8_t ubx_message_process_buf[UBX_MESSAGE_SIZE * 2];
+  uint8_t gnss_config_response_buf[GNSS_CONFIG_BUFFER_SIZE];
+
   gnss_error_code_t gnss_return_code;
   int number_of_no_sample_errors = 0;
   float last_lat = 0;
@@ -1300,7 +1277,12 @@ static void gnss_thread_entry ( ULONG thread_input )
  */
 static void ct_thread_entry ( ULONG thread_input )
 {
-//      ULONG actual_flags;
+  UNUSED(thread_input);
+  TX_THREAD *this_thread = &ct_thread;
+  CT ct;
+  CHAR ct_data[CT_DATA_ARRAY_SIZE];
+  ct_samples ct_samples_buf[TOTAL_CT_SAMPLES];
+
   ct_error_code_t ct_return_code;
   uint32_t ct_parsing_error_counter;
   real16_T half_salinity;
@@ -1429,6 +1411,9 @@ static void ct_thread_entry ( ULONG thread_input )
 static void temperature_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
+  TX_THREAD *this_thread = &temperature_thread;
+  Temperature temperature;
+
   temperature_error_code_t temp_return_code;
   real16_T half_salinity;
   real16_T half_temp;
@@ -1495,6 +1480,8 @@ static void temperature_thread_entry ( ULONG thread_input )
 static void waves_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
+  TX_THREAD *this_thread = &waves_thread;
+
   register_watchdog_refresh ();
 
   //
@@ -1567,6 +1554,11 @@ static void waves_thread_entry ( ULONG thread_input )
 static void iridium_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
+  TX_THREAD *this_thread = &iridium_thread;
+  Iridium iridium;
+  uint8_t iridium_response_message[IRIDIUM_MAX_RESPONSE_SIZE];
+  uint8_t iridium_error_message[IRIDIUM_ERROR_MESSAGE_PAYLOAD_SIZE + IRIDIUM_CHECKSUM_LENGTH + 64];
+
   iridium_error_code_t iridium_return_code;
   ULONG actual_error_flags = 0;
   ULONG error_occured_flags = GNSS_ERROR | MODEM_ERROR | MEMORY_ALLOC_ERROR | DMA_ERROR | UART_ERROR

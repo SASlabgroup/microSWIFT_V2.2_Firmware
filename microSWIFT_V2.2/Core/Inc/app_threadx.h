@@ -59,12 +59,6 @@ enum initialization_signals
   AUX_SENSOR_4_INIT_SUCCESS = ((ULONG) 1 << 10)
 };
 
-enum error_flags
-{
-  RTC_ERROR,
-
-};
-
 typedef enum control_flags
 {
   // Ready states
@@ -210,8 +204,8 @@ typedef struct
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-UINT App_ThreadX_Init(VOID *memory_ptr);
-void MX_ThreadX_Init(void);
+UINT App_ThreadX_Init ( VOID *memory_ptr );
+void MX_ThreadX_Init ( void );
 
 /* USER CODE BEGIN EFP */
 

@@ -5,6 +5,7 @@ Lengthy list of TODOs:
 General
 ****
 
+[ ] Check static stack usage and adjust threead stack size accordingly
 [ ] Make generic green/red led on/off functions
     [ ] Need to move the pins and use throughole LEDs for the prototype
 [ ] Check all init calls in startup procedure to make sure bus peripheral is starting properly
@@ -23,6 +24,9 @@ General
 Control
 ****
 [ ] Figure out how to identify first time power on and subsequent power on.
+[ ] Implement subsequent power on fasttrack
+[ ] Consider wrapping the initialization of north, east, down arrays into mem_replacements.c and
+    provide get/set functions for passing to GNSS and waves
 
 ****************************************************************************************************
 GNSS
