@@ -103,7 +103,7 @@ typedef struct
 // Interface functions
 void rtc_server_init ( TX_QUEUE *request_queue, TX_SEMAPHORE *watchdog_refresh_semaphore,
                        TX_EVENT_FLAGS_GROUP *complete_flags );
-rtc_return_code rtc_server_refresh_watchdog ( void );
+void rtc_server_refresh_watchdog ( void );
 rtc_return_code rtc_server_get_time ( struct tm *return_time_struct, UINT complete_flag );
 rtc_return_code rtc_server_set_time ( struct tm input_time_struct, UINT complete_flag );
 rtc_return_code rtc_server_set_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag );

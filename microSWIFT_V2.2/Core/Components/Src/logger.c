@@ -60,6 +60,7 @@ void uart_logger_log_line ( const char *fmt, ... )
 
   if ( stack_empty || !self->logger_enabled )
   {
+    va_end(args);
     return;
   }
 

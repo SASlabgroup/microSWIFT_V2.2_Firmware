@@ -188,12 +188,6 @@ typedef struct
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-#define THREAD_XXL_STACK_SIZE 8192
-#define THREAD_EXTRA_LARGE_STACK_SIZE 4096
-#define THREAD_LARGE_STACK_SIZE 2048
-#define THREAD_MEDIUM_STACK_SIZE 1024
-#define THREAD_SMALL_STACK_SIZE 512
-#define THREAD_EXTRA_SMALL_STACK_SIZE 256
 
 #define MS_PER_SECOND 1000
 

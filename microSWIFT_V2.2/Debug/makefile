@@ -12,9 +12,8 @@ RM := rm -rf
 -include Middlewares/ThreadX/TraceX_Support/subdir.mk
 -include Middlewares/ThreadX/Low_Power_Support/subdir.mk
 -include Middlewares/ThreadX/Core/subdir.mk
--include Middlewares/LevelX/OctoSPI\ memory\ interface/subdir.mk
--include Middlewares/LevelX/NOR\ Flash\ Support/subdir.mk
--include Middlewares/FileX/LevelX\ NOR\ interface/subdir.mk
+-include Middlewares/LevelX/NAND\ Flash\ Support/subdir.mk
+-include Middlewares/FileX/LevelX\ NAND\ interface/subdir.mk
 -include Middlewares/FileX/Core/subdir.mk
 -include LevelX/Target/subdir.mk
 -include FileX/App/subdir.mk

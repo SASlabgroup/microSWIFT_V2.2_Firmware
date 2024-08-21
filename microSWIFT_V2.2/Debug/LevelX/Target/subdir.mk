@@ -5,13 +5,13 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-../LevelX/Target/lx_stm32_ospi_driver_glue.c 
+../LevelX/Target/lx_stm32_nand_custom_driver.c 
 
 OBJS += \
-./LevelX/Target/lx_stm32_ospi_driver_glue.o 
+./LevelX/Target/lx_stm32_nand_custom_driver.o 
 
 C_DEPS += \
-./LevelX/Target/lx_stm32_ospi_driver_glue.d 
+./LevelX/Target/lx_stm32_nand_custom_driver.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -21,7 +21,7 @@ LevelX/Target/%.o LevelX/Target/%.su LevelX/Target/%.cyclo: ../LevelX/Target/%.c
 clean: clean-LevelX-2f-Target
 
 clean-LevelX-2f-Target:
-	-$(RM) ./LevelX/Target/lx_stm32_ospi_driver_glue.cyclo ./LevelX/Target/lx_stm32_ospi_driver_glue.d ./LevelX/Target/lx_stm32_ospi_driver_glue.o ./LevelX/Target/lx_stm32_ospi_driver_glue.su
+	-$(RM) ./LevelX/Target/lx_stm32_nand_custom_driver.cyclo ./LevelX/Target/lx_stm32_nand_custom_driver.d ./LevelX/Target/lx_stm32_nand_custom_driver.o ./LevelX/Target/lx_stm32_nand_custom_driver.su
 
 .PHONY: clean-LevelX-2f-Target
 

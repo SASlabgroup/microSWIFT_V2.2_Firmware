@@ -56,16 +56,6 @@
 
 /* USER CODE END 1 */
 
-#define LX_DIRECT_READ
-
-#define LX_FREE_SECTOR_DATA_VERIFY
-
-/* #define LX_NOR_DISABLE_EXTENDED_CACHE */
-
-/* #define LX_NOR_EXTENDED_CACHE_SIZE         8 */
-
-/* #define LX_NOR_SECTOR_MAPPING_CACHE_SIZE         16 */
-
 /* Configure the LevelX in Standalone mode. */
 
 /* #define LX_STANDALONE_ENABLE */

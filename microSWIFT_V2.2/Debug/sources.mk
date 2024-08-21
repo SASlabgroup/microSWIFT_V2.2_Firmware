@@ -33,9 +33,8 @@ Drivers/STM32U5xx_HAL_Driver \
 FileX/App \
 LevelX/Target \
 Middlewares/FileX/Core \
-Middlewares/FileX/LevelX\ NOR\ interface \
-Middlewares/LevelX/NOR\ Flash\ Support \
-Middlewares/LevelX/OctoSPI\ memory\ interface \
+Middlewares/FileX/LevelX\ NAND\ interface \
+Middlewares/LevelX/NAND\ Flash\ Support \
 Middlewares/ThreadX/Core \
 Middlewares/ThreadX/Low_Power_Support \
 Middlewares/ThreadX/TraceX_Support \

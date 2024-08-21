@@ -59,7 +59,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef enum thread_priorities
+enum thread_priorities
 {
   HIGHEST_PRIORITY = 0,
   VERY_HIGH_PRIORITY = 1,
@@ -68,7 +68,18 @@ typedef enum thread_priorities
   LOW_PRIORITY = 4,
   VERY_LOW_PRIORITY = 5,
   LOWEST_PRIORITY = 6
-} thread_priorities_t;
+};
+
+enum stack_sizes
+{
+  XXL_STACK = 16384,
+  XL_STACK = 8192,
+  L_STACK = 6144,
+  M_STACK = 4096,
+  S_STACK = 2048,
+  XS_STACK = 1024,
+  XXS_STACK = 512
+};
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -95,11 +106,13 @@ TX_THREAD control_thread;
 TX_THREAD rtc_thread;
 TX_THREAD logger_thread;
 TX_THREAD gnss_thread;
-TX_THREAD imu_thread;
-TX_THREAD waves_thread;
-TX_THREAD iridium_thread;
 TX_THREAD ct_thread;
 TX_THREAD temperature_thread;
+TX_THREAD light_thread;
+TX_THREAD turbidity_thread;
+TX_THREAD accelerometer_thread;
+TX_THREAD waves_thread;
+TX_THREAD iridium_thread;
 // Used to track initialization status of threads and components
 TX_EVENT_FLAGS_GROUP initialization_flags;
 // We'll use flags to dictate control flow between the threads
@@ -144,32 +157,11 @@ static void control_thread_entry ( ULONG thread_input );
 static void gnss_thread_entry ( ULONG thread_input );
 static void waves_thread_entry ( ULONG thread_input );
 static void iridium_thread_entry ( ULONG thread_input );
-
-#if CT_ENABLED
 static void ct_thread_entry ( ULONG thread_input );
-#endif // #if CT_ENABLED
-
-#if TEMPERATURE_ENABLED
 static void temperature_thread_entry ( ULONG thread_input );
-#endif // #if TEMPERATURE_ENABLED
-
-// Extern functions
-extern void SystemClock_Config ( void );
-
-// Static functions
-static self_test_status_t startup_procedure ( void );
-static self_test_status_t initial_power_on_self_test ( void );
-static void led_sequence ( uint8_t sequence );
-static void jump_to_end_of_window ( ULONG error_bits_to_set );
-static void send_error_message ( ULONG error_flags );
-
-#if CT_ENABLED
-static void jump_to_waves ( void );
-#endif // #if CT_ENABLED
-
-// Externally visible functions
-void shut_it_all_down ( void );
-void register_watchdog_refresh ( void );
+static void light_thread_entry ( ULONG thread_input );
+static void turbidity_thread_entry ( ULONG thread_input );
+static void accelerometer_thread_entry ( ULONG thread_input );
 
 /* USER CODE END PFP */
 
@@ -191,42 +183,43 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
    ************************************************************************************************/
   //
   // Allocate stack for the control thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, 8192, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XL_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
-  // Create the control thread. VERY_HIGH priority level and no preemption possible
-  ret = tx_thread_create(&control_thread, "control thread", control_thread_entry, 0, pointer, 8192,
-                         VERY_HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
+  // Create the control thread. HIGHEST priority level and no preemption possible
+  ret = tx_thread_create(&control_thread, "control thread", control_thread_entry, 0, pointer,
+                         XL_STACK, HIGHEST_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
+                         TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   //
   // Allocate stack for the rtc thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, 1024, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XS_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
-  // Create the rtc thread. HIGHEST priority level and no preemption possible
-  ret = tx_thread_create(&rtc_thread, "rtc thread", rtc_thread_entry, 0, pointer, 1024,
-                         HIGHEST_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
+  // Create the rtc thread. VERY_HIGH priority level and no preemption possible
+  ret = tx_thread_create(&rtc_thread, "rtc thread", rtc_thread_entry, 0, pointer, XS_STACK,
+                         VERY_HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   //
   // Allocate stack for the logger thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, 6144,
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, L_STACK,
   TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the logger thread. Low priority priority level and no preemption possible
-  ret = tx_thread_create(&logger_thread, "logger thread", logger_thread_entry, 0, pointer, 6144,
+  ret = tx_thread_create(&logger_thread, "logger thread", logger_thread_entry, 0, pointer, L_STACK,
                          LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
@@ -234,41 +227,27 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   //
   // Allocate stack for the gnss thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, 4096, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
-  // Create the gnss thread. VERY_HIGH priority, no preemption-threshold
-  ret = tx_thread_create(&gnss_thread, "gnss thread", gnss_thread_entry, 0, pointer, 4096,
+  // Create the gnss thread. MID priority, no preemption-threshold
+  ret = tx_thread_create(&gnss_thread, "gnss thread", gnss_thread_entry, 0, pointer, M_STACK,
                          MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   //
-  // Allocate stack for the waves thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, 8192, TX_NO_WAIT);
+  // Allocate stack for the CT thread
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, S_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
-  // Create the waves thread. MID priority, no preemption-threshold
-  ret = tx_thread_create(&waves_thread, "waves thread", waves_thread_entry, 0, pointer, 8192,
-                         MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-  //
-  // Allocate stack for the Iridium thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, 4096, TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-  // Create the Iridium thread. VERY_HIGH priority, no preemption-threshold
-  ret = tx_thread_create(&iridium_thread, "iridium thread", iridium_thread_entry, 0, pointer, 4096,
+  // Create the CT thread. MID priority, no preemption-threshold
+  ret = tx_thread_create(&ct_thread, "ct thread", ct_thread_entry, 0, pointer, S_STACK,
                          MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
@@ -276,29 +255,86 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   //
   // Allocate stack for the temperature thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, 1024, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XS_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
-  // Create the temperature thread. VERY_HIGH priority, no preemption-threshold
+  // Create the temperature thread. MID priority, no preemption-threshold
   ret = tx_thread_create(&temperature_thread, "temperature thread", temperature_thread_entry, 0,
-                         pointer, 1024, HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
+                         pointer, XS_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
                          TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   //
-  // Allocate stack for the CT thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, 2048, TX_NO_WAIT);
+  // Allocate stack for the light thread
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XS_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
-  // Create the CT thread. VERY_HIGH priority, no preemption-threshold
-  ret = tx_thread_create(&ct_thread, "ct thread", ct_thread_entry, 0, pointer, 2048, HIGH_PRIORITY,
-                         HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
+  // Create the light thread. MID priority, no preemption-threshold
+  ret = tx_thread_create(&light_thread, "light thread", light_thread_entry, 0, pointer, XS_STACK,
+                         MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+  //
+  // Allocate stack for the turbidity thread
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XS_STACK, TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+  // Create the turbidity thread. MID priority, no preemption-threshold
+  ret = tx_thread_create(&turbidity_thread, "turbidity thread", turbidity_thread_entry, 0, pointer,
+                         XS_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+  //
+  // Allocate stack for the accelerometer thread
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, L_STACK, TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+  // Create the accelerometer thread. MID priority, no preemption-threshold
+  ret = tx_thread_create(&accelerometer_thread, "accelerometer thread", accelerometer_thread_entry,
+                         0, pointer, L_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
+                         TX_DONT_START);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+  //
+  // Allocate stack for the waves thread
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XL_STACK, TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+  // Create the waves thread. MID priority, no preemption-threshold
+  ret = tx_thread_create(&waves_thread, "waves thread", waves_thread_entry, 0, pointer, XL_STACK,
+                         MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+  //
+  // Allocate stack for the Iridium thread
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK, TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+  // Create the Iridium thread. HIGH priority, no preemption-threshold
+  ret = tx_thread_create(&iridium_thread, "iridium thread", iridium_thread_entry, 0, pointer,
+                         M_STACK, HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -538,7 +574,6 @@ static void rtc_thread_entry ( ULONG thread_input )
     uart_logger_log_line ("RTC failed to initialize.");
   }
 
-#if WATCHDOG_ENABLED
   // Initialize the watchdog
   ret = rtc.config_watchdog (WATCHDOG_PERIOD);
 
@@ -552,7 +587,6 @@ static void rtc_thread_entry ( ULONG thread_input )
     }
     HAL_NVIC_SystemReset ();
   }
-#endif
 
   (void) tx_event_flags_set (&error_flags, RTC_INIT_SUCCESS, TX_OR);
   uart_logger_log_line ("RTC initialization successful.");
@@ -680,49 +714,14 @@ static void control_thread_entry ( ULONG thread_input )
     tx_event_flags_set (&error_flags, SOFTWARE_RESET, TX_OR);
   }
 
-  waves_memory_pool_init (&waves_byte_pool);
-
-  if ( waves_memory_pool_create (&(waves_byte_pool_buffer[0]), WAVES_MEM_POOL_SIZE) != TX_SUCCESS )
-  {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
-  }
-
-  // These structs are being allocated to the waves_byte_pool, and have no overlap with tx_app_byte_pool
-  // Each struct has a float array written to by GNSS. These are freed after processing in waves thread.
-  north = argInit_1xUnbounded_real32_T (&configuration);
-  east = argInit_1xUnbounded_real32_T (&configuration);
-  down = argInit_1xUnbounded_real32_T (&configuration);
-
-  // Initialize the peripherals
-  gnss_init (&gnss, &configuration, device_handles.gnss_uart_handle,
-             device_handles.gnss_uart_rx_dma_handle, &thread_control_flags, &error_flags,
-             device_handles.gnss_minutes_timer, &(ubx_message_process_buf[0]),
-             &(gnss_config_response_buf[0]), north->data, east->data, down->data);
-
-  iridium_init (&iridium, &configuration, device_handles.iridium_uart_handle,
-                device_handles.iridium_minutes_timer, &thread_control_flags, &error_flags,
-                &sbd_message, &(iridium_error_message[0]), &(iridium_response_message[0]),
-                &sbd_message_queue);
-
-#if CT_ENABLED
-  ct_init (&ct, &configuration, device_handles.ct_uart_handle, &thread_control_flags, &error_flags,
-           &(ct_data[0]), &(ct_samples_buf[0]));
-#endif
-
-#if TEMPERATURE_ENABLED
-  temperature_init (&temperature, device_handles.core_i2c_handle, &thread_control_flags,
-                    &error_flags, TEMP_FET_GPIO_Port, TEMP_FET_Pin, true);
-#endif
-
   rf_switch_init (&rf_switch);
+
+  rf_switch->power_on ();
 
   battery_init (&battery, device_handles.battery_adc, &thread_control_flags, &error_flags);
 
   // Flash some lights to let the user know its on and working
   led_sequence (INITIAL_LED_SEQUENCE);
-
-  rf_switch->power_on ();
 
   register_watchdog_refresh ();
 
@@ -830,20 +829,11 @@ void startup_thread_entry ( ULONG thread_input )
   down = argInit_1xUnbounded_real32_T (&configuration);
 
   // Initialize the peripherals
-  gnss_init (&gnss, &configuration, device_handles.gnss_uart_handle,
-             device_handles.gnss_uart_rx_dma_handle, &thread_control_flags, &error_flags,
-             device_handles.gnss_minutes_timer, &(ubx_message_process_buf[0]),
-             &(gnss_config_response_buf[0]), north->data, east->data, down->data);
 
   iridium_init (&iridium, &configuration, device_handles.iridium_uart_handle,
                 device_handles.iridium_minutes_timer, &thread_control_flags, &error_flags,
                 &sbd_message, &(iridium_error_message[0]), &(iridium_response_message[0]),
                 &sbd_message_queue);
-
-#if CT_ENABLED
-  ct_init (&ct, &configuration, device_handles.ct_uart_handle, &thread_control_flags, &error_flags,
-           &(ct_data[0]), &(ct_samples_buf[0]));
-#endif
 
 #if TEMPERATURE_ENABLED
   temperature_init (&temperature, device_handles.core_i2c_handle, &thread_control_flags,
@@ -1042,6 +1032,11 @@ static void gnss_thread_entry ( ULONG thread_input )
                                     / 60)
                                    + 2;
   int32_t gnss_max_acq_time = 0;
+
+  gnss_init (&gnss, &configuration, device_handles.gnss_uart_handle,
+             device_handles.gnss_uart_rx_dma_handle, &thread_control_flags, &error_flags,
+             device_handles.gnss_minutes_timer, &(ubx_message_process_buf[0]),
+             &(gnss_config_response_buf[0]), north->data, east->data, down->data);
 
   register_watchdog_refresh ();
 
@@ -1267,7 +1262,6 @@ static void gnss_thread_entry ( ULONG thread_input )
   tx_thread_terminate (&gnss_thread);
 }
 
-#if CT_ENABLED
 /**
  * @brief  ct_thread_entry
  *         This thread will handle the CT sensor, capture readings, and getting averages..
@@ -1288,6 +1282,9 @@ static void ct_thread_entry ( ULONG thread_input )
   real16_T half_salinity;
   real16_T half_temp;
   int fail_counter;
+
+  ct_init (&ct, &configuration, device_handles.ct_uart_handle, &thread_control_flags, &error_flags,
+           &(ct_data[0]), &(ct_samples_buf[0]));
 
   register_watchdog_refresh ();
 
@@ -1398,9 +1395,7 @@ static void ct_thread_entry ( ULONG thread_input )
 
   tx_thread_terminate (&ct_thread);
 }
-#endif
 
-#if TEMPERATURE_ENABLED
 /**
  * @brief  temperature_thread_entry
  *         This thread will handle the temperature sensor, capture readings, and getting averages.
@@ -1418,6 +1413,9 @@ static void temperature_thread_entry ( ULONG thread_input )
   real16_T half_salinity;
   real16_T half_temp;
   int fail_counter = 0;
+
+  temperature_init (&temperature, device_handles.core_i2c_handle, &thread_control_flags,
+                    &error_flags, TEMP_FET_GPIO_Port, TEMP_FET_Pin, true);
 
   register_watchdog_refresh ();
 
@@ -1468,7 +1466,47 @@ static void temperature_thread_entry ( ULONG thread_input )
   }
   tx_thread_terminate (&temperature_thread);
 }
-#endif
+
+/**
+ * @brief  light_thread_entry
+ *         This thread will manage the Light sensor
+ *
+ * @param  ULONG thread_input - unused
+ * @retval void
+ */
+static void light_thread_entry ( ULONG thread_input )
+{
+  UNUSED(thread_input);
+  TX_THREAD *this_thread = &light_thread;
+
+}
+
+/**
+ * @brief  turbidity_thread_entry
+ *         This thread will manage the turbidity sensor
+ *
+ * @param  ULONG thread_input - unused
+ * @retval void
+ */
+static void turbidity_thread_entry ( ULONG thread_input )
+{
+  UNUSED(thread_input);
+  TX_THREAD *this_thread = &turbidity_thread;
+
+}
+
+/**
+ * @brief  accelerometer_thread_entry
+ *         This thread will manage the accelerometer sensor
+ *
+ * @param  ULONG thread_input - unused
+ * @retval void
+ */
+static void accelerometer_thread_entry ( ULONG thread_input )
+{
+  UNUSED(thread_input);
+  TX_THREAD *this_thread = &accelerometer_thread;
+}
 
 /**
  * @brief  waves_thread_entry
@@ -1481,6 +1519,20 @@ static void waves_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = &waves_thread;
+
+  waves_memory_pool_init (&waves_byte_pool);
+
+  if ( waves_memory_pool_create (&(waves_byte_pool_buffer[0]), WAVES_MEM_POOL_SIZE) != TX_SUCCESS )
+  {
+    shut_it_all_down ();
+    HAL_NVIC_SystemReset ();
+  }
+
+  // These structs are being allocated to the waves_byte_pool, and have no overlap with tx_app_byte_pool
+  // Each struct has a float array written to by GNSS. These are freed after processing in waves thread.
+  north = argInit_1xUnbounded_real32_T (&configuration);
+  east = argInit_1xUnbounded_real32_T (&configuration);
+  down = argInit_1xUnbounded_real32_T (&configuration);
 
   register_watchdog_refresh ();
 
@@ -1563,6 +1615,11 @@ static void iridium_thread_entry ( ULONG thread_input )
   ULONG actual_error_flags = 0;
   ULONG error_occured_flags = GNSS_ERROR | MODEM_ERROR | MEMORY_ALLOC_ERROR | DMA_ERROR | UART_ERROR
                               | RTC_ERROR | WATCHDOG_RESET | SOFTWARE_RESET | GNSS_RESOLUTION_ERROR;
+
+  iridium_init (&iridium, &configuration, device_handles.iridium_uart_handle,
+                device_handles.iridium_minutes_timer, &thread_control_flags, &error_flags,
+                &sbd_message, &(iridium_error_message[0]), &(iridium_response_message[0]),
+                &sbd_message_queue);
 
   UINT tx_return;
   int fail_counter;
@@ -1919,721 +1976,4 @@ static void end_of_cycle_thread_entry ( ULONG thread_input )
   tx_event_flags_set (&thread_control_flags, FULL_CYCLE_COMPLETE, TX_OR);
   tx_thread_terminate (&end_of_cycle_thread);
 }
-
-/**
- * @brief  Static function to flash a sequence of onboard LEDs to indicate
- * success or failure of self-test.
- *
- * @param  sequence:   INITIAL_LED_SEQUENCE
- *                                     TEST_PASSED_LED_SEQUENCE
- *                                     TEST_NON_CIRTICAL_FAULT_LED_SEQUENCE
- *                                     TEST_CRITICAL_FAULT_LED_SEQUENCE
- *
- * @retval Void
- */
-static void led_sequence ( led_sequence_t sequence )
-{
-  switch ( sequence )
-  {
-    case INITIAL_LED_SEQUENCE:
-      for ( int i = 0; i < 10; i++ )
-      {
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_RED_Pin, GPIO_PIN_SET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_GREEN_Pin, GPIO_PIN_SET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_RED_Pin, GPIO_PIN_RESET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_GREEN_Pin, GPIO_PIN_RESET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-      }
-      break;
-
-    case TEST_PASSED_LED_SEQUENCE:
-      for ( int i = 0; i < 5; i++ )
-      {
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_GREEN_Pin, GPIO_PIN_RESET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_GREEN_Pin, GPIO_PIN_SET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
-      }
-      break;
-
-    case TEST_NON_CRITICAL_FAULT_LED_SEQUENCE:
-      for ( int i = 0; i < 20; i++ )
-      {
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_GREEN_Pin, GPIO_PIN_RESET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_GREEN_Pin, GPIO_PIN_SET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-      }
-      break;
-
-    case TEST_CRITICAL_FAULT_LED_SEQUENCE:
-      for ( int i = 0; i < 10; i++ )
-      {
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_RED_Pin, GPIO_PIN_RESET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 2);
-        HAL_GPIO_WritePin (GPIOF, EXT_LED_RED_Pin, GPIO_PIN_SET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 2);
-      }
-      break;
-
-    default:
-      break;
-  }
-}
-
-/**
- * @brief  Power down all peripheral FETs and set RF switch to GNSS input
- *
- * @param  void
- *
- * @retval void
- */
-void shut_it_all_down ( void )
-{
-// Shut down Iridium modem
-  HAL_GPIO_WritePin (GPIOD, IRIDIUM_OnOff_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin (GPIOD, IRIDIUM_FET_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin (GPIOF, BUS_5V_FET_Pin, GPIO_PIN_RESET);
-// Shut down GNSS
-  HAL_GPIO_WritePin (GPIOG, GNSS_FET_Pin, GPIO_PIN_RESET);
-// Reset RF switch GPIOs. This will set it to be ported to the modem (safe case)
-  HAL_GPIO_WritePin (GPIOD, RF_SWITCH_VCTL_Pin, GPIO_PIN_RESET);
-// Turn off power to the RF switch
-  HAL_GPIO_WritePin (GPIOD, RF_SWITCH_EN_Pin, GPIO_PIN_RESET);
-// Shut down CT sensor
-  HAL_GPIO_WritePin (GPIOG, CT_FET_Pin, GPIO_PIN_RESET);
-
-}
-
-/**
- * @brief  Put to the watchdog semaphore so the watchdog thread can refresh IWDG
- *
- * @param  void
- *
- * @retval void
- */
-void register_watchdog_refresh ( void )
-{
-#if WATCHDOG_ENABLED
-  (void) tx_semaphore_put (&watchdog_semaphore);
-#endif
-}
-
-static self_test_status_t startup_procedure ( void )
-{
-  UINT tx_return;
-
-  tx_return = tx_event_flags_get (&thread_control_flags, FULL_CYCLE_COMPLETE, TX_OR_CLEAR,
-                                  &actual_flags, TX_NO_WAIT);
-  // If this is a subsequent window, just setup the GNSS, skip the rest
-  if ( tx_return == TX_SUCCESS )
-  {
-
-    // Increment the sample window counter
-    sample_window_counter++;
-
-    register_watchdog_refresh ();
-
-    HAL_GPIO_WritePin (GPIOF, EXT_LED_GREEN_Pin, GPIO_PIN_SET);
-
-    // Reset all threads
-    tx_return = tx_thread_reset (&gnss_thread);
-    if ( tx_return == TX_NOT_DONE )
-    {
-      tx_thread_terminate (&gnss_thread);
-      tx_thread_reset (&gnss_thread);
-    }
-#if CT_ENABLED
-    tx_return = tx_thread_reset (&ct_thread);
-    if ( tx_return == TX_NOT_DONE )
-    {
-      tx_thread_terminate (&ct_thread);
-      tx_thread_reset (&ct_thread);
-    }
-#endif
-
-#if TEMPERATURE_ENABLED
-    tx_return = tx_thread_reset (&temperature_thread);
-    if ( tx_return == TX_NOT_DONE )
-    {
-      tx_thread_terminate (&temperature_thread);
-      tx_thread_reset (&temperature_thread);
-    }
-#endif
-    tx_return = tx_thread_reset (&waves_thread);
-    if ( tx_return == TX_NOT_DONE )
-    {
-      tx_thread_terminate (&waves_thread);
-      tx_thread_reset (&waves_thread);
-    }
-    tx_return = tx_thread_reset (&iridium_thread);
-    if ( tx_return == TX_NOT_DONE )
-    {
-      tx_thread_terminate (&iridium_thread);
-      tx_thread_reset (&iridium_thread);
-    }
-    tx_return = tx_thread_reset (&end_of_cycle_thread);
-    if ( tx_return == TX_NOT_DONE )
-    {
-      tx_thread_terminate (&end_of_cycle_thread);
-      tx_thread_reset (&end_of_cycle_thread);
-    }
-
-    // Power up the RF switch
-    rf_switch->power_on ();
-
-    // Check if there was a GNSS error. If so, reconfigure device
-    tx_return = tx_event_flags_get (&thread_control_flags, GNSS_CONFIG_REQUIRED,
-    TX_OR_CLEAR,
-                                    &actual_flags, TX_NO_WAIT);
-    if ( tx_return == TX_SUCCESS )
-    {
-      fail_counter = 0;
-      while ( fail_counter < MAX_SELF_TEST_RETRIES )
-      {
-
-        register_watchdog_refresh ();
-
-        if ( gnss->config () != GNSS_SUCCESS )
-        {
-          // Config didn't work, cycle power and try again
-          gnss->cycle_power ();
-          fail_counter++;
-        }
-        else
-        {
-          break;
-        }
-      }
-    }
-    // If we couldn't configure the GNSS, send a reset vector
-    if ( fail_counter == MAX_SELF_TEST_RETRIES )
-    {
-      shut_it_all_down ();
-      HAL_NVIC_SystemReset ();
-    }
-
-    // Kick off the GNSS thread
-    if ( tx_thread_resume (&gnss_thread) != TX_SUCCESS )
-    {
-      shut_it_all_down ();
-      HAL_NVIC_SystemReset ();
-    }
-  }
-
-  // This is first time power up, test everything and flash LED sequence
-  else
-  {
-    register_watchdog_refresh ();
-    // Flash some lights to let the user know its on and working
-    led_sequence (INITIAL_LED_SEQUENCE);
-
-    rf_switch->power_on ();
-
-    register_watchdog_refresh ();
-
-    self_test_status = initial_power_on_self_test ();
-
-    register_watchdog_refresh ();
-
-    // Kick off the GNSS thread
-    if ( tx_thread_resume (&gnss_thread) != TX_SUCCESS )
-    {
-      shut_it_all_down ();
-      HAL_NVIC_SystemReset ();
-    }
-  }
-
-  return self_test_status;
-}
-
-/**
- * @brief  Test communication with each peripheral.
- *
- * @param  void
- *
- * @retval SELF_TEST_PASSED
- *             SELF_TEST_NON_CRITICAL_FAULT --> if CT or IMU failed
- *             SELF_TEST_CRITICAL_FAULT --> if GNSS or Iridium modem
- */
-static self_test_status_t initial_power_on_self_test ( void )
-{
-  self_test_status_t return_code;
-  gnss_error_code_t gnss_return_code;
-  iridium_error_code_t iridium_return_code;
-
-#if CT_ENABLED
-  ct_error_code_t ct_return_code;
-#endif
-
-#if TEMPERATURE_ENABLED
-  temperature_error_code_t temp_return_code;
-#endif
-
-  int fail_counter;
-
-// Initialize the sample window counter to 0
-  sample_window_counter = 0;
-
-///////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////// GNSS STARTUP SEQUENCE /////////////////////////////////////////////
-// turn on the GNSS FET
-  gnss->on_off (GPIO_PIN_SET);
-  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-// Send the configuration commands to the GNSS unit.
-  fail_counter = 0;
-  while ( fail_counter < MAX_SELF_TEST_RETRIES )
-  {
-
-    register_watchdog_refresh ();
-
-    gnss_return_code = gnss->config ();
-    if ( gnss_return_code != GNSS_SUCCESS )
-    {
-      // Config didn't go through, try again
-      fail_counter++;
-
-    }
-    else
-    {
-
-      break;
-    }
-  }
-
-  if ( fail_counter == MAX_SELF_TEST_RETRIES )
-  {
-
-    return_code = SELF_TEST_CRITICAL_FAULT;
-    tx_event_flags_set (&error_flags, GNSS_ERROR, TX_OR);
-    return return_code;
-  }
-
-// If we made it here, the self test passed and we're ready to process messages
-  tx_event_flags_set (&thread_control_flags, GNSS_READY, TX_OR);
-
-///////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////IRIDIUM STARTUP SEQUENCE ///////////////////////////////////////////////
-// Only do this on initial power up, else leave it alone!
-  iridium->queue_flush ();
-
-#ifdef DEBUGGING_FAST_CYCLE
-
-        iridium->charge_caps(30);
-
-#else
-
-// Turn on the modem and charge up the caps
-  iridium->charge_caps (IRIDIUM_INITIAL_CAP_CHARGE_TIME);
-
-#endif
-
-// Send over an ack message and make sure we get a response
-  fail_counter = 0;
-  while ( fail_counter < MAX_SELF_TEST_RETRIES )
-  {
-
-    register_watchdog_refresh ();
-    // See if we can get an ack message from the modem
-    iridium_return_code = iridium->self_test ();
-    if ( iridium_return_code != IRIDIUM_SUCCESS )
-    {
-
-      iridium->cycle_power ();
-      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-      fail_counter++;
-
-    }
-    else
-    {
-
-      break;
-    }
-  }
-
-  if ( fail_counter == MAX_SELF_TEST_RETRIES )
-  {
-
-    return_code = SELF_TEST_CRITICAL_FAULT;
-    tx_event_flags_set (&error_flags, MODEM_ERROR, TX_OR);
-    return return_code;
-  }
-
-// Send the configuration settings to the modem
-  fail_counter = 0;
-  while ( fail_counter < MAX_SELF_TEST_RETRIES )
-  {
-
-    register_watchdog_refresh ();
-
-    iridium_return_code = iridium->config ();
-    if ( iridium_return_code != IRIDIUM_SUCCESS )
-    {
-
-      iridium->cycle_power ();
-      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-      fail_counter++;
-
-    }
-    else
-    {
-
-      break;
-    }
-  }
-
-  if ( fail_counter == MAX_SELF_TEST_RETRIES )
-  {
-
-    return_code = SELF_TEST_CRITICAL_FAULT;
-    tx_event_flags_set (&error_flags, MODEM_ERROR, TX_OR);
-    return return_code;
-  }
-
-// We'll keep power to the modem but put it to sleep
-  iridium->sleep (GPIO_PIN_RESET);
-
-// We got an ack and were able to config the Iridium modem
-  tx_event_flags_set (&thread_control_flags, IRIDIUM_READY, TX_OR);
-
-#if CT_ENABLED
-  ///////////////////////////////////////////////////////////////////////////////////////////////
-  /////////////////////////// CT STARTUP SEQUENCE ///////////////////////////////////////////////
-  // Make sure we get good data from the CT sensor
-  // The first message will have a different frame length from a header, so adjust the fail
-  // counter appropriately
-  fail_counter = -1;
-  while ( fail_counter < MAX_SELF_TEST_RETRIES )
-  {
-
-    register_watchdog_refresh ();
-
-    ct_return_code = ct->self_test (false);
-    if ( ct_return_code != CT_SUCCESS )
-    {
-
-      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-      fail_counter++;
-
-    }
-    else
-    {
-
-      return_code = SELF_TEST_PASSED;
-      break;
-    }
-  }
-
-  if ( fail_counter == MAX_SELF_TEST_RETRIES )
-  {
-
-    return_code = SELF_TEST_NON_CRITICAL_FAULT;
-    tx_event_flags_set (&error_flags, CT_ERROR, TX_OR);
-  }
-
-  // We can turn off the CT sensor for now
-  ct->on_off (GPIO_PIN_RESET);
-
-  // Regardless of if the self-test passed, we'll still set it as ready and try again
-  // in the sample window
-  tx_event_flags_set (&thread_control_flags, CT_READY, TX_OR);
-
-#else
-
-  return_code = SELF_TEST_PASSED;
-
-#endif
-
-#if TEMPERATURE_ENABLED
-  fail_counter = 0;
-  while ( fail_counter < MAX_SELF_TEST_RETRIES )
-  {
-
-    temperature->on ();
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    register_watchdog_refresh ();
-    // See if we can get an ack message from the modem
-    temp_return_code = temperature->self_test ();
-    if ( temp_return_code != TEMPERATURE_SUCCESS )
-    {
-
-      temperature->off ();
-      temperature->reset_i2c ();
-      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-      fail_counter++;
-
-    }
-    else
-    {
-
-      break;
-    }
-  }
-
-  if ( fail_counter == MAX_SELF_TEST_RETRIES )
-  {
-
-    return_code = SELF_TEST_NON_CRITICAL_FAULT;
-    tx_event_flags_set (&error_flags, TEMPERATURE_ERROR, TX_OR);
-
-  }
-
-  temperature->off ();
-#endif
-
-  return return_code;
-}
-
-/**
- * @brief  Break out of the GNSS thread and jump to end_of_cycle_thread
- *
- * @param  thread_to_terminate - thread which called this
- *
- * @retval void
- */
-static void jump_to_end_of_window ( ULONG error_bits_to_set )
-{
-  gnss->on_off (GPIO_PIN_RESET);
-// If there was a GNSS error or it could not resolve in time, set the flag to reconfig next time
-  if ( (error_bits_to_set & GNSS_RESOLUTION_ERROR) || (error_bits_to_set & GNSS_ERROR) )
-  {
-    // Set the event flag so we know to reconfigure in the next window
-    tx_event_flags_set (&thread_control_flags, GNSS_CONFIG_REQUIRED, TX_OR);
-  }
-
-  tx_event_flags_set (&error_flags, (error_bits_to_set | GNSS_EXITED_EARLY), TX_OR);
-
-// Deinit UART and DMA to prevent spurious interrupts
-  HAL_UART_DeInit (gnss->gnss_uart_handle);
-  HAL_DMA_DeInit (gnss->gnss_rx_dma_handle);
-  HAL_DMA_DeInit (gnss->gnss_tx_dma_handle);
-  HAL_TIM_Base_Stop_IT (gnss->minutes_timer);
-
-  if ( waves_memory_pool_delete () != TX_SUCCESS )
-  {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
-  }
-
-  if ( tx_thread_resume (&iridium_thread) != TX_SUCCESS )
-  {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
-  }
-
-  tx_thread_terminate (&gnss_thread);
-}
-
-#if CT_ENABLED
-/**
- * @brief  Break out of the CT thread and jump to Waves thread
- *
- * @param  void
- *
- * @retval void
- */
-static void jump_to_waves ( void )
-{
-  ct->on_off (GPIO_PIN_RESET);
-  // Deinit UART and DMA to prevent spurious interrupts
-  HAL_UART_DeInit (ct->ct_uart_handle);
-  HAL_DMA_DeInit (ct->ct_dma_handle);
-
-  if ( tx_thread_resume (&waves_thread) != TX_SUCCESS )
-  {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
-  }
-
-  tx_thread_terminate (&ct_thread);
-}
-#endif
-
-/**
- * @brief  If an error was detected along the way, send an error (Type 99) message.
- *
- * @param  error_flags - retreived error flags
- *
- * @retval void
- */
-static void send_error_message ( ULONG error_flags )
-{
-  iridium_error_code_t return_code;
-  char error_message[ERROR_MESSAGE_MAX_LENGTH] =
-    { 0 };
-  const char *watchdog_reset = "WATCHDOG RESET. ";
-  const char *software_reset = "SOFTWARE RESET. ";
-  const char *gnss_error = "GNSS ERROR. ";
-  const char *gnss_resolution_error = "GNSS RESOLUTION ERROR. ";
-  const char *sample_window_error = "SAMPLE WINDOW ERROR. ";
-  const char *memory_corruption_error = "MEMORY CORRUPTION ERROR. ";
-  const char *memory_alloc_error = "MEMORY ALLOC ERROR. ";
-  const char *dma_error = "DMA ERROR. ";
-  const char *uart_error = "UART ERROR. ";
-  const char *rtc_error = "RTC ERROR. ";
-  const char *flash_success = "WRITE TO FLASH SUCCESSFUL. ";
-  const char *flash_unknown_error = "UNKNOWN FLASH ERROR. ";
-  const char *flash_storage_full = "FLASH STORAGE FULL. ";
-  const char *flash_erase_error = "FLASH ERASE ERROR. ";
-  const char *flash_program_error = "FLASH PROGRAM ERROR. ";
-  char *string_ptr = &(error_message[0]);
-
-  if ( error_flags & WATCHDOG_RESET )
-  {
-
-    if ( (string_ptr - &(error_message[0])) + strlen (watchdog_reset) <= ERROR_MESSAGE_MAX_LENGTH )
-    {
-      memcpy (string_ptr, watchdog_reset, strlen (watchdog_reset));
-      string_ptr += strlen (watchdog_reset);
-    }
-
-  }
-
-  if ( error_flags & SOFTWARE_RESET )
-  {
-
-    if ( (string_ptr - &(error_message[0])) + strlen (software_reset) <= ERROR_MESSAGE_MAX_LENGTH )
-    {
-      memcpy (string_ptr, software_reset, strlen (software_reset));
-      string_ptr += strlen (software_reset);
-    }
-
-  }
-
-  if ( error_flags & GNSS_ERROR )
-  {
-    if ( (string_ptr - &(error_message[0])) + strlen (gnss_error) <= ERROR_MESSAGE_MAX_LENGTH )
-    {
-      memcpy (string_ptr, gnss_error, strlen (gnss_error));
-      string_ptr += strlen (gnss_error);
-    }
-  }
-
-  if ( error_flags & GNSS_RESOLUTION_ERROR )
-  {
-    if ( (string_ptr - &(error_message[0]))
-         + strlen (gnss_resolution_error) <= ERROR_MESSAGE_MAX_LENGTH )
-    {
-      memcpy (string_ptr, gnss_resolution_error, strlen (gnss_resolution_error));
-      string_ptr += strlen (gnss_resolution_error);
-    }
-  }
-
-  if ( error_flags & SAMPLE_WINDOW_ERROR )
-  {
-    if ( (string_ptr - &(error_message[0]))
-         + strlen (sample_window_error) <= ERROR_MESSAGE_MAX_LENGTH )
-    {
-      memcpy (string_ptr, sample_window_error, strlen (sample_window_error));
-      string_ptr += strlen (sample_window_error);
-    }
-  }
-
-  if ( error_flags & MEMORY_CORRUPTION_ERROR )
-  {
-    if ( (string_ptr - &(error_message[0]))
-         + strlen (memory_corruption_error) <= ERROR_MESSAGE_MAX_LENGTH )
-    {
-      memcpy (string_ptr, memory_corruption_error, strlen (memory_corruption_error));
-      string_ptr += strlen (memory_corruption_error);
-    }
-  }
-
-  if ( error_flags & MEMORY_ALLOC_ERROR )
-  {
-    if ( (string_ptr - &(error_message[0]))
-         + strlen (memory_alloc_error) <= ERROR_MESSAGE_MAX_LENGTH )
-    {
-      memcpy (string_ptr, memory_alloc_error, strlen (memory_alloc_error));
-      string_ptr += strlen (memory_alloc_error);
-    }
-  }
-
-  if ( error_flags & DMA_ERROR )
-  {
-    if ( (string_ptr - &(error_message[0])) + strlen (dma_error) <= ERROR_MESSAGE_MAX_LENGTH )
-    {
-      memcpy (string_ptr, dma_error, strlen (dma_error));
-      string_ptr += strlen (dma_error);
-    }
-  }
-
-  if ( error_flags & UART_ERROR )
-  {
-    if ( (string_ptr - &(error_message[0])) + strlen (uart_error) <= ERROR_MESSAGE_MAX_LENGTH )
-    {
-      memcpy (string_ptr, uart_error, strlen (uart_error));
-      string_ptr += strlen (uart_error);
-    }
-  }
-
-  if ( error_flags & RTC_ERROR )
-  {
-    if ( (string_ptr - &(error_message[0])) + strlen (rtc_error) <= ERROR_MESSAGE_MAX_LENGTH )
-    {
-      memcpy (string_ptr, rtc_error, strlen (rtc_error));
-      string_ptr += strlen (rtc_error);
-    }
-  }
-
-  if ( error_flags & FLASH_OPERATION_SUCCESS )
-  {
-    if ( (string_ptr - &(error_message[0])) + strlen (flash_success) <= ERROR_MESSAGE_MAX_LENGTH )
-    {
-      memcpy (string_ptr, flash_success, strlen (flash_success));
-      string_ptr += strlen (flash_success);
-    }
-  }
-
-  if ( error_flags & FLASH_OPERATION_UNKNOWN_ERROR )
-  {
-    if ( (string_ptr - &(error_message[0]))
-         + strlen (flash_unknown_error) <= ERROR_MESSAGE_MAX_LENGTH )
-    {
-      memcpy (string_ptr, flash_unknown_error, strlen (flash_unknown_error));
-      string_ptr += strlen (flash_unknown_error);
-    }
-  }
-
-  if ( error_flags & FLASH_OPERATION_STORAGE_FULL )
-  {
-    if ( (string_ptr - &(error_message[0]))
-         + strlen (flash_storage_full) <= ERROR_MESSAGE_MAX_LENGTH )
-    {
-      memcpy (string_ptr, flash_storage_full, strlen (flash_storage_full));
-      string_ptr += strlen (flash_storage_full);
-    }
-  }
-
-  if ( error_flags & FLASH_OPERATION_ERASE_ERROR )
-  {
-    if ( (string_ptr - &(error_message[0])) + strlen (flash_erase_error) <= ERROR_MESSAGE_MAX_LENGTH )
-    {
-      memcpy (string_ptr, flash_erase_error, strlen (flash_erase_error));
-      string_ptr += strlen (flash_erase_error);
-    }
-  }
-
-  if ( error_flags & FLASH_OPERATION_PROGRAM_ERROR )
-  {
-    if ( (string_ptr - &(error_message[0]))
-         + strlen (flash_program_error) <= ERROR_MESSAGE_MAX_LENGTH )
-    {
-      memcpy (string_ptr, flash_program_error, strlen (flash_program_error));
-      string_ptr += strlen (flash_program_error);
-    }
-  }
-
-  return_code = iridium->transmit_error_message (error_message);
-
-  if ( (return_code == IRIDIUM_SUCCESS) && (device_handles.reset_reason != 0) )
-  {
-    // Only want to send this message once, so clear reset_reason
-    device_handles.reset_reason = 0;
-  }
-}
-
 /* USER CODE END 1 */

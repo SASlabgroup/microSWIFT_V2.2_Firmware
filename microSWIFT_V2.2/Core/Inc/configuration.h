@@ -34,7 +34,7 @@
 #define IRIDIUM_MAX_TRANSMIT_TIME 10
 #define GNSS_MAX_ACQUISITION_WAIT_TIME 10
 #define SAMPLE_WINDOWS_PER_HOUR 1
-
+#define WATCHDOG_PERIOD 600000 // 1 min (in ms)
 #else
 // Number of samples in each sampling window
 #define TOTAL_SAMPLES_PER_WINDOW 8192
@@ -51,6 +51,8 @@
 // Are we doing 1 or two sample windows per hour
 // !! Must be a number such that SAMPLE_WINDOWS_PER_HOUR % 60 == 0
 #define SAMPLE_WINDOWS_PER_HOUR 1
+
+#define WATCHDOG_PERIOD 60000 // 1 min (in ms)
 #endif // DEBUGGING_FAST_CYCLE
 
 // Sampling rate in Hz for the GNSS sensor
@@ -71,10 +73,6 @@
 
 #define TOTAL_TEMPERATURE_SAMPLES 10
 
-#define WATCHDOG_ENABLED true
-
-#define WATCHDOG_PERIOD 60000 // 1 min (in ms)
-
 typedef struct microSWIFT_configuration
 {
   uint32_t samples_per_window;
@@ -84,7 +82,12 @@ typedef struct microSWIFT_configuration
   uint32_t total_ct_samples;
   uint32_t windows_per_hour;
   bool gnss_high_performance_mode;
-  bool logger_enabled;
+  bool ct_enabled;
+  bool temperature_enabled;
+  bool light_enabled;
+  bool turbidity_enabled;
+  bool accelerometer_enabled;
+
 } microSWIFT_configuration;
 
 #endif /* INC_CONFIGURATION_H_ */

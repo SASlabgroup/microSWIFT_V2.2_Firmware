@@ -1135,7 +1135,10 @@ static void reset_struct_fields ( void )
 static gnss_error_code_t start_GNSS_UART_DMA ( uint8_t *buffer, size_t msg_size )
 {
   gnss_error_code_t return_code = GNSS_SUCCESS;
-  HAL_StatusTypeDef hal_return_code;
+  HAL_StatusTypeDef hal_return_code = HAL_OK;
+  DMA_NodeConfTypeDef pNodeConfig;
+  DMA_NodeTypeDef gnss_dma_linked_list_node;
+  DMA_QListTypeDef gnss_dma_linked_list;
 
   register_watchdog_refresh ();
 
@@ -1145,7 +1148,31 @@ static gnss_error_code_t start_GNSS_UART_DMA ( uint8_t *buffer, size_t msg_size 
 
   HAL_UART_DMAStop (self->gnss_uart_handle);
 
-  hal_return_code = MX_gnss_dma_linked_list_Config ();
+  /* Set node configuration ################################################*/
+  pNodeConfig.NodeType = DMA_LPDMA_LINEAR_NODE;
+  pNodeConfig.Init.Request = GPDMA1_REQUEST_USART1_RX;
+  pNodeConfig.Init.BlkHWRequest = DMA_BREQ_SINGLE_BURST;
+  pNodeConfig.Init.Direction = DMA_PERIPH_TO_MEMORY;
+  pNodeConfig.Init.SrcInc = DMA_SINC_FIXED;
+  pNodeConfig.Init.DestInc = DMA_DINC_INCREMENTED;
+  pNodeConfig.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_BYTE;
+  pNodeConfig.Init.DestDataWidth = DMA_DEST_DATAWIDTH_BYTE;
+  pNodeConfig.Init.TransferEventMode = DMA_TCEM_EACH_LL_ITEM_TRANSFER;
+  pNodeConfig.TriggerConfig.TriggerPolarity = DMA_TRIG_POLARITY_MASKED;
+  pNodeConfig.DataHandlingConfig.DataExchange = DMA_EXCHANGE_NONE;
+  pNodeConfig.DataHandlingConfig.DataAlignment = DMA_DATA_RIGHTALIGN_ZEROPADDED;
+  pNodeConfig.SrcAddress = 0;
+  pNodeConfig.DstAddress = 0;
+  pNodeConfig.DataSize = 0;
+
+  /* Build gnss_dma_linked_list_node Node */
+  hal_return_code |= HAL_DMAEx_List_BuildNode (&pNodeConfig, &gnss_dma_linked_list_node);
+
+  /* Insert gnss_dma_linked_list_node to Queue */
+  hal_return_code |= HAL_DMAEx_List_InsertNode_Tail (&gnss_dma_linked_list,
+                                                     &gnss_dma_linked_list_node);
+
+  hal_return_code |= HAL_DMAEx_List_SetCircularMode (&gnss_dma_linked_list);
 
   if ( hal_return_code != HAL_OK )
   {
