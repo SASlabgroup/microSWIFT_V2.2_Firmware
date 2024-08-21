@@ -171,7 +171,5 @@ void iridium_init ( Iridium *struct_ptr, microSWIFT_configuration *global_config
                     TX_EVENT_FLAGS_GROUP *control_flags, TX_EVENT_FLAGS_GROUP *error_flags,
                     sbd_message_type_52 *current_message, uint8_t *error_message_buffer,
                     uint8_t *response_buffer, Iridium_message_storage *storage_queue );
-// watchdog refresh function
-extern void register_watchdog_refresh ();
 
 #endif /* SRC_IRIDIUM_H_ */

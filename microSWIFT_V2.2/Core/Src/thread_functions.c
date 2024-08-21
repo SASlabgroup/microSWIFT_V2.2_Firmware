@@ -6,10 +6,15 @@
  */
 
 #include "tx_api.h"
+#include "main.h"
 #include "gnss.h"
 #include "ct_sensor.h"
 #include "iridium.h"
 #include "temp_sensor.h"
+#include "turbidity_sensor.h"
+#include "light_sensor.h"
+#include "accelerometer_sensor.h"
+#include "iridium.h"
 
 self_test_status_t startup_procedure ( void )
 {
@@ -404,9 +409,9 @@ self_test_status_t initial_power_on_self_test ( void )
 
 bool gnss_apply_config ( GNSS *gnss )
 {
-  int fail_counter = 0;
-  gnss_return_code_t gnss_return_code;
-  // turn on the GNSS FET
+  int fail_counter = 0, max_retries = 10;
+  gnss_error_code_t gnss_return_code;
+
   gnss->on_off (GPIO_PIN_SET);
   // Wait for boot
   tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
@@ -414,30 +419,18 @@ bool gnss_apply_config ( GNSS *gnss )
   // Send the configuration commands to the GNSS unit.
   while ( fail_counter < MAX_SELF_TEST_RETRIES )
   {
-
-    register_watchdog_refresh ();
-
     gnss_return_code = gnss->config ();
     if ( gnss_return_code != GNSS_SUCCESS )
     {
-      // Config didn't go through, try again
       fail_counter++;
-
     }
     else
     {
-
       break;
     }
   }
 
-  if ( fail_counter == MAX_SELF_TEST_RETRIES )
-  {
-
-    return_code = SELF_TEST_CRITICAL_FAULT;
-    tx_event_flags_set (&error_flags, GNSS_ERROR, TX_OR);
-    return return_code;
-  }
+  return (fail_counter == max_retries);
 }
 
 bool ct_init_and_self_test ( CT *ct );
@@ -447,6 +440,11 @@ bool light_init_and_self_test ( void );
 bool accelerometer_init_and_self_test ( void );
 bool waves_thread_init ( void );
 bool iridium_init_and_config ( Iridium *iridium );
+
+bool is_first_sample_window ( void )
+{
+  return true;
+}
 
 /**
  * @brief  Static function to flash a sequence of onboard LEDs to indicate

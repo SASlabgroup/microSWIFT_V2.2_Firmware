@@ -168,7 +168,5 @@ void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
                  TIM_HandleTypeDef *timer, uint8_t *ubx_process_buf,
                  uint8_t *config_response_buffer, float *GNSS_N_Array, float *GNSS_E_Array,
                  float *GNSS_D_Array );
-// watchdog refresh function
-extern void register_watchdog_refresh ();
 
 #endif /* SRC_GPS_H_ */
