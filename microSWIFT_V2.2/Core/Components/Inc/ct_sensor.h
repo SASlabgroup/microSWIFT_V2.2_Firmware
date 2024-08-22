@@ -15,29 +15,29 @@
 #include "stdbool.h"
 #include "configuration.h"
 
+// @formatter:off
+
 #ifdef DEBUGGING_FAST_CYCLE
-#define WARMUP_TIME 20
+#define WARMUP_TIME                     20
 #else
-#define WARMUP_TIME 20000
+#define WARMUP_TIME                     20000
 #endif
 // The total length of a response sentence from the sensor
-#define CT_DATA_ARRAY_SIZE 291
-#define CT_DEFAULT_BAUD_RATE 9600
-#define TEMP_MEASUREMENT_START_INDEX 70
-#define TEMP_OFFSET_FROM_UNITS 6
-#define SALINITY_OFFSET_FROM_UNITS 4
-#define SAMPLE_TIME_IN_MILLISECONDS 2000
-#define MAX_RETRIES 10
-#define CT_AVERAGED_VALUE_ERROR_CODE 0x70E2
+#define CT_DATA_ARRAY_SIZE              291
+#define TEMP_MEASUREMENT_START_INDEX    70
+#define TEMP_OFFSET_FROM_UNITS          6
+#define SALINITY_OFFSET_FROM_UNITS      4
+#define SAMPLE_TIME_IN_MILLISECONDS     2000
+#define CT_VALUES_ERROR_CODE            0x70E2
 
 typedef enum ct_error_code
 {
-  CT_SUCCESS = 0,
-  CT_UART_ERROR = -1,
-  CT_PARSING_ERROR = -2,
-  CT_SELF_TEST_FAIL = -3,
+  CT_SUCCESS            = 0,
+  CT_UART_ERROR         = -1,
+  CT_PARSING_ERROR      = -2,
+  CT_SELF_TEST_FAIL     = -3,
   CT_NOT_ENOUGH_SAMPLES = -4,
-  CT_DONE_SAMPLING = -5
+  CT_DONE_SAMPLING      = -5
 } ct_error_code_t;
 
 typedef struct ct_samples
@@ -73,5 +73,5 @@ ct_error_code_t ct_init ( CT *struct_ptr, microSWIFT_configuration *global_confi
                           UART_HandleTypeDef *ct_uart_handle, TX_EVENT_FLAGS_GROUP *control_flags,
                           TX_EVENT_FLAGS_GROUP *error_flags, char *data_buf,
                           ct_samples *samples_buf );
-
+// @formatter:on
 #endif /* SRC_CT_H_ */

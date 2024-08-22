@@ -44,71 +44,62 @@
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-enum initialization_signals
+
+// @formatter:off
+enum initialization_flags
 {
-  RTC_INIT_SUCCESS = ((ULONG) 1 << 0),
-  GNSS_INIT_SUCCESS = ((ULONG) 1 << 1),
-  CT_INIT_SUCCESS = ((ULONG) 1 << 2),
-  TEMPERATURE_INIT_SUCCESS = ((ULONG) 1 << 3),
-  TURBIDITY_INIT_SUCCESS = ((ULONG) 1 << 4),
-  LIGHT_INIT_SUCCESS = ((ULONG) 1 << 5),
-  ACCELEROMETER_INIT_SUCCESS = ((ULONG) 1 << 6),
-  AUX_SENSOR_1_INIT_SUCCESS = ((ULONG) 1 << 7),
-  AUX_SENSOR_2_INIT_SUCCESS = ((ULONG) 1 << 8),
-  AUX_SENSOR_3_INIT_SUCCESS = ((ULONG) 1 << 9),
-  AUX_SENSOR_4_INIT_SUCCESS = ((ULONG) 1 << 10),
-  WAVES_THREAD_INIT_SUCCESS = ((ULONG) 1 << 11),
-  IRIDIUM_INIT_SUCCESS = ((ULONG) 1 << 12)
+  RTC_INIT_SUCCESS              = ((ULONG) 1 << 0),
+  GNSS_INIT_SUCCESS             = ((ULONG) 1 << 1),
+  CT_INIT_SUCCESS               = ((ULONG) 1 << 2),
+  TEMPERATURE_INIT_SUCCESS      = ((ULONG) 1 << 3),
+  TURBIDITY_INIT_SUCCESS        = ((ULONG) 1 << 4),
+  LIGHT_INIT_SUCCESS            = ((ULONG) 1 << 5),
+  ACCELEROMETER_INIT_SUCCESS    = ((ULONG) 1 << 6),
+  WAVES_THREAD_INIT_SUCCESS     = ((ULONG) 1 << 7),
+  IRIDIUM_INIT_SUCCESS          = ((ULONG) 1 << 8)
 };
 
-typedef enum control_flags
+enum complete_flags
 {
-  // Ready states
-  GNSS_READY = 1 << 0,
-  IMU_READY = 1 << 1,
-  CT_READY = 1 << 2,
-  IRIDIUM_READY = 1 << 3,
-  WAVES_READY = 1 << 4,
-  // Done states
-  GNSS_DONE = 1 << 5,
-  IMU_DONE = 1 << 6,
-  CT_DONE = 1 << 7,
-  IRIDIUM_DONE = 1 << 8,
-  WAVES_DONE = 1 << 9,
-  FULL_CYCLE_COMPLETE = 1 << 10,
-  // DMA reception flags
-  GNSS_CONFIG_RECVD = 1 << 11,
-  CT_MSG_RECVD = 1 << 12,
-  IRIDIUM_MSG_RECVD = 1 << 13,
-  GNSS_CONFIG_REQUIRED = 1 << 14,
-  GNSS_TX_COMPLETE = 1 << 15,
-  GNSS_MSG_RECEIVED = 1 << 16,
-  GNSS_MSG_INCOMPLETE = 1 << 17,
-  IRIDIUM_TX_COMPLETE = 1 << 18,
-  IRIDIUM_MSG_INCOMPLETE = 1 << 19,
-  // GNSS timer flags
-  GNSS_INITIAL_RESOLUTION_STAGE = 1 << 20,
-  GNSS_WINDOW_PROCESSING_STAGE = 1 << 21,
-  // Battery ADC conversion flag
-  BATTERY_VOLTAGE_CONVERSION_COMPLETE = 1 << 22
-} control_flags_t;
+  GNSS_THREAD_COMPLETE          = ((ULONG) 1 << 0),
+  CT_THREAD_COMPLETE            = ((ULONG) 1 << 1),
+  TEMPERATURE_THREAD_COMPLETE   = ((ULONG) 1 << 2),
+  TURBIDITY_THREAD_COMPLETE     = ((ULONG) 1 << 3),
+  LIGHT_THREAD_COMPLETE         = ((ULONG) 1 << 4),
+  ACCELEROMETER_THREAD_COMPLETE = ((ULONG) 1 << 5),
+  WAVES_THREAD_COMPLETE         = ((ULONG) 1 << 6),
+  IRIDIUM_THREAD_COMPLETE       = ((ULONG) 1 << 7),
+  GNSS_THREAD_COMPLETE          = ((ULONG) 1 << 8)
+};
+
+enum interrupt_flags
+{
+  // GNSS DMA Reception flags (others use semaphores)
+  GNSS_CONFIG_RECVD             = ((ULONG) 1 << 9),
+  GNSS_CONFIG_REQUIRED          = ((ULONG) 1 << 10),
+  GNSS_TX_COMPLETE              = ((ULONG) 1 << 11),
+  GNSS_MSG_RECEIVED             = ((ULONG) 1 << 12),
+  GNSS_MSG_INCOMPLETE           = ((ULONG) 1 << 13),
+
+  BATTERY_CONVERSION_COMPLETE   = ((ULONG) 1 << 14),
+};
 
 typedef enum error_flags
 {
-  INVALID_CONFIGURATION = ((ULONG) 1 << 0),
-  RTC_ERROR = ((ULONG) 1 << 1),
-  GNSS_ERROR = ((ULONG) 1 << 2),
-  CT_ERROR = ((ULONG) 1 << 3),
-  TEMPERATURE_ERROR = ((ULONG) 1 << 4),
-  LIGHT_ERROR = ((ULONG) 1 << 5),
-  TURBIDITY_ERROR = ((ULONG) 1 << 6),
-  ACCELEROMETER_ERROR = ((ULONG) 1 << 7),
-  WAVES_THREAD_ERROR = ((ULONG) 1 << 8),
-  IRIDIUM_ERROR = ((ULONG) 1 << 9),
-  FILE_SYSTEM_ERROR = ((ULONG) 1 << 10),
-  WATCHDOG_RESET = ((ULONG) 1 << 11),
-  SOFTWARE_RESET = ((ULONG) 1 << 12),
-  GNSS_RESOLUTION_ERROR = ((ULONG) 1 << 13),
+  INVALID_CONFIGURATION      = ((ULONG) 1 << 0),
+  RTC_ERROR                  = ((ULONG) 1 << 1),
+  GNSS_ERROR                 = ((ULONG) 1 << 2),
+  CT_ERROR                   = ((ULONG) 1 << 3),
+  TEMPERATURE_ERROR          = ((ULONG) 1 << 4),
+  LIGHT_ERROR                = ((ULONG) 1 << 5),
+  TURBIDITY_ERROR            = ((ULONG) 1 << 6),
+  ACCELEROMETER_ERROR        = ((ULONG) 1 << 7),
+  WAVES_THREAD_ERROR         = ((ULONG) 1 << 8),
+  IRIDIUM_ERROR              = ((ULONG) 1 << 9),
+  FILE_SYSTEM_ERROR          = ((ULONG) 1 << 10),
+  WATCHDOG_RESET             = ((ULONG) 1 << 11),
+  SOFTWARE_RESET             = ((ULONG) 1 << 12),
+  GNSS_RESOLUTION_ERROR      = ((ULONG) 1 << 13),
   GNSS_TOO_MANY_PARTIAL_MSGS = ((ULONG) 1 << 14),
   GNSS_SAMPLE_WINDOW_TIMEOUT = ((ULONG) 1 << 15)
 } error_flags_t;
@@ -135,23 +126,23 @@ typedef struct
 #if SD_CARD_ENABLED
   SD_HandleTypeDef *sd_handle;
 #endif
-  SPI_HandleTypeDef *core_spi_handle;
-  I2C_HandleTypeDef *core_i2c_handle;
-  UART_HandleTypeDef *iridium_uart_handle;
-  UART_HandleTypeDef *gnss_uart_handle;
-  UART_HandleTypeDef *ct_uart_handle;
-  OSPI_HandleTypeDef *ext_flash_handle;
-  TIM_HandleTypeDef *gnss_minutes_timer;
-  TIM_HandleTypeDef *iridium_minutes_timer;
-  DMA_HandleTypeDef *gnss_uart_rx_dma_handle;
-  ADC_HandleTypeDef *battery_adc;
+  SPI_HandleTypeDef     *core_spi_handle;
+  I2C_HandleTypeDef     *core_i2c_handle;
+  UART_HandleTypeDef    *iridium_uart_handle;
+  UART_HandleTypeDef    *gnss_uart_handle;
+  UART_HandleTypeDef    *ct_uart_handle;
+  OSPI_HandleTypeDef    *ext_flash_handle;
+  TIM_HandleTypeDef     *gnss_minutes_timer;
+  TIM_HandleTypeDef     *iridium_minutes_timer;
+  DMA_HandleTypeDef     *gnss_uart_rx_dma_handle;
+  ADC_HandleTypeDef     *battery_adc;
 // Expansion/ spares
-  SPI_HandleTypeDef *aux_spi_1_handle;
-  SPI_HandleTypeDef *aux_spi_2_handle;
-  I2C_HandleTypeDef *aux_i2c_1_handle;
-  I2C_HandleTypeDef *aux_i2c_2_handle;
-  UART_HandleTypeDef *aux_uart_1_handle;
-  UART_HandleTypeDef *aux_uart_2_handle;
+  SPI_HandleTypeDef     *aux_spi_1_handle;
+  SPI_HandleTypeDef     *aux_spi_2_handle;
+  I2C_HandleTypeDef     *aux_i2c_1_handle;
+  I2C_HandleTypeDef     *aux_i2c_2_handle;
+  UART_HandleTypeDef    *aux_uart_1_handle;
+  UART_HandleTypeDef    *aux_uart_2_handle;
 } Device_Handles;
 /* USER CODE END ET */
 
@@ -191,7 +182,7 @@ void MX_ThreadX_Init ( void );
 /* USER CODE END EFP */
 
 /* USER CODE BEGIN 1 */
-
+// @formatter:on
 /* USER CODE END 1 */
 
 #ifdef __cplusplus

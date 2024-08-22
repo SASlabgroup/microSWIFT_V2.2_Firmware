@@ -47,7 +47,7 @@
 #include "lpdma.h"
 #include "adc.h"
 #include "logger.h"
-#include "thread_functions.h"
+#include "threadx_support.h"
 #include "watchdog.h"
 
 // Waves files
@@ -117,12 +117,16 @@ TX_THREAD waves_thread;
 TX_THREAD iridium_thread;
 // Used to track initialization status of threads and components
 TX_EVENT_FLAGS_GROUP initialization_flags;
-// We'll use flags to dictate control flow between the threads
-TX_EVENT_FLAGS_GROUP thread_control_flags;
+// We'll use these flags to indicate a thread has completed execution
+TX_EVENT_FLAGS_GROUP complete_flags;
+// These flags are used to indicate an interrupt event has occurred
+TX_EVENT_FLAGS_GROUP irq_flags;
 // Flags for errors
 TX_EVENT_FLAGS_GROUP error_flags;
 // RTC complete flags
 TX_EVENT_FLAGS_GROUP rtc_complete_flags;
+// Flags for which thread is checkin in with watchdog
+TX_EVENT_FLAGS_GROUP watchdog_check_in_flags;
 // Comms buses semaphores
 TX_SEMAPHORE ext_rtc_spi_sema;
 TX_SEMAPHORE aux_spi_1_spi_sema;
@@ -349,8 +353,15 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
   //
-  // Create the event flags we'll use for triggering threads
-  ret = tx_event_flags_create(&thread_control_flags, "thread flags");
+  // Create the event flags we'll use for tracking thread completion
+  ret = tx_event_flags_create(&complete_flags, "completion flags");
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+  //
+  // Create the event flags we'll use for tracking interrupt events
+  ret = tx_event_flags_create(&irq_flags, "interrupt flags");
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -365,6 +376,13 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   //
   // Create the rtc complete flags we'll use for tracking rtc function completion
   ret = tx_event_flags_create(&rtc_complete_flags, "RTC complete flags");
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+  //
+  // Create watchdog check in flags -- used to track which thread has checked in
+  ret = tx_event_flags_create(&watchdog_check_in_flags, "watchdog check-in flags");
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -565,28 +583,16 @@ static void rtc_thread_entry ( ULONG thread_input )
   ret = ext_rtc_init (&rtc, device_handles.core_spi_handle, &rtc_messaging_queue,
                       &rtc_complete_flags);
 
-  if ( ret != RTC_SUCCESS )
-  {
-    (void) tx_event_flags_set (&error_flags, RTC_ERROR, TX_OR);
-    (void) tx_thread_suspend (this_thread);
-    uart_logger_log_line ("RTC failed to initialize.");
-  }
-
   // Initialize the watchdog
-  ret = rtc.config_watchdog (WATCHDOG_PERIOD);
+  ret |= rtc.config_watchdog (WATCHDOG_PERIOD);
 
   if ( ret != RTC_SUCCESS )
   {
-    shut_it_all_down ();
-    // Stay stuck here
-    for ( int i = 0; i < 25; i++ )
-    {
-      led_sequence (SELF_TEST_CRITICAL_FAULT);
-    }
-    HAL_NVIC_SystemReset ();
+    uart_logger_log_line ("RTC failed to initialize.");
+    (void) tx_thread_suspend (this_thread);
   }
 
-  (void) tx_event_flags_set (&error_flags, RTC_INIT_SUCCESS, TX_OR);
+  (void) tx_event_flags_set (&initialization_flags, RTC_INIT_SUCCESS, TX_OR);
   uart_logger_log_line ("RTC initialization successful.");
 
   while ( 1 )
@@ -686,7 +692,6 @@ static void control_thread_entry ( ULONG thread_input )
   RF_Switch rf_switch;
   Battery battery;
 
-  self_test_status_t self_test_status = SELF_TEST_PASSED;
   ULONG actual_flags = 0;
   UINT tx_return;
   int fail_counter = 0;
@@ -822,10 +827,11 @@ static void gnss_thread_entry ( ULONG thread_input )
     tx_thread_suspend (this_thread);
   }
 
-  watchdog_check_in ();
-
   (void) tx_event_flags_set (&initialization_flags, GNSS_INIT_SUCCESS, TX_OR);
   uart_logger_log_line ("GNSS initialization successful.");
+
+  watchdog_register_thread (GNSS_THREAD);
+  watchdog_check_in (GNSS_THREAD);
 
   //
   // Run tests if needed
@@ -861,13 +867,13 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   watchdog_check_in ();
 
-// Start the timer for resolution stages
+  // Start the timer for resolution stages
   HAL_TIM_Base_Stop_IT (gnss.minutes_timer);
   gnss.reset_timer (configuration.gnss_max_acquisition_wait_time);
   HAL_TIM_Base_Start_IT (gnss.minutes_timer);
 
-// Wait until we get a series of good UBX_NAV_PVT messages and are
-// tracking a good number of satellites before moving on
+  // Wait until we get a series of good UBX_NAV_PVT messages and are
+  // tracking a good number of satellites before moving on
   if ( gnss.sync_and_start_reception (start_GNSS_UART_DMA, ubx_DMA_message_buf,
   UBX_MESSAGE_SIZE)
        != GNSS_SUCCESS )
@@ -914,22 +920,22 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   }
 
-// If this evaluates to true, we were unable to get adequate GNSS reception to
-// resolve time and get at least 1 good sample. Go to sleep until the top of the next hour.
-// Sleep will be handled in end_of_cycle_thread
+  // If this evaluates to true, we were unable to get adequate GNSS reception to
+  // resolve time and get at least 1 good sample. Go to sleep until the top of the next hour.
+  // Sleep will be handled in end_of_cycle_thread
   if ( gnss.timer_timeout )
   {
     watchdog_check_in ();
     jump_to_end_of_window (GNSS_RESOLUTION_ERROR);
   }
 
-// We were able to resolve time within the given window of time. Now start the timer to ensure
-// the sample window doesn't take too long
+  // We were able to resolve time within the given window of time. Now start the timer to ensure
+  // the sample window doesn't take too long
   HAL_TIM_Base_Stop_IT (gnss.minutes_timer);
   gnss.reset_timer (sample_window_timeout);
   HAL_TIM_Base_Start_IT (gnss.minutes_timer);
 
-// Wait until all the samples have been processed
+  // Wait until all the samples have been processed
   while ( !gnss.all_samples_processed )
   {
 
@@ -982,21 +988,21 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   watchdog_check_in ();
 
-// Stop the timer
+  // Stop the timer
   HAL_TIM_Base_Stop_IT (gnss.minutes_timer);
-// turn off the GNSS sensor
+  // turn off the GNSS sensor
   gnss.on_off (GPIO_PIN_RESET);
-// Deinit UART and DMA to prevent spurious interrupts
+  // Deinit UART and DMA to prevent spurious interrupts
   HAL_UART_DeInit (gnss.gnss_uart_handle);
   HAL_DMA_DeInit (gnss.gnss_rx_dma_handle);
   HAL_DMA_DeInit (gnss.gnss_tx_dma_handle);
 
   gnss.get_location (&last_lat, &last_lon);
-// Just to be overly sure about alignment
+  // Just to be overly sure about alignment
   memcpy (&sbd_message.Lat, &last_lat, sizeof(float));
   memcpy (&sbd_message.Lon, &last_lon, sizeof(float));
-// We're using the "port" field to encode how many samples were averaged divided by 10,
-// up to the limit of an uint8_t
+  // We're using the "port" field to encode how many samples were averaged divided by 10,
+  // up to the limit of an uint8_t
   sbd_port = ((gnss.total_samples_averaged / 10) >= 255) ?
       255 : (gnss.total_samples_averaged / 10);
   memcpy (&sbd_message.port, &sbd_port, sizeof(uint8_t));
@@ -1040,12 +1046,14 @@ static void ct_thread_entry ( ULONG thread_input )
     tx_thread_suspend (this_thread);
   }
 
-  // TODO: add temperature and salinity readings to self test, report here.
   uart_logger_log_line ("CT initialization complete. Temp = %3f, Salinity = %3f",
                         self_test_readings.temp, self_test_readings.salinity);
   (void) tx_event_flags_set (&initialization_flags, CT_INIT_SUCCESS, TX_OR);
 
-  watchdog_check_in ();
+  tx_thread_suspend (this_thread);
+
+  watchdog_register_thread (CT_THREAD);
+  watchdog_check_in (CT_THREAD);
 
   //
   // Run tests if needed
@@ -1144,15 +1152,12 @@ static void ct_thread_entry ( ULONG thread_input )
   memcpy (&sbd_message.mean_salinity, &half_salinity, sizeof(real16_T));
   memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
 
-  watchdog_check_in ();
+  watchdog_check_in (CT_THREAD);
+  watchdog_deregister_thread (CT_THREAD);
 
-  if ( tx_thread_resume (&waves_thread) != TX_SUCCESS )
-  {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
-  }
+  (void) tx_event_flags_set ()
 
-  tx_thread_terminate (&ct_thread);
+  tx_thread_terminate (this_thread);
 }
 
 /**
@@ -1188,10 +1193,13 @@ static void temperature_thread_entry ( ULONG thread_input )
   uart_logger_log_line ("Temperature initialization complete.");
   (void) tx_event_flags_set (&initialization_flags, TEMPERATURE_INIT_SUCCESS, TX_OR);
 
-  watchdog_check_in ();
+  tx_thread_suspend (this_thread);
 
-//
-// Run tests if needed
+  watchdog_register_thread (TEMPERATURE_THREAD);
+  watchdog_check_in (TEMPERATURE_THREAD);
+
+  //
+  // Run tests if needed
   if ( tests.temperature_thread_test != NULL )
   {
     tests.temperature_thread_test (NULL);
@@ -1230,12 +1238,10 @@ static void temperature_thread_entry ( ULONG thread_input )
   memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
   memcpy (&sbd_message.mean_salinity, &half_salinity, sizeof(real16_T));
 
-  if ( tx_thread_resume (&waves_thread) != TX_SUCCESS )
-  {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
-  }
-  tx_thread_terminate (&temperature_thread);
+  watchdog_check_in (TEMPERATURE_THREAD);
+  watchdog_deregister_thread (TEMPERATURE_THREAD);
+
+  tx_thread_terminate (this_thread);
 }
 
 /**
@@ -1250,6 +1256,19 @@ static void light_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = &light_thread;
 
+  // TODO: init and self test
+
+  tx_thread_suspend (this_thread);
+
+  watchdog_register_thread (LIGHT_THREAD);
+  watchdog_check_in (LIGHT_THREAD);
+
+  // TODO: Run sensor
+
+  watchdog_check_in (LIGHT_THREAD);
+  watchdog_deregister_thread (LIGHT_THREAD);
+
+  tx_thread_terminate (this_thread);
 }
 
 /**
@@ -1264,6 +1283,21 @@ static void turbidity_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = &turbidity_thread;
 
+  tx_thread_suspend (this_thread);
+
+  // TODO: init and self test
+
+  tx_thread_suspend (this_thread);
+
+  watchdog_register_thread (TURBIDITY_THREAD);
+  watchdog_check_in (TURBIDITY_THREAD);
+
+  // TODO: Run sensor
+
+  watchdog_check_in (TURBIDITY_THREAD);
+  watchdog_deregister_thread (TURBIDITY_THREAD);
+
+  tx_thread_terminate (this_thread);
 }
 
 /**
@@ -1277,6 +1311,20 @@ static void accelerometer_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = &accelerometer_thread;
+
+  // TODO: init and self test
+
+  tx_thread_suspend (this_thread);
+
+  watchdog_register_thread (ACCELEROMETER_THREAD);
+  watchdog_check_in (ACCELEROMETER_THREAD);
+
+  // TODO: Run sensor
+
+  watchdog_check_in (ACCELEROMETER_THREAD);
+  watchdog_deregister_thread (ACCELEROMETER_THREAD);
+
+  tx_thread_terminate (&this_thread);
 }
 
 /**
@@ -1299,13 +1347,16 @@ static void waves_thread_entry ( ULONG thread_input )
     tx_thread_suspend (this_thread);
   }
 
-  watchdog_check_in ();
-
   (void) tx_event_flags_set (&error_flags, WAVES_THREAD_INIT_SUCCESS, TX_OR);
   uart_logger_log_line ("NED Waves initialization successful.");
 
-//
-// Run tests if needed
+  tx_thread_suspend (this_thread);
+
+  watchdog_register_thread (WAVES_THREAD);
+  watchdog_check_in (WAVES_THREAD);
+
+  //
+  // Run tests if needed
   if ( tests.temperature_thread_test != NULL )
   {
     tests.temperature_thread_test (NULL);
@@ -1313,7 +1364,7 @@ static void waves_thread_entry ( ULONG thread_input )
 
   watchdog_check_in ();
 
-// Function return parameters
+  // Function return parameters
   real16_T E[42];
   real16_T Dp;
   real16_T Hs;
@@ -1334,7 +1385,7 @@ static void waves_thread_entry ( ULONG thread_input )
   emxDestroyArray_real32_T (east);
   emxDestroyArray_real32_T (north);
 
-// Delete the memory pool to fix the memory leak in NEDwaves_memlight
+  // Delete the memory pool to fix the memory leak in NEDwaves_memlight
   if ( waves_memory_pool_delete () != TX_SUCCESS )
   {
     shut_it_all_down ();
@@ -1353,15 +1404,10 @@ static void waves_thread_entry ( ULONG thread_input )
   memcpy (&(sbd_message.b2_array[0]), &(b2[0]), 42 * sizeof(signed char));
   memcpy (&(sbd_message.cf_array[0]), &(check[0]), 42 * sizeof(unsigned char));
 
-  watchdog_check_in ();
+  watchdog_check_in (WAVES_THREAD);
+  watchdog_deregister_thread (WAVES_THREAD);
 
-  if ( tx_thread_resume (&iridium_thread) != TX_SUCCESS )
-  {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
-  }
-
-  tx_thread_terminate (&waves_thread);
+  tx_thread_terminate (this_thread);
 }
 
 /**
@@ -1388,6 +1434,20 @@ static void iridium_thread_entry ( ULONG thread_input )
                 device_handles.iridium_minutes_timer, &thread_control_flags, &error_flags,
                 &sbd_message, &(iridium_error_message[0]), &(iridium_response_message[0]),
                 &sbd_message_queue);
+
+  if ( !iridium_apply_config (&iridium) )
+  {
+    uart_logger_log_line ("Iridium modem failed to initialize.");
+    tx_thread_suspend (this_thread);
+  }
+
+  uart_logger_log_line ("Iridium modem initialized successfully.");
+  (void) tx_event_flags_set (&initialization_flags, IRIDIUM_INIT_SUCCESS, TX_OR);
+
+  tx_thread_suspend (this_thread);
+
+  watchdog_register_thread (IRIDIUM_THREAD);
+  watchdog_check_in (IRIDIUM_THREAD);
 
   UINT tx_return;
   int fail_counter;
@@ -1535,213 +1595,9 @@ static void iridium_thread_entry ( ULONG thread_input )
   HAL_DMA_DeInit (iridium->iridium_tx_dma_handle);
   HAL_TIM_Base_Stop_IT (iridium->timer);
 
-  if ( tx_thread_resume (&end_of_cycle_thread) != TX_SUCCESS )
-  {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
-  }
+  watchdog_check_in (IRIDIUM_THREAD);
+  watchdog_deregister_thread (IRIDIUM_THREAD);
 
-  tx_thread_terminate (&iridium_thread);
-}
-
-/**
- * @brief  teardown_thread_entry
- *         This thread will execute when either an error flag is set or all
- *         the done flags are set, indicating we are ready to shutdown until
- *         the next window.
- * @param  ULONG thread_input - unused
- * @retval void
- */
-static void end_of_cycle_thread_entry ( ULONG thread_input )
-{
-  UNUSED(thread_input);
-  RTC_AlarmTypeDef alarm =
-    { 0 };
-  RTC_TimeTypeDef initial_rtc_time;
-  RTC_TimeTypeDef rtc_time;
-  RTC_DateTypeDef rtc_date;
-  int32_t wake_up_minute;
-  UINT tx_return;
-
-// Must put this thread to sleep for a short while to allow other threads to terminate
-  tx_thread_sleep (1);
-
-  watchdog_check_in ();
-
-//
-// Run tests if needed
-  if ( tests.shutdown_test != NULL )
-  {
-    tests.shutdown_test (NULL);
-  }
-
-  watchdog_check_in ();
-
-// Just to be overly sure everything is off
-  shut_it_all_down ();
-  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-
-//      Clear any pending interrupts, See Errata section 2.2.4
-
-#if CT_ENABLED
-  HAL_NVIC_DisableIRQ (UART4_IRQn);
-  HAL_NVIC_ClearPendingIRQ (UART4_IRQn);
-#endif
-
-  HAL_NVIC_DisableIRQ (GPDMA1_Channel0_IRQn);
-  HAL_NVIC_DisableIRQ (GPDMA1_Channel1_IRQn);
-  HAL_NVIC_DisableIRQ (GPDMA1_Channel2_IRQn);
-  HAL_NVIC_DisableIRQ (GPDMA1_Channel3_IRQn);
-  HAL_NVIC_DisableIRQ (GPDMA1_Channel4_IRQn);
-  HAL_NVIC_DisableIRQ (UART5_IRQn);
-  HAL_NVIC_DisableIRQ (LPUART1_IRQn);
-
-  HAL_NVIC_ClearPendingIRQ (RTC_S_IRQn);
-  HAL_NVIC_ClearPendingIRQ (GPDMA1_Channel0_IRQn);
-  HAL_NVIC_ClearPendingIRQ (GPDMA1_Channel1_IRQn);
-  HAL_NVIC_ClearPendingIRQ (GPDMA1_Channel2_IRQn);
-  HAL_NVIC_ClearPendingIRQ (GPDMA1_Channel3_IRQn);
-  HAL_NVIC_ClearPendingIRQ (GPDMA1_Channel4_IRQn);
-  HAL_NVIC_ClearPendingIRQ (UART5_IRQn);
-  HAL_NVIC_ClearPendingIRQ (LPUART1_IRQn);
-
-  __HAL_RTC_WAKEUPTIMER_CLEAR_FLAG (hrtc, RTC_CLEAR_WUTF);
-  __HAL_RTC_ALARM_CLEAR_FLAG (hrtc, RTC_CLEAR_ALRAF);
-  HAL_NVIC_ClearPendingIRQ (RTC_IRQn);
-
-//      // Only used for low power modes lower than stop2.
-//      HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN7_HIGH_3);
-
-  HAL_RTC_GetTime (device_handles.hrtc, &initial_rtc_time, RTC_FORMAT_BIN);
-// Must call GetDate to keep the RTC happy, even if you don't use it
-  HAL_RTC_GetDate (device_handles.hrtc, &rtc_date, RTC_FORMAT_BIN);
-
-#ifdef SHORT_SLEEP
-        wake_up_minute = initial_rtc_time.Minutes >= 59 ? (initial_rtc_time.Minutes + 1) - 60 :
-                        (initial_rtc_time.Minutes + 1);
-#else
-
-// Handle depending on how many sample windows we're doing per hour
-// Handle the simple case first
-  if ( configuration.windows_per_hour == 1 )
-  {
-    wake_up_minute = 0;
-  }
-  else
-  {
-    wake_up_minute = 60 / configuration.windows_per_hour;
-
-    // Keep adding the quantity determined above until the result is positive
-    while ( (wake_up_minute - initial_rtc_time.Minutes) <= 0 )
-    {
-      wake_up_minute += (60 / configuration.windows_per_hour);
-    }
-
-    // Make sure it's a valid minute!!
-    wake_up_minute %= 60;
-  }
-
-#endif
-
-  HAL_GPIO_WritePin (GPIOF, EXT_LED_GREEN_Pin, GPIO_PIN_RESET);
-
-  while ( rtc_time.Minutes != wake_up_minute )
-  {
-
-    // Get the date and time
-    HAL_RTC_GetTime (device_handles.hrtc, &rtc_time, RTC_FORMAT_BIN);
-    HAL_RTC_GetDate (device_handles.hrtc, &rtc_date, RTC_FORMAT_BIN);
-
-    // We should be restarting the window at the top of the hour. If the initial time and just
-    // checked time differ in hours, then we should start a new window. This should never occur,
-    // but just as a second safety
-    if ( initial_rtc_time.Hours != rtc_time.Hours )
-    {
-      SystemClock_Config ();
-      watchdog_check_in ();
-      HAL_ResumeTick ();
-      HAL_ICACHE_Enable ();
-      HAL_PWREx_DisableRAMsContentStopRetention (PWR_SRAM4_FULL_STOP_RETENTION);
-      HAL_PWREx_DisableRAMsContentStopRetention (PWR_ICACHE_FULL_STOP_RETENTION);
-      HAL_PWREx_EnableRAMsContentStopRetention (PWR_SRAM1_FULL_STOP_RETENTION);
-      HAL_PWREx_EnableRAMsContentStopRetention (PWR_SRAM2_FULL_STOP_RETENTION);
-      HAL_PWREx_EnableRAMsContentStopRetention (PWR_SRAM3_FULL_STOP_RETENTION);
-      break;
-    }
-
-    // Set the alarm to wake up the processor in 25 seconds
-    alarm.Alarm = RTC_ALARM_A;
-    alarm.AlarmDateWeekDay = RTC_WEEKDAY_MONDAY;
-    alarm.AlarmTime = rtc_time;
-    alarm.AlarmTime.Seconds = (rtc_time.Seconds >= 35) ?
-        ((rtc_time.Seconds + 25) - 60) : (rtc_time.Seconds + 25);
-    alarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY | RTC_ALARMMASK_HOURS | RTC_ALARMMASK_MINUTES;
-    alarm.AlarmSubSecondMask = RTC_ALARMSUBSECONDMASK_ALL;
-
-    // If something goes wrong setting the alarm, force an RTC reset and go to the next window.
-    // With luck, the RTC will get set again on the next window and everything will be cool.
-    if ( HAL_RTC_SetAlarm_IT (device_handles.hrtc, &alarm, RTC_FORMAT_BIN) != HAL_OK )
-    {
-      shut_it_all_down ();
-      HAL_NVIC_SystemReset ();
-    }
-
-    watchdog_check_in ();
-    // See errata regarding ICACHE access on wakeup, section 2.2.11
-    HAL_ICACHE_Disable ();
-    HAL_SuspendTick ();
-
-    HAL_PWREx_EnterSTOP2Mode (PWR_STOPENTRY_WFI);
-
-    watchdog_check_in ();
-    // Restore clocks to the same config as before stop2 mode
-    SystemClock_Config ();
-    HAL_ResumeTick ();
-    HAL_ICACHE_Enable ();
-    HAL_PWREx_DisableRAMsContentStopRetention (PWR_SRAM4_FULL_STOP_RETENTION);
-    HAL_PWREx_DisableRAMsContentStopRetention (PWR_ICACHE_FULL_STOP_RETENTION);
-    HAL_PWREx_EnableRAMsContentStopRetention (PWR_SRAM1_FULL_STOP_RETENTION);
-    HAL_PWREx_EnableRAMsContentStopRetention (PWR_SRAM2_FULL_STOP_RETENTION);
-    HAL_PWREx_EnableRAMsContentStopRetention (PWR_SRAM3_FULL_STOP_RETENTION);
-
-  }
-
-  watchdog_check_in ();
-
-// Disable the RTC Alarm and clear flags
-  HAL_RTC_DeactivateAlarm (device_handles.hrtc, RTC_ALARM_A);
-  __HAL_RTC_WAKEUPTIMER_CLEAR_FLAG (hrtc, RTC_CLEAR_WUTF);
-  __HAL_RTC_ALARM_CLEAR_FLAG (hrtc, RTC_CLEAR_ALRAF);
-  HAL_NVIC_ClearPendingIRQ (RTC_IRQn);
-
-#if CT_ENABLED
-  HAL_NVIC_EnableIRQ (UART4_IRQn);
-#endif
-  HAL_NVIC_EnableIRQ (GPDMA1_Channel0_IRQn);
-  HAL_NVIC_EnableIRQ (GPDMA1_Channel1_IRQn);
-  HAL_NVIC_EnableIRQ (GPDMA1_Channel2_IRQn);
-  HAL_NVIC_EnableIRQ (GPDMA1_Channel3_IRQn);
-  HAL_NVIC_EnableIRQ (GPDMA1_Channel4_IRQn);
-  HAL_NVIC_EnableIRQ (UART5_IRQn);
-  HAL_NVIC_EnableIRQ (LPUART1_IRQn);
-//      HAL_PWR_DisableWakeUpPin(PWR_WAKEUP_PIN7_HIGH_3);
-
-// Reset and resume the startup thread
-  tx_return = tx_thread_reset (&startup_thread);
-  if ( tx_return != TX_SUCCESS )
-  {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
-  }
-
-  tx_return = tx_thread_resume (&startup_thread);
-  if ( tx_return != TX_SUCCESS )
-  {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
-  }
-
-  tx_event_flags_set (&thread_control_flags, FULL_CYCLE_COMPLETE, TX_OR);
-  tx_thread_terminate (&end_of_cycle_thread);
+  tx_thread_terminate (this_thread);
 }
 /* USER CODE END 1 */

@@ -8,6 +8,8 @@
 #include "watchdog.h"
 #include "configuration.h"
 #include "threadx_support.h"
+#include "ext_rtc_api.h"
+#include "logger.h"
 
 static watchdog_handle hidden_handle;
 
@@ -18,11 +20,21 @@ int32_t watchdog_init ( watchdog_handle wd_handle, TX_EVENT_FLAGS_GROUP *watchdo
   hidden_handle = wd_handle;
 
   wd_handle->check_in_flags = watchdog_check_in_flags;
-  wd_handle->adc_shutdown = false;
-  wd_handle->acc_mag_shutdown = false;
-  wd_handle->acc_gyro_shutdown = false;
-  wd_handle->filex_shutdown = false;
-  wd_handle->apf11_comms_shutdown = false;
+
+  wd_handle->gnss_active = false;
+  wd_handle->ct_active = false;
+  wd_handle->temperature_active = false;
+  wd_handle->light_active = false;
+  wd_handle->turbidity_active = false;
+  wd_handle->accelerometer_active = false;
+  wd_handle->waves_active = false;
+  wd_handle->iridium_active = false;
+  wd_handle->filex_active = false;
+
+  if ( tx_event_flags_set_notify (wd_handle->check_in_flags, watchdog_event_callback) != TX_SUCCESS )
+  {
+    ret = WATCHDOG_ERROR;
+  }
 
   return ret;
 }
@@ -37,30 +49,53 @@ void watchdog_event_callback ( TX_EVENT_FLAGS_GROUP *flags_group_ptr )
   UINT retval;
   ULONG current_flags, required_flags = 0;
 
-  if ( !hidden_handle->adc_shutdown )
+  if ( hidden_handle->gnss_active )
   {
-    required_flags |= ADC_CHECK_IN;
+    required_flags |= GNSS_THREAD;
   }
 
-  if ( !hidden_handle->acc_mag_shutdown )
+  if ( hidden_handle->ct_active )
   {
-    required_flags |= ACC_MAG_CHECK_IN;
+    required_flags |= CT_THREAD;
   }
 
-  if ( !hidden_handle->acc_gyro_shutdown )
+  if ( hidden_handle->temperature_active )
   {
-    required_flags |= ACC_GYRO_CHECK_IN;
+    required_flags |= TEMPERATURE_THREAD;
   }
 
-  if ( !hidden_handle->filex_shutdown )
+  if ( hidden_handle->light_active )
   {
-    required_flags |= FILEX_CHECK_IN;
+    required_flags |= LIGHT_THREAD;
   }
 
-  if ( !hidden_handle->apf11_comms_shutdown )
+  if ( hidden_handle->turbidity_active )
   {
-    required_flags |= APF11_COMMS_CHECK_IN;
+    required_flags |= TURBIDITY_THREAD;
   }
+
+  if ( hidden_handle->accelerometer_active )
+  {
+    required_flags |= ACCELEROMETER_THREAD;
+  }
+
+  if ( hidden_handle->waves_active )
+  {
+    required_flags |= WAVES_THREAD;
+  }
+
+  if ( hidden_handle->iridium_active )
+  {
+    required_flags |= IRIDIUM_THREAD;
+  }
+
+  if ( hidden_handle->filex_active )
+  {
+    required_flags |= FILEX_THREAD;
+  }
+
+  // Control thread always has to check in
+  required_flags |= CONTROL_THREAD;
 
   retval = tx_event_flags_get (flags_group_ptr, required_flags, TX_OR, &current_flags, TX_NO_WAIT);
 
@@ -71,7 +106,7 @@ void watchdog_event_callback ( TX_EVENT_FLAGS_GROUP *flags_group_ptr )
   }
 
   // All threads have checked in. Refresh the watchdog and clear the flags
-  HAL_IWDG_Refresh (&hiwdg);
+  rtc_server_refresh_watchdog ();
 
   // Clear the event flags
   (void) clear_event_flags (flags_group_ptr);
@@ -82,9 +117,9 @@ void watchdog_event_callback ( TX_EVENT_FLAGS_GROUP *flags_group_ptr )
  * @param  thread := which thread is checking in
  * @retval Void
  */
-void watchdog_check_in ( watchdog_handle wd_handle, enum watchdog_thread_flags thread )
+void watchdog_check_in ( enum watchdog_thread_flags which_thread )
 {
-  (void) tx_event_flags_set (wd_handle->check_in_flags, thread, TX_OR);
+  (void) tx_event_flags_set (hidden_handle->check_in_flags, which_thread, TX_OR);
 }
 
 /**
@@ -92,64 +127,94 @@ void watchdog_check_in ( watchdog_handle wd_handle, enum watchdog_thread_flags t
  * @param  thread := which thread is reporting an error
  * @retval Void
  */
-void watchdog_register_error ( watchdog_handle wd_handle, enum thread which_thread )
+void watchdog_register_thread ( enum watchdog_thread_flags which_thread )
 {
   switch ( which_thread )
   {
-    case ADC_THREAD:
-      wd_handle->adc_shutdown = true;
+    case GNSS_THREAD:
+      hidden_handle->gnss_active = true;
       break;
 
-    case ACC_MAG_THREAD:
-      wd_handle->acc_mag_shutdown = true;
+    case CT_THREAD:
+      hidden_handle->ct_active = true;
       break;
 
-    case ACC_GYRO_THREAD:
-      wd_handle->acc_gyro_shutdown = true;
+    case TEMPERATURE_THREAD:
+      hidden_handle->temperature_active = true;
       break;
 
-    case APF11_COMMS_THREAD:
-      wd_handle->apf11_comms_shutdown = true;
+    case LIGHT_THREAD:
+      hidden_handle->light_active = true;
+      break;
+
+    case TURBIDITY_THREAD:
+      hidden_handle->turbidity_active = true;
+      break;
+
+    case ACCELEROMETER_THREAD:
+      hidden_handle->accelerometer_active = true;
+      break;
+
+    case WAVES_THREAD:
+      hidden_handle->waves_active = true;
+      break;
+
+    case IRIDIUM_THREAD:
+      hidden_handle->iridium_active = true;
       break;
 
     case FILEX_THREAD:
-      wd_handle->filex_shutdown = true;
+      hidden_handle->filex_active = true;
       break;
 
     default:
-
+      uart_logger_log_line ("Invalid arg supplied to watchdog_register_thread().");
+      break;
   }
 }
 
-/**
- * @brief  Deregister a thread error so the watchdog will continue checking it before refreshing
- * @param  thread := which thread has cleared the error
- * @retval Void
- */
-void watchdog_deregister_error ( watchdog_handle wd_handle, enum thread which_thread )
+void watchdog_deregister_thread ( enum watchdog_thread_flags which_thread )
 {
   switch ( which_thread )
   {
-    case ADC_THREAD:
-      wd_handle->adc_shutdown = false;
+    case GNSS_THREAD:
+      hidden_handle->gnss_active = false;
       break;
 
-    case ACC_MAG_THREAD:
-      wd_handle->acc_mag_shutdown = false;
+    case CT_THREAD:
+      hidden_handle->ct_active = false;
       break;
 
-    case ACC_GYRO_THREAD:
-      wd_handle->acc_gyro_shutdown = false;
+    case TEMPERATURE_THREAD:
+      hidden_handle->temperature_active = false;
       break;
 
-    case APF11_COMMS_THREAD:
-      wd_handle->apf11_comms_shutdown = false;
+    case LIGHT_THREAD:
+      hidden_handle->light_active = false;
+      break;
+
+    case TURBIDITY_THREAD:
+      hidden_handle->turbidity_active = false;
+      break;
+
+    case ACCELEROMETER_THREAD:
+      hidden_handle->accelerometer_active = false;
+      break;
+
+    case WAVES_THREAD:
+      hidden_handle->waves_active = false;
+      break;
+
+    case IRIDIUM_THREAD:
+      hidden_handle->iridium_active = false;
       break;
 
     case FILEX_THREAD:
-      wd_handle->filex_shutdown = false;
+      hidden_handle->filex_active = false;
       break;
 
-    default: // ???
+    default:
+      uart_logger_log_line ("Invalid arg supplied to watchdog_deregister_thread().");
+      break;
   }
 }
