@@ -69,19 +69,17 @@ enum complete_flags
   ACCELEROMETER_THREAD_COMPLETE = ((ULONG) 1 << 5),
   WAVES_THREAD_COMPLETE         = ((ULONG) 1 << 6),
   IRIDIUM_THREAD_COMPLETE       = ((ULONG) 1 << 7),
-  GNSS_THREAD_COMPLETE          = ((ULONG) 1 << 8)
 };
 
 enum interrupt_flags
 {
   // GNSS DMA Reception flags (others use semaphores)
-  GNSS_CONFIG_RECVD             = ((ULONG) 1 << 9),
-  GNSS_CONFIG_REQUIRED          = ((ULONG) 1 << 10),
-  GNSS_TX_COMPLETE              = ((ULONG) 1 << 11),
-  GNSS_MSG_RECEIVED             = ((ULONG) 1 << 12),
-  GNSS_MSG_INCOMPLETE           = ((ULONG) 1 << 13),
-
-  BATTERY_CONVERSION_COMPLETE   = ((ULONG) 1 << 14),
+  GNSS_CONFIG_RECVD             = ((ULONG) 1 << 0),
+  GNSS_TX_COMPLETE              = ((ULONG) 1 << 1),
+  GNSS_MSG_RECEIVED             = ((ULONG) 1 << 2),
+  GNSS_MSG_INCOMPLETE           = ((ULONG) 1 << 3),
+  // Signal the ADC conversion has been completed
+  BATTERY_CONVERSION_COMPLETE   = ((ULONG) 1 << 4),
 };
 
 typedef enum error_flags

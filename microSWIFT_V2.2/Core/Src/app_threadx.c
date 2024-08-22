@@ -1007,10 +1007,12 @@ static void gnss_thread_entry ( ULONG thread_input )
       255 : (gnss.total_samples_averaged / 10);
   memcpy (&sbd_message.port, &sbd_port, sizeof(uint8_t));
 
-  watchdog_check_in ();
+  watchdog_check_in (GNSS_THREAD);
+  watchdog_deregister_thread (GNSS_THREAD);
 
   uart_logger_log_line ("GNSS Thread complete, now terminating.");
-  (void) tx_event_flags_set (&control_flags, GNSS_DONE, TX_OR);
+
+  (void) tx_event_flags_set (&complete_flags, GNSS_THREAD_COMPLETE, TX_OR);
   tx_thread_terminate (this_thread);
 }
 
@@ -1155,8 +1157,9 @@ static void ct_thread_entry ( ULONG thread_input )
   watchdog_check_in (CT_THREAD);
   watchdog_deregister_thread (CT_THREAD);
 
-  (void) tx_event_flags_set ()
+  uart_logger_log_line ("CT Thread complete, now terminating.");
 
+  (void) tx_event_flags_set (&complete_flags, CT_THREAD_COMPLETE, TX_OR);
   tx_thread_terminate (this_thread);
 }
 
@@ -1241,6 +1244,9 @@ static void temperature_thread_entry ( ULONG thread_input )
   watchdog_check_in (TEMPERATURE_THREAD);
   watchdog_deregister_thread (TEMPERATURE_THREAD);
 
+  uart_logger_log_line ("Temperature Thread complete, now terminating.");
+
+  (void) tx_event_flags_set (&complete_flags, TEMPERATURE_THREAD_COMPLETE, TX_OR);
   tx_thread_terminate (this_thread);
 }
 
@@ -1268,6 +1274,9 @@ static void light_thread_entry ( ULONG thread_input )
   watchdog_check_in (LIGHT_THREAD);
   watchdog_deregister_thread (LIGHT_THREAD);
 
+  uart_logger_log_line ("Light Thread complete, now terminating.");
+
+  (void) tx_event_flags_set (&complete_flags, LIGHT_THREAD_COMPLETE, TX_OR);
   tx_thread_terminate (this_thread);
 }
 
@@ -1297,6 +1306,9 @@ static void turbidity_thread_entry ( ULONG thread_input )
   watchdog_check_in (TURBIDITY_THREAD);
   watchdog_deregister_thread (TURBIDITY_THREAD);
 
+  uart_logger_log_line ("Turbidity Thread complete, now terminating.");
+
+  (void) tx_event_flags_set (&complete_flags, TURBIDITY_THREAD_COMPLETE, TX_OR);
   tx_thread_terminate (this_thread);
 }
 
@@ -1324,7 +1336,10 @@ static void accelerometer_thread_entry ( ULONG thread_input )
   watchdog_check_in (ACCELEROMETER_THREAD);
   watchdog_deregister_thread (ACCELEROMETER_THREAD);
 
-  tx_thread_terminate (&this_thread);
+  uart_logger_log_line ("Accelerometer Thread complete, now terminating.");
+
+  (void) tx_event_flags_set (&complete_flags, ACCELEROMETER_THREAD_COMPLETE, TX_OR);
+  tx_thread_terminate (this_thread);
 }
 
 /**
@@ -1407,6 +1422,9 @@ static void waves_thread_entry ( ULONG thread_input )
   watchdog_check_in (WAVES_THREAD);
   watchdog_deregister_thread (WAVES_THREAD);
 
+  uart_logger_log_line ("NEDWaves Thread complete, now terminating.");
+
+  (void) tx_event_flags_set (&complete_flags, WAVES_THREAD_COMPLETE, TX_OR);
   tx_thread_terminate (this_thread);
 }
 
@@ -1598,6 +1616,9 @@ static void iridium_thread_entry ( ULONG thread_input )
   watchdog_check_in (IRIDIUM_THREAD);
   watchdog_deregister_thread (IRIDIUM_THREAD);
 
+  uart_logger_log_line ("Iridium Thread complete, now terminating.");
+
+  (void) tx_event_flags_set (&complete_flags, IRIDIUM_THREAD_COMPLETE, TX_OR);
   tx_thread_terminate (this_thread);
 }
 /* USER CODE END 1 */
