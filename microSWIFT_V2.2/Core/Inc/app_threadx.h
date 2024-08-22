@@ -124,6 +124,10 @@ extern TX_SEMAPHORE ct_uart_sema;
 extern TX_SEMAPHORE gnss_uart_sema;
 extern TX_SEMAPHORE aux_uart_1_sema;
 extern TX_SEMAPHORE aux_uart_2_sema;
+extern TX_EVENT_FLAGS_GROUP initialization_flags;
+extern TX_EVENT_FLAGS_GROUP thread_control_flags;
+extern TX_EVENT_FLAGS_GROUP error_flags;
+extern TX_EVENT_FLAGS_GROUP rtc_complete_flags;
 
 typedef struct
 {

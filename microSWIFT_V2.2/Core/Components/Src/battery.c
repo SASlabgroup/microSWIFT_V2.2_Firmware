@@ -80,14 +80,9 @@ static battery_error_code_t battery_get_voltage ( real16_T *voltage )
   ULONG actual_flags;
 
   // If it either takes too long or an EDC error is detected, set the battery voltage to the error value
-  if ( (tx_event_flags_get (self->control_flags, BATTERY_VOLTAGE_CONVERSION_COMPLETE,
-  TX_OR_CLEAR,
+  if ( (tx_event_flags_get (self->control_flags, BATTERY_VOLTAGE_CONVERSION_COMPLETE, TX_OR_CLEAR,
                             &actual_flags, max_ticks_to_get_voltage)
-        != TX_SUCCESS)
-       || (tx_event_flags_get (self->error_flags, ADC_CONVERSION_ERROR,
-       TX_OR_CLEAR,
-                               &actual_flags, max_ticks_to_get_voltage)
-           == TX_SUCCESS) )
+        != TX_SUCCESS) )
   {
 
     // Stop the ADC conversions
@@ -109,5 +104,10 @@ static void battery_shutdown_adc ( void )
   __HAL_RCC_VREF_CLK_DISABLE();
 
   HAL_PWREx_DisableVddA ();
+}
+
+void battery_set_voltage ( float voltage )
+{
+  self->voltage = voltage;
 }
 

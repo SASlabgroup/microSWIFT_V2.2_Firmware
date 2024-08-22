@@ -68,7 +68,7 @@ void* malloc_replacement ( size_t size )
   CHAR *pointer = TX_NULL;
   if ( size > 0 )
   {
-    UINT ret = tx_byte_allocate (waves_mem->memory_pool, (VOID**) &pointer, (ULONG) size,
+    UINT ret = tx_byte_allocate (&waves_mem->memory_pool, (VOID**) &pointer, (ULONG) size,
     TX_NO_WAIT);
     if ( ret != TX_SUCCESS )
     {
@@ -83,7 +83,7 @@ void* calloc_replacement ( size_t num, size_t size )
   CHAR *pointer = TX_NULL;
   if ( size > 0 )
   {
-    UINT ret = tx_byte_allocate (waves_mem->memory_pool, (VOID**) &pointer, (ULONG) (num * size),
+    UINT ret = tx_byte_allocate (&waves_mem->memory_pool, (VOID**) &pointer, (ULONG) (num * size),
     TX_NO_WAIT);
     if ( ret != TX_SUCCESS )
     {

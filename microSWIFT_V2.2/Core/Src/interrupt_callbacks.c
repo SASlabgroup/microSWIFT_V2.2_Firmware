@@ -9,6 +9,7 @@
 #include "app_threadx.h"
 #include "usart.h"
 #include "gnss.h"
+#include "battery.h"
 
 /**
  * @brief Tx Transfer completed callback.
@@ -243,15 +244,17 @@ void HAL_ADC_ConvCpltCallback ( ADC_HandleTypeDef *hadc )
   if ( number_of_conversions < NUMBER_OF_ADC_SAMPLES )
   {
     uint32_t sample = HAL_ADC_GetValue (hadc);
-    v_sum += (sample * ADC_MICROVOLTS_PER_BIT) + battery->calibration_offset;
+    v_sum += (sample * ADC_MICROVOLTS_PER_BIT)
+             + HAL_ADCEx_Calibration_GetValue (hadc, ADC_SINGLE_ENDED);
     number_of_conversions++;
   }
   else
   {
     // Write the voltage to the battery struct
-    battery->voltage = (float) ((((float) v_sum / (float) NUMBER_OF_ADC_SAMPLES)
-                                 + ADC_CALIBRATION_CONSTANT_MICROVOLTS)
-                                / MICROVOLTS_PER_VOLT);
+    battery_set_voltage (
+        (float) ((((float) v_sum / (float) NUMBER_OF_ADC_SAMPLES)
+                  + ADC_CALIBRATION_CONSTANT_MICROVOLTS)
+                 / MICROVOLTS_PER_VOLT));
     // Reset static variables
     v_sum = 0;
     number_of_conversions = 0;

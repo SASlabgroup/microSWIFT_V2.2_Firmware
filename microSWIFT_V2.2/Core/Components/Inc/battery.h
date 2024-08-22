@@ -18,29 +18,35 @@
 #define MICROVOLTS_PER_VOLT 1000000
 #define ADC_CALIBRATION_CONSTANT_MICROVOLTS 25000
 #define BATTERY_ERROR_VOLTAGE_VALUE 0x70E2
+#define ADC_MICROVOLTS_PER_BIT 3292
 
-typedef enum battery_error_code {
-	BATTERY_SUCCESS = 0,
-	BATTERY_CONVERSION_ERROR = -1,
-	BATTERY_TIMEOUT_ERROR = -2,
-	BATTERY_ADC_ERROR = -3
-}battery_error_code_t;
+// @formatter:off
+typedef enum battery_error_code
+{
+  BATTERY_SUCCESS               = 0,
+  BATTERY_CONVERSION_ERROR      = -1,
+  BATTERY_TIMEOUT_ERROR         = -2,
+  BATTERY_ADC_ERROR             = -3
+} battery_error_code_t;
 
-typedef struct Battery {
-	ADC_HandleTypeDef* 		adc_handle;
-	TX_EVENT_FLAGS_GROUP* 	control_flags;
-	TX_EVENT_FLAGS_GROUP* 	error_flags;
+typedef struct Battery
+{
+  ADC_HandleTypeDef     *adc_handle;
+  TX_EVENT_FLAGS_GROUP  *control_flags;
+  TX_EVENT_FLAGS_GROUP  *error_flags;
 
-	float					voltage;
-	uint32_t				calibration_offset;
+  float                 voltage;
+  uint32_t              calibration_offset;
 
-	battery_error_code_t 	(*start_conversion)(void);
-	battery_error_code_t 	(*get_voltage)(real16_T* voltage);
-	void 					(*shutdown_adc)(void);
-}Battery;
+  battery_error_code_t  (*start_conversion) ( void );
+  battery_error_code_t  (*get_voltage) ( real16_T *voltage );
+  void                  (*shutdown_adc) ( void );
+} Battery;
 
+void battery_init ( Battery *struct_ptr, ADC_HandleTypeDef *adc_handle,
+                    TX_EVENT_FLAGS_GROUP *control_flags, TX_EVENT_FLAGS_GROUP *error_flags );
+void battery_set_voltage (float voltage);
 
-void battery_init(Battery* struct_ptr, ADC_HandleTypeDef* adc_handle, TX_EVENT_FLAGS_GROUP* control_flags,
-		TX_EVENT_FLAGS_GROUP* error_flags);
+// @formatter:on
 
 #endif /* SRC_BATTERY_H_ */
