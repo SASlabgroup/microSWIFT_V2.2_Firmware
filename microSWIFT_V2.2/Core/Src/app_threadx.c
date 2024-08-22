@@ -1022,6 +1022,8 @@ static void ct_thread_entry ( ULONG thread_input )
   CT ct;
   CHAR ct_data[CT_DATA_ARRAY_SIZE];
   ct_samples ct_samples_buf[TOTAL_CT_SAMPLES];
+  ct_samples self_test_readings =
+    { 0 };
 
   ct_error_code_t ct_return_code;
   uint32_t ct_parsing_error_counter;
@@ -1032,14 +1034,15 @@ static void ct_thread_entry ( ULONG thread_input )
   ct_init (&ct, &configuration, device_handles.ct_uart_handle, &thread_control_flags, &error_flags,
            &(ct_data[0]), &(ct_samples_buf[0]));
 
-  if ( !ct_self_test (&ct) )
+  if ( !ct_self_test (&ct, &self_test_readings) )
   {
     uart_logger_log_line ("CT self test failed.");
     tx_thread_suspend (this_thread);
   }
 
   // TODO: add temperature and salinity readings to self test, report here.
-  uart_logger_log_line ("CT initialization complete.");
+  uart_logger_log_line ("CT initialization complete. Temp = %3f, Salinity = %3f",
+                        self_test_readings.temp, self_test_readings.salinity);
   (void) tx_event_flags_set (&initialization_flags, CT_INIT_SUCCESS, TX_OR);
 
   watchdog_check_in ();
@@ -1174,6 +1177,16 @@ static void temperature_thread_entry ( ULONG thread_input )
                     &error_flags,
                     TEMP_FET_GPIO_Port,
                     TEMP_FET_Pin, true);
+
+  if ( !temperature_self_test (&temperature) )
+  {
+    uart_logger_log_line ("Temperature self test failed.");
+    tx_thread_suspend (this_thread);
+  }
+
+  // TODO: add temperature and salinity readings to self test, report here.
+  uart_logger_log_line ("Temperature initialization complete.");
+  (void) tx_event_flags_set (&initialization_flags, TEMPERATURE_INIT_SUCCESS, TX_OR);
 
   watchdog_check_in ();
 

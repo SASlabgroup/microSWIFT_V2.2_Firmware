@@ -47,8 +47,8 @@ typedef enum
 bool startup_procedure ( void );
 
 bool gnss_apply_config ( GNSS *gnss );
-bool ct_self_test ( CT *ct );
-bool temperature_self_test ( Temperature *temperature );
+bool ct_self_test ( CT *ct, ct_samples *self_test_readings );
+bool temperature_self_test ( Temperature *temperature, float *self_test_temp );
 bool turbidity_self_test ( void );
 bool light_self_test ( void );
 bool accelerometer_self_test ( void );

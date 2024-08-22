@@ -13,14 +13,15 @@ bool waves_memory_pool_init ( NEDWaves_memory *waves_mem_ptr,
                               VOID *pool_start,
                               size_t pool_size )
 {
+  UINT ret;
+
   waves_mem = waves_mem_ptr;
 
   waves_mem->init_success = false;
 
-  waves_mem->memory_pool = pool;
   waves_mem->configuration = configuration;
 
-  ret = tx_byte_pool_create(waves_mem->memory_pool, "waves mem pool", pool_start, pool_size);
+  ret = tx_byte_pool_create(&waves_mem->memory_pool, "waves mem pool", pool_start, pool_size);
 
   if ( ret == TX_SUCCESS )
   {
@@ -39,7 +40,7 @@ bool waves_memory_pool_init ( NEDWaves_memory *waves_mem_ptr,
 
 bool waves_memory_pool_delete ()
 {
-  UINT ret = tx_byte_pool_delete (waves_mem->memory_pool);
+  UINT ret = tx_byte_pool_delete (&waves_mem->memory_pool);
 
   return (ret == TX_SUCCESS);
 }

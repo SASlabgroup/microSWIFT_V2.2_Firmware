@@ -17,7 +17,7 @@
 
 typedef struct
 {
-  TX_BYTE_POOL *memory_pool;
+  TX_BYTE_POOL memory_pool;
   microSWIFT_configuration *configuration;
   emxArray_real32_T *north;
   emxArray_real32_T *east;

@@ -17,6 +17,7 @@
 #include "stdbool.h"
 #include "configuration.h"
 #include "ct_sensor.h"
+#include "stdarg.h"
 
 // Object instance pointer
 CT *self;
@@ -24,7 +25,7 @@ CT *self;
 static ct_error_code_t ct_parse_sample ( void );
 static ct_error_code_t ct_get_averages ( void );
 static void ct_on_off ( GPIO_PinState pin_state );
-static ct_error_code_t ct_self_test ( bool add_warmup_time );
+static ct_error_code_t ct_self_test ( bool add_warmup_time, ct_samples *optional_readings );
 static ct_error_code_t reset_ct_uart ( void );
 
 // Helper functions
@@ -192,7 +193,7 @@ static void ct_on_off ( GPIO_PinState pin_state )
  *
  * @return ct_error_code_t
  */
-static ct_error_code_t ct_self_test ( bool add_warmup_time )
+static ct_error_code_t ct_self_test ( bool add_warmup_time, ct_samples *optional_readings )
 {
   ct_error_code_t return_code;
   uint32_t elapsed_time, start_time;
@@ -253,6 +254,12 @@ static ct_error_code_t ct_self_test ( bool add_warmup_time )
     {
       tx_thread_sleep ((required_delay / MS_PER_SECOND) * TX_TIMER_TICKS_PER_SECOND);
     }
+  }
+
+  if ( optional_readings != NULL )
+  {
+    optional_readings->salinity = salinity;
+    optional_readings->temp = temperature;
   }
 
   return_code = CT_SUCCESS;

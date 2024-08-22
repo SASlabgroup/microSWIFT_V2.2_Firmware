@@ -464,7 +464,7 @@ bool ct_and_self_test ( CT *ct )
   return (ct_return_code == CT_SUCCESS);
 }
 
-bool temperature_self_test ( Temperature *temperature )
+bool temperature_self_test ( Temperature *temperature, float *self_test_temp )
 {
   int32_t fail_counter = 0, max_retries = 10;
   temperature_error_code_t temp_return_code;

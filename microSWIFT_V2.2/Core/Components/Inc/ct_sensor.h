@@ -12,6 +12,7 @@
 #include "tx_api.h"
 #include "generic_uart_driver.h"
 #include "stdint.h"
+#include "stdbool.h"
 #include "configuration.h"
 
 #ifdef DEBUGGING_FAST_CYCLE
@@ -64,7 +65,7 @@ typedef struct CT
   ct_error_code_t (*parse_sample) ( void );
   ct_error_code_t (*get_averages) ( void );
   void (*on_off) ( GPIO_PinState pin_state );
-  ct_error_code_t (*self_test) ( bool add_warmup_time );
+  ct_error_code_t (*self_test) ( bool add_warmup_time, ct_samples *optional_readings );
   ct_error_code_t (*reset_ct_uart) ( void );
 } CT;
 
