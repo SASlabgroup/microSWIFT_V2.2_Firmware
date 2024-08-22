@@ -415,12 +415,10 @@ bool gnss_apply_config ( GNSS *gnss )
   gnss_error_code_t gnss_return_code;
 
   gnss->on_off (GPIO_PIN_SET);
-  // Wait for boot
-  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
 
-  // Send the configuration commands to the GNSS unit.
   while ( fail_counter < MAX_SELF_TEST_RETRIES )
   {
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     gnss_return_code = gnss->config ();
     if ( gnss_return_code != GNSS_SUCCESS )
     {
@@ -432,16 +430,136 @@ bool gnss_apply_config ( GNSS *gnss )
     }
   }
 
-  return (fail_counter == max_retries);
+  if ( gnss_return_code != GNSS_SUCCESS )
+  {
+    gnss->on_off (GPIO_PIN_RESET);
+  }
+
+  return (gnss_return_code == GNSS_SUCCESS);
 }
 
-bool ct_init_and_self_test ( CT *ct );
-bool temperature_init_and_self_test ( Temperature *temperature );
-bool turbidity_init_and_self_test ( void );
-bool light_init_and_self_test ( void );
-bool accelerometer_init_and_self_test ( void );
-bool waves_thread_init ( void );
-bool iridium_init_and_config ( Iridium *iridium );
+bool ct_and_self_test ( CT *ct )
+{
+  int32_t fail_counter = 0, max_retries = 10;
+  ct_error_code_t ct_return_code;
+
+  ct->on_off (GPIO_PIN_SET);
+
+  while ( fail_counter < max_retries )
+  {
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+    ct_return_code = ct->self_test (false);
+    if ( ct_return_code != CT_SUCCESS )
+    {
+      fail_counter++;
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  ct->on_off (GPIO_PIN_RESET);
+
+  return (ct_return_code == CT_SUCCESS);
+}
+
+bool temperature_self_test ( Temperature *temperature )
+{
+  int32_t fail_counter = 0, max_retries = 10;
+  temperature_error_code_t temp_return_code;
+
+  temperature->on ();
+
+  while ( fail_counter < max_retries )
+  {
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+    temp_return_code = temperature->self_test ();
+    if ( temp_return_code != TEMPERATURE_SUCCESS )
+    {
+      temperature->reset_i2c ();
+      fail_counter++;
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  temperature->off ();
+
+  return (temp_return_code == TEMPERATURE_SUCCESS);
+}
+
+bool turbidity_self_test ( void )
+{
+  return true;
+}
+
+bool light_self_test ( void )
+{
+  return true;
+}
+
+bool accelerometer_self_test ( void )
+{
+  return true;
+}
+
+bool iridium_apply_config ( Iridium *iridium )
+{
+  int32_t fail_counter = 0, max_retries = 10;
+  iridium_error_code_t iridium_return_code;
+
+#ifdef DEBUGGING_FAST_CYCLE
+        iridium->charge_caps(30);
+#else
+  // Turn on the modem and charge up the caps
+  iridium->charge_caps (IRIDIUM_INITIAL_CAP_CHARGE_TIME);
+#endif // #ifdef DEBUGGING_FAST_CYCLE
+
+  while ( fail_counter < max_retries )
+  {
+    iridium_return_code = iridium->self_test ();
+    if ( iridium_return_code != IRIDIUM_SUCCESS )
+    {
+      iridium->cycle_power ();
+      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+      fail_counter++;
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  if ( iridium_return_code != IRIDIUM_SUCCESS )
+  {
+    iridium->sleep (GPIO_PIN_RESET);
+    return false;
+  }
+
+  // Send the configuration settings to the modem
+  fail_counter = 0;
+  while ( fail_counter < max_retries )
+  {
+    iridium_return_code = iridium->config ();
+    if ( iridium_return_code != IRIDIUM_SUCCESS )
+    {
+      iridium->cycle_power ();
+      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+      fail_counter++;
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  iridium->sleep (GPIO_PIN_RESET);
+
+  return (iridium_return_code == IRIDIUM_SUCCESS);
+}
 
 bool is_first_sample_window ( void )
 {

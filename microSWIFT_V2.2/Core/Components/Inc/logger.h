@@ -13,6 +13,7 @@
 #include "basic_stack.h"
 #include "stdarg.h"
 #include "stdbool.h"
+#include "gpio.h"
 
 #define LOG_QUEUE_LENGTH 16
 

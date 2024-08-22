@@ -201,9 +201,7 @@ static ct_error_code_t ct_self_test ( bool add_warmup_time )
   // Sensor sends a message every 2 seconds @ 9600 baud, takes 0.245 seconds to get it out
   int required_ticks_to_get_message = TX_TIMER_TICKS_PER_SECOND * 3;
 
-  self->on_off (GPIO_PIN_SET);
-
-  start_time = HAL_GetTick ();
+  start_time = tx_time_get ();
 
   if ( generic_uart_read (&self->uart_driver, (uint8_t*) &(self->data_buf[0]), CT_DATA_ARRAY_SIZE,
                           required_ticks_to_get_message)
@@ -211,7 +209,6 @@ static ct_error_code_t ct_self_test ( bool add_warmup_time )
   {
     self->reset_ct_uart ();
     return_code = CT_UART_ERROR;
-    self->reset_ct_uart ();
     return return_code;
   }
 
@@ -219,8 +216,6 @@ static ct_error_code_t ct_self_test ( bool add_warmup_time )
   // Make the message was received in the right alignment
   if ( index == NULL || index > &(self->data_buf[0]) + TEMP_MEASUREMENT_START_INDEX )
   {
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-
     return_code = CT_PARSING_ERROR;
     return return_code;
   }
@@ -229,8 +224,6 @@ static ct_error_code_t ct_self_test ( bool add_warmup_time )
   // error return of atof() is 0.0
   if ( temperature == 0.0 )
   {
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-
     return_code = CT_PARSING_ERROR;
     return return_code;
   }
@@ -238,8 +231,6 @@ static ct_error_code_t ct_self_test ( bool add_warmup_time )
   index = strstr (self->data_buf, salinity_units);
   if ( index == NULL )
   {
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-
     return_code = CT_PARSING_ERROR;
     return return_code;
   }
@@ -249,8 +240,6 @@ static ct_error_code_t ct_self_test ( bool add_warmup_time )
 
   if ( salinity == 0.0 )
   {
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-
     return_code = CT_PARSING_ERROR;
     return return_code;
   }
@@ -258,7 +247,7 @@ static ct_error_code_t ct_self_test ( bool add_warmup_time )
   if ( add_warmup_time )
   {
     // Handle the warmup delay
-    elapsed_time = HAL_GetTick () - start_time;
+    elapsed_time = tx_time_get () - start_time;
     int32_t required_delay = WARMUP_TIME - elapsed_time;
     if ( required_delay > 0 )
     {

@@ -48,6 +48,7 @@
 #include "adc.h"
 #include "logger.h"
 #include "thread_functions.h"
+#include "watchdog.h"
 
 // Waves files
 #include "NEDWaves/NEDwaves_memlight.h"
@@ -315,9 +316,9 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
-  // Create the waves thread. MID priority, no preemption-threshold
+  // Create the waves thread. HIGH priority, no preemption-threshold
   ret = tx_thread_create(&waves_thread, "waves thread", waves_thread_entry, 0, pointer, XL_STACK,
-                         MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
+                         HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -807,6 +808,7 @@ static void gnss_thread_entry ( ULONG thread_input )
     {
       break;
     }
+    tx_thread_sleep (1);
   }
 
   gnss_init (&gnss, &configuration, device_handles.gnss_uart_handle,
@@ -822,7 +824,7 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   watchdog_check_in ();
 
-  (void) tx_event_flags_set (&error_flags, GNSS_INIT_SUCCESS, TX_OR);
+  (void) tx_event_flags_set (&initialization_flags, GNSS_INIT_SUCCESS, TX_OR);
   uart_logger_log_line ("GNSS initialization successful.");
 
   //
@@ -858,9 +860,6 @@ static void gnss_thread_entry ( ULONG thread_input )
   }
 
   watchdog_check_in ();
-
-// Grab the RF switch
-  rf_switch->set_gnss_port ();
 
 // Start the timer for resolution stages
   HAL_TIM_Base_Stop_IT (gnss.minutes_timer);
@@ -1002,38 +1001,11 @@ static void gnss_thread_entry ( ULONG thread_input )
       255 : (gnss.total_samples_averaged / 10);
   memcpy (&sbd_message.port, &sbd_port, sizeof(uint8_t));
 
-// Port the RF switch to the modem
-  rf_switch->set_iridium_port ();
-
   watchdog_check_in ();
 
-#if CT_ENABLED
-
-  if ( tx_thread_resume (&ct_thread) != TX_SUCCESS )
-  {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
-  }
-
-#elif TEMPERATURE_ENABLED
-
-if ( tx_thread_resume (&temperature_thread) != TX_SUCCESS )
-{
-  shut_it_all_down ();
-  HAL_NVIC_SystemReset ();
-}
-
-#else
-
-if ( tx_thread_resume (&waves_thread) != TX_SUCCESS )
-{
-  shut_it_all_down ();
-  HAL_NVIC_SystemReset ();
-}
-
-#endif
-
-  tx_thread_terminate (&gnss_thread);
+  uart_logger_log_line ("GNSS Thread complete, now terminating.");
+  (void) tx_event_flags_set (&control_flags, GNSS_DONE, TX_OR);
+  tx_thread_terminate (this_thread);
 }
 
 /**
@@ -1060,10 +1032,20 @@ static void ct_thread_entry ( ULONG thread_input )
   ct_init (&ct, &configuration, device_handles.ct_uart_handle, &thread_control_flags, &error_flags,
            &(ct_data[0]), &(ct_samples_buf[0]));
 
+  if ( !ct_self_test (&ct) )
+  {
+    uart_logger_log_line ("CT self test failed.");
+    tx_thread_suspend (this_thread);
+  }
+
+  // TODO: add temperature and salinity readings to self test, report here.
+  uart_logger_log_line ("CT initialization complete.");
+  (void) tx_event_flags_set (&initialization_flags, CT_INIT_SUCCESS, TX_OR);
+
   watchdog_check_in ();
 
-//
-// Run tests if needed
+  //
+  // Run tests if needed
   if ( tests.ct_thread_test != NULL )
   {
     tests.ct_thread_test (NULL);

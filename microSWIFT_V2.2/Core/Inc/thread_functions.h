@@ -47,13 +47,12 @@ typedef enum
 bool startup_procedure ( void );
 
 bool gnss_apply_config ( GNSS *gnss );
-bool ct_init_and_self_test ( CT *ct );
-bool temperature_init_and_self_test ( Temperature *temperature );
-bool turbidity_init_and_self_test ( void );
-bool light_init_and_self_test ( void );
-bool accelerometer_init_and_self_test ( void );
-bool waves_thread_init ( void );
-bool iridium_init_and_config ( Iridium *iridium );
+bool ct_self_test ( CT *ct );
+bool temperature_self_test ( Temperature *temperature );
+bool turbidity_self_test ( void );
+bool light_self_test ( void );
+bool accelerometer_self_test ( void );
+bool iridium_apply_config ( Iridium *iridium );
 
 bool is_first_sample_window ( void );
 

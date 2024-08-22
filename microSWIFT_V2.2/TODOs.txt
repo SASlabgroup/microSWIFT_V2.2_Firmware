@@ -8,12 +8,14 @@ General
 [ ] Check static stack usage and adjust threead stack size accordingly
 [ ] Make generic green/red led on/off functions
     [ ] Need to move the pins and use throughole LEDs for the prototype
+[ ] Finish implementation of watchdog
+[ ] Figure out new Iridium msg queue...
+	[ ] Its going to have to be in flash...
 [ ] Check all init calls in startup procedure to make sure bus peripheral is starting properly
 [ ] Redo all GPIO bare pin calls -- FET pins, etc -- to use GPIO functions in gpio.c. Make sure to
     pass in GPIO pin/port definitions and include them in the structs.
 [ ] Figure out how to disable watchdog in debug mode
 	[ ] Likely just adjust the watchdog period to be very long
-[ ] Change end of cycle sleep to shutdown mode, wakeup on int <a,b> from RTC
 [ ] Make sure everything sticks to the principle that there are no infinite loops
 [ ] Ditch watchdog hour timer and all that baggage
 [ ] Modify linker script -- add external memory if necessary
@@ -28,6 +30,10 @@ Control
 [ ] Implement subsequent power on fasttrack
 [x] Consider wrapping the initialization of north, east, down arrays into mem_replacements.c and
     provide get/set functions for passing to GNSS and waves
+[ ] Implement shut_it_all_down(), enter_shutdown_mode(), etc
+	[ ] Ensure all modes result in soft-shutdown
+[ ] End of cycle now becomes setting an alarm, soft shutting down everything, and entering
+    shutdown mode
 
 ****************************************************************************************************
 GNSS
@@ -69,6 +75,7 @@ Termperature
 ****
 
 [ ] Move buffers to inside Temperature struct
+[ ] Rework I2C driver
 
 ****************************************************************************************************
 ThreadX
