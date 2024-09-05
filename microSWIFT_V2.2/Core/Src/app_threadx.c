@@ -44,7 +44,6 @@
 #include "linked_list.h"
 #include "testing_hooks.h"
 #include "tim.h"
-#include "lpdma.h"
 #include "adc.h"
 #include "logger.h"
 #include "threadx_support.h"
@@ -503,7 +502,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   device_handles.ext_flash_handle = &hospi1;
   device_handles.gnss_minutes_timer = &htim16;
   device_handles.iridium_minutes_timer = &htim17;
-  device_handles.gnss_uart_rx_dma_handle = &handle_LPDMA1_Channel0;
+  device_handles.gnss_uart_rx_dma_handle = &handle_GPDMA1_Channel0;
   device_handles.battery_adc = &hadc1;
   device_handles.aux_spi_1_handle = &hspi2;
   device_handles.aux_spi_2_handle = &hspi3;
@@ -719,19 +718,17 @@ static void control_thread_entry ( ULONG thread_input )
 
   rf_switch_init (&rf_switch);
 
-  rf_switch->power_on ();
-
   battery_init (&battery, device_handles.battery_adc, &thread_control_flags, &error_flags);
 
   // Flash some lights to let the user know its on and working
   led_sequence (INITIAL_LED_SEQUENCE);
 
-  watchdog_check_in ();
+  watchdog_check_in (CONTROL_THREAD);
 
   // Run the self test
   self_test_status = initial_power_on_self_test ();
 
-  watchdog_check_in ();
+  watchdog_check_in (CONTROL_THREAD);
 
   switch ( self_test_status )
   {
@@ -744,11 +741,11 @@ static void control_thread_entry ( ULONG thread_input )
       break;
 
     case SELF_TEST_CRITICAL_FAULT:
-      shut_it_all_down ();
+      shut_it_all_down (CONTROL_THREAD);
       // Stay stuck here
       for ( int i = 0; i < 25; i++ )
       {
-        watchdog_check_in ();
+        watchdog_check_in (CONTROL_THREAD);
         led_sequence (SELF_TEST_CRITICAL_FAULT);
       }
       HAL_NVIC_SystemReset ();
@@ -759,7 +756,7 @@ static void control_thread_entry ( ULONG thread_input )
       // Stay stuck here
       while ( 1 )
       {
-        watchdog_check_in ();
+        watchdog_check_in (CONTROL_THREAD);
         led_sequence (SELF_TEST_CRITICAL_FAULT);
       }
   }
@@ -865,7 +862,7 @@ static void gnss_thread_entry ( ULONG thread_input )
     tx_thread_suspend (this_thread);
   }
 
-  watchdog_check_in ();
+  watchdog_check_in (GNSS_THREAD);
 
   // Start the timer for resolution stages
   HAL_TIM_Base_Stop_IT (gnss.minutes_timer);
@@ -880,7 +877,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   {
     // If we were unable to get good GNSS reception and start the DMA transfer loop, then
     // go to sleep until the top of the next hour. Sleep will be handled in end_of_cycle_thread
-    watchdog_check_in ();
+    watchdog_check_in (GNSS_THREAD);
     jump_to_end_of_window (GNSS_RESOLUTION_ERROR);
   }
   else
@@ -892,7 +889,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   while ( !(gnss.all_resolution_stages_complete || gnss.timer_timeout) )
   {
 
-    watchdog_check_in ();
+    watchdog_check_in (GNSS_THREAD);
     tx_return = tx_event_flags_get (&thread_control_flags,
                                     ((GNSS_MSG_RECEIVED | GNSS_MSG_INCOMPLETE)),
                                     TX_OR_CLEAR,
@@ -914,7 +911,7 @@ static void gnss_thread_entry ( ULONG thread_input )
     else
     {
 
-      watchdog_check_in ();
+      watchdog_check_in (GNSS_THREAD);
       jump_to_end_of_window (MEMORY_CORRUPTION_ERROR);
     }
 
@@ -925,7 +922,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   // Sleep will be handled in end_of_cycle_thread
   if ( gnss.timer_timeout )
   {
-    watchdog_check_in ();
+    watchdog_check_in (GNSS_THREAD);
     jump_to_end_of_window (GNSS_RESOLUTION_ERROR);
   }
 
@@ -939,7 +936,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   while ( !gnss.all_samples_processed )
   {
 
-    watchdog_check_in ();
+    watchdog_check_in (GNSS_THREAD);
 
     tx_return = tx_event_flags_get (&thread_control_flags, GNSS_MSG_RECEIVED | GNSS_MSG_INCOMPLETE,
     TX_OR_CLEAR,
@@ -963,7 +960,7 @@ static void gnss_thread_entry ( ULONG thread_input )
       {
         if ( ++number_of_no_sample_errors == configuration.gnss_sampling_rate * 60 )
         {
-          watchdog_check_in ();
+          watchdog_check_in (GNSS_THREAD);
           jump_to_end_of_window (SAMPLE_WINDOW_ERROR);
         }
 
@@ -974,19 +971,19 @@ static void gnss_thread_entry ( ULONG thread_input )
     else
     {
 
-      watchdog_check_in ();
+      watchdog_check_in (GNSS_THREAD);
       jump_to_end_of_window (MEMORY_CORRUPTION_ERROR);
     }
 
     // If this evaluates to true, something hung up with GNSS sampling. End the sample window
     if ( gnss.timer_timeout )
     {
-      watchdog_check_in ();
+      watchdog_check_in (GNSS_THREAD);
       jump_to_end_of_window (SAMPLE_WINDOW_ERROR);
     }
   }
 
-  watchdog_check_in ();
+  watchdog_check_in (GNSS_THREAD);
 
   // Stop the timer
   HAL_TIM_Base_Stop_IT (gnss.minutes_timer);
@@ -1064,7 +1061,7 @@ static void ct_thread_entry ( ULONG thread_input )
     tests.ct_thread_test (NULL);
   }
 
-  watchdog_check_in ();
+  watchdog_check_in (CT_THREAD);
 
 // Set the mean salinity and temp values to error values in the event the sensor fails
   half_salinity.bitPattern = CT_AVERAGED_VALUE_ERROR_CODE;
@@ -1080,7 +1077,7 @@ static void ct_thread_entry ( ULONG thread_input )
   while ( fail_counter < MAX_SELF_TEST_RETRIES )
   {
 
-    watchdog_check_in ();
+    watchdog_check_in (CT_THREAD);
 
     ct_return_code = ct->self_test (false);
     if ( ct_return_code != CT_SUCCESS )
@@ -1099,7 +1096,7 @@ static void ct_thread_entry ( ULONG thread_input )
   if ( fail_counter == MAX_SELF_TEST_RETRIES )
   {
 
-    watchdog_check_in ();
+    watchdog_check_in (CT_THREAD);
     jump_to_waves ();
   }
 
@@ -1108,7 +1105,7 @@ static void ct_thread_entry ( ULONG thread_input )
   while ( ct->total_samples < configuration.total_ct_samples )
   {
 
-    watchdog_check_in ();
+    watchdog_check_in (CT_THREAD);
     ct_return_code = ct->parse_sample ();
 
     if ( ct_return_code == CT_PARSING_ERROR )
@@ -1120,7 +1117,7 @@ static void ct_thread_entry ( ULONG thread_input )
     {
       // If there are too many parsing errors or a UART error occurs, then
       // stop trying and
-      watchdog_check_in ();
+      watchdog_check_in (CT_THREAD);
       jump_to_waves ();
     }
 
@@ -1130,7 +1127,7 @@ static void ct_thread_entry ( ULONG thread_input )
     }
   }
 
-  watchdog_check_in ();
+  watchdog_check_in (CT_THREAD);
 
 // Turn off the CT sensor
   ct->on_off (GPIO_PIN_RESET);
@@ -1143,7 +1140,7 @@ static void ct_thread_entry ( ULONG thread_input )
 // Make sure something didn't go terribly wrong
   if ( ct_return_code == CT_NOT_ENOUGH_SAMPLES )
   {
-    watchdog_check_in ();
+    watchdog_check_in (CT_THREAD);
     jump_to_waves ();
   }
 
@@ -1208,7 +1205,7 @@ static void temperature_thread_entry ( ULONG thread_input )
     tests.temperature_thread_test (NULL);
   }
 
-  watchdog_check_in ();
+  watchdog_check_in (TEMPERATURE_THREAD);
 
   temperature->on ();
 
@@ -1291,8 +1288,6 @@ static void turbidity_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = &turbidity_thread;
-
-  tx_thread_suspend (this_thread);
 
   // TODO: init and self test
 

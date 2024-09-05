@@ -1,9 +1,9 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    lpdma.h
+  * @file    gpdma.h
   * @brief   This file contains all the function prototypes for
-  *          the lpdma.c file
+  *          the gpdma.c file
   ******************************************************************************
   * @attention
   *
@@ -18,8 +18,8 @@
   */
 /* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __LPDMA_H__
-#define __LPDMA_H__
+#ifndef __GPDMA_H__
+#define __GPDMA_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,13 +32,11 @@ extern "C" {
 
 /* USER CODE END Includes */
 
-extern DMA_HandleTypeDef handle_LPDMA1_Channel0;
-
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
 
-void MX_LPDMA1_Init(void);
+void MX_GPDMA1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 
@@ -48,5 +46,5 @@ void MX_LPDMA1_Init(void);
 }
 #endif
 
-#endif /* __LPDMA_H__ */
+#endif /* __GPDMA_H__ */
 

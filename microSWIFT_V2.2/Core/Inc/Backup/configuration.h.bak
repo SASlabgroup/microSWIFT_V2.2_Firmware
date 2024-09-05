@@ -82,7 +82,12 @@ typedef struct microSWIFT_configuration
   uint32_t total_ct_samples;
   uint32_t windows_per_hour;
   bool gnss_high_performance_mode;
-  bool logger_enabled;
+  bool ct_enabled;
+  bool temperature_enabled;
+  bool light_enabled;
+  bool turbidity_enabled;
+  bool accelerometer_enabled;
+
 } microSWIFT_configuration;
 
 #endif /* INC_CONFIGURATION_H_ */
