@@ -44,7 +44,6 @@
 #include "linked_list.h"
 #include "testing_hooks.h"
 #include "tim.h"
-#include "lpdma.h"
 #include "adc.h"
 #include "logger.h"
 #include "threadx_support.h"
@@ -115,6 +114,9 @@ TX_THREAD turbidity_thread;
 TX_THREAD accelerometer_thread;
 TX_THREAD waves_thread;
 TX_THREAD iridium_thread;
+TX_THREAD expansion_thread_1;
+TX_THREAD expansion_thread_2;
+TX_THREAD expansion_thread_3;
 // Used to track initialization status of threads and components
 TX_EVENT_FLAGS_GROUP initialization_flags;
 // We'll use these flags to indicate a thread has completed execution
@@ -127,6 +129,17 @@ TX_EVENT_FLAGS_GROUP error_flags;
 TX_EVENT_FLAGS_GROUP rtc_complete_flags;
 // Flags for which thread is checkin in with watchdog
 TX_EVENT_FLAGS_GROUP watchdog_check_in_flags;
+// Expansion event flags
+TX_EVENT_FLAGS_GROUP expansion_flags_1;
+TX_EVENT_FLAGS_GROUP expansion_flags_2;
+TX_EVENT_FLAGS_GROUP expansion_flags_3;
+// Timers for threads
+TX_TIMER control_timer;
+TX_TIMER gnss_timer;
+TX_TIMER iridium_timer;
+TX_TIMER expansion_timer_1;
+TX_TIMER expansion_timer_2;
+TX_TIMER expansion_timer_3;
 // Comms buses semaphores
 TX_SEMAPHORE ext_rtc_spi_sema;
 TX_SEMAPHORE aux_spi_1_spi_sema;
@@ -142,6 +155,8 @@ TX_SEMAPHORE aux_uart_2_sema;
 // Server/client message queue for RTC (including watchdog function)
 TX_QUEUE rtc_messaging_queue;
 TX_QUEUE logger_message_queue;
+TX_QUEUE expansion_queue_1;
+TX_QUEUE expansion_queue_2;
 // Messages that failed to send are stored here
 Iridium_message_storage sbd_message_queue;
 
@@ -164,6 +179,9 @@ static void temperature_thread_entry ( ULONG thread_input );
 static void light_thread_entry ( ULONG thread_input );
 static void turbidity_thread_entry ( ULONG thread_input );
 static void accelerometer_thread_entry ( ULONG thread_input );
+static void expansion_thread_1_entry ( ULONG thread_input );
+static void expansion_thread_2_entry ( ULONG thread_input );
+static void expansion_thread_3_entry ( ULONG thread_input );
 
 /* USER CODE END PFP */
 
@@ -342,6 +360,49 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
+  // Create the expansion threads
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK, TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_thread_create(&expansion_thread_1, "expansion_thread_1", expansion_thread_1_entry, 0,
+                         pointer, M_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
+                         TX_DONT_START);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK, TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_thread_create(&expansion_thread_2, "expansion_thread_2", expansion_thread_2_entry, 0,
+                         pointer, M_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
+                         TX_DONT_START);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK, TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_thread_create(&expansion_thread_3, "expansion_thread_3", expansion_thread_3_entry, 0,
+                         pointer, M_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
+                         TX_DONT_START);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
   /************************************************************************************************
    ************************************** Event Flags *********************************************
    ************************************************************************************************/
@@ -388,6 +449,50 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
+  /************************************************************************************************
+   **************************************** Timers ************************************************
+   ************************************************************************************************/
+  ret = tx_timer_create(&control_timer, "Control thread timer", control_timer_expired, 1, 0, 0,
+                        TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_timer_create(&gnss_timer, "GNSS thread timer", gnss_timer_expired, 1, 0, 0,
+                        TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_timer_create(&iridium_timer, "Iridium thread timer", iridium_timer_expired, 1, 0, 0,
+                        TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_timer_create(&expansion_timer_1, "Expansion thread 1 timer", expansion_timer_1_expired,
+                        1, 0, 0, TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_timer_create(&expansion_timer_2, "Expansion thread 2 timer", expansion_timer_2_expired,
+                        1, 0, 0, TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_timer_create(&expansion_timer_3, "Expansion thread 3 timer", expansion_timer_3_expired,
+                        1, 0, 0, TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
   /************************************************************************************************
    ************************************** Semaphores **********************************************
    ************************************************************************************************/
@@ -495,15 +600,47 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer,
+  EXPANSION_QUEUE_MSG_SIZE * EXPANSION_QUEUE_LENGTH,
+                          TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_queue_create(&expansion_queue_1, "Expansion queue 1",
+                        EXPANSION_QUEUE_MSG_SIZE / sizeof(uint32_t), pointer,
+                        EXPANSION_QUEUE_MSG_SIZE * EXPANSION_QUEUE_LENGTH);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer,
+  EXPANSION_QUEUE_MSG_SIZE * EXPANSION_QUEUE_LENGTH,
+                          TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_queue_create(&expansion_queue_2, "Expansion queue 2",
+                        EXPANSION_QUEUE_MSG_SIZE / sizeof(uint32_t), pointer,
+                        EXPANSION_QUEUE_MSG_SIZE * EXPANSION_QUEUE_LENGTH);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  /************************************************************************************************
+   ***************************************** Misc init ********************************************
+   ************************************************************************************************/
   device_handles.core_spi_handle = &hspi1;
   device_handles.core_i2c_handle = &hi2c1;
   device_handles.iridium_uart_handle = &huart4;
   device_handles.gnss_uart_handle = &huart1;
   device_handles.ct_uart_handle = &huart5;
   device_handles.ext_flash_handle = &hospi1;
-  device_handles.gnss_minutes_timer = &htim16;
-  device_handles.iridium_minutes_timer = &htim17;
-  device_handles.gnss_uart_rx_dma_handle = &handle_LPDMA1_Channel0;
   device_handles.battery_adc = &hadc1;
   device_handles.aux_spi_1_handle = &hspi2;
   device_handles.aux_spi_2_handle = &hspi3;
@@ -513,12 +650,20 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   device_handles.aux_uart_2_handle = &huart3;
 
   configuration.samples_per_window = TOTAL_SAMPLES_PER_WINDOW;
-  configuration.iridium_max_transmit_time = IRIDIUM_MAX_TRANSMIT_TIME;
-  configuration.gnss_sampling_rate = GNSS_SAMPLING_RATE;
-  configuration.gnss_high_performance_mode = GNSS_HIGH_PERFORMANCE_MODE_ENABLED;
-  configuration.gnss_max_acquisition_wait_time = GNSS_MAX_ACQUISITION_WAIT_TIME;
-  configuration.total_ct_samples = TOTAL_CT_SAMPLES;
   configuration.windows_per_hour = SAMPLE_WINDOWS_PER_HOUR;
+  configuration.iridium_max_transmit_time = IRIDIUM_MAX_TRANSMIT_TIME;
+  configuration.gnss_max_acquisition_wait_time = GNSS_MAX_ACQUISITION_WAIT_TIME;
+  configuration.gnss_sampling_rate = GNSS_SAMPLING_RATE;
+  configuration.total_ct_samples = TOTAL_CT_SAMPLES;
+  configuration.total_temp_samples = TOTAL_TEMPERATURE_SAMPLES;
+  configuration.total_light_samples = TOTAL_LIGHT_SAMPLES;
+  configuration.total_turbidity_samples = TOTAL_TURBIDITY_SAMPLES;
+  configuration.gnss_high_performance_mode = GNSS_HIGH_PERFORMANCE_MODE_ENABLED;
+  configuration.ct_enabled = CT_ENABLED;
+  configuration.temperature_enabled = TEMPERATURE_ENABLED;
+  configuration.light_enabled = LIGHT_SENSOR_ENABLED;
+  configuration.turbidity_enabled = TURBIDITY_SENSOR_ENABLED;
+  configuration.accelerometer_enabled = ACCELEROMETER_ENABLED;
 
   /* USER CODE END App_ThreadX_MEM_POOL */
   /* USER CODE BEGIN App_ThreadX_Init */
@@ -717,25 +862,25 @@ static void control_thread_entry ( ULONG thread_input )
     tx_event_flags_set (&error_flags, SOFTWARE_RESET, TX_OR);
   }
 
+  battery_init (device_handles.battery_adc, &irq_flags);
+
   rf_switch_init (&rf_switch);
+  rf_switch.set_gnss_port ();
 
-  rf_switch->power_on ();
-
-  battery_init (&battery, device_handles.battery_adc, &thread_control_flags, &error_flags);
-
-  // Flash some lights to let the user know its on and working
-  led_sequence (INITIAL_LED_SEQUENCE);
-
-  watchdog_check_in ();
+  watchdog_check_in (CONTROL_THREAD);
 
   // Run the self test
-  self_test_status = initial_power_on_self_test ();
+  if ( !startup_procedure (&configuration) )
+  {
 
-  watchdog_check_in ();
+  }
+
+  watchdog_check_in (CONTROL_THREAD);
 
   switch ( self_test_status )
   {
     case SELF_TEST_PASSED:
+#error "Start GNSS thread here before light sequence"
       led_sequence (TEST_PASSED_LED_SEQUENCE);
       break;
 
@@ -744,11 +889,11 @@ static void control_thread_entry ( ULONG thread_input )
       break;
 
     case SELF_TEST_CRITICAL_FAULT:
-      shut_it_all_down ();
+      shut_it_all_down (CONTROL_THREAD);
       // Stay stuck here
       for ( int i = 0; i < 25; i++ )
       {
-        watchdog_check_in ();
+        watchdog_check_in (CONTROL_THREAD);
         led_sequence (SELF_TEST_CRITICAL_FAULT);
       }
       HAL_NVIC_SystemReset ();
@@ -759,7 +904,7 @@ static void control_thread_entry ( ULONG thread_input )
       // Stay stuck here
       while ( 1 )
       {
-        watchdog_check_in ();
+        watchdog_check_in (CONTROL_THREAD);
         led_sequence (SELF_TEST_CRITICAL_FAULT);
       }
   }
@@ -865,7 +1010,7 @@ static void gnss_thread_entry ( ULONG thread_input )
     tx_thread_suspend (this_thread);
   }
 
-  watchdog_check_in ();
+  watchdog_check_in (GNSS_THREAD);
 
   // Start the timer for resolution stages
   HAL_TIM_Base_Stop_IT (gnss.minutes_timer);
@@ -880,7 +1025,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   {
     // If we were unable to get good GNSS reception and start the DMA transfer loop, then
     // go to sleep until the top of the next hour. Sleep will be handled in end_of_cycle_thread
-    watchdog_check_in ();
+    watchdog_check_in (GNSS_THREAD);
     jump_to_end_of_window (GNSS_RESOLUTION_ERROR);
   }
   else
@@ -892,7 +1037,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   while ( !(gnss.all_resolution_stages_complete || gnss.timer_timeout) )
   {
 
-    watchdog_check_in ();
+    watchdog_check_in (GNSS_THREAD);
     tx_return = tx_event_flags_get (&thread_control_flags,
                                     ((GNSS_MSG_RECEIVED | GNSS_MSG_INCOMPLETE)),
                                     TX_OR_CLEAR,
@@ -914,7 +1059,7 @@ static void gnss_thread_entry ( ULONG thread_input )
     else
     {
 
-      watchdog_check_in ();
+      watchdog_check_in (GNSS_THREAD);
       jump_to_end_of_window (MEMORY_CORRUPTION_ERROR);
     }
 
@@ -925,7 +1070,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   // Sleep will be handled in end_of_cycle_thread
   if ( gnss.timer_timeout )
   {
-    watchdog_check_in ();
+    watchdog_check_in (GNSS_THREAD);
     jump_to_end_of_window (GNSS_RESOLUTION_ERROR);
   }
 
@@ -939,7 +1084,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   while ( !gnss.all_samples_processed )
   {
 
-    watchdog_check_in ();
+    watchdog_check_in (GNSS_THREAD);
 
     tx_return = tx_event_flags_get (&thread_control_flags, GNSS_MSG_RECEIVED | GNSS_MSG_INCOMPLETE,
     TX_OR_CLEAR,
@@ -963,7 +1108,7 @@ static void gnss_thread_entry ( ULONG thread_input )
       {
         if ( ++number_of_no_sample_errors == configuration.gnss_sampling_rate * 60 )
         {
-          watchdog_check_in ();
+          watchdog_check_in (GNSS_THREAD);
           jump_to_end_of_window (SAMPLE_WINDOW_ERROR);
         }
 
@@ -974,19 +1119,19 @@ static void gnss_thread_entry ( ULONG thread_input )
     else
     {
 
-      watchdog_check_in ();
+      watchdog_check_in (GNSS_THREAD);
       jump_to_end_of_window (MEMORY_CORRUPTION_ERROR);
     }
 
     // If this evaluates to true, something hung up with GNSS sampling. End the sample window
     if ( gnss.timer_timeout )
     {
-      watchdog_check_in ();
+      watchdog_check_in (GNSS_THREAD);
       jump_to_end_of_window (SAMPLE_WINDOW_ERROR);
     }
   }
 
-  watchdog_check_in ();
+  watchdog_check_in (GNSS_THREAD);
 
   // Stop the timer
   HAL_TIM_Base_Stop_IT (gnss.minutes_timer);
@@ -1064,7 +1209,7 @@ static void ct_thread_entry ( ULONG thread_input )
     tests.ct_thread_test (NULL);
   }
 
-  watchdog_check_in ();
+  watchdog_check_in (CT_THREAD);
 
 // Set the mean salinity and temp values to error values in the event the sensor fails
   half_salinity.bitPattern = CT_AVERAGED_VALUE_ERROR_CODE;
@@ -1080,7 +1225,7 @@ static void ct_thread_entry ( ULONG thread_input )
   while ( fail_counter < MAX_SELF_TEST_RETRIES )
   {
 
-    watchdog_check_in ();
+    watchdog_check_in (CT_THREAD);
 
     ct_return_code = ct->self_test (false);
     if ( ct_return_code != CT_SUCCESS )
@@ -1099,7 +1244,7 @@ static void ct_thread_entry ( ULONG thread_input )
   if ( fail_counter == MAX_SELF_TEST_RETRIES )
   {
 
-    watchdog_check_in ();
+    watchdog_check_in (CT_THREAD);
     jump_to_waves ();
   }
 
@@ -1108,7 +1253,7 @@ static void ct_thread_entry ( ULONG thread_input )
   while ( ct->total_samples < configuration.total_ct_samples )
   {
 
-    watchdog_check_in ();
+    watchdog_check_in (CT_THREAD);
     ct_return_code = ct->parse_sample ();
 
     if ( ct_return_code == CT_PARSING_ERROR )
@@ -1120,7 +1265,7 @@ static void ct_thread_entry ( ULONG thread_input )
     {
       // If there are too many parsing errors or a UART error occurs, then
       // stop trying and
-      watchdog_check_in ();
+      watchdog_check_in (CT_THREAD);
       jump_to_waves ();
     }
 
@@ -1130,7 +1275,7 @@ static void ct_thread_entry ( ULONG thread_input )
     }
   }
 
-  watchdog_check_in ();
+  watchdog_check_in (CT_THREAD);
 
 // Turn off the CT sensor
   ct->on_off (GPIO_PIN_RESET);
@@ -1143,7 +1288,7 @@ static void ct_thread_entry ( ULONG thread_input )
 // Make sure something didn't go terribly wrong
   if ( ct_return_code == CT_NOT_ENOUGH_SAMPLES )
   {
-    watchdog_check_in ();
+    watchdog_check_in (CT_THREAD);
     jump_to_waves ();
   }
 
@@ -1208,7 +1353,7 @@ static void temperature_thread_entry ( ULONG thread_input )
     tests.temperature_thread_test (NULL);
   }
 
-  watchdog_check_in ();
+  watchdog_check_in (TEMPERATURE_THREAD);
 
   temperature->on ();
 
@@ -1264,6 +1409,13 @@ static void light_thread_entry ( ULONG thread_input )
 
   // TODO: init and self test
 
+  //
+  // Run tests if needed
+  if ( tests.light_thread_test != NULL )
+  {
+    tests.gnss_thread_test (NULL);
+  }
+
   tx_thread_suspend (this_thread);
 
   watchdog_register_thread (LIGHT_THREAD);
@@ -1292,9 +1444,14 @@ static void turbidity_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = &turbidity_thread;
 
-  tx_thread_suspend (this_thread);
-
   // TODO: init and self test
+
+  //
+  // Run tests if needed
+  if ( tests.turbidity_thread_test != NULL )
+  {
+    tests.gnss_thread_test (NULL);
+  }
 
   tx_thread_suspend (this_thread);
 
@@ -1312,6 +1469,95 @@ static void turbidity_thread_entry ( ULONG thread_input )
   tx_thread_terminate (this_thread);
 }
 
+static void expansion_thread_1_entry ( ULONG thread_input )
+{
+  UNUSED(thread_input);
+  TX_THREAD *this_thread = &expansion_thread_1;
+
+  // TODO: init and self test
+
+  //
+  // Run tests if needed
+  if ( tests.expansion_thread_1 != NULL )
+  {
+    tests.expansion_thread_1 (NULL);
+  }
+
+  tx_thread_suspend (this_thread);
+
+//  watchdog_register_thread (EXPANSION_THREAD_1);
+//  watchdog_check_in (EXPANSION_THREAD_1);
+//
+//  // TODO: Run sensor
+//
+//  watchdog_check_in (EXPANSION_THREAD_1);
+//  watchdog_deregister_thread (EXPANSION_THREAD_1);
+//
+//  uart_logger_log_line ("Expansion Thread 1 complete, now terminating.");
+//
+//  (void) tx_event_flags_set (&complete_flags, EXPANSION_THREAD_1_COMPLETE, TX_OR);
+  tx_thread_terminate (this_thread);
+}
+
+static void expansion_thread_2_entry ( ULONG thread_input )
+{
+  UNUSED(thread_input);
+  TX_THREAD *this_thread = &expansion_thread_2;
+
+  // TODO: init and self test
+
+  //
+  // Run tests if needed
+  if ( tests.expansion_thread_2 != NULL )
+  {
+    tests.expansion_thread_2 (NULL);
+  }
+
+  tx_thread_suspend (this_thread);
+
+//  watchdog_register_thread (EXPANSION_THREAD_2);
+//  watchdog_check_in (EXPANSION_THREAD_2);
+//
+//  // TODO: Run sensor
+//
+//  watchdog_check_in (EXPANSION_THREAD_2);
+//  watchdog_deregister_thread (EXPANSION_THREAD_2);
+//
+//  uart_logger_log_line ("Expansion Thread 2 complete, now terminating.");
+//
+//  (void) tx_event_flags_set (&complete_flags, EXPANSION_THREAD_2_COMPLETE, TX_OR);
+  tx_thread_terminate (this_thread);
+}
+
+static void expansion_thread_3_entry ( ULONG thread_input )
+{
+  UNUSED(thread_input);
+  TX_THREAD *this_thread = &expansion_thread_3;
+
+  // TODO: init and self test
+
+  //
+  // Run tests if needed
+  if ( tests.expansion_thread_3 != NULL )
+  {
+    tests.expansion_thread_3 (NULL);
+  }
+
+  tx_thread_suspend (this_thread);
+//
+//  watchdog_register_thread (EXPANSION_THREAD_3);
+//  watchdog_check_in (EXPANSION_THREAD_3);
+//
+//  // TODO: Run sensor
+//
+//  watchdog_check_in (EXPANSION_THREAD_3);
+//  watchdog_deregister_thread (EXPANSION_THREAD_3);
+//
+//  uart_logger_log_line ("Expansion Thread 3 complete, now terminating.");
+//
+//  (void) tx_event_flags_set (&complete_flags, EXPANSION_THREAD_3_COMPLETE, TX_OR);
+  tx_thread_terminate (this_thread);
+}
 /**
  * @brief  accelerometer_thread_entry
  *         This thread will manage the accelerometer sensor
@@ -1325,6 +1571,13 @@ static void accelerometer_thread_entry ( ULONG thread_input )
   TX_THREAD *this_thread = &accelerometer_thread;
 
   // TODO: init and self test
+
+  //
+  // Run tests if needed
+  if ( tests.accelerometer_thread_test != NULL )
+  {
+    tests.gnss_thread_test (NULL);
+  }
 
   tx_thread_suspend (this_thread);
 
@@ -1372,12 +1625,12 @@ static void waves_thread_entry ( ULONG thread_input )
 
   //
   // Run tests if needed
-  if ( tests.temperature_thread_test != NULL )
+  if ( tests.waves_thread_test != NULL )
   {
-    tests.temperature_thread_test (NULL);
+    tests.waves_thread_test (NULL);
   }
 
-  watchdog_check_in ();
+  watchdog_check_in (WAVES_THREAD);
 
   // Function return parameters
   real16_T E[42];
@@ -1467,6 +1720,13 @@ static void iridium_thread_entry ( ULONG thread_input )
   watchdog_register_thread (IRIDIUM_THREAD);
   watchdog_check_in (IRIDIUM_THREAD);
 
+  //
+  // Run tests if needed
+  if ( tests.iridium_thread_test != NULL )
+  {
+    tests.iridium_thread_test (NULL);
+  }
+
   UINT tx_return;
   int fail_counter;
   char ascii_7 = '7';
@@ -1476,16 +1736,9 @@ static void iridium_thread_entry ( ULONG thread_input )
   float sbd_timestamp = iridium->get_timestamp ();
   bool queue_empty = iridium->storage_queue->num_msgs_enqueued == 0;
 
-  watchdog_check_in ();
+  watchdog_check_in (IRIDIUM_THREAD);
 
-//
-// Run tests if needed
-  if ( tests.iridium_thread_test != NULL )
-  {
-    tests.iridium_thread_test (NULL);
-  }
-
-  watchdog_check_in ();
+  watchdog_check_in (IRIDIUM_THREAD);
 
 // Check if we are skipping this message
   tx_return = tx_event_flags_get (&error_flags, GNSS_EXITED_EARLY, TX_OR_CLEAR, &actual_error_flags,
@@ -1546,7 +1799,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   while ( fail_counter < MAX_SELF_TEST_RETRIES )
   {
 
-    watchdog_check_in ();
+    watchdog_check_in (IRIDIUM_THREAD);
     // See if we can get an ack message from the modem
     iridium_return_code = iridium->self_test ();
     if ( iridium_return_code != IRIDIUM_SUCCESS )
@@ -1577,11 +1830,11 @@ static void iridium_thread_entry ( ULONG thread_input )
     HAL_NVIC_SystemReset ();
   }
 
-  watchdog_check_in ();
+  watchdog_check_in (IRIDIUM_THREAD);
 
   iridium->transmit_message ();
 
-  watchdog_check_in ();
+  watchdog_check_in (IRIDIUM_THREAD);
 
 // Check for error messages
   tx_event_flags_get (&error_flags, error_occured_flags, TX_OR_CLEAR, &actual_error_flags,
@@ -1590,10 +1843,10 @@ static void iridium_thread_entry ( ULONG thread_input )
 // If we have an error flag, send an error message
   if ( actual_error_flags )
   {
-    watchdog_check_in ();
+    watchdog_check_in (IRIDIUM_THREAD);
     send_error_message (actual_error_flags);
 
-    watchdog_check_in ();
+    watchdog_check_in (IRIDIUM_THREAD);
   }
 
 // If something went wrong with the RTC, we'll reset

@@ -1,21 +1,21 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file    octospi.c
-  * @brief   This file provides code for the configuration
-  *          of the OCTOSPI instances.
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2024 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file    octospi.c
+ * @brief   This file provides code for the configuration
+ *          of the OCTOSPI instances.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2024 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "octospi.h"
@@ -25,6 +25,7 @@
 /* USER CODE END 0 */
 
 OSPI_HandleTypeDef hospi1;
+DMA_HandleTypeDef handle_GPDMA1_Channel15;
 
 /* OCTOSPI1 init function */
 void MX_OCTOSPI1_Init(void)
@@ -74,7 +75,6 @@ void MX_OCTOSPI1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN OCTOSPI1_Init 2 */
-
   /* USER CODE END OCTOSPI1_Init 2 */
 
 }
@@ -134,6 +134,34 @@ void HAL_OSPI_MspInit(OSPI_HandleTypeDef* ospiHandle)
     GPIO_InitStruct.Alternate = GPIO_AF3_OCTOSPI1;
     HAL_GPIO_Init(FLASH_NCS_GPIO_Port, &GPIO_InitStruct);
 
+    /* OCTOSPI1 DMA Init */
+    /* GPDMA1_REQUEST_OCTOSPI1 Init */
+    handle_GPDMA1_Channel15.Instance = GPDMA1_Channel15;
+    handle_GPDMA1_Channel15.Init.Request = GPDMA1_REQUEST_OCTOSPI1;
+    handle_GPDMA1_Channel15.Init.BlkHWRequest = DMA_BREQ_SINGLE_BURST;
+    handle_GPDMA1_Channel15.Init.Direction = DMA_MEMORY_TO_PERIPH;
+    handle_GPDMA1_Channel15.Init.SrcInc = DMA_SINC_INCREMENTED;
+    handle_GPDMA1_Channel15.Init.DestInc = DMA_DINC_FIXED;
+    handle_GPDMA1_Channel15.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_BYTE;
+    handle_GPDMA1_Channel15.Init.DestDataWidth = DMA_DEST_DATAWIDTH_BYTE;
+    handle_GPDMA1_Channel15.Init.Priority = DMA_LOW_PRIORITY_LOW_WEIGHT;
+    handle_GPDMA1_Channel15.Init.SrcBurstLength = 1;
+    handle_GPDMA1_Channel15.Init.DestBurstLength = 1;
+    handle_GPDMA1_Channel15.Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT0|DMA_DEST_ALLOCATED_PORT0;
+    handle_GPDMA1_Channel15.Init.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;
+    handle_GPDMA1_Channel15.Init.Mode = DMA_NORMAL;
+    if (HAL_DMA_Init(&handle_GPDMA1_Channel15) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    __HAL_LINKDMA(ospiHandle, hdma, handle_GPDMA1_Channel15);
+
+    if (HAL_DMA_ConfigChannelAttributes(&handle_GPDMA1_Channel15, DMA_CHANNEL_NPRIV) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
     /* OCTOSPI1 interrupt Init */
     HAL_NVIC_SetPriority(OCTOSPI1_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(OCTOSPI1_IRQn);
@@ -167,6 +195,9 @@ void HAL_OSPI_MspDeInit(OSPI_HandleTypeDef* ospiHandle)
                           |FLASH_CLK_Pin);
 
     HAL_GPIO_DeInit(FLASH_NCS_GPIO_Port, FLASH_NCS_Pin);
+
+    /* OCTOSPI1 DMA DeInit */
+    HAL_DMA_DeInit(ospiHandle->hdma);
 
     /* OCTOSPI1 interrupt Deinit */
     HAL_NVIC_DisableIRQ(OCTOSPI1_IRQn);

@@ -102,6 +102,20 @@ typedef enum error_flags
   GNSS_SAMPLE_WINDOW_TIMEOUT = ((ULONG) 1 << 15)
 } error_flags_t;
 
+extern TX_THREAD control_thread;
+extern TX_THREAD rtc_thread;
+extern TX_THREAD logger_thread;
+extern TX_THREAD gnss_thread;
+extern TX_THREAD ct_thread;
+extern TX_THREAD temperature_thread;
+extern TX_THREAD light_thread;
+extern TX_THREAD turbidity_thread;
+extern TX_THREAD accelerometer_thread;
+extern TX_THREAD waves_thread;
+extern TX_THREAD iridium_thread;
+extern TX_THREAD expansion_thread_1;
+extern TX_THREAD expansion_thread_2;
+extern TX_THREAD expansion_thread_3;
 extern TX_SEMAPHORE ext_rtc_spi_sema;
 extern TX_SEMAPHORE aux_spi_1_spi_sema;
 extern TX_SEMAPHORE aux_spi_2_spi_sema;
@@ -114,13 +128,12 @@ extern TX_SEMAPHORE gnss_uart_sema;
 extern TX_SEMAPHORE aux_uart_1_sema;
 extern TX_SEMAPHORE aux_uart_2_sema;
 extern TX_EVENT_FLAGS_GROUP initialization_flags;
-extern TX_EVENT_FLAGS_GROUP thread_control_flags;
+extern TX_EVENT_FLAGS_GROUP irq_flags;
 extern TX_EVENT_FLAGS_GROUP error_flags;
-extern TX_EVENT_FLAGS_GROUP rtc_complete_flags;
 
 typedef struct
 {
-// Core
+  // Core
 #if SD_CARD_ENABLED
   SD_HandleTypeDef *sd_handle;
 #endif
@@ -130,11 +143,8 @@ typedef struct
   UART_HandleTypeDef    *gnss_uart_handle;
   UART_HandleTypeDef    *ct_uart_handle;
   OSPI_HandleTypeDef    *ext_flash_handle;
-  TIM_HandleTypeDef     *gnss_minutes_timer;
-  TIM_HandleTypeDef     *iridium_minutes_timer;
-  DMA_HandleTypeDef     *gnss_uart_rx_dma_handle;
   ADC_HandleTypeDef     *battery_adc;
-// Expansion/ spares
+  // Expansion/ spares
   SPI_HandleTypeDef     *aux_spi_1_handle;
   SPI_HandleTypeDef     *aux_spi_2_handle;
   I2C_HandleTypeDef     *aux_i2c_1_handle;
@@ -147,6 +157,8 @@ typedef struct
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
 #define WAVES_MEM_POOL_SIZE 651264
+#define EXPANSION_QUEUE_MSG_SIZE 64
+#define EXPANSION_QUEUE_LENGTH 4
 /* USER CODE END EC */
 
 /* Private defines -----------------------------------------------------------*/

@@ -24,9 +24,6 @@
  * Configuration options
  */
 
-// Define if the old type V3D RockBlock modem is used
-#define ROCK_BLOCK_V3D
-
 // For debugging, redefine sample window parameters to be faster
 #ifdef DEBUGGING_FAST_CYCLE
 
@@ -64,23 +61,35 @@
 
 // If there is a CT sensor present
 #define CT_ENABLED true
-
-// The number of samples for the CT sensor to take. Result will be averaged
 #define TOTAL_CT_SAMPLES 10
 
 // If there is a Blue Robotics I2C temperature sensor presen
 #define TEMPERATURE_ENABLED true
-
 #define TOTAL_TEMPERATURE_SAMPLES 10
+
+// If there is a light sensor present
+#define LIGHT_SENSOR_ENABLED false
+#define TOTAL_LIGHT_SAMPLES 10
+
+// If there is a turbidity sensor present
+#define TURBIDITY_SENSOR_ENABLED false
+#define TOTAL_TURBIDITY_SAMPLES 10
+
+// If there is a fast accelerometer present
+#define ACCELEROMETER_ENABLED false
 
 typedef struct microSWIFT_configuration
 {
   uint32_t samples_per_window;
+  uint32_t windows_per_hour;
   uint32_t iridium_max_transmit_time;
   uint32_t gnss_max_acquisition_wait_time;
   uint32_t gnss_sampling_rate;
   uint32_t total_ct_samples;
-  uint32_t windows_per_hour;
+  uint32_t total_temp_samples;
+  uint32_t total_light_samples;
+  uint32_t total_turbidity_samples;
+
   bool gnss_high_performance_mode;
   bool ct_enabled;
   bool temperature_enabled;

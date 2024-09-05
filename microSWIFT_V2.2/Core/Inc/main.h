@@ -139,6 +139,8 @@ void Error_Handler(void);
 #define AUX_GPIO_3_GPIO_Port GPIOE
 #define AUX_GPIO_4_Pin GPIO_PIN_10
 #define AUX_GPIO_4_GPIO_Port GPIOE
+#define ACCELEROMETER_FET_Pin GPIO_PIN_11
+#define ACCELEROMETER_FET_GPIO_Port GPIOE
 #define AUX_GPIO_5_Pin GPIO_PIN_12
 #define AUX_GPIO_5_GPIO_Port GPIOE
 #define AUX_GPIO_6_Pin GPIO_PIN_13

@@ -216,18 +216,6 @@ void HAL_TIM_PeriodElapsedCallback ( TIM_HandleTypeDef *htim )
   {
     HAL_IncTick ();
   }
-  else if ( htim->Instance == TIM17 )
-  {
-    iridium->timer_timeout = true;
-  }
-  else if ( htim->Instance == TIM16 )
-  {
-    gnss->timer_timeout = true;
-  }
-  else if ( htim->Instance == TIM15 )
-  {
-    watchdog_hour_timer_elapsed = true;
-  }
 }
 
 /**
@@ -259,7 +247,7 @@ void HAL_ADC_ConvCpltCallback ( ADC_HandleTypeDef *hadc )
     v_sum = 0;
     number_of_conversions = 0;
     // Set the conversion complete flag
-    tx_event_flags_set (&thread_control_flags, BATTERY_VOLTAGE_CONVERSION_COMPLETE, TX_OR);
+    tx_event_flags_set (&irq_flags, BATTERY_CONVERSION_COMPLETE, TX_OR);
     // Done with our samples, shut it down.
     HAL_ADC_Stop_IT (hadc);
   }

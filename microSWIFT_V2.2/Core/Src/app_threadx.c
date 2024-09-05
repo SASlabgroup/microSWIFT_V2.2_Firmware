@@ -43,7 +43,6 @@
 #include "configuration.h"
 #include "linked_list.h"
 #include "testing_hooks.h"
-#include "tim.h"
 #include "adc.h"
 #include "logger.h"
 #include "threadx_support.h"
@@ -179,6 +178,9 @@ static void temperature_thread_entry ( ULONG thread_input );
 static void light_thread_entry ( ULONG thread_input );
 static void turbidity_thread_entry ( ULONG thread_input );
 static void accelerometer_thread_entry ( ULONG thread_input );
+static void expansion_thread_1_entry ( ULONG thread_input );
+static void expansion_thread_2_entry ( ULONG thread_input );
+static void expansion_thread_3_entry ( ULONG thread_input );
 
 /* USER CODE END PFP */
 
@@ -400,8 +402,6 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
-#error "Add a few auxillary threads with fairly large stacks. Throw in a few message queues, timers, etc as well."
-
   /************************************************************************************************
    ************************************** Event Flags *********************************************
    ************************************************************************************************/
@@ -451,8 +451,47 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   /************************************************************************************************
    **************************************** Timers ************************************************
    ************************************************************************************************/
-#error "Create timers here"
+  ret = tx_timer_create(&control_timer, "Control thread timer", control_timer_expired, 1, 0, 0,
+                        TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
 
+  ret = tx_timer_create(&gnss_timer, "GNSS thread timer", gnss_timer_expired, 1, 0, 0,
+                        TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_timer_create(&iridium_timer, "Iridium thread timer", iridium_timer_expired, 1, 0, 0,
+                        TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_timer_create(&expansion_timer_1, "Expansion thread 1 timer", expansion_timer_1_expired,
+                        1, 0, 0, TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_timer_create(&expansion_timer_2, "Expansion thread 2 timer", expansion_timer_2_expired,
+                        1, 0, 0, TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_timer_create(&expansion_timer_3, "Expansion thread 3 timer", expansion_timer_3_expired,
+                        1, 0, 0, TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
   /************************************************************************************************
    ************************************** Semaphores **********************************************
    ************************************************************************************************/
@@ -560,16 +599,47 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer,
+  EXPANSION_QUEUE_MSG_SIZE * EXPANSION_QUEUE_LENGTH,
+                          TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_queue_create(&expansion_queue_1, "Expansion queue 1",
+                        EXPANSION_QUEUE_MSG_SIZE / sizeof(uint32_t), pointer,
+                        EXPANSION_QUEUE_MSG_SIZE * EXPANSION_QUEUE_LENGTH);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer,
+  EXPANSION_QUEUE_MSG_SIZE * EXPANSION_QUEUE_LENGTH,
+                          TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_queue_create(&expansion_queue_2, "Expansion queue 2",
+                        EXPANSION_QUEUE_MSG_SIZE / sizeof(uint32_t), pointer,
+                        EXPANSION_QUEUE_MSG_SIZE * EXPANSION_QUEUE_LENGTH);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  /************************************************************************************************
+   ***************************************** Misc init ********************************************
+   ************************************************************************************************/
   device_handles.core_spi_handle = &hspi1;
   device_handles.core_i2c_handle = &hi2c1;
   device_handles.iridium_uart_handle = &huart4;
   device_handles.gnss_uart_handle = &huart1;
   device_handles.ct_uart_handle = &huart5;
   device_handles.ext_flash_handle = &hospi1;
-  device_handles.gnss_minutes_timer = &htim16;
-  device_handles.iridium_minutes_timer = &htim17;
-#error "Figure out how to handle the GPDMA handles"
-  device_handles.gnss_uart_rx_dma_handle = &handle_GPDMA1_Channel0;
   device_handles.battery_adc = &hadc1;
   device_handles.aux_spi_1_handle = &hspi2;
   device_handles.aux_spi_2_handle = &hspi3;
@@ -579,12 +649,20 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   device_handles.aux_uart_2_handle = &huart3;
 
   configuration.samples_per_window = TOTAL_SAMPLES_PER_WINDOW;
-  configuration.iridium_max_transmit_time = IRIDIUM_MAX_TRANSMIT_TIME;
-  configuration.gnss_sampling_rate = GNSS_SAMPLING_RATE;
-  configuration.gnss_high_performance_mode = GNSS_HIGH_PERFORMANCE_MODE_ENABLED;
-  configuration.gnss_max_acquisition_wait_time = GNSS_MAX_ACQUISITION_WAIT_TIME;
-  configuration.total_ct_samples = TOTAL_CT_SAMPLES;
   configuration.windows_per_hour = SAMPLE_WINDOWS_PER_HOUR;
+  configuration.iridium_max_transmit_time = IRIDIUM_MAX_TRANSMIT_TIME;
+  configuration.gnss_max_acquisition_wait_time = GNSS_MAX_ACQUISITION_WAIT_TIME;
+  configuration.gnss_sampling_rate = GNSS_SAMPLING_RATE;
+  configuration.total_ct_samples = TOTAL_CT_SAMPLES;
+  configuration.total_temp_samples = TOTAL_TEMPERATURE_SAMPLES;
+  configuration.total_light_samples = TOTAL_LIGHT_SAMPLES;
+  configuration.total_turbidity_samples = TOTAL_TURBIDITY_SAMPLES;
+  configuration.gnss_high_performance_mode = GNSS_HIGH_PERFORMANCE_MODE_ENABLED;
+  configuration.ct_enabled = CT_ENABLED;
+  configuration.temperature_enabled = TEMPERATURE_ENABLED;
+  configuration.light_enabled = LIGHT_SENSOR_ENABLED;
+  configuration.turbidity_enabled = TURBIDITY_SENSOR_ENABLED;
+  configuration.accelerometer_enabled = ACCELEROMETER_ENABLED;
 
   /* USER CODE END App_ThreadX_MEM_POOL */
   /* USER CODE BEGIN App_ThreadX_Init */
@@ -783,59 +861,39 @@ static void control_thread_entry ( ULONG thread_input )
     tx_event_flags_set (&error_flags, SOFTWARE_RESET, TX_OR);
   }
 
+  battery_init (device_handles.battery_adc, &irq_flags);
+
   rf_switch_init (&rf_switch);
-
-  battery_init (&battery, device_handles.battery_adc, &thread_control_flags, &error_flags);
-
-  // Flash some lights to let the user know its on and working
-  led_sequence (INITIAL_LED_SEQUENCE);
+  rf_switch.set_gnss_port ();
 
   watchdog_check_in (CONTROL_THREAD);
 
   // Run the self test
-#error "Start here, put together a self test that checks in on all the active threads with some timeout"
-  self_test_status = initial_power_on_self_test ();
-
-  watchdog_check_in (CONTROL_THREAD);
-
-  switch ( self_test_status )
-  {
-    case SELF_TEST_PASSED:
-#error "Start GNSS thread here before light sequence"
-      led_sequence (TEST_PASSED_LED_SEQUENCE);
-      break;
-
-    case SELF_TEST_NON_CRITICAL_FAULT:
-      led_sequence (TEST_NON_CRITICAL_FAULT_LED_SEQUENCE);
-      break;
-
-    case SELF_TEST_CRITICAL_FAULT:
-      shut_it_all_down (CONTROL_THREAD);
-      // Stay stuck here
-      for ( int i = 0; i < 25; i++ )
-      {
-        watchdog_check_in (CONTROL_THREAD);
-        led_sequence (SELF_TEST_CRITICAL_FAULT);
-      }
-      HAL_NVIC_SystemReset ();
-
-    default:
-      // If we got here, there's probably memory corruption
-      shut_it_all_down ();
-      // Stay stuck here
-      while ( 1 )
-      {
-        watchdog_check_in (CONTROL_THREAD);
-        led_sequence (SELF_TEST_CRITICAL_FAULT);
-      }
-  }
-
-  // Kick off the GNSS thread
-  if ( tx_thread_resume (&gnss_thread) != TX_SUCCESS )
+  if ( !startup_procedure (&configuration) )
   {
     shut_it_all_down ();
+    // Stay stuck here
+    for ( int i = 0; i < 25; i++ )
+    {
+      watchdog_check_in (CONTROL_THREAD);
+      led_sequence (SELF_TEST_CRITICAL_FAULT);
+    }
     HAL_NVIC_SystemReset ();
   }
+
+  led_sequence (TEST_PASSED_LED_SEQUENCE);
+
+  while ( 1 )
+  {
+    // TODO: Monitor error flags, pass them off to error handler
+    watchdog_check_in (CONTROL_THREAD);
+
+    // When GNSS is complete, break
+  }
+
+  // TODO: Continue with the correct logic, i.e. if GNSS timed out, set alarm and shut down.
+  //       Otherwise, continue with other sensors, run waves, etc. Try to keep as many threads
+  //       as possible running concurrently.
 
 }
 
@@ -890,6 +948,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   if ( !gnss_apply_config (&gnss) )
   {
     uart_logger_log_line ("GNSS failed to initialize.");
+#error "ensure in all failure cases that the GNSS is shut down"
     tx_thread_suspend (this_thread);
   }
 
@@ -1111,6 +1170,7 @@ static void ct_thread_entry ( ULONG thread_input )
   if ( !ct_self_test (&ct, &self_test_readings) )
   {
     uart_logger_log_line ("CT self test failed.");
+#error "ensure in all failure cases that the CT sensor is shut down"
     tx_thread_suspend (this_thread);
   }
 
@@ -1255,6 +1315,7 @@ static void temperature_thread_entry ( ULONG thread_input )
   if ( !temperature_self_test (&temperature) )
   {
     uart_logger_log_line ("Temperature self test failed.");
+#error "ensure in all failure cases that the temp sensor is shut down"
     tx_thread_suspend (this_thread);
   }
 
@@ -1390,6 +1451,95 @@ static void turbidity_thread_entry ( ULONG thread_input )
   tx_thread_terminate (this_thread);
 }
 
+static void expansion_thread_1_entry ( ULONG thread_input )
+{
+  UNUSED(thread_input);
+  TX_THREAD *this_thread = &expansion_thread_1;
+
+  // TODO: init and self test
+
+  //
+  // Run tests if needed
+  if ( tests.expansion_thread_1 != NULL )
+  {
+    tests.expansion_thread_1 (NULL);
+  }
+
+  tx_thread_suspend (this_thread);
+
+//  watchdog_register_thread (EXPANSION_THREAD_1);
+//  watchdog_check_in (EXPANSION_THREAD_1);
+//
+//  // TODO: Run sensor
+//
+//  watchdog_check_in (EXPANSION_THREAD_1);
+//  watchdog_deregister_thread (EXPANSION_THREAD_1);
+//
+//  uart_logger_log_line ("Expansion Thread 1 complete, now terminating.");
+//
+//  (void) tx_event_flags_set (&complete_flags, EXPANSION_THREAD_1_COMPLETE, TX_OR);
+  tx_thread_terminate (this_thread);
+}
+
+static void expansion_thread_2_entry ( ULONG thread_input )
+{
+  UNUSED(thread_input);
+  TX_THREAD *this_thread = &expansion_thread_2;
+
+  // TODO: init and self test
+
+  //
+  // Run tests if needed
+  if ( tests.expansion_thread_2 != NULL )
+  {
+    tests.expansion_thread_2 (NULL);
+  }
+
+  tx_thread_suspend (this_thread);
+
+//  watchdog_register_thread (EXPANSION_THREAD_2);
+//  watchdog_check_in (EXPANSION_THREAD_2);
+//
+//  // TODO: Run sensor
+//
+//  watchdog_check_in (EXPANSION_THREAD_2);
+//  watchdog_deregister_thread (EXPANSION_THREAD_2);
+//
+//  uart_logger_log_line ("Expansion Thread 2 complete, now terminating.");
+//
+//  (void) tx_event_flags_set (&complete_flags, EXPANSION_THREAD_2_COMPLETE, TX_OR);
+  tx_thread_terminate (this_thread);
+}
+
+static void expansion_thread_3_entry ( ULONG thread_input )
+{
+  UNUSED(thread_input);
+  TX_THREAD *this_thread = &expansion_thread_3;
+
+  // TODO: init and self test
+
+  //
+  // Run tests if needed
+  if ( tests.expansion_thread_3 != NULL )
+  {
+    tests.expansion_thread_3 (NULL);
+  }
+
+  tx_thread_suspend (this_thread);
+//
+//  watchdog_register_thread (EXPANSION_THREAD_3);
+//  watchdog_check_in (EXPANSION_THREAD_3);
+//
+//  // TODO: Run sensor
+//
+//  watchdog_check_in (EXPANSION_THREAD_3);
+//  watchdog_deregister_thread (EXPANSION_THREAD_3);
+//
+//  uart_logger_log_line ("Expansion Thread 3 complete, now terminating.");
+//
+//  (void) tx_event_flags_set (&complete_flags, EXPANSION_THREAD_3_COMPLETE, TX_OR);
+  tx_thread_terminate (this_thread);
+}
 /**
  * @brief  accelerometer_thread_entry
  *         This thread will manage the accelerometer sensor
@@ -1541,11 +1691,17 @@ static void iridium_thread_entry ( ULONG thread_input )
   if ( !iridium_apply_config (&iridium) )
   {
     uart_logger_log_line ("Iridium modem failed to initialize.");
+#error "Ensure in all failure cases that the modem is powered down"
     tx_thread_suspend (this_thread);
   }
 
   uart_logger_log_line ("Iridium modem initialized successfully.");
   (void) tx_event_flags_set (&initialization_flags, IRIDIUM_INIT_SUCCESS, TX_OR);
+
+  // Turn on the modem and charge up the caps
+  iridium->charge_caps (IRIDIUM_INITIAL_CAP_CHARGE_TIME);
+#endif // #ifdef DEBUGGING_FAST_CYCLE
+  iridium->sleep (true);
 
   tx_thread_suspend (this_thread);
 

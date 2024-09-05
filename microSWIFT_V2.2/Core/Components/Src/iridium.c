@@ -21,7 +21,6 @@
 #include "configuration.h"
 #include "ext_rtc_api.h"
 #include "usart.h"
-#include "tim.h"
 
 // Object pointer
 static Iridium *self;

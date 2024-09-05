@@ -58,11 +58,9 @@
 extern I2C_HandleTypeDef hi2c1;
 extern I2C_HandleTypeDef hi2c2;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel15;
-extern DMA_HandleTypeDef handle_GPDMA1_Channel14;
 extern OSPI_HandleTypeDef hospi1;
 extern SPI_HandleTypeDef hspi1;
 extern SPI_HandleTypeDef hspi3;
-extern TIM_HandleTypeDef htim16;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel9;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel8;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel11;
@@ -407,20 +405,6 @@ void UART4_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles TIM16 global interrupt.
-  */
-void TIM16_IRQHandler(void)
-{
-  /* USER CODE BEGIN TIM16_IRQn 0 */
-
-  /* USER CODE END TIM16_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim16);
-  /* USER CODE BEGIN TIM16_IRQn 1 */
-
-  /* USER CODE END TIM16_IRQn 1 */
-}
-
-/**
   * @brief This function handles OCTOSPI1 global interrupt.
   */
 void OCTOSPI1_IRQHandler(void)
@@ -488,20 +472,6 @@ void GPDMA1_Channel11_IRQHandler(void)
   /* USER CODE BEGIN GPDMA1_Channel11_IRQn 1 */
 
   /* USER CODE END GPDMA1_Channel11_IRQn 1 */
-}
-
-/**
-  * @brief This function handles GPDMA1 Channel 14 global interrupt.
-  */
-void GPDMA1_Channel14_IRQHandler(void)
-{
-  /* USER CODE BEGIN GPDMA1_Channel14_IRQn 0 */
-
-  /* USER CODE END GPDMA1_Channel14_IRQn 0 */
-  HAL_DMA_IRQHandler(&handle_GPDMA1_Channel14);
-  /* USER CODE BEGIN GPDMA1_Channel14_IRQn 1 */
-
-  /* USER CODE END GPDMA1_Channel14_IRQn 1 */
 }
 
 /**

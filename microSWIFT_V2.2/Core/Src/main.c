@@ -21,7 +21,6 @@
 #include "main.h"
 #include "gpdma.h"
 #include "memorymap.h"
-#include "tim.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -95,7 +94,6 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_GPDMA1_Init();
-  MX_TIM16_Init();
   /* USER CODE BEGIN 2 */
 
   tests_init ();

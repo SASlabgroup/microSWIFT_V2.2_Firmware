@@ -32,19 +32,15 @@ typedef enum battery_error_code
 typedef struct Battery
 {
   ADC_HandleTypeDef     *adc_handle;
-  TX_EVENT_FLAGS_GROUP  *control_flags;
-  TX_EVENT_FLAGS_GROUP  *error_flags;
+  TX_EVENT_FLAGS_GROUP  *irq_flags;
 
   float                 voltage;
   uint32_t              calibration_offset;
 
-  battery_error_code_t  (*start_conversion) ( void );
   battery_error_code_t  (*get_voltage) ( real16_T *voltage );
-  void                  (*shutdown_adc) ( void );
 } Battery;
 
-void battery_init ( Battery *struct_ptr, ADC_HandleTypeDef *adc_handle,
-                    TX_EVENT_FLAGS_GROUP *control_flags, TX_EVENT_FLAGS_GROUP *error_flags );
+void battery_init ( ADC_HandleTypeDef *adc_handle, TX_EVENT_FLAGS_GROUP *irq_flags );
 void battery_set_voltage (float voltage);
 
 // @formatter:on

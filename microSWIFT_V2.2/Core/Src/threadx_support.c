@@ -18,161 +18,61 @@
 #include "accelerometer_sensor.h"
 #include "iridium.h"
 
-bool startup_procedure ( void )
+bool startup_procedure ( microSWIFT_configuration *global_config )
 {
 
-  /*
-   *
-   *
-   *
-   *
-   *
-   *
-   *
-   *
-   *
-   * Initial LED Sequence
-   *
-   * Init watchdog
-   *
-   * Check RTC init status
-   * Launch FileX, wait until it reports success
-   * Get the sample window counter, any other bookkeeping
-   * Launch waves thread, wait until it reports success
-   * Init RF switch, port to GNSS
-   * Init battery, take reading, shutdown
-   * Launch GNSS thread
-   * Launch Iridium
-   * Launch remaining threads based on configuration
-   *
-   *
-   * Collect the init success flags as TX_AND(CLEAR?) with a wait of some predetermined tick count
-   * return self test status
-   */
+  // TODO: In subsequent sampling windows, if a non-critical sensor fails, set an error flag, shut
+  //       the component and thread down, and continue on.
+  // TODO: Add filex thread to the list (core) when the interface is completed
 
   UINT tx_return;
+  ULONG init_success_flags = (RTC_INIT_SUCCESS | GNSS_INIT_SUCCESS | WAVES_THREAD_INIT_SUCCESS
+                              | IRIDIUM_INIT_SUCCESS);
+  ULONG current_flags;
 
-  tx_return = tx_event_flags_get (&thread_control_flags, FULL_CYCLE_COMPLETE, TX_OR_CLEAR,
-                                  &actual_flags, TX_NO_WAIT);
-  // If this is a subsequent window, just setup the GNSS, skip the rest
-  if ( tx_return == TX_SUCCESS )
+  // Start core threads
+  (void) tx_thread_resume (&gnss_thread);
+  (void) tx_thread_resume (&waves_thread);
+  (void) tx_thread_resume (&iridium_thread);
+
+  // Start optional component threads if enabled
+  if ( global_config->ct_enabled )
   {
-
-    // Increment the sample window counter
-    sample_window_counter++;
-
-    register_watchdog_refresh ();
-
-    HAL_GPIO_WritePin (GPIOF, EXT_LED_GREEN_Pin, GPIO_PIN_SET);
-
-    // Reset all threads
-    tx_return = tx_thread_reset (&gnss_thread);
-    if ( tx_return == TX_NOT_DONE )
-    {
-      tx_thread_terminate (&gnss_thread);
-      tx_thread_reset (&gnss_thread);
-    }
-#if CT_ENABLED
-    tx_return = tx_thread_reset (&ct_thread);
-    if ( tx_return == TX_NOT_DONE )
-    {
-      tx_thread_terminate (&ct_thread);
-      tx_thread_reset (&ct_thread);
-    }
-#endif
-
-#if TEMPERATURE_ENABLED
-    tx_return = tx_thread_reset (&temperature_thread);
-    if ( tx_return == TX_NOT_DONE )
-    {
-      tx_thread_terminate (&temperature_thread);
-      tx_thread_reset (&temperature_thread);
-    }
-#endif
-    tx_return = tx_thread_reset (&waves_thread);
-    if ( tx_return == TX_NOT_DONE )
-    {
-      tx_thread_terminate (&waves_thread);
-      tx_thread_reset (&waves_thread);
-    }
-    tx_return = tx_thread_reset (&iridium_thread);
-    if ( tx_return == TX_NOT_DONE )
-    {
-      tx_thread_terminate (&iridium_thread);
-      tx_thread_reset (&iridium_thread);
-    }
-    tx_return = tx_thread_reset (&end_of_cycle_thread);
-    if ( tx_return == TX_NOT_DONE )
-    {
-      tx_thread_terminate (&end_of_cycle_thread);
-      tx_thread_reset (&end_of_cycle_thread);
-    }
-
-    // Power up the RF switch
-    rf_switch->power_on ();
-
-    // Check if there was a GNSS error. If so, reconfigure device
-    tx_return = tx_event_flags_get (&thread_control_flags, GNSS_CONFIG_REQUIRED, TX_OR_CLEAR,
-                                    &actual_flags, TX_NO_WAIT);
-    if ( tx_return == TX_SUCCESS )
-    {
-      fail_counter = 0;
-      while ( fail_counter < MAX_SELF_TEST_RETRIES )
-      {
-
-        register_watchdog_refresh ();
-
-        if ( gnss->config () != GNSS_SUCCESS )
-        {
-          // Config didn't work, cycle power and try again
-          gnss->cycle_power ();
-          fail_counter++;
-        }
-        else
-        {
-          break;
-        }
-      }
-    }
-    // If we couldn't configure the GNSS, send a reset vector
-    if ( fail_counter == MAX_SELF_TEST_RETRIES )
-    {
-      shut_it_all_down ();
-      HAL_NVIC_SystemReset ();
-    }
-
-    // Kick off the GNSS thread
-    if ( tx_thread_resume (&gnss_thread) != TX_SUCCESS )
-    {
-      shut_it_all_down ();
-      HAL_NVIC_SystemReset ();
-    }
+    init_success_flags |= CT_INIT_SUCCESS;
+    (void) tx_thread_resume (&ct_thread);
   }
 
-  // This is first time power up, test everything and flash LED sequence
-  else
+  if ( global_config->temperature_enabled )
   {
-    register_watchdog_refresh ();
-    // Flash some lights to let the user know its on and working
-    led_sequence (INITIAL_LED_SEQUENCE);
-
-    rf_switch->power_on ();
-
-    register_watchdog_refresh ();
-
-    self_test_status = initial_power_on_self_test ();
-
-    register_watchdog_refresh ();
-
-    // Kick off the GNSS thread
-    if ( tx_thread_resume (&gnss_thread) != TX_SUCCESS )
-    {
-      shut_it_all_down ();
-      HAL_NVIC_SystemReset ();
-    }
+    init_success_flags |= TEMPERATURE_INIT_SUCCESS;
+    (void) tx_thread_resume (&temperature_thread);
   }
 
-  return self_test_status;
+  if ( global_config->light_enabled )
+  {
+    init_success_flags |= LIGHT_INIT_SUCCESS;
+    (void) tx_thread_resume (&light_thread);
+  }
+
+  if ( global_config->turbidity_enabled )
+  {
+    init_success_flags |= TURBIDITY_INIT_SUCCESS;
+    (void) tx_thread_resume (&turbidity_thread);
+  }
+
+  if ( global_config->accelerometer_enabled )
+  {
+    init_success_flags |= ACCELEROMETER_INIT_SUCCESS;
+    (void) tx_thread_resume (&accelerometer_thread);
+  }
+
+  // Flash power up sequence (this will also give threads time to execute their init procedures)
+  led_sequence (INITIAL_LED_SEQUENCE);
+
+  tx_return = tx_event_flags_get (&initialization_flags, init_success_flags, TX_AND_CLEAR,
+                                  &current_flags, STARTUP_SEQUENCE_MAX_WAIT_TICKS);
+
+  return (tx_return == TX_SUCCESS);
 }
 
 /**
@@ -514,12 +414,7 @@ bool iridium_apply_config ( Iridium *iridium )
   int32_t fail_counter = 0, max_retries = 10;
   iridium_error_code_t iridium_return_code;
 
-#ifdef DEBUGGING_FAST_CYCLE
-        iridium->charge_caps(30);
-#else
-  // Turn on the modem and charge up the caps
-  iridium->charge_caps (IRIDIUM_INITIAL_CAP_CHARGE_TIME);
-#endif // #ifdef DEBUGGING_FAST_CYCLE
+  iridium->on_off (true);
 
   while ( fail_counter < max_retries )
   {
@@ -558,8 +453,6 @@ bool iridium_apply_config ( Iridium *iridium )
       break;
     }
   }
-
-  iridium->sleep (GPIO_PIN_RESET);
 
   return (iridium_return_code == IRIDIUM_SUCCESS);
 }

@@ -138,8 +138,8 @@ typedef struct Iridium
   iridium_error_code_t (*transmit_message) ( void );
   iridium_error_code_t (*transmit_error_message) ( char *error_message );
   float (*get_timestamp) ( void );
-  void (*sleep) ( GPIO_PinState pin_state );
-  void (*on_off) ( GPIO_PinState pin_state );
+  void (*sleep) ( bool sleep );
+  void (*on_off) ( bool on );
   void (*cycle_power) ( void );
   iridium_error_code_t (*reset_uart) ( uint16_t baud_rate );
   iridium_error_code_t (*reset_timer) ( uint16_t timeout_in_minutes );
