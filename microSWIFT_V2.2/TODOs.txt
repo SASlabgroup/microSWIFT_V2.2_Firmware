@@ -36,7 +36,7 @@ General
     [ ] Need to move the pins and use throughole LEDs for the prototype
 [ ] Finish implementation of watchdog
 [ ] Figure out new Iridium msg queue...
-	[ ] Its going to have to be in flash...
+	[ ] Its going to have to be in external Flash
 [ ] Check all init calls in startup procedure to make sure bus peripheral is starting properly
 [ ] Redo all GPIO bare pin calls -- FET pins, etc -- to use GPIO functions in gpio.c. Make sure to
     pass in GPIO pin/port definitions and include them in the structs.
@@ -75,6 +75,8 @@ GNSS
     https://github.com/STMicroelectronics/STM32CubeU5/tree/main/Projects/NUCLEO-U575ZI-Q/Examples/UART/UART_ReceptionToIdle_CircularDMA
     [ ] The newly added linked list structure and LPDMA MX functions should work or be close to
         correct
+[ ] Improve GNSS config -- find a better way to identify UART idle conditions, etc
+[ ] Use a TX_TIMER instead of a hardware timer
 [ ] Generalize UART to a better degree
 [ ] Move the callback function for setting up DMA to inside gnss.c
 [ ] See if initialization and configuration can be improved -- there has to be a better way to
@@ -86,6 +88,7 @@ Iridium
 ****
 
 [ ] Move buffers to inside Iridium struct
+[ ] Use a TX_TIMER instead of a hardware timer
 [ ] Switch UART over to using a generic uart driver
 [ ] Reorg functions and clean up comments
 

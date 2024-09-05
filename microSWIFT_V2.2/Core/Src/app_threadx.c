@@ -126,6 +126,10 @@ TX_EVENT_FLAGS_GROUP error_flags;
 TX_EVENT_FLAGS_GROUP rtc_complete_flags;
 // Flags for which thread is checkin in with watchdog
 TX_EVENT_FLAGS_GROUP watchdog_check_in_flags;
+// Timers for threads
+TX_TIMER control_timer;
+TX_TIMER gnss_timer;
+TX_TIMER iridium_timer;
 // Comms buses semaphores
 TX_SEMAPHORE ext_rtc_spi_sema;
 TX_SEMAPHORE aux_spi_1_spi_sema;
@@ -388,6 +392,11 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
 
   /************************************************************************************************
+   **************************************** Timers ************************************************
+   ************************************************************************************************/
+#error "Create timers here"
+
+  /************************************************************************************************
    ************************************** Semaphores **********************************************
    ************************************************************************************************/
   //
@@ -502,6 +511,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   device_handles.ext_flash_handle = &hospi1;
   device_handles.gnss_minutes_timer = &htim16;
   device_handles.iridium_minutes_timer = &htim17;
+#error "Figure out how to handle the GPDMA handles"
   device_handles.gnss_uart_rx_dma_handle = &handle_GPDMA1_Channel0;
   device_handles.battery_adc = &hadc1;
   device_handles.aux_spi_1_handle = &hspi2;
@@ -726,6 +736,7 @@ static void control_thread_entry ( ULONG thread_input )
   watchdog_check_in (CONTROL_THREAD);
 
   // Run the self test
+#error "Start here, put together a self test that checks in on all the active threads with some timeout"
   self_test_status = initial_power_on_self_test ();
 
   watchdog_check_in (CONTROL_THREAD);
@@ -733,6 +744,7 @@ static void control_thread_entry ( ULONG thread_input )
   switch ( self_test_status )
   {
     case SELF_TEST_PASSED:
+#error "Start GNSS thread here before light sequence"
       led_sequence (TEST_PASSED_LED_SEQUENCE);
       break;
 
@@ -1372,7 +1384,7 @@ static void waves_thread_entry ( ULONG thread_input )
     tests.temperature_thread_test (NULL);
   }
 
-  watchdog_check_in ();
+  watchdog_check_in (WAVES_THREAD);
 
   // Function return parameters
   real16_T E[42];
@@ -1471,7 +1483,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   float sbd_timestamp = iridium->get_timestamp ();
   bool queue_empty = iridium->storage_queue->num_msgs_enqueued == 0;
 
-  watchdog_check_in ();
+  watchdog_check_in (IRIDIUM_THREAD);
 
 //
 // Run tests if needed
@@ -1480,7 +1492,7 @@ static void iridium_thread_entry ( ULONG thread_input )
     tests.iridium_thread_test (NULL);
   }
 
-  watchdog_check_in ();
+  watchdog_check_in (IRIDIUM_THREAD);
 
 // Check if we are skipping this message
   tx_return = tx_event_flags_get (&error_flags, GNSS_EXITED_EARLY, TX_OR_CLEAR, &actual_error_flags,
@@ -1541,7 +1553,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   while ( fail_counter < MAX_SELF_TEST_RETRIES )
   {
 
-    watchdog_check_in ();
+    watchdog_check_in (IRIDIUM_THREAD);
     // See if we can get an ack message from the modem
     iridium_return_code = iridium->self_test ();
     if ( iridium_return_code != IRIDIUM_SUCCESS )
@@ -1572,11 +1584,11 @@ static void iridium_thread_entry ( ULONG thread_input )
     HAL_NVIC_SystemReset ();
   }
 
-  watchdog_check_in ();
+  watchdog_check_in (IRIDIUM_THREAD);
 
   iridium->transmit_message ();
 
-  watchdog_check_in ();
+  watchdog_check_in (IRIDIUM_THREAD);
 
 // Check for error messages
   tx_event_flags_get (&error_flags, error_occured_flags, TX_OR_CLEAR, &actual_error_flags,
@@ -1585,10 +1597,10 @@ static void iridium_thread_entry ( ULONG thread_input )
 // If we have an error flag, send an error message
   if ( actual_error_flags )
   {
-    watchdog_check_in ();
+    watchdog_check_in (IRIDIUM_THREAD);
     send_error_message (actual_error_flags);
 
-    watchdog_check_in ();
+    watchdog_check_in (IRIDIUM_THREAD);
   }
 
 // If something went wrong with the RTC, we'll reset
