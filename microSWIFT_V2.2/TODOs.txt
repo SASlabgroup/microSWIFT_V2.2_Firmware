@@ -53,6 +53,10 @@ General
 Control
 ****
 [ ] Figure out how to identify first time power on and subsequent power on.
+[ ] Remove all thread control and sys reset calls from threads other than control_thread
+[ ] Implement Error_Handler() that checks error flags and acts accordingly
+	[ ] For non-critical errors, keep a running log of error for transmission
+	[ ] Make sure error messages have timestamps
 [ ] Implement subsequent power on fasttrack
 [x] Consider wrapping the initialization of north, east, down arrays into mem_replacements.c and
     provide get/set functions for passing to GNSS and waves

@@ -345,6 +345,8 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
+#error "Add a few auxillary threads with fairly large stacks. Throw in a few message queues, sempahores, timers, etc as well."
+
   /************************************************************************************************
    ************************************** Event Flags *********************************************
    ************************************************************************************************/
@@ -1273,6 +1275,13 @@ static void light_thread_entry ( ULONG thread_input )
 
   // TODO: init and self test
 
+  //
+  // Run tests if needed
+  if ( tests.light_thread_test != NULL )
+  {
+    tests.gnss_thread_test (NULL);
+  }
+
   tx_thread_suspend (this_thread);
 
   watchdog_register_thread (LIGHT_THREAD);
@@ -1303,6 +1312,13 @@ static void turbidity_thread_entry ( ULONG thread_input )
 
   // TODO: init and self test
 
+  //
+  // Run tests if needed
+  if ( tests.turbidity_thread_test != NULL )
+  {
+    tests.gnss_thread_test (NULL);
+  }
+
   tx_thread_suspend (this_thread);
 
   watchdog_register_thread (TURBIDITY_THREAD);
@@ -1332,6 +1348,13 @@ static void accelerometer_thread_entry ( ULONG thread_input )
   TX_THREAD *this_thread = &accelerometer_thread;
 
   // TODO: init and self test
+
+  //
+  // Run tests if needed
+  if ( tests.accelerometer_thread_test != NULL )
+  {
+    tests.gnss_thread_test (NULL);
+  }
 
   tx_thread_suspend (this_thread);
 
@@ -1379,9 +1402,9 @@ static void waves_thread_entry ( ULONG thread_input )
 
   //
   // Run tests if needed
-  if ( tests.temperature_thread_test != NULL )
+  if ( tests.waves_thread_test != NULL )
   {
-    tests.temperature_thread_test (NULL);
+    tests.waves_thread_test (NULL);
   }
 
   watchdog_check_in (WAVES_THREAD);
@@ -1474,6 +1497,13 @@ static void iridium_thread_entry ( ULONG thread_input )
   watchdog_register_thread (IRIDIUM_THREAD);
   watchdog_check_in (IRIDIUM_THREAD);
 
+  //
+  // Run tests if needed
+  if ( tests.iridium_thread_test != NULL )
+  {
+    tests.iridium_thread_test (NULL);
+  }
+
   UINT tx_return;
   int fail_counter;
   char ascii_7 = '7';
@@ -1484,13 +1514,6 @@ static void iridium_thread_entry ( ULONG thread_input )
   bool queue_empty = iridium->storage_queue->num_msgs_enqueued == 0;
 
   watchdog_check_in (IRIDIUM_THREAD);
-
-//
-// Run tests if needed
-  if ( tests.iridium_thread_test != NULL )
-  {
-    tests.iridium_thread_test (NULL);
-  }
 
   watchdog_check_in (IRIDIUM_THREAD);
 
