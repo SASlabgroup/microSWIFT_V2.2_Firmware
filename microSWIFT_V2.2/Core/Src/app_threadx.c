@@ -114,6 +114,9 @@ TX_THREAD turbidity_thread;
 TX_THREAD accelerometer_thread;
 TX_THREAD waves_thread;
 TX_THREAD iridium_thread;
+TX_THREAD expansion_thread_1;
+TX_THREAD expansion_thread_2;
+TX_THREAD expansion_thread_3;
 // Used to track initialization status of threads and components
 TX_EVENT_FLAGS_GROUP initialization_flags;
 // We'll use these flags to indicate a thread has completed execution
@@ -126,10 +129,17 @@ TX_EVENT_FLAGS_GROUP error_flags;
 TX_EVENT_FLAGS_GROUP rtc_complete_flags;
 // Flags for which thread is checkin in with watchdog
 TX_EVENT_FLAGS_GROUP watchdog_check_in_flags;
+// Expansion event flags
+TX_EVENT_FLAGS_GROUP expansion_flags_1;
+TX_EVENT_FLAGS_GROUP expansion_flags_2;
+TX_EVENT_FLAGS_GROUP expansion_flags_3;
 // Timers for threads
 TX_TIMER control_timer;
 TX_TIMER gnss_timer;
 TX_TIMER iridium_timer;
+TX_TIMER expansion_timer_1;
+TX_TIMER expansion_timer_2;
+TX_TIMER expansion_timer_3;
 // Comms buses semaphores
 TX_SEMAPHORE ext_rtc_spi_sema;
 TX_SEMAPHORE aux_spi_1_spi_sema;
@@ -145,6 +155,8 @@ TX_SEMAPHORE aux_uart_2_sema;
 // Server/client message queue for RTC (including watchdog function)
 TX_QUEUE rtc_messaging_queue;
 TX_QUEUE logger_message_queue;
+TX_QUEUE expansion_queue_1;
+TX_QUEUE expansion_queue_2;
 // Messages that failed to send are stored here
 Iridium_message_storage sbd_message_queue;
 
@@ -345,7 +357,50 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
-#error "Add a few auxillary threads with fairly large stacks. Throw in a few message queues, sempahores, timers, etc as well."
+  // Create the expansion threads
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK, TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_thread_create(&expansion_thread_1, "expansion_thread_1", expansion_thread_1_entry, 0,
+                         pointer, M_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
+                         TX_DONT_START);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK, TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_thread_create(&expansion_thread_2, "expansion_thread_2", expansion_thread_2_entry, 0,
+                         pointer, M_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
+                         TX_DONT_START);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK, TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_thread_create(&expansion_thread_3, "expansion_thread_3", expansion_thread_3_entry, 0,
+                         pointer, M_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
+                         TX_DONT_START);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+#error "Add a few auxillary threads with fairly large stacks. Throw in a few message queues, timers, etc as well."
 
   /************************************************************************************************
    ************************************** Event Flags *********************************************
