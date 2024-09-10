@@ -451,21 +451,21 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   /************************************************************************************************
    **************************************** Timers ************************************************
    ************************************************************************************************/
-  ret = tx_timer_create(&control_timer, "Control thread timer", control_timer_expired, 1, 0, 0,
+  ret = tx_timer_create(&control_timer, "Control thread timer", control_timer_expired, 0, 0, 0,
                         TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
-  ret = tx_timer_create(&gnss_timer, "GNSS thread timer", gnss_timer_expired, 1, 0, 0,
+  ret = tx_timer_create(&gnss_timer, "GNSS thread timer", gnss_timer_expired_callback, 0, 0, 0,
                         TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
-  ret = tx_timer_create(&iridium_timer, "Iridium thread timer", iridium_timer_expired, 1, 0, 0,
+  ret = tx_timer_create(&iridium_timer, "Iridium thread timer", iridium_timer_expired, 0, 0, 0,
                         TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
@@ -473,21 +473,21 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
 
   ret = tx_timer_create(&expansion_timer_1, "Expansion thread 1 timer", expansion_timer_1_expired,
-                        1, 0, 0, TX_NO_ACTIVATE);
+                        0, 0, 0, TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
   ret = tx_timer_create(&expansion_timer_2, "Expansion thread 2 timer", expansion_timer_2_expired,
-                        1, 0, 0, TX_NO_ACTIVATE);
+                        0, 0, 0, TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
   ret = tx_timer_create(&expansion_timer_3, "Expansion thread 3 timer", expansion_timer_3_expired,
-                        1, 0, 0, TX_NO_ACTIVATE);
+                        0, 0, 0, TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -876,7 +876,7 @@ static void control_thread_entry ( ULONG thread_input )
     for ( int i = 0; i < 25; i++ )
     {
       watchdog_check_in (CONTROL_THREAD);
-      led_sequence (SELF_TEST_CRITICAL_FAULT);
+      led_sequence (TEST_FAILED_LED_SEQUENCE);
     }
     HAL_NVIC_SystemReset ();
   }
@@ -915,7 +915,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   uint8_t gnss_config_response_buf[GNSS_CONFIG_BUFFER_SIZE];
   float *north, *east, *down;
 
-  gnss_error_code_t gnss_return_code;
+  gnss_return_code_t gnss_return_code;
   int number_of_no_sample_errors = 0;
   float last_lat = 0;
   float last_lon = 0;
@@ -941,14 +941,14 @@ static void gnss_thread_entry ( ULONG thread_input )
   }
 
   gnss_init (&gnss, &configuration, device_handles.gnss_uart_handle,
-             device_handles.gnss_uart_rx_dma_handle, &thread_control_flags, &error_flags,
-             device_handles.gnss_minutes_timer, &(ubx_message_process_buf[0]),
-             &(gnss_config_response_buf[0]), north, east, down);
+             device_handles.gnss_uart_rx_dma_handle, &irq_flags, &error_flags, gnss_timer,
+             &(ubx_message_process_buf[0]), &(gnss_config_response_buf[0]), north, east, down);
 
   if ( !gnss_apply_config (&gnss) )
   {
     uart_logger_log_line ("GNSS failed to initialize.");
 #error "ensure in all failure cases that the GNSS is shut down"
+    gnss->on_off (false);
     tx_thread_suspend (this_thread);
   }
 
@@ -993,9 +993,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   watchdog_check_in (GNSS_THREAD);
 
   // Start the timer for resolution stages
-  HAL_TIM_Base_Stop_IT (gnss.minutes_timer);
-  gnss.reset_timer (configuration.gnss_max_acquisition_wait_time);
-  HAL_TIM_Base_Start_IT (gnss.minutes_timer);
+  gnss.start_timer (configuration.gnss_max_acquisition_wait_time);
 
   // Wait until we get a series of good UBX_NAV_PVT messages and are
   // tracking a good number of satellites before moving on
@@ -1014,13 +1012,12 @@ static void gnss_thread_entry ( ULONG thread_input )
     uart_logger_log_line ("GNSS switching to circular DMA mode.");
   }
 
-  while ( !(gnss.all_resolution_stages_complete || gnss.timer_timeout) )
+  while ( !(gnss.all_resolution_stages_complete || gnss_get_timer_timeout_status ()) )
   {
 
     watchdog_check_in (GNSS_THREAD);
-    tx_return = tx_event_flags_get (&thread_control_flags,
-                                    ((GNSS_MSG_RECEIVED | GNSS_MSG_INCOMPLETE)),
-                                    TX_OR_CLEAR,
+    tx_return = tx_event_flags_get (&irq_flags, (GNSS_MSG_RECEIVED | GNSS_MSG_INCOMPLETE),
+    TX_OR_CLEAR,
                                     &actual_flags, timer_ticks_to_get_message);
 
     // Full message came through
@@ -1048,7 +1045,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   // If this evaluates to true, we were unable to get adequate GNSS reception to
   // resolve time and get at least 1 good sample. Go to sleep until the top of the next hour.
   // Sleep will be handled in end_of_cycle_thread
-  if ( gnss.timer_timeout )
+  if ( gnss_get_timer_timeout_status () )
   {
     watchdog_check_in (GNSS_THREAD);
     jump_to_end_of_window (GNSS_RESOLUTION_ERROR);

@@ -37,7 +37,7 @@ typedef enum gnss_error_code
   GNSS_NAK_MESSAGE_RECEIVED = -16,
   GNSS_HIGH_PERFORMANCE_ENABLE_ERROR = -17,
   GNSS_DONE_SAMPLING = -18
-} gnss_error_code_t;
+} gnss_return_code_t;
 
 // Macros
 #define GNSS_CONFIG_BUFFER_SIZE 600
@@ -96,77 +96,82 @@ typedef enum gnss_error_code
 #define HIGH_PERFORMANCE_RESPONSE_SIZE 36
 #define ENABLE_HIGH_PERFORMANCE_SIZE 60
 
-// GNSS struct definition -- packed for good organization, not memory efficiency
+// @formatter:off
 typedef struct GNSS
 {
   // Our global configuration struct
-  microSWIFT_configuration *global_config;
+  microSWIFT_configuration  *global_config;
   // The UART and DMA handle for the GNSS interface
-  UART_HandleTypeDef *gnss_uart_handle;
-  DMA_HandleTypeDef *gnss_rx_dma_handle;
+  UART_HandleTypeDef        *gnss_uart_handle;
+  DMA_HandleTypeDef         *gnss_rx_dma_handle;
   // Event flags
-  TX_EVENT_FLAGS_GROUP *control_flags;
-  TX_EVENT_FLAGS_GROUP *error_flags;
-  // Pointer to hardware timer handle
-  TIM_HandleTypeDef *minutes_timer;
+  TX_EVENT_FLAGS_GROUP      *irq_flags;
+  TX_EVENT_FLAGS_GROUP      *error_flags;
+  // Pointer to timer
+  TX_TIMER                  *timer;
   // UBX message process buffer filled from DMA ISR
-  uint8_t *ubx_process_buf;
+  uint8_t                   *ubx_process_buf;
   // Configuration response buffer
-  uint8_t *config_response_buf;
+  uint8_t                   *config_response_buf;
   // Velocity sample array pointers
-  float *GNSS_N_Array;
-  float *GNSS_E_Array;
-  float *GNSS_D_Array;
+  float                     *GNSS_N_Array;
+  float                     *GNSS_E_Array;
+  float                     *GNSS_D_Array;
   // Number of messages processed in a given buffer
-  uint32_t messages_processed;
+  uint32_t                  messages_processed;
   // Keep a running track of sum -- to be used in getRunningAverage
   // NOTE: These values are in units of mm/s and must be converted
-  int32_t v_north_sum;
-  int32_t v_east_sum;
-  int32_t v_down_sum;
+  int32_t                   v_north_sum;
+  int32_t                   v_east_sum;
+  int32_t                   v_down_sum;
   // Hold the current lat/long for whatever we might need it for (modem)
-  int32_t current_latitude;
-  int32_t current_longitude;
+  int32_t                   current_latitude;
+  int32_t                   current_longitude;
   // The start time for the sampling window
-  time_t sample_window_start_time;
+  time_t                    sample_window_start_time;
   // The start time for the sampling window
-  time_t sample_window_stop_time;
+  time_t                    sample_window_stop_time;
   // The true calculated sample window frequency
-  double sample_window_freq;
+  double                    sample_window_freq;
   // Increment with each sample or running average
-  uint16_t total_samples;
+  uint16_t                  total_samples;
   // We'll keep track of how many times we had to sub in a running average
-  uint16_t total_samples_averaged;
+  uint16_t                  total_samples_averaged;
   // How many times we've had to skip a sample - gets reset with valid data
-  uint16_t number_cycles_without_data;
+  uint16_t                  number_cycles_without_data;
   // Flags
-  bool current_fix_is_good;
-  bool all_resolution_stages_complete;
-  bool is_configured;
-  bool is_clock_set;
-  bool rtc_error;
-  bool all_samples_processed;
-  bool timer_timeout;
+  bool                      current_fix_is_good;
+  bool                      all_resolution_stages_complete;
+  bool                      is_configured;
+  bool                      is_clock_set;
+  bool                      rtc_error;
+  bool                      all_samples_processed;
+  bool                      timer_timeout;
   // Function pointers
-  gnss_error_code_t (*config) ( void );
-  gnss_error_code_t (*sync_and_start_reception) ( uint8_t *buffer, size_t msg_size );
-  gnss_error_code_t (*get_location) ( float *latitude, float *longitude );
-  gnss_error_code_t (*get_running_average_velocities) ( void );
-  void (*process_message) ( void );
-  gnss_error_code_t (*sleep) ( bool put_to_sleep );
-  void (*on_off) ( GPIO_PinState pin_state );
-  void (*cycle_power) ( void );
-  gnss_error_code_t (*set_rtc) ( uint8_t *msg_payload );
-  gnss_error_code_t (*reset_uart) ( void );
-  gnss_error_code_t (*reset_timer) ( uint16_t timeout_in_minutes );
+  gnss_return_code_t        (*config) ( void );
+  gnss_return_code_t        (*sync_and_start_reception) ( uint8_t *buffer, size_t msg_size );
+  gnss_return_code_t        (*get_location) ( float *latitude, float *longitude );
+  gnss_return_code_t        (*get_running_average_velocities) ( void );
+  gnss_return_code_t        (*software_start) ( void );
+  gnss_return_code_t        (*software_stop) ( void );
+  gnss_return_code_t        (*set_rtc) ( uint8_t *msg_payload );
+  gnss_return_code_t        (*reset_uart) ( void );
+  gnss_return_code_t        (*start_timer) ( uint16_t timeout_in_minutes );
+  gnss_return_code_t        (*stop_timer) ( void );
+  void                      (*process_message) ( void );
+  void                      (*on) ( void );
+  void                      (*off)( void );
 } GNSS;
+// @formatter:on
 
 /* Function declarations */
 void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
                  UART_HandleTypeDef *gnss_uart_handle, DMA_HandleTypeDef *gnss_rx_dma_handle,
-                 TX_EVENT_FLAGS_GROUP *control_flags, TX_EVENT_FLAGS_GROUP *error_flags,
-                 TIM_HandleTypeDef *timer, uint8_t *ubx_process_buf,
-                 uint8_t *config_response_buffer, float *GNSS_N_Array, float *GNSS_E_Array,
-                 float *GNSS_D_Array );
+                 TX_EVENT_FLAGS_GROUP *irq_flags, TX_EVENT_FLAGS_GROUP *error_flags,
+                 TX_TIMER *timer, uint8_t *ubx_process_buf, uint8_t *config_response_buffer,
+                 float *GNSS_N_Array, float *GNSS_E_Array, float *GNSS_D_Array );
+
+void gnss_timer_expired_callback ( ULONG expiration_input );
+bool gnss_get_timer_timeout_status ( void );
 
 #endif /* SRC_GPS_H_ */

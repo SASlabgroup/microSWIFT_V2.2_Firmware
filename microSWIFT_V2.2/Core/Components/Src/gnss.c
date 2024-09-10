@@ -19,35 +19,37 @@
 #include "u_error_common.h"
 #include "ext_rtc_api.h"
 #include "usart.h"
-#include "tim.h"
 #include "linked_list.h"
-#include "lpdma.h"
+#include "watchdog.h"
 
 static GNSS *self;
 
-static gnss_error_code_t gnss_config ( void );
-static gnss_error_code_t gnss_sync_and_start_reception ( uint8_t *buffer, size_t msg_size );
-static gnss_error_code_t gnss_get_location ( float *latitude, float *longitude );
-static gnss_error_code_t gnss_get_running_average_velocities ( void );
-static void gnss_process_message ( void );
-static gnss_error_code_t gnss_sleep ( bool put_to_sleep );
-static void gnss_on_off ( GPIO_PinState pin_state );
-static void gnss_cycle_power ( void );
-static gnss_error_code_t gnss_set_rtc ( uint8_t *msg_payload );
-static gnss_error_code_t gnss_reset_uart ( void );
-static gnss_error_code_t gnss_reset_timer ( uint16_t timeout_in_minutes );
+// @formatter:off
+static gnss_return_code_t   _gnss_config ( void );
+static gnss_return_code_t   _gnss_sync_and_start_reception ( uint8_t *buffer, size_t msg_size );
+static gnss_return_code_t   _gnss_get_location ( float *latitude, float *longitude );
+static gnss_return_code_t   _gnss_get_running_average_velocities ( void );
+static gnss_return_code_t   _gnss_software_start ( void );
+static gnss_return_code_t   _gnss_software_stop ( void );
+static gnss_return_code_t   _gnss_set_rtc ( uint8_t *msg_payload );
+static gnss_return_code_t   _gnss_reset_uart ( void );
+static gnss_return_code_t   _gnss_start_timer ( uint16_t timeout_in_minutes );
+static gnss_return_code_t   _gnss_stop_timer ( void );
+static void                 _gnss_process_message ( void );
+static void                 _gnss_on ( void );
+static void                 _gnss_off ( void );
 
 // Static helper functions
-static gnss_error_code_t send_config ( uint8_t *config_array, size_t message_size,
-                                       uint8_t response_class, uint8_t response_id );
-static gnss_error_code_t stop_start_gnss ( bool send_stop );
-static void process_frame_sync_messages ( uint8_t *process_buf );
-static gnss_error_code_t enable_high_performance_mode ( void );
-static gnss_error_code_t query_high_performance_mode ( void );
-static void get_checksum ( uint8_t *ck_a, uint8_t *ck_b, uint8_t *buffer, uint32_t num_bytes )__attribute__((unused));
-static time_t get_timestamp ( void );
-static void reset_struct_fields ( void );
-static gnss_error_code_t start_GNSS_UART_DMA ( uint8_t *buffer, size_t buffer_size );
+static void                 __cycle_power ( void );
+static gnss_return_code_t   __send_config ( uint8_t *config_array, size_t message_size,
+                                          uint8_t response_class, uint8_t response_id );
+static gnss_return_code_t   __enable_high_performance_mode ( void );
+static gnss_return_code_t   __query_high_performance_mode ( void );
+static gnss_return_code_t   __start_GNSS_UART_DMA ( uint8_t *buffer, size_t buffer_size );
+static time_t               __get_timestamp ( void );
+static void                 __process_frame_sync_messages ( uint8_t *process_buf );
+static void                 __reset_struct_fields ( void );
+// @formatter:on
 
 /**
  * Initialize the GNSS struct
@@ -56,10 +58,9 @@ static gnss_error_code_t start_GNSS_UART_DMA ( uint8_t *buffer, size_t buffer_si
  */
 void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
                  UART_HandleTypeDef *gnss_uart_handle, DMA_HandleTypeDef *gnss_rx_dma_handle,
-                 TX_EVENT_FLAGS_GROUP *control_flags, TX_EVENT_FLAGS_GROUP *error_flags,
-                 TIM_HandleTypeDef *timer, uint8_t *ubx_process_buf,
-                 uint8_t *config_response_buffer, float *GNSS_N_Array, float *GNSS_E_Array,
-                 float *GNSS_D_Array )
+                 TX_EVENT_FLAGS_GROUP *irq_flags, TX_EVENT_FLAGS_GROUP *error_flags,
+                 TX_TIMER *timer, uint8_t *ubx_process_buf, uint8_t *config_response_buffer,
+                 float *GNSS_N_Array, float *GNSS_E_Array, float *GNSS_D_Array )
 {
   self = struct_ptr;
   // initialize everything
@@ -70,25 +71,50 @@ void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
   self->GNSS_E_Array = GNSS_E_Array;
   self->GNSS_D_Array = GNSS_D_Array;
 
-  reset_struct_fields ();
+  __reset_struct_fields ();
 
-  self->control_flags = control_flags;
+  self->irq_flags = irq_flags;
   self->error_flags = error_flags;
-  self->minutes_timer = timer;
+  self->timer = timer;
   self->ubx_process_buf = ubx_process_buf;
   self->config_response_buf = config_response_buffer;
 
-  self->config = gnss_config;
-  self->sync_and_start_reception = gnss_sync_and_start_reception;
-  self->get_location = gnss_get_location;
-  self->get_running_average_velocities = gnss_get_running_average_velocities;
-  self->process_message = gnss_process_message;
-  self->sleep = gnss_sleep;
-  self->on_off = gnss_on_off;
-  self->cycle_power = gnss_cycle_power;
-  self->set_rtc = gnss_set_rtc;
-  self->reset_uart = gnss_reset_uart;
-  self->reset_timer = gnss_reset_timer;
+  self->config = _gnss_config;
+  self->sync_and_start_reception = _gnss_sync_and_start_reception;
+  self->get_location = _gnss_get_location;
+  self->get_running_average_velocities = _gnss_get_running_average_velocities;
+  self->software_start = _gnss_software_start;
+  self->software_stop = _gnss_software_stop;
+  self->set_rtc = _gnss_set_rtc;
+  self->reset_uart = _gnss_reset_uart;
+  self->start_timer = _gnss_start_timer;
+  self->stop_timer = _gnss_stop_timer;
+  self->process_message = _gnss_process_message;
+  self->on = _gnss_on;
+  self->off = _gnss_off;
+}
+
+/**
+ * Timer expiered callback -- called via ThreadX contol services.
+ *
+ * @param expiration_input - unused
+ */
+void gnss_timer_expired_callback ( ULONG expiration_input )
+{
+  (void) expiration_input;
+  self->timer_timeout = true;
+}
+
+/**
+ * Get status of GNSS timer.
+ *
+ * @param self - GNSS struct
+ * @param expiration_input - unused
+ * @return True if timer has timed out, false otherwise
+ */
+bool gnss_get_timer_timeout_status ( void )
+{
+  return self->timer_timeout;
 }
 
 /**
@@ -97,9 +123,9 @@ void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
  * @return GNSS_SUCCESS or
  *                 GNSS_CONFIG_ERROR if response was not received
  */
-static gnss_error_code_t gnss_config ( void )
+static gnss_return_code_t _gnss_config ( void )
 {
-  gnss_error_code_t return_code;
+  gnss_return_code_t return_code;
   // The configuration message, type UBX_CFG_VALSET. Default is set to 5Hz.
   // !!!! This is output from U-Center 2 software, do not change !!!
   uint8_t config[CONFIGURATION_ARRAY_SIZE] =
@@ -123,7 +149,7 @@ static gnss_error_code_t gnss_config ( void )
   }
 
   // Send over the configuration settings for RAM
-  return_code = send_config (&(config[0]), CONFIGURATION_ARRAY_SIZE, UBX_CFG_VALSET_CLASS,
+  return_code = __send_config (&(config[0]), CONFIGURATION_ARRAY_SIZE, UBX_CFG_VALSET_CLASS,
   UBX_CFG_VALSET_ID);
 
   if ( return_code != GNSS_SUCCESS )
@@ -149,7 +175,7 @@ static gnss_error_code_t gnss_config ( void )
   }
 
   // Send over the Battery Backed Ram (BBR) config settings
-  return_code = send_config (&(config[0]), CONFIGURATION_ARRAY_SIZE, UBX_CFG_VALSET_CLASS,
+  return_code = __send_config (&(config[0]), CONFIGURATION_ARRAY_SIZE, UBX_CFG_VALSET_CLASS,
   UBX_CFG_VALSET_ID);
 
   if ( return_code != GNSS_SUCCESS )
@@ -166,7 +192,7 @@ static gnss_error_code_t gnss_config ( void )
   if ( self->global_config->gnss_high_performance_mode )
   {
     // First check to see if it has already been set
-    return_code = enable_high_performance_mode ();
+    return_code = __enable_high_performance_mode ();
   }
 
   return return_code;
@@ -175,11 +201,11 @@ static gnss_error_code_t gnss_config ( void )
 /**
  *
  *
- * @return gnss_error_code_t
+ * @return gnss_return_code_t
  */
-static gnss_error_code_t gnss_sync_and_start_reception ( uint8_t *buffer, size_t msg_size )
+static gnss_return_code_t _gnss_sync_and_start_reception ( uint8_t *buffer, size_t msg_size )
 {
-  gnss_error_code_t return_code = GNSS_SELF_TEST_FAILED;
+  gnss_return_code_t return_code = GNSS_SELF_TEST_FAILED;
   ULONG actual_flags;
   uint8_t msg_buf[INITIAL_STAGES_BUFFER_SIZE];
   int max_ticks_to_get_message = round (
@@ -195,23 +221,23 @@ static gnss_error_code_t gnss_sync_and_start_reception ( uint8_t *buffer, size_t
   // the gnss_max_acquisition_wait_time
   while ( !self->timer_timeout )
   {
-    register_watchdog_refresh ();
+    watchdog_check_in (GNSS_THREAD);
     // Grab 5 UBX_NAV_PVT messages
     HAL_UART_Receive_DMA (self->gnss_uart_handle, &(msg_buf[0]), INITIAL_STAGES_BUFFER_SIZE);
 
-    if ( tx_event_flags_get (self->control_flags, GNSS_CONFIG_RECVD, TX_OR_CLEAR, &actual_flags,
+    if ( tx_event_flags_get (self->irq_flags, GNSS_CONFIG_RECVD, TX_OR_CLEAR, &actual_flags,
                              max_ticks_to_get_message)
          != TX_SUCCESS )
     {
       // If we didn't receive the needed messaged in time, cycle the GNSS sensor
-      self->cycle_power ();
+      __cycle_power ();
       HAL_UART_DMAStop (self->gnss_uart_handle);
       HAL_Delay (3);
       self->reset_uart ();
       continue;
     }
 
-    process_frame_sync_messages (msg_buf);
+    __process_frame_sync_messages (msg_buf);
     // this both ensures we have frame sync'd with the GNSS sensor and are safe
     // to kick off circular DMA receive
     if ( self->messages_processed == 5 && self->number_cycles_without_data == 0
@@ -229,7 +255,7 @@ static gnss_error_code_t gnss_sync_and_start_reception ( uint8_t *buffer, size_t
     }
   }
 
-  register_watchdog_refresh ();
+  watchdog_check_in (GNSS_THREAD);
 
   if ( self->timer_timeout )
   {
@@ -237,11 +263,11 @@ static gnss_error_code_t gnss_sync_and_start_reception ( uint8_t *buffer, size_t
   }
 
   // Just to be overly sure we're starting the sampling window from a fresh slate
-  reset_struct_fields ();
+  __reset_struct_fields ();
   self->reset_uart ();
 
-  return_code = start_GNSS_UART_DMA (&(buffer[0]), msg_size);
-  register_watchdog_refresh ();
+  return_code = __start_GNSS_UART_DMA (&(buffer[0]), msg_size);
+  watchdog_check_in (GNSS_THREAD);
   // Make sure we start right next time around in case there was an issue starting DMA
   if ( return_code == GNSS_UART_ERROR )
   {
@@ -256,11 +282,281 @@ static gnss_error_code_t gnss_sync_and_start_reception ( uint8_t *buffer, size_t
 }
 
 /**
+ * Get the current lat/long. We're going to return the lat/long no matter what,
+ * but the return code will indicate if it's any good.
+ * !!! Only valid when the GNSS is on and procesing samples or shortly thereafter
+ *
+ * @param latitude - return parameter for latitude
+ * @param longitude - return parameter for longitude
+ * @return gnss_return_code_t
+ */
+static gnss_return_code_t _gnss_get_location ( float *latitude, float *longitude )
+{
+  gnss_return_code_t return_code = GNSS_SUCCESS;
+
+  if ( !self->current_fix_is_good )
+  {
+    return_code = GNSS_LOCATION_INVALID;
+  }
+
+  *latitude = ((float) self->current_latitude) / ((float) LAT_LON_CONVERSION_FACTOR);
+  *longitude = ((float) self->current_longitude) / ((float) LAT_LON_CONVERSION_FACTOR);
+
+  return return_code;
+}
+
+/**
+ * If a velocity field > MAX_POSSIBLE_VELOCITY, or the velocity accuracy
+ * estimate (vAcc) is outside acceptable range, this function will substitute
+ * a running average.
+ *
+ * @param returnNorth - return parameter for the running average North value
+ * @param returnEast - return parameter for the running average East value
+ * @param returnDown - return parameter for the running average Down value
+ * @return GPS error code (marcos defined in gps_error_codes.h)
+ */
+static gnss_return_code_t _gnss_get_running_average_velocities ( void )
+{
+  gnss_return_code_t return_code = GNSS_SUCCESS;
+  float substitute_north, substitute_east, substitute_down;
+
+  if ( self->total_samples >= self->global_config->samples_per_window )
+  {
+
+    return_code = GNSS_DONE_SAMPLING;
+
+  }
+  // avoid a divide by zero error
+  else if ( self->total_samples == 0 )
+  {
+
+    return_code = GNSS_NO_SAMPLES_ERROR;
+
+  }
+  // Good to replace value with running average
+  else
+  {
+
+    substitute_north = (((float) self->v_north_sum) / MM_PER_METER) / ((float) self->total_samples);
+    substitute_east = (((float) self->v_east_sum) / MM_PER_METER) / ((float) self->total_samples);
+    substitute_down = (((float) self->v_down_sum) / MM_PER_METER) / ((float) self->total_samples);
+
+    self->GNSS_N_Array[self->total_samples] = substitute_north;
+    self->GNSS_E_Array[self->total_samples] = substitute_east;
+    self->GNSS_D_Array[self->total_samples] = substitute_down;
+
+    self->total_samples++;
+    self->total_samples_averaged++;
+  }
+
+  return return_code;
+}
+
+/**
+ * Send a CFG_RST message to the GNSS chip to either start GNSS
+ * processing. This message is not acknowledged, so we just have to trust that
+ * it worked.
+ *
+ * @param self- GNSS struct
+ */
+static gnss_return_code_t _gnss_software_start ( void )
+{
+  ULONG actual_flags;
+  // 3rd byte -- 0x08 = Controlled GNSS stop, 0x09 = Controlled GNSS start
+  uint8_t message_payload[4] =
+    { 0x00, 0x00, 0x09, 0x00 };
+  char cfg_rst_message[sizeof(message_payload) + U_UBX_PROTOCOL_OVERHEAD_LENGTH_BYTES];
+
+  if ( (uUbxProtocolEncode (0x06, 0x04, (const char*) &(message_payload[0]),
+                            sizeof(message_payload), cfg_rst_message))
+       < 0 )
+  {
+    self->reset_uart ();
+    return GNSS_CONFIG_ERROR;
+  }
+
+  if ( (HAL_UART_Transmit_DMA (self->gnss_uart_handle, (uint8_t*) &(cfg_rst_message[0]),
+                               sizeof(cfg_rst_message)))
+       != HAL_OK )
+  {
+    self->reset_uart ();
+    return GNSS_CONFIG_ERROR;
+  }
+
+// Make sure the transmission went through completely
+  if ( tx_event_flags_get (self->irq_flags, GNSS_TX_COMPLETE, TX_OR_CLEAR, &actual_flags,
+  TX_TIMER_TICKS_PER_SECOND)
+       != TX_SUCCESS )
+  {
+    HAL_UART_DMAStop (self->gnss_uart_handle);
+    self->reset_uart ();
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+    return GNSS_UART_ERROR;
+
+  }
+
+  return GNSS_SUCCESS;
+}
+
+static gnss_return_code_t _gnss_software_stop ( void )
+{
+  ULONG actual_flags;
+  // 3rd byte -- 0x08 = Controlled GNSS stop, 0x09 = Controlled GNSS start
+  uint8_t message_payload[4] =
+    { 0x00, 0x00, 0x08, 0x00 };
+  char cfg_rst_message[sizeof(message_payload) + U_UBX_PROTOCOL_OVERHEAD_LENGTH_BYTES];
+
+  if ( (uUbxProtocolEncode (0x06, 0x04, (const char*) &(message_payload[0]),
+                            sizeof(message_payload), cfg_rst_message))
+       < 0 )
+  {
+    self->reset_uart ();
+    return GNSS_CONFIG_ERROR;
+  }
+
+  if ( (HAL_UART_Transmit_DMA (self->gnss_uart_handle, (uint8_t*) &(cfg_rst_message[0]),
+                               sizeof(cfg_rst_message)))
+       != HAL_OK )
+  {
+    self->reset_uart ();
+    return GNSS_CONFIG_ERROR;
+  }
+
+// Make sure the transmission went through completely
+  if ( tx_event_flags_get (self->irq_flags, GNSS_TX_COMPLETE, TX_OR_CLEAR, &actual_flags,
+  TX_TIMER_TICKS_PER_SECOND)
+       != TX_SUCCESS )
+  {
+    HAL_UART_DMAStop (self->gnss_uart_handle);
+    self->reset_uart ();
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+    return GNSS_UART_ERROR;
+
+  }
+
+  return GNSS_SUCCESS;
+}
+
+/**
+ * Set the RTC clock.
+ *
+ * @param GNSS - GNSS struct
+ * @param msg_payload - UBX_NAV_PVT message payload containing
+ *        time information.
+ *
+ * @return GNSS_SUCCESS or
+ *                 GNSS_RTC_ERROR - if setting RTC returned an error
+ */
+static gnss_return_code_t _gnss_set_rtc ( uint8_t *msg_payload )
+{
+  gnss_return_code_t return_code = GNSS_SUCCESS;
+  rtc_return_code rtc_ret = RTC_SUCCESS;
+  struct tm time;
+
+  uint16_t year = (int16_t) get_two_bytes (msg_payload, UBX_NAV_PVT_YEAR_INDEX, AS_LITTLE_ENDIAN);
+  uint8_t month = msg_payload[UBX_NAV_PVT_MONTH_INDEX];
+  uint8_t day = msg_payload[UBX_NAV_PVT_DAY_INDEX];
+  uint8_t hour = msg_payload[UBX_NAV_PVT_HOUR_INDEX];
+  uint8_t min = msg_payload[UBX_NAV_PVT_MINUTE_INDEX];
+  uint8_t sec = msg_payload[UBX_NAV_PVT_SECONDS_INDEX];
+  uint8_t time_flags = msg_payload[UBX_NAV_PVT_VALID_FLAGS_INDEX];
+
+  time_flags &= LOWER_4_BITS_MASK;
+
+  if ( !(time_flags & RESOLVED_TIME_BITS) )
+  {
+    return_code = GNSS_TIME_RESOLUTION_ERROR;
+    return return_code;
+  }
+
+  time.tm_year = year;
+  time.tm_mon = month;
+  time.tm_mday = day;
+  time.tm_hour = hour;
+  time.tm_min = min;
+  time.tm_sec = sec;
+
+  rtc_ret = rtc_server_set_time (time, GNSS_REQUEST_PROCESSED);
+
+  if ( rtc_ret != RTC_SUCCESS )
+  {
+    return_code = GNSS_RTC_ERROR;
+    self->rtc_error = true;
+    tx_event_flags_set (self->error_flags, RTC_ERROR, TX_OR);
+    return return_code;
+  }
+
+  self->is_clock_set = true;
+  self->rtc_error = false;
+
+  return return_code;
+}
+
+/**
+ * Reinitialize the GNSS UART port. Required when switching between Tx and Rx.
+ *
+ * @param self - GNSS struct
+ * @param baud_rate - baud rate to set port to
+ */
+static gnss_return_code_t _gnss_reset_uart ( void )
+{
+
+  if ( usart1_deinit () != UART_OK )
+  {
+    return GNSS_UART_ERROR;
+  }
+
+  if ( usart1_init () != UART_OK )
+  {
+    return GNSS_UART_ERROR;
+  }
+
+  return GNSS_SUCCESS;
+}
+
+/**
+ * Start the timer.
+ *
+ * @param self - GNSS struct
+ * @param timeout_in_minutes - timeout in minutes
+ */
+static gnss_return_code_t _gnss_start_timer ( uint16_t timeout_in_minutes )
+{
+  uint16_t timeout = TX_TIMER_TICKS_PER_SECOND * timeout_in_minutes;
+  gnss_return_code_t ret = GNSS_SUCCESS;
+
+  if ( tx_timer_change (self->timer, timeout, 0) != TX_SUCCESS )
+  {
+    ret = GNSS_TIMER_ERROR;
+    return ret;
+  }
+
+  if ( tx_timer_activate (self->timer) != TX_SUCCESS )
+  {
+    ret = GNSS_TIMER_ERROR;
+  }
+
+  return ret;
+}
+
+/**
+ * Stop the timer.
+ *
+ * @param self - GNSS struct
+ * @param timeout_in_minutes - timeout in minutes
+ */
+static gnss_return_code_t _gnss_stop_timer ( void )
+{
+  return (tx_timer_deactivate (self->timer) == TX_SUCCESS) ?
+      GNSS_SUCCESS : GNSS_TIMER_ERROR;
+}
+
+/**
  * Process the messages in the buffer.
  *
- * @return gnss_error_code_t
+ * @return gnss_return_code_t
  */
-static void gnss_process_message ( void )
+static void _gnss_process_message ( void )
 {
   uint8_t payload[UBX_NAV_PVT_PAYLOAD_LENGTH];
   const char *buf_start = (const char*) &(self->ubx_process_buf[0]);
@@ -279,7 +575,7 @@ static void gnss_process_message ( void )
   if ( self->total_samples >= self->global_config->samples_per_window )
   {
     HAL_UART_DMAStop (self->gnss_uart_handle);
-    self->sample_window_stop_time = get_timestamp ();
+    self->sample_window_stop_time = __get_timestamp ();
     self->all_samples_processed = true;
     self->sample_window_freq =
         (double) (((double) self->global_config->samples_per_window)
@@ -356,7 +652,7 @@ static void gnss_process_message ( void )
     if ( (self->total_samples == 0) && velocities_non_zero )
     {
       self->all_resolution_stages_complete = true;
-      self->sample_window_start_time = get_timestamp ();
+      self->sample_window_start_time = __get_timestamp ();
     }
 
     // All velocity values are good to go
@@ -384,102 +680,27 @@ static void gnss_process_message ( void )
 }
 
 /**
- * Get the current lat/long. We're going to return the lat/long no matter what,
- * but the return code will indicate if it's any good.
- * !!! Only valid when the GNSS is on and procesing samples or shortly thereafter
- *
- * @param latitude - return parameter for latitude
- * @param longitude - return parameter for longitude
- * @return gnss_error_code_t
- */
-static gnss_error_code_t gnss_get_location ( float *latitude, float *longitude )
-{
-  gnss_error_code_t return_code = GNSS_SUCCESS;
-
-  if ( !self->current_fix_is_good )
-  {
-    return_code = GNSS_LOCATION_INVALID;
-  }
-
-  *latitude = ((float) self->current_latitude) / ((float) LAT_LON_CONVERSION_FACTOR);
-  *longitude = ((float) self->current_longitude) / ((float) LAT_LON_CONVERSION_FACTOR);
-
-  return return_code;
-}
-
-/**
- * If a velocity field > MAX_POSSIBLE_VELOCITY, or the velocity accuracy
- * estimate (vAcc) is outside acceptable range, this function will substitute
- * a running average.
- *
- * @param returnNorth - return parameter for the running average North value
- * @param returnEast - return parameter for the running average East value
- * @param returnDown - return parameter for the running average Down value
- * @return GPS error code (marcos defined in gps_error_codes.h)
- */
-static gnss_error_code_t gnss_get_running_average_velocities ( void )
-{
-  gnss_error_code_t return_code = GNSS_SUCCESS;
-  float substitute_north, substitute_east, substitute_down;
-
-  if ( self->total_samples >= self->global_config->samples_per_window )
-  {
-
-    return_code = GNSS_DONE_SAMPLING;
-
-  }
-  // avoid a divide by zero error
-  else if ( self->total_samples == 0 )
-  {
-
-    return_code = GNSS_NO_SAMPLES_ERROR;
-
-  }
-  // Good to replace value with running average
-  else
-  {
-
-    substitute_north = (((float) self->v_north_sum) / MM_PER_METER) / ((float) self->total_samples);
-    substitute_east = (((float) self->v_east_sum) / MM_PER_METER) / ((float) self->total_samples);
-    substitute_down = (((float) self->v_down_sum) / MM_PER_METER) / ((float) self->total_samples);
-
-    self->GNSS_N_Array[self->total_samples] = substitute_north;
-    self->GNSS_E_Array[self->total_samples] = substitute_east;
-    self->GNSS_D_Array[self->total_samples] = substitute_down;
-
-    self->total_samples++;
-    self->total_samples_averaged++;
-  }
-
-  return return_code;
-}
-
-/**
- * Send the sleep command to the GNSS unit. This does not remove power, but
- * puts the device in low-power mode.
+ * Switch the FET controlling power to the GNSS unit.
  *
  * @param self - GNSS struct
- * @param put_to_sleep - true to command sleep, false to wake up
  *
- * @return GNSS_CONFIG_ERROR - command failed
- *                 GNSS_SUCCESS - command succeeded
+ * @return void
  */
-static gnss_error_code_t gnss_sleep ( bool put_to_sleep )
+static void _gnss_on ( void )
 {
-  return stop_start_gnss (put_to_sleep);
+  HAL_GPIO_WritePin (GPIOG, GNSS_FET_Pin, GPIO_PIN_SET);
 }
 
 /**
  * Switch the FET controlling power to the GNSS unit.
  *
  * @param self - GNSS struct
- * @param on - true for tuen on, false for turn off
  *
  * @return void
  */
-static void gnss_on_off ( GPIO_PinState pin_state )
+static void _gnss_on_off ( void )
 {
-  HAL_GPIO_WritePin (GPIOG, GNSS_FET_Pin, pin_state);
+  HAL_GPIO_WritePin (GPIOG, GNSS_FET_Pin, GPIO_PIN_RESET);
 }
 
 /**
@@ -489,7 +710,7 @@ static void gnss_on_off ( GPIO_PinState pin_state )
  *
  * @return void
  */
-static void gnss_cycle_power ( void )
+static void __cycle_power ( void )
 {
   self->on_off (GPIO_PIN_RESET);
 //      HAL_Delay(25);
@@ -500,101 +721,6 @@ static void gnss_cycle_power ( void )
 }
 
 /**
- * Reinitialize the GNSS UART port. Required when switching between Tx and Rx.
- *
- * @param self - GNSS struct
- * @param baud_rate - baud rate to set port to
- */
-static gnss_error_code_t gnss_reset_uart ( void )
-{
-
-  if ( usart1_deinit () != UART_OK )
-  {
-    return GNSS_UART_ERROR;
-  }
-
-  if ( usart1_init () != UART_OK )
-  {
-    return GNSS_UART_ERROR;
-  }
-
-  return GNSS_SUCCESS;
-}
-
-/**
- * Reset and initialize timer.
- *
- * @param self - GNSS struct
- * @param timeout_in_minutes - timeout in minutes
- */
-static gnss_error_code_t gnss_reset_timer ( uint16_t timeout_in_minutes )
-{
-  (void) timer_16_deinit ();
-
-  if ( timer_16_init (timeout_in_minutes) != TIMER_OK )
-  {
-    return GNSS_TIMER_ERROR;
-  }
-
-  return GNSS_SUCCESS;
-}
-
-/**
- * Set the RTC clock.
- *
- * @param GNSS - GNSS struct
- * @param msg_payload - UBX_NAV_PVT message payload containing
- *        time information.
- *
- * @return GNSS_SUCCESS or
- *                 GNSS_RTC_ERROR - if setting RTC returned an error
- */
-static gnss_error_code_t gnss_set_rtc ( uint8_t *msg_payload )
-{
-  gnss_error_code_t return_code = GNSS_SUCCESS;
-  rtc_return_code rtc_ret = RTC_SUCCESS;
-  struct tm time;
-
-  uint16_t year = (int16_t) get_two_bytes (msg_payload, UBX_NAV_PVT_YEAR_INDEX, AS_LITTLE_ENDIAN);
-  uint8_t month = msg_payload[UBX_NAV_PVT_MONTH_INDEX];
-  uint8_t day = msg_payload[UBX_NAV_PVT_DAY_INDEX];
-  uint8_t hour = msg_payload[UBX_NAV_PVT_HOUR_INDEX];
-  uint8_t min = msg_payload[UBX_NAV_PVT_MINUTE_INDEX];
-  uint8_t sec = msg_payload[UBX_NAV_PVT_SECONDS_INDEX];
-  uint8_t time_flags = msg_payload[UBX_NAV_PVT_VALID_FLAGS_INDEX];
-
-  time_flags &= LOWER_4_BITS_MASK;
-
-  if ( !(time_flags & RESOLVED_TIME_BITS) )
-  {
-    return_code = GNSS_TIME_RESOLUTION_ERROR;
-    return return_code;
-  }
-
-  time.tm_year = year;
-  time.tm_mon = month;
-  time.tm_mday = day;
-  time.tm_hour = hour;
-  time.tm_min = min;
-  time.tm_sec = sec;
-
-  rtc_ret = rtc_server_set_time (time, GNSS_REQUEST_PROCESSED);
-
-  if ( rtc_ret != RTC_SUCCESS )
-  {
-    return_code = GNSS_RTC_ERROR;
-    self->rtc_error = true;
-    tx_event_flags_set (self->error_flags, RTC_ERROR, TX_OR);
-    return return_code;
-  }
-
-  self->is_clock_set = true;
-  self->rtc_error = false;
-
-  return return_code;
-}
-
-/**
  * Send a configuration to the GNSS chip. Will retry up to 10 times before
  * returning failure.
  *
@@ -602,8 +728,8 @@ static gnss_error_code_t gnss_set_rtc ( uint8_t *msg_payload )
  * @param config_array - byte array containing a UBX_CFG_VALSET msg with up to
  *                64 keys
  */
-static gnss_error_code_t send_config ( uint8_t *config_array, size_t message_size,
-                                       uint8_t response_class, uint8_t response_id )
+static gnss_return_code_t __send_config ( uint8_t *config_array, size_t message_size,
+                                          uint8_t response_class, uint8_t response_id )
 {
   int frame_sync_attempts = 0;
   int ticks_to_send_config = round (
@@ -632,15 +758,15 @@ static gnss_error_code_t send_config ( uint8_t *config_array, size_t message_siz
   uint8_t response_msg_class;
   uint8_t response_msg_id;
 
-  // Start by waiting until the UART is idle
+// Start by waiting until the UART is idle
   while ( frame_sync_attempts < MAX_FRAME_SYNC_ATTEMPTS )
   {
-    register_watchdog_refresh ();
+    watchdog_check_in (GNSS_THREAD);
     HAL_UARTEx_ReceiveToIdle_DMA (self->gnss_uart_handle, self->config_response_buf,
     FRAME_SYNC_RX_SIZE);
 
-    tx_return = tx_event_flags_get (self->control_flags, GNSS_CONFIG_RECVD, TX_OR_CLEAR,
-                                    &actual_flags, frame_sync_ticks);
+    tx_return = tx_event_flags_get (self->irq_flags, GNSS_CONFIG_RECVD, TX_OR_CLEAR, &actual_flags,
+                                    frame_sync_ticks);
     // If the flag is not present, then we are idle
     if ( tx_return == TX_NO_EVENTS )
     {
@@ -663,14 +789,14 @@ static gnss_error_code_t send_config ( uint8_t *config_array, size_t message_siz
     return GNSS_BUSY_ERROR;
   }
 
-  // Start with a blank msg buf -- this will short cycle the for loop
-  // below if a message was not received
+// Start with a blank msg buf -- this will short cycle the for loop
+// below if a message was not received
   memset (self->config_response_buf, 0, GNSS_CONFIG_BUFFER_SIZE);
 
-  // Send over the configuration settings
+// Send over the configuration settings
   HAL_UART_Transmit_DMA (self->gnss_uart_handle, &(config_array[0]), message_size);
-  // Make sure the transmission went through completely
-  if ( tx_event_flags_get (self->control_flags, GNSS_TX_COMPLETE, TX_OR_CLEAR, &actual_flags,
+// Make sure the transmission went through completely
+  if ( tx_event_flags_get (self->irq_flags, GNSS_TX_COMPLETE, TX_OR_CLEAR, &actual_flags,
                            ticks_to_send_config)
        != TX_SUCCESS )
   {
@@ -683,8 +809,8 @@ static gnss_error_code_t send_config ( uint8_t *config_array, size_t message_siz
 
   HAL_UART_Receive_DMA (self->gnss_uart_handle, self->config_response_buf, GNSS_CONFIG_BUFFER_SIZE);
 
-  // Make sure we receive the response within the right amount of time
-  if ( tx_event_flags_get (self->control_flags, GNSS_CONFIG_RECVD, TX_OR_CLEAR, &actual_flags,
+// Make sure we receive the response within the right amount of time
+  if ( tx_event_flags_get (self->irq_flags, GNSS_CONFIG_RECVD, TX_OR_CLEAR, &actual_flags,
                            ticks_to_receive_msgs)
        != TX_SUCCESS )
   {
@@ -732,61 +858,11 @@ static gnss_error_code_t send_config ( uint8_t *config_array, size_t message_siz
     buf_start = buf_end;
   }
 
-  // If we made it here, the ack message was not in the buffer
+// If we made it here, the ack message was not in the buffer
   HAL_UART_DMAStop (self->gnss_uart_handle);
   self->reset_uart ();
   tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
   return GNSS_CONFIG_ERROR;
-}
-
-/**
- * Send a CFG_RST message to the GNSS chip to either start or stop GNSS
- * processing. This message is not acknowledged, so we just have to trust that
- * it worked.
- *
- * @param self- GNSS struct
- * @param send_stop - true: send a stop message; false: sent a start message.
- */
-static gnss_error_code_t stop_start_gnss ( bool send_stop )
-{
-  ULONG actual_flags;
-  // 3rd byte -- 0x08 = Controlled GNSS stop, 0x09 = Controlled GNSS start
-  uint8_t message_payload[4] =
-    { 0x00, 0x00, (send_stop) ?
-        0x08 : 0x09,
-      0x00 };
-  char cfg_rst_message[sizeof(message_payload) + U_UBX_PROTOCOL_OVERHEAD_LENGTH_BYTES];
-
-  if ( (uUbxProtocolEncode (0x06, 0x04, (const char*) &(message_payload[0]),
-                            sizeof(message_payload), cfg_rst_message))
-       < 0 )
-  {
-    self->reset_uart ();
-    return GNSS_CONFIG_ERROR;
-  }
-
-  if ( (HAL_UART_Transmit_DMA (self->gnss_uart_handle, (uint8_t*) &(cfg_rst_message[0]),
-                               sizeof(cfg_rst_message)))
-       != HAL_OK )
-  {
-    self->reset_uart ();
-    return GNSS_CONFIG_ERROR;
-  }
-
-  // Make sure the transmission went through completely
-  if ( tx_event_flags_get (self->control_flags, GNSS_TX_COMPLETE, TX_OR_CLEAR, &actual_flags,
-  TX_TIMER_TICKS_PER_SECOND)
-       != TX_SUCCESS )
-  {
-    HAL_UART_DMAStop (self->gnss_uart_handle);
-    self->reset_uart ();
-//              HAL_Delay(10);
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    return GNSS_UART_ERROR;
-
-  }
-
-  return GNSS_SUCCESS;
 }
 
 /**
@@ -795,7 +871,7 @@ static gnss_error_code_t stop_start_gnss ( bool send_stop )
  * @param self- GNSS struct
  * @param
  */
-static void process_frame_sync_messages ( uint8_t *process_buf )
+static void __process_frame_sync_messages ( uint8_t *process_buf )
 {
   char payload[UBX_NAV_PVT_PAYLOAD_LENGTH];
   const char *buf_start = (const char*) &(process_buf[0]);
@@ -805,12 +881,12 @@ static void process_frame_sync_messages ( uint8_t *process_buf )
   int32_t message_class = 0;
   int32_t message_id = 0;
   int32_t num_payload_bytes = 0;
-  // Reset the counters
+// Reset the counters
   self->messages_processed = 0;
   self->number_cycles_without_data = 0;
   self->total_samples = 0;
 
-  // Really gross for loop that processes msgs in each iteration
+// Really gross for loop that processes msgs in each iteration
   for ( num_payload_bytes = uUbxProtocolDecode (buf_start, buf_length, &message_class, &message_id,
                                                 payload, sizeof(payload), &buf_end);
       num_payload_bytes > 0;
@@ -844,9 +920,9 @@ static void process_frame_sync_messages ( uint8_t *process_buf )
  * @param self- GNSS struct
  * @param
  */
-static gnss_error_code_t enable_high_performance_mode ( void )
+static gnss_return_code_t __enable_high_performance_mode ( void )
 {
-  gnss_error_code_t return_code;
+  gnss_return_code_t return_code;
   int config_step_attempts = 0;
   uint8_t enable_high_performance_mode[ENABLE_HIGH_PERFORMANCE_SIZE] =
     { 0xB5, 0x62, 0x06, 0x41, 0x10, 0x00, 0x03, 0x00, 0x04, 0x1F, 0x54, 0x5E, 0x79, 0xBF, 0x28,
@@ -856,8 +932,8 @@ static gnss_error_code_t enable_high_performance_mode ( void )
 
   while ( config_step_attempts < MAX_CONFIG_STEP_ATTEMPTS )
   {
-    register_watchdog_refresh ();
-    return_code = query_high_performance_mode ();
+    watchdog_check_in (GNSS_THREAD);
+    return_code = __query_high_performance_mode ();
 
     switch ( return_code )
     {
@@ -869,10 +945,10 @@ static gnss_error_code_t enable_high_performance_mode ( void )
         // Now send over the command to enable high performance mode
         while ( config_step_attempts < MAX_CONFIG_STEP_ATTEMPTS )
         {
-          register_watchdog_refresh ();
-          return_code = send_config (&(enable_high_performance_mode[0]),
+          watchdog_check_in (GNSS_THREAD);
+          return_code = __send_config (&(enable_high_performance_mode[0]),
           ENABLE_HIGH_PERFORMANCE_SIZE,
-                                     0x06, 0x41);
+                                       0x06, 0x41);
 
           if ( return_code != GNSS_SUCCESS )
           {
@@ -894,7 +970,7 @@ static gnss_error_code_t enable_high_performance_mode ( void )
         }
 
         // Must cycle power before the high performance mode will kick in
-        self->cycle_power ();
+        __cycle_power ();
 
         tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
 
@@ -905,8 +981,8 @@ static gnss_error_code_t enable_high_performance_mode ( void )
         // Now check to see if the changes stuck
         while ( config_step_attempts < MAX_CONFIG_STEP_ATTEMPTS )
         {
-          register_watchdog_refresh ();
-          return_code = query_high_performance_mode ();
+          watchdog_check_in (GNSS_THREAD);
+          return_code = __query_high_performance_mode ();
 
           if ( return_code != GNSS_SUCCESS )
           {
@@ -964,9 +1040,9 @@ static gnss_error_code_t enable_high_performance_mode ( void )
  * @param self- GNSS struct
  * @param
  */
-static gnss_error_code_t query_high_performance_mode ( void )
+static gnss_return_code_t __query_high_performance_mode ( void )
 {
-  gnss_error_code_t return_code;
+  gnss_return_code_t return_code;
   ULONG actual_flags;
   uint8_t msg_buf[GNSS_CONFIG_BUFFER_SIZE];
   char payload[UBX_NAV_PVT_PAYLOAD_LENGTH];
@@ -984,11 +1060,11 @@ static gnss_error_code_t query_high_performance_mode ( void )
       0x40, 0x00, 0xB0, 0x71, 0x0B, 0x05, 0x00, 0xA4, 0x40, 0x00, 0xB0, 0x71, 0x0B, 0x0A, 0x00,
       0xA4, 0x40, 0x00, 0xD8, 0xB8, 0x05 };
 
-  // First, check to see if high performance mode has already been set
+// First, check to see if high performance mode has already been set
   HAL_UART_Transmit_DMA (self->gnss_uart_handle, &(high_performance_mode_query[0]),
   HIGH_PERFORMANCE_QUERY_SIZE);
 
-  if ( tx_event_flags_get (self->control_flags, GNSS_TX_COMPLETE, TX_OR_CLEAR, &actual_flags,
+  if ( tx_event_flags_get (self->irq_flags, GNSS_TX_COMPLETE, TX_OR_CLEAR, &actual_flags,
   TX_TIMER_TICKS_PER_SECOND)
        != TX_SUCCESS )
   {
@@ -999,14 +1075,14 @@ static gnss_error_code_t query_high_performance_mode ( void )
 
   }
 
-  // Zero out the config response buffer
+// Zero out the config response buffer
   memset (self->config_response_buf, 0, GNSS_CONFIG_BUFFER_SIZE);
   memset (&(payload[0]), 0, UBX_NAV_PVT_PAYLOAD_LENGTH);
 
-  // Grab the response (or lack thereof)
+// Grab the response (or lack thereof)
   HAL_UART_Receive_DMA (self->gnss_uart_handle, &(self->config_response_buf[0]), sizeof(msg_buf));
 
-  if ( tx_event_flags_get (self->control_flags, GNSS_CONFIG_RECVD, TX_OR_CLEAR, &actual_flags,
+  if ( tx_event_flags_get (self->irq_flags, GNSS_CONFIG_RECVD, TX_OR_CLEAR, &actual_flags,
   TX_TIMER_TICKS_PER_SECOND * 2)
        != TX_SUCCESS )
   {
@@ -1053,30 +1129,11 @@ static gnss_error_code_t query_high_performance_mode ( void )
 }
 
 /**
- * Calculate the two checksum bytes for a UBX message
- *
- * @param ck_a - reference to first checksum byte
- * @param ck_b - reference to second checksum byte
- * @param buffer - address of first byte of array
- * @param num_bytes - number of bytes to calculate checksum over
- */
-static void get_checksum ( uint8_t *ck_a, uint8_t *ck_b, uint8_t *buffer, uint32_t num_bytes )
-{
-  *ck_a = 0;
-  *ck_b = 0;
-  for ( int i = 0; i < num_bytes; i++ )
-  {
-    *ck_a = *ck_a + buffer[i];
-    *ck_b = *ck_b + *ck_a;
-  }
-}
-
-/**
  * Helper method to generate a timestamp from the RTC.
  *
  * @return timestamp as time_t
  */
-static time_t get_timestamp ( void )
+static time_t __get_timestamp ( void )
 {
   rtc_return_code rtc_ret = RTC_SUCCESS;
   struct tm time;
@@ -1098,7 +1155,7 @@ static time_t get_timestamp ( void )
  * @param self- GNSS struct
  * @param
  */
-static void reset_struct_fields ( void )
+static void __reset_struct_fields ( void )
 {
   self->messages_processed = 0;
   self->v_north_sum = 0;
@@ -1131,15 +1188,15 @@ static void reset_struct_fields ( void )
  * @retval GNSS_SUCCESS or
  *         GNS_UART_ERROR
  */
-static gnss_error_code_t start_GNSS_UART_DMA ( uint8_t *buffer, size_t msg_size )
+static gnss_return_code_t __start_GNSS_UART_DMA ( uint8_t *buffer, size_t msg_size )
 {
-  gnss_error_code_t return_code = GNSS_SUCCESS;
+  gnss_return_code_t return_code = GNSS_SUCCESS;
   HAL_StatusTypeDef hal_return_code = HAL_OK;
   DMA_NodeConfTypeDef pNodeConfig;
   DMA_NodeTypeDef gnss_dma_linked_list_node;
   DMA_QListTypeDef gnss_dma_linked_list;
 
-  register_watchdog_refresh ();
+  watchdog_check_in (GNSS_THREAD);
 
   self->reset_uart ();
 

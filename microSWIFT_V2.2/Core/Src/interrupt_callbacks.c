@@ -128,13 +128,13 @@ void HAL_UART_RxCpltCallback ( UART_HandleTypeDef *huart )
     if ( !gnss->is_configured )
     {
 
-      tx_event_flags_set (&thread_control_flags, GNSS_CONFIG_RECVD, TX_OR);
+      tx_event_flags_set (&irq_flags, GNSS_CONFIG_RECVD, TX_OR);
 
     }
     else
     {
       memcpy (&(gnss->ubx_process_buf[0]), &(ubx_DMA_message_buf[0]), UBX_MESSAGE_SIZE);
-      tx_event_flags_set (&thread_control_flags, GNSS_MSG_RECEIVED, TX_OR);
+      tx_event_flags_set (&irq_flags, GNSS_MSG_RECEIVED, TX_OR);
     }
   }
   else if ( huart->Instance == AUX_UART_1 )
@@ -182,12 +182,12 @@ void HAL_UARTEx_RxEventCallback ( UART_HandleTypeDef *huart, uint16_t Size )
     if ( Size < UBX_NAV_PVT_MESSAGE_LENGTH )
     {
       gnss->get_running_average_velocities ();
-      tx_event_flags_set (&thread_control_flags, GNSS_MSG_INCOMPLETE, TX_OR);
+      tx_event_flags_set (&irq_flags, GNSS_MSG_INCOMPLETE, TX_OR);
     }
     else
     {
       memcpy (&(gnss->ubx_process_buf[0]), &(ubx_DMA_message_buf[0]), UBX_MESSAGE_SIZE);
-      tx_event_flags_set (&thread_control_flags, GNSS_MSG_RECEIVED, TX_OR);
+      tx_event_flags_set (&irq_flags, GNSS_MSG_RECEIVED, TX_OR);
     }
   }
   else if ( huart->Instance == AUX_UART_1 )

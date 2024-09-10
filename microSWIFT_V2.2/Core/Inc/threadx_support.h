@@ -43,7 +43,7 @@ bool        accelerometer_self_test ( void );
 bool        iridium_apply_config ( Iridium *iridium );
 
 void        control_timer_expired(ULONG expiration_input);
-void        gnss_timer_expired(ULONG expiration_input);
+
 void        iridium_timer_expired(ULONG expiration_input);
 void        expansion_timer_1_expired(ULONG expiration_input);
 void        expansion_timer_2_expired(ULONG expiration_input);
@@ -59,7 +59,7 @@ uint32_t    ticks_from_milliseconds ( uint32_t milliseconds );
 void        led_sequence ( led_sequence_t sequence );
 void        jump_to_end_of_window ( ULONG error_bits_to_set );
 void        jump_to_waves ( void );
-void        send_error_message ( ULONG error_flags );
+void        send_error_message ( Iridium *iridium, ULONG error_flags );
 void        shut_it_all_down ( void );
 
 // @formatter:on

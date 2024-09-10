@@ -82,7 +82,7 @@ ct_error_code_t ct_init ( CT *struct_ptr, microSWIFT_configuration *global_confi
 static ct_error_code_t ct_parse_sample ( void )
 {
   ct_error_code_t return_code = CT_SUCCESS;
-  int fail_counter = 0;
+  int fail_counter = 0, max_retries = 10;
   double temperature, salinity;
   char *index;
   // Sensor sends a message every 2 seconds @ 9600 baud, takes 0.245 seconds to get it out
@@ -95,7 +95,7 @@ static ct_error_code_t ct_parse_sample ( void )
     return return_code;
   }
 
-  while ( ++fail_counter < MAX_RETRIES )
+  while ( ++fail_counter < max_retries )
   {
 
     if ( generic_uart_read (&self->uart_driver, (uint8_t*) &(self->data_buf[0]),
@@ -289,7 +289,7 @@ static void reset_ct_struct_fields ( void )
 {
   // We will know if the CT sensor fails by the value 9999 in the
   // iridium message
-  self->averages.salinity = CT_AVERAGED_VALUE_ERROR_CODE;
-  self->averages.temp = CT_AVERAGED_VALUE_ERROR_CODE;
+  self->averages.salinity = CT_VALUES_ERROR_CODE;
+  self->averages.temp = CT_VALUES_ERROR_CODE;
   self->total_samples = 0;
 }
