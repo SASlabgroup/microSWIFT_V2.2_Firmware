@@ -941,7 +941,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   }
 
   gnss_init (&gnss, &configuration, device_handles.gnss_uart_handle,
-             device_handles.gnss_uart_rx_dma_handle, &irq_flags, &error_flags, gnss_timer,
+             device_handles.gnss_uart_rx_dma_handle, &irq_flags, &error_flags, &gnss_timer,
              &(ubx_message_process_buf[0]), &(gnss_config_response_buf[0]), north, east, down);
 
   if ( !gnss_apply_config (&gnss) )

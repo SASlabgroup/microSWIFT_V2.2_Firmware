@@ -698,7 +698,7 @@ static void _gnss_on ( void )
  *
  * @return void
  */
-static void _gnss_on_off ( void )
+static void _gnss_off ( void )
 {
   HAL_GPIO_WritePin (GPIOG, GNSS_FET_Pin, GPIO_PIN_RESET);
 }
@@ -712,10 +712,10 @@ static void _gnss_on_off ( void )
  */
 static void __cycle_power ( void )
 {
-  self->on_off (GPIO_PIN_RESET);
+  self->off ();
 //      HAL_Delay(25);
   tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-  self->on_off (GPIO_PIN_SET);
+  self->on ();
 //      HAL_Delay(25);
   tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
 }
