@@ -116,6 +116,7 @@ extern TX_THREAD iridium_thread;
 extern TX_THREAD expansion_thread_1;
 extern TX_THREAD expansion_thread_2;
 extern TX_THREAD expansion_thread_3;
+
 extern TX_SEMAPHORE ext_rtc_spi_sema;
 extern TX_SEMAPHORE aux_spi_1_spi_sema;
 extern TX_SEMAPHORE aux_spi_2_spi_sema;
@@ -124,9 +125,9 @@ extern TX_SEMAPHORE aux_i2c_1_sema;
 extern TX_SEMAPHORE aux_i2c_2_sema;
 extern TX_SEMAPHORE iridium_uart_sema;
 extern TX_SEMAPHORE ct_uart_sema;
-extern TX_SEMAPHORE gnss_uart_sema;
 extern TX_SEMAPHORE aux_uart_1_sema;
 extern TX_SEMAPHORE aux_uart_2_sema;
+
 extern TX_EVENT_FLAGS_GROUP initialization_flags;
 extern TX_EVENT_FLAGS_GROUP irq_flags;
 extern TX_EVENT_FLAGS_GROUP error_flags;
@@ -151,6 +152,17 @@ typedef struct
   I2C_HandleTypeDef     *aux_i2c_2_handle;
   UART_HandleTypeDef    *aux_uart_1_handle;
   UART_HandleTypeDef    *aux_uart_2_handle;
+  // DMA handles
+  DMA_HandleTypeDef     *gnss_uart_tx_dma_handle;
+  DMA_HandleTypeDef     *gnss_uart_rx_dma_handle;
+  DMA_HandleTypeDef     *iridium_uart_tx_dma_handle;
+  DMA_HandleTypeDef     *iridium_uart_rx_dma_handle;
+  DMA_HandleTypeDef     *ct_uart_tx_dma_handle;
+  DMA_HandleTypeDef     *ct_uart_rx_dma_handle;
+  DMA_HandleTypeDef     *aux_uart_1_tx_dma_handle;
+  DMA_HandleTypeDef     *aux_uart_1_rx_dma_handle;
+  DMA_HandleTypeDef     *aux_uart_2_tx_dma_handle;
+  DMA_HandleTypeDef     *aux_uart_2_rx_dma_handle;
 } Device_Handles;
 /* USER CODE END ET */
 

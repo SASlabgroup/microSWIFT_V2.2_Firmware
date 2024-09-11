@@ -41,6 +41,7 @@ typedef enum gnss_error_code
 
 // Macros
 #define GNSS_CONFIG_BUFFER_SIZE 600
+#define GNSS_MESSAGE_BUF_SIZE 200
 #define CONFIGURATION_ARRAY_SIZE 164
 #define MAX_POSSIBLE_VELOCITY 10000     // 10000 mm/s = 10 m/s
 #define UBX_NAV_PVT_MESSAGE_CLASS 0x01
@@ -103,6 +104,7 @@ typedef struct GNSS
   microSWIFT_configuration  *global_config;
   // The UART and DMA handle for the GNSS interface
   UART_HandleTypeDef        *gnss_uart_handle;
+  DMA_HandleTypeDef         *gnss_tx_dma_handle;
   DMA_HandleTypeDef         *gnss_rx_dma_handle;
   // Event flags
   TX_EVENT_FLAGS_GROUP      *irq_flags;
@@ -149,7 +151,7 @@ typedef struct GNSS
   bool                      timer_timeout;
   // Function pointers
   gnss_return_code_t        (*config) ( void );
-  gnss_return_code_t        (*sync_and_start_reception) ( uint8_t *buffer, size_t msg_size );
+  gnss_return_code_t        (*sync_and_start_reception) ( void );
   gnss_return_code_t        (*get_location) ( float *latitude, float *longitude );
   gnss_return_code_t        (*get_running_average_velocities) ( void );
   gnss_return_code_t        (*software_start) ( void );
@@ -166,12 +168,13 @@ typedef struct GNSS
 
 /* Function declarations */
 void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
-                 UART_HandleTypeDef *gnss_uart_handle, DMA_HandleTypeDef *gnss_rx_dma_handle,
-                 TX_EVENT_FLAGS_GROUP *irq_flags, TX_EVENT_FLAGS_GROUP *error_flags,
-                 TX_TIMER *timer, uint8_t *ubx_process_buf, uint8_t *config_response_buffer,
-                 float *GNSS_N_Array, float *GNSS_E_Array, float *GNSS_D_Array );
-
+                 UART_HandleTypeDef *gnss_uart_handle, DMA_HandleTypeDef *gnss_tx_dma_handle,
+                 DMA_HandleTypeDef *gnss_rx_dma_handle, TX_EVENT_FLAGS_GROUP *irq_flags,
+                 TX_EVENT_FLAGS_GROUP *error_flags, TX_TIMER *timer, uint8_t *ubx_process_buf,
+                 uint8_t *config_response_buffer, float *GNSS_N_Array, float *GNSS_E_Array,
+                 float *GNSS_D_Array );
 void gnss_timer_expired_callback ( ULONG expiration_input );
 bool gnss_get_timer_timeout_status ( void );
+bool gnss_is_configured ( void );
 
 #endif /* SRC_GPS_H_ */

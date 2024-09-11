@@ -148,7 +148,6 @@ TX_SEMAPHORE aux_i2c_1_sema;
 TX_SEMAPHORE aux_i2c_2_sema;
 TX_SEMAPHORE iridium_uart_sema;
 TX_SEMAPHORE ct_uart_sema;
-TX_SEMAPHORE gnss_uart_sema;
 TX_SEMAPHORE aux_uart_1_sema;
 TX_SEMAPHORE aux_uart_2_sema;
 // Server/client message queue for RTC (including watchdog function)
@@ -647,6 +646,16 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   device_handles.aux_i2c_2_handle = &hi2c3;
   device_handles.aux_uart_1_handle = &huart2;
   device_handles.aux_uart_2_handle = &huart3;
+  device_handles.gnss_uart_tx_dma_handle = &handle_GPDMA1_Channel1;
+  device_handles.gnss_uart_rx_dma_handle = &handle_GPDMA1_Channel0;
+  device_handles.iridium_uart_tx_dma_handle = &handle_GPDMA1_Channel9;
+  device_handles.iridium_uart_rx_dma_handle = &handle_GPDMA1_Channel8;
+  device_handles.ct_uart_tx_dma_handle = &handle_GPDMA1_Channel11;
+  device_handles.ct_uart_tx_dma_handle = &handle_GPDMA1_Channel10;
+  device_handles.aux_uart_1_tx_dma_handle = &handle_GPDMA1_Channel3;
+  device_handles.aux_uart_1_rx_dma_handle = &handle_GPDMA1_Channel2;
+  device_handles.aux_uart_2_tx_dma_handle = &handle_GPDMA1_Channel5;
+  device_handles.aux_uart_2_rx_dma_handle = &handle_GPDMA1_Channel4;
 
   configuration.samples_per_window = TOTAL_SAMPLES_PER_WINDOW;
   configuration.windows_per_hour = SAMPLE_WINDOWS_PER_HOUR;
@@ -910,8 +919,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = &gnss_thread;
   GNSS gnss;
-  uint8_t ubx_DMA_message_buf[UBX_MESSAGE_SIZE * 2];
-  uint8_t ubx_message_process_buf[UBX_MESSAGE_SIZE * 2];
+  uint8_t ubx_message_process_buf[GNSS_MESSAGE_BUF_SIZE];
   uint8_t gnss_config_response_buf[GNSS_CONFIG_BUFFER_SIZE];
   float *north, *east, *down;
 
@@ -941,8 +949,9 @@ static void gnss_thread_entry ( ULONG thread_input )
   }
 
   gnss_init (&gnss, &configuration, device_handles.gnss_uart_handle,
-             device_handles.gnss_uart_rx_dma_handle, &irq_flags, &error_flags, &gnss_timer,
-             &(ubx_message_process_buf[0]), &(gnss_config_response_buf[0]), north, east, down);
+             device_handles.gnss_uart_tx_dma_handle, device_handles.gnss_uart_rx_dma_handle,
+             &irq_flags, &error_flags, &gnss_timer, &(ubx_message_process_buf[0]),
+             &(gnss_config_response_buf[0]), north, east, down);
 
   if ( !gnss_apply_config (&gnss) )
   {
@@ -997,9 +1006,7 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   // Wait until we get a series of good UBX_NAV_PVT messages and are
   // tracking a good number of satellites before moving on
-  if ( gnss.sync_and_start_reception (start_GNSS_UART_DMA, ubx_DMA_message_buf,
-  UBX_MESSAGE_SIZE)
-       != GNSS_SUCCESS )
+  if ( gnss.sync_and_start_reception () != GNSS_SUCCESS )
   {
     // If we were unable to get good GNSS reception and start the DMA transfer loop, then
     // go to sleep until the top of the next hour. Sleep will be handled in end_of_cycle_thread
@@ -1063,7 +1070,7 @@ static void gnss_thread_entry ( ULONG thread_input )
 
     watchdog_check_in (GNSS_THREAD);
 
-    tx_return = tx_event_flags_get (&thread_control_flags, GNSS_MSG_RECEIVED | GNSS_MSG_INCOMPLETE,
+    tx_return = tx_event_flags_get (&irq_flags, (GNSS_MSG_RECEIVED | GNSS_MSG_INCOMPLETE),
     TX_OR_CLEAR,
                                     &actual_flags, timer_ticks_to_get_message);
 

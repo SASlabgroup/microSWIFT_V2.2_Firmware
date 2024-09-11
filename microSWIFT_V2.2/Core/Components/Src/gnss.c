@@ -26,7 +26,7 @@ static GNSS *self;
 
 // @formatter:off
 static gnss_return_code_t   _gnss_config ( void );
-static gnss_return_code_t   _gnss_sync_and_start_reception ( uint8_t *buffer, size_t msg_size );
+static gnss_return_code_t   _gnss_sync_and_start_reception ( void );
 static gnss_return_code_t   _gnss_get_location ( float *latitude, float *longitude );
 static gnss_return_code_t   _gnss_get_running_average_velocities ( void );
 static gnss_return_code_t   _gnss_software_start ( void );
@@ -57,10 +57,11 @@ static void                 __reset_struct_fields ( void );
  * @return void
  */
 void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
-                 UART_HandleTypeDef *gnss_uart_handle, DMA_HandleTypeDef *gnss_rx_dma_handle,
-                 TX_EVENT_FLAGS_GROUP *irq_flags, TX_EVENT_FLAGS_GROUP *error_flags,
-                 TX_TIMER *timer, uint8_t *ubx_process_buf, uint8_t *config_response_buffer,
-                 float *GNSS_N_Array, float *GNSS_E_Array, float *GNSS_D_Array )
+                 UART_HandleTypeDef *gnss_uart_handle, DMA_HandleTypeDef *gnss_tx_dma_handle,
+                 DMA_HandleTypeDef *gnss_rx_dma_handle, TX_EVENT_FLAGS_GROUP *irq_flags,
+                 TX_EVENT_FLAGS_GROUP *error_flags, TX_TIMER *timer, uint8_t *ubx_process_buf,
+                 uint8_t *config_response_buffer, float *GNSS_N_Array, float *GNSS_E_Array,
+                 float *GNSS_D_Array )
 {
   self = struct_ptr;
   // initialize everything
@@ -108,13 +109,21 @@ void gnss_timer_expired_callback ( ULONG expiration_input )
 /**
  * Get status of GNSS timer.
  *
- * @param self - GNSS struct
- * @param expiration_input - unused
  * @return True if timer has timed out, false otherwise
  */
 bool gnss_get_timer_timeout_status ( void )
 {
   return self->timer_timeout;
+}
+
+/**
+ * Get GNSS configuration status.
+ *
+ * @return True if configured, false otherwise
+ */
+bool gnss_is_configured ( void )
+{
+  return self->is_configured;
 }
 
 /**
@@ -203,7 +212,7 @@ static gnss_return_code_t _gnss_config ( void )
  *
  * @return gnss_return_code_t
  */
-static gnss_return_code_t _gnss_sync_and_start_reception ( uint8_t *buffer, size_t msg_size )
+static gnss_return_code_t _gnss_sync_and_start_reception ( void )
 {
   gnss_return_code_t return_code = GNSS_SELF_TEST_FAILED;
   ULONG actual_flags;
@@ -266,14 +275,14 @@ static gnss_return_code_t _gnss_sync_and_start_reception ( uint8_t *buffer, size
   __reset_struct_fields ();
   self->reset_uart ();
 
-  return_code = __start_GNSS_UART_DMA (&(buffer[0]), msg_size);
+  return_code = __start_GNSS_UART_DMA (&(self->ubx_process_buf[0]), UBX_NAV_PVT_MESSAGE_LENGTH);
   watchdog_check_in (GNSS_THREAD);
   // Make sure we start right next time around in case there was an issue starting DMA
   if ( return_code == GNSS_UART_ERROR )
   {
     HAL_UART_DMAStop (self->gnss_uart_handle);
     self->reset_uart ();
-    memset (&(buffer[0]), 0, msg_size);
+    memset (&(self->ubx_process_buf[0]), 0, GNSS_MESSAGE_BUF_SIZE);
 
     tx_event_flags_set (self->error_flags, GNSS_ERROR, TX_OR);
   }

@@ -69,11 +69,11 @@
 
 // If there is a light sensor present
 #define LIGHT_SENSOR_ENABLED false
-#define LIGHT_SENSOR_SAMPLES 10
+#define TOTAL_LIGHT_SAMPLES 10
 
 // If there is a turbidity sensor present
 #define TURBIDITY_SENSOR_ENABLED false
-#define TURBIDITY_SENSOR_SAMPLES 10
+#define TOTAL_TURBIDITY_SAMPLES 10
 
 // If there is a fast accelerometer present
 #define ACCELEROMETER_ENABLED false
