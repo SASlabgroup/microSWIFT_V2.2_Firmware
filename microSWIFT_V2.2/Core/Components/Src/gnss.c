@@ -606,7 +606,7 @@ static void _gnss_process_message ( void )
   bool is_ubx_nav_pvt_msg, message_checksum_valid = false;
   bool velocities_non_zero;
 
-  // Make sure we don't overflow our arrays
+  // Catch the end condition
   if ( self->total_samples >= self->global_config->samples_per_window )
   {
     HAL_UART_DMAStop (self->gnss_uart_handle);
@@ -1173,6 +1173,7 @@ static time_t __get_timestamp ( void )
   rtc_return_code rtc_ret = RTC_SUCCESS;
   struct tm time;
 
+#warning "An error case here will need to be propogated up if not handled in the RTC thread."
   rtc_ret = rtc_server_get_time (&time, GNSS_REQUEST_PROCESSED);
   if ( rtc_ret != RTC_SUCCESS )
   {

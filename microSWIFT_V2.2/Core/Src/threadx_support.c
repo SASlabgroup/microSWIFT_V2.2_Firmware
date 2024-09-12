@@ -78,9 +78,7 @@ bool startup_procedure ( microSWIFT_configuration *global_config )
 bool gnss_apply_config ( GNSS *gnss )
 {
   int fail_counter = 0, max_retries = 10;
-  gnss_error_code_t gnss_return_code;
-
-  gnss->on_off (GPIO_PIN_SET);
+  gnss_return_code_t gnss_return_code = GNSS_SUCCESS;
 
   while ( fail_counter < max_retries )
   {
@@ -94,11 +92,6 @@ bool gnss_apply_config ( GNSS *gnss )
     {
       break;
     }
-  }
-
-  if ( gnss_return_code != GNSS_SUCCESS )
-  {
-    gnss->on_off (GPIO_PIN_RESET);
   }
 
   return (gnss_return_code == GNSS_SUCCESS);

@@ -167,6 +167,24 @@ typedef struct
   DMA_HandleTypeDef     *aux_uart_2_tx_dma_handle;
   DMA_HandleTypeDef     *aux_uart_2_rx_dma_handle;
 } Device_Handles;
+
+typedef struct
+{
+  TX_THREAD *control_thread;
+  TX_THREAD *rtc_thread;
+  TX_THREAD *logger_thread;
+  TX_THREAD *gnss_thread;
+  TX_THREAD *ct_thread;
+  TX_THREAD *temperature_thread;
+  TX_THREAD *light_thread;
+  TX_THREAD *turbidity_thread;
+  TX_THREAD *accelerometer_thread;
+  TX_THREAD *waves_thread;
+  TX_THREAD *iridium_thread;
+  TX_THREAD *expansion_thread_1;
+  TX_THREAD *expansion_thread_2;
+  TX_THREAD *expansion_thread_3;
+} Thread_Handles;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/

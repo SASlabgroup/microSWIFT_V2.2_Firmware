@@ -47,6 +47,7 @@
 #include "logger.h"
 #include "threadx_support.h"
 #include "watchdog.h"
+#include "controller.h"
 
 // Waves files
 #include "NEDWaves/NEDwaves_memlight.h"
@@ -61,13 +62,13 @@
 /* USER CODE BEGIN PTD */
 enum thread_priorities
 {
-  HIGHEST_PRIORITY = 0,
-  VERY_HIGH_PRIORITY = 1,
-  HIGH_PRIORITY = 2,
-  MID_PRIORITY = 3,
-  LOW_PRIORITY = 4,
-  VERY_LOW_PRIORITY = 5,
-  LOWEST_PRIORITY = 6
+  HIGHEST_PRIORITY = 1,
+  VERY_HIGH_PRIORITY = 2,
+  HIGH_PRIORITY = 3,
+  MID_PRIORITY = 4,
+  LOW_PRIORITY = 5,
+  VERY_LOW_PRIORITY = 6,
+  LOWEST_PRIORITY = 7
 };
 
 enum stack_sizes
@@ -116,6 +117,25 @@ TX_THREAD iridium_thread;
 TX_THREAD expansion_thread_1;
 TX_THREAD expansion_thread_2;
 TX_THREAD expansion_thread_3;
+// @formatter:off
+Thread_Handles thread_handles =
+  {
+    &control_thread,
+    &rtc_thread,
+    &logger_thread,
+    &gnss_thread,
+    &ct_thread,
+    &temperature_thread,
+    &light_thread,
+    &turbidity_thread,
+    &accelerometer_thread,
+    &waves_thread,
+    &iridium_thread,
+    &expansion_thread_1,
+    &expansion_thread_2,
+    &expansion_thread_3
+  };
+// @formatter:on
 // Used to track initialization status of threads and components
 TX_EVENT_FLAGS_GROUP initialization_flags;
 // We'll use these flags to indicate a thread has completed execution
@@ -136,6 +156,7 @@ TX_EVENT_FLAGS_GROUP expansion_flags_3;
 TX_TIMER control_timer;
 TX_TIMER gnss_timer;
 TX_TIMER iridium_timer;
+TX_TIMER ct_timer;
 TX_TIMER expansion_timer_1;
 TX_TIMER expansion_timer_2;
 TX_TIMER expansion_timer_3;
@@ -156,6 +177,7 @@ TX_QUEUE logger_message_queue;
 TX_QUEUE expansion_queue_1;
 TX_QUEUE expansion_queue_2;
 // Messages that failed to send are stored here
+#warning "This needs to move to non-volotile."
 Iridium_message_storage sbd_message_queue;
 
 __ALIGN_BEGIN UCHAR waves_byte_pool_buffer[WAVES_MEM_POOL_SIZE] __ALIGN_END;
@@ -471,6 +493,12 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
+  ret = tx_timer_create(&ct_timer, "CT thread timer", ct_timer_expired, 0, 0, 0, TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
   ret = tx_timer_create(&expansion_timer_1, "Expansion thread 1 timer", expansion_timer_1_expired,
                         0, 0, 0, TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
@@ -748,6 +776,8 @@ static void rtc_thread_entry ( ULONG thread_input )
     tx_ret = tx_queue_receive (&rtc_messaging_queue, &req, TX_WAIT_FOREVER);
     if ( tx_ret == TX_SUCCESS )
     {
+#warning "If the return code is not RTC_SUCCESS, something needs to be done. Decide whether that" \
+    "Should happen here, in rtc_server, or in each respective thread."
       switch ( req.request )
       {
         case REFRESH_WATCHDOG:
@@ -844,11 +874,10 @@ static void control_thread_entry ( ULONG thread_input )
   int fail_counter = 0;
   uint32_t reset_reason;
 
-  //
   // Run tests if needed
-  if ( tests.startup_test != NULL )
+  if ( tests.control_test != NULL )
   {
-    tests.startup_test (NULL);
+    tests.control_test (NULL);
   }
 
   // Set the watchdog reset or software reset flags
@@ -950,7 +979,6 @@ static void gnss_thread_entry ( ULONG thread_input )
              &(gnss_config_response_buf[0]), north, east, down);
 
   gnss.on ();
-
   // Run tests if needed
   if ( tests.gnss_thread_test != NULL )
   {

@@ -42,9 +42,6 @@ bool        light_self_test ( void );
 bool        accelerometer_self_test ( void );
 bool        iridium_apply_config ( Iridium *iridium );
 
-void        control_timer_expired(ULONG expiration_input);
-
-void        iridium_timer_expired(ULONG expiration_input);
 void        expansion_timer_1_expired(ULONG expiration_input);
 void        expansion_timer_2_expired(ULONG expiration_input);
 void        expansion_timer_3_expired(ULONG expiration_input);
