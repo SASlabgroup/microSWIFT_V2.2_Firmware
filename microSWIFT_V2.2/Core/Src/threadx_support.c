@@ -18,63 +18,6 @@
 #include "accelerometer_sensor.h"
 #include "iridium.h"
 
-bool startup_procedure ( microSWIFT_configuration *global_config )
-{
-
-  // TODO: In subsequent sampling windows, if a non-critical sensor fails, set an error flag, shut
-  //       the component and thread down, and continue on.
-  // TODO: Add filex thread to the list (core) when the interface is completed
-
-  UINT tx_return;
-  ULONG init_success_flags = (RTC_INIT_SUCCESS | GNSS_INIT_SUCCESS | WAVES_THREAD_INIT_SUCCESS
-                              | IRIDIUM_INIT_SUCCESS);
-  ULONG current_flags;
-
-  // Start core threads
-  (void) tx_thread_resume (&gnss_thread);
-  (void) tx_thread_resume (&waves_thread);
-  (void) tx_thread_resume (&iridium_thread);
-
-  // Start optional component threads if enabled
-  if ( global_config->ct_enabled )
-  {
-    init_success_flags |= CT_INIT_SUCCESS;
-    (void) tx_thread_resume (&ct_thread);
-  }
-
-  if ( global_config->temperature_enabled )
-  {
-    init_success_flags |= TEMPERATURE_INIT_SUCCESS;
-    (void) tx_thread_resume (&temperature_thread);
-  }
-
-  if ( global_config->light_enabled )
-  {
-    init_success_flags |= LIGHT_INIT_SUCCESS;
-    (void) tx_thread_resume (&light_thread);
-  }
-
-  if ( global_config->turbidity_enabled )
-  {
-    init_success_flags |= TURBIDITY_INIT_SUCCESS;
-    (void) tx_thread_resume (&turbidity_thread);
-  }
-
-  if ( global_config->accelerometer_enabled )
-  {
-    init_success_flags |= ACCELEROMETER_INIT_SUCCESS;
-    (void) tx_thread_resume (&accelerometer_thread);
-  }
-
-  // Flash power up sequence (this will also give threads time to execute their init procedures)
-  led_sequence (INITIAL_LED_SEQUENCE);
-
-  tx_return = tx_event_flags_get (&initialization_flags, init_success_flags, TX_AND_CLEAR,
-                                  &current_flags, STARTUP_SEQUENCE_MAX_WAIT_TICKS);
-
-  return (tx_return == TX_SUCCESS);
-}
-
 bool gnss_apply_config ( GNSS *gnss )
 {
   int fail_counter = 0, max_retries = 10;
@@ -486,7 +429,7 @@ void send_error_message ( Iridium *iridium, ULONG error_flags )
  *
  * @retval void
  */
-void shut_it_all_down ( void )
+void shut_down_all_peripherals ( void )
 {
 // Shut down Iridium modem
   HAL_GPIO_WritePin (GPIOD, IRIDIUM_OnOff_Pin, GPIO_PIN_RESET);

@@ -23,7 +23,6 @@
 // @formatter:off
 
 #define ALL_EVENT_FLAGS (0xFFFFFFFF)
-#define STARTUP_SEQUENCE_MAX_WAIT_TICKS (TX_TIMER_TICKS_PER_SECOND * 20)
 
 typedef enum led_sequence
 {
@@ -31,8 +30,6 @@ typedef enum led_sequence
   TEST_PASSED_LED_SEQUENCE  = 2,
   TEST_FAILED_LED_SEQUENCE  = 3
 } led_sequence_t;
-
-bool        startup_procedure (  microSWIFT_configuration *global_config );
 
 bool        gnss_apply_config ( GNSS *gnss );
 bool        ct_self_test ( CT *ct, ct_samples *self_test_readings );
@@ -57,7 +54,7 @@ void        led_sequence ( led_sequence_t sequence );
 void        jump_to_end_of_window ( ULONG error_bits_to_set );
 void        jump_to_waves ( void );
 void        send_error_message ( Iridium *iridium, ULONG error_flags );
-void        shut_it_all_down ( void );
+void        shut_down_all_peripherals ( void );
 
 // @formatter:on
 #endif /* INC_THREADX_SUPPORT_H_ */

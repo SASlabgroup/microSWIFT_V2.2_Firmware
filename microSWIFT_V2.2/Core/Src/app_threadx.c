@@ -776,8 +776,8 @@ static void rtc_thread_entry ( ULONG thread_input )
     tx_ret = tx_queue_receive (&rtc_messaging_queue, &req, TX_WAIT_FOREVER);
     if ( tx_ret == TX_SUCCESS )
     {
-#warning "If the return code is not RTC_SUCCESS, something needs to be done. Decide whether that" \
-    "Should happen here, in rtc_server, or in each respective thread."
+#warning "If the return code is not RTC_SUCCESS, something needs to be done. Decide whether that \
+    Should happen here, in rtc_server, or in each respective thread."
       switch ( req.request )
       {
         case REFRESH_WATCHDOG:
@@ -865,14 +865,7 @@ static void logger_thread_entry ( ULONG thread_input )
 static void control_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
-  TX_THREAD *this_thread = &control_thread;
-  RF_Switch rf_switch;
-  Battery battery;
-
-  ULONG actual_flags = 0;
-  UINT tx_return;
-  int fail_counter = 0;
-  uint32_t reset_reason;
+  Control control;
 
   // Run tests if needed
   if ( tests.control_test != NULL )
@@ -880,30 +873,12 @@ static void control_thread_entry ( ULONG thread_input )
     tests.control_test (NULL);
   }
 
-  // Set the watchdog reset or software reset flags
-  reset_reason = HAL_RCC_GetResetSource ();
-
-  if ( reset_reason & RCC_RESET_FLAG_PIN )
-  {
-    tx_event_flags_set (&error_flags, WATCHDOG_RESET, TX_OR);
-  }
-
-  if ( reset_reason & RCC_RESET_FLAG_SW )
-  {
-    tx_event_flags_set (&error_flags, SOFTWARE_RESET, TX_OR);
-  }
-
-  battery_init (device_handles.battery_adc, &irq_flags);
-
-  rf_switch_init (&rf_switch);
-  rf_switch.set_gnss_port ();
-
   watchdog_check_in (CONTROL_THREAD);
 
   // Run the self test
   if ( !startup_procedure (&configuration) )
   {
-    shut_it_all_down ();
+    shut_down_all_peripherals ();
     // Stay stuck here
     for ( int i = 0; i < 25; i++ )
     {
@@ -1028,8 +1003,10 @@ static void gnss_thread_entry ( ULONG thread_input )
   if ( gnss_max_acq_time <= 1 )
   {
     gnss.off ();
-    uart_logger_log_line ("Invalid GNSS max acquisition time. Check settings for number of samples "
-                          "per window and windows per hour");
+    uart_logger_log_line (
+        "Invalid GNSS max acquisition time: %d. Check settings for number of samples "
+        "per window and windows per hour",
+        gnss_max_acq_time);
     (void) tx_event_flags_set (&error_flags, INVALID_CONFIGURATION, TX_OR);
     tx_thread_suspend (this_thread);
   }
@@ -1037,7 +1014,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   watchdog_check_in (GNSS_THREAD);
 
   // Start the timer for resolution stages
-  gnss.start_timer (configuration.gnss_max_acquisition_wait_time);
+  gnss.start_timer (gnss_max_acq_time);
 
   // Frame sync and switch to DMA circular mode
   if ( gnss.sync_and_start_reception () != GNSS_SUCCESS )
@@ -1073,7 +1050,8 @@ static void gnss_thread_entry ( ULONG thread_input )
   if ( gnss_get_timer_timeout_status () )
   {
     gnss.off ();
-    uart_logger_log_line ("GNSS failed to get a fix within alloted time.");
+    uart_logger_log_line ("GNSS failed to get a fix within alloted time of :%d.",
+                          gnss_max_acq_time);
     (void) tx_event_flags_set (&error_flags, GNSS_RESOLUTION_ERROR, TX_OR);
     tx_thread_suspend (this_thread);
   }
@@ -1108,7 +1086,8 @@ static void gnss_thread_entry ( ULONG thread_input )
         if ( ++number_of_no_sample_errors == configuration.gnss_sampling_rate * 60 )
         {
           gnss.off ();
-          uart_logger_log_line ("GNSS too many partial or dropped messages.");
+          uart_logger_log_line ("GNSS received too many partial or dropped messages: %d",
+                                number_of_no_sample_errors);
           (void) tx_event_flags_set (&error_flags, GNSS_SAMPLE_WINDOW_ERROR, TX_OR);
           tx_thread_suspend (this_thread);
         }
@@ -1130,7 +1109,8 @@ static void gnss_thread_entry ( ULONG thread_input )
     if ( gnss_get_timer_timeout_status () )
     {
       gnss.off ();
-      uart_logger_log_line ("GNSS sample window timed out.");
+      uart_logger_log_line ("GNSS sample window timed out after %d minutes.",
+                            sample_window_timeout);
       (void) tx_event_flags_set (&error_flags, GNSS_SAMPLE_WINDOW_TIMEOUT, TX_OR);
       tx_thread_suspend (this_thread);
     }

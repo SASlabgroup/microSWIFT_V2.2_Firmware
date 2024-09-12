@@ -12,6 +12,9 @@
 #include "NEDWaves/rtwhalf.h"
 #include "battery.h"
 #include "rf_switch.h"
+#include "tx_api.h"
+
+#define STARTUP_SEQUENCE_MAX_WAIT_TICKS (TX_TIMER_TICKS_PER_SECOND * 20)
 
 // @formatter:off
 typedef struct
@@ -25,20 +28,22 @@ typedef struct
 
   TX_EVENT_FLAGS_GROUP      *error_flags;
   TX_EVENT_FLAGS_GROUP      *init_flags;
+  TX_EVENT_FLAGS_GROUP      *irq_flags;
   TX_EVENT_FLAGS_GROUP      *complete_flags;
   TX_TIMER                  *timer;
 
   bool                      (*startup_procedure)( void );
   real16_T                  (*get_battery_voltage) ( void );
-  void                      (*set_rf_switch_port) (rf_switch_selection_t port);
-  void                      (*shutdown) ( void );
+  void                      (*shutdown_all_pheripherals) ( void );
+  void                      (*enter_processor_shutdown_mode) (void);
 } Control;
 // @formatter:on
 
 void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_config,
                        Thread_Handles *thread_handles, TX_EVENT_FLAGS_GROUP *error_flags,
-                       TX_EVENT_FLAGS_GROUP *init_flags, TX_EVENT_FLAGS_GROUP *complete_flags,
-                       TX_TIMER *timer );
+                       TX_EVENT_FLAGS_GROUP *init_flags, TX_EVENT_FLAGS_GROUP *irq_flags,
+                       TX_EVENT_FLAGS_GROUP *complete_flags, TX_TIMER *timer,
+                       ADC_HandleTypeDef *battery_adc_handle );
 
 void control_timer_expired ( ULONG expiration_input );
 

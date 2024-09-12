@@ -79,7 +79,7 @@ extern UART_HandleTypeDef huart6;
 extern TIM_HandleTypeDef htim6;
 
 /* USER CODE BEGIN EV */
-
+#warning "Add calls to safe mode and sys reset in all exception handlers."
 /* USER CODE END EV */
 
 /******************************************************************************/

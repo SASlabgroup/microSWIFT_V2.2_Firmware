@@ -124,7 +124,7 @@ void HAL_UART_RxCpltCallback ( UART_HandleTypeDef *huart )
   else if ( huart->Instance == GNSS_UART )
   {
 
-    if ( !gnss_is_configured () )
+    if ( !gnss_get_configured_status () )
     {
 
       tx_event_flags_set (&irq_flags, GNSS_CONFIG_RECVD, TX_OR);
@@ -246,16 +246,4 @@ void HAL_ADC_ConvCpltCallback ( ADC_HandleTypeDef *hadc )
     HAL_ADC_Stop_IT (hadc);
   }
 
-}
-
-/**
- * @brief  ADC error callback
- *
- * @param  hadc : ADC handle
- * @retval None
- */
-void HAL_ADC_ErrorCallback ( ADC_HandleTypeDef *hadc )
-{
-  // Set the ADC conversion error flag and move on
-  tx_event_flags_set (&error_flags, ADC_CONVERSION_ERROR, TX_OR);
 }

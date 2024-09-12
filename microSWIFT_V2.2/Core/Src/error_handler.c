@@ -8,3 +8,7 @@
 #include "error_handler.h"
 
 #warning "ensure error handler de-registers thread on error"
+
+void Error_Handler ( void );
+
+void safe_mode ( void );

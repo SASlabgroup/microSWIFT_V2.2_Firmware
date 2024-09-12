@@ -27,7 +27,7 @@ typedef enum battery_error_code
   BATTERY_CONVERSION_ERROR      = -1,
   BATTERY_TIMEOUT_ERROR         = -2,
   BATTERY_ADC_ERROR             = -3
-} battery_error_code_t;
+} battery_return_code_t;
 
 typedef struct Battery
 {
@@ -37,10 +37,12 @@ typedef struct Battery
   float                 voltage;
   uint32_t              calibration_offset;
 
-  battery_error_code_t  (*get_voltage) ( real16_T *voltage );
+  battery_return_code_t  (*get_voltage) ( real16_T *voltage );
 } Battery;
 
-void battery_init ( ADC_HandleTypeDef *adc_handle, TX_EVENT_FLAGS_GROUP *irq_flags );
+void battery_init ( Battery *struct_ptr, ADC_HandleTypeDef *adc_handle,
+                    TX_EVENT_FLAGS_GROUP *irq_flags );
+void battery_deinit (void);
 void battery_set_voltage (float voltage);
 
 // @formatter:on

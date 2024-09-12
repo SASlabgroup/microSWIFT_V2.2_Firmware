@@ -9,5 +9,6 @@
 #define INC_ERROR_HANDLER_H_
 
 void Error_Handler ( void );
+void safe_mode ( void );
 
 #endif /* INC_ERROR_HANDLER_H_ */
