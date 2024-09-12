@@ -73,8 +73,8 @@ all: main-build
 main-build: microSWIFT_V2.2.elf secondary-outputs
 
 # Tool invocations
-microSWIFT_V2.2.elf microSWIFT_V2.2.map: $(OBJS) $(USER_OBJS) /Users/philbush/STM32CubeIDE/workspace_1.14.0/microSWIFT_V2.2/microSWIFT_V2.2/STM32U5A5ZJTXQ_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "microSWIFT_V2.2.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m33 -T"/Users/philbush/STM32CubeIDE/workspace_1.14.0/microSWIFT_V2.2/microSWIFT_V2.2/STM32U5A5ZJTXQ_FLASH.ld" --specs=nosys.specs -Wl,-Map="microSWIFT_V2.2.map" -Wl,--gc-sections -static -L/Users/philbush/STM32Cube/Repository/Packs/emotas/I-CUBE-CANOPEN/1.3.0/Middlewares/Third_Party/emotas/Library/lib/STM32U5 --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+microSWIFT_V2.2.elf microSWIFT_V2.2.map: $(OBJS) $(USER_OBJS) /Users/philbush/STM32CubeIDE/workspace_1.14.0/microSWIFT_V2.2/microSWIFT_V2.2/microSWIFT.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "microSWIFT_V2.2.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m33 -T"/Users/philbush/STM32CubeIDE/workspace_1.14.0/microSWIFT_V2.2/microSWIFT_V2.2/microSWIFT.ld" --specs=nosys.specs -Wl,-Map="microSWIFT_V2.2.map" -Wl,--gc-sections -static -L/Users/philbush/STM32Cube/Repository/Packs/emotas/I-CUBE-CANOPEN/1.3.0/Middlewares/Third_Party/emotas/Library/lib/STM32U5 --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

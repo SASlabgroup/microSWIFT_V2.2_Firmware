@@ -170,6 +170,9 @@ static void _control_shut_down_all_peripherals ( void )
 
 static void _control_enter_processor_shutdown_mode ( void )
 {
+  // Retain all SRAM2 contents
+  HAL_PWREx_EnableSRAM2ContentStandbyRetention (PWR_SRAM2_FULL_STANDBY);
+
 #warning "Set an alarm in the RTC before entering shutdown mode!!!"
   // Ensure RTC is disabled
   CLEAR_BIT(RCC->BDCR, RCC_BDCR_RTCEN);
@@ -177,8 +180,11 @@ static void _control_enter_processor_shutdown_mode ( void )
   // Clear the backup ram retention bit
   CLEAR_BIT(PWR->BDCR1, PWR_BDCR1_BREN);
 
-  // PWR_WAKEUP_PIN5_LOW_1 = PA3 --> LPUART1 Rx
-  HAL_PWR_EnableWakeUpPin (PWR_WAKEUP_PIN5_LOW_1);
+  // Make sure the RTC INT_B pin is being pulled up (open drain on RTC)
+  HAL_PWREx_EnableGPIOPullUp (RTC_INT_B_GPIO_Port, RTC_INT_B_Pin);
+
+  // PWR_WAKEUP_PIN1_LOW_1 = PB2 --> RTC INT_B Low Polarity
+  HAL_PWR_EnableWakeUpPin (PWR_WAKEUP_PIN1_LOW_1);
 
   // Clear the stop mode and standby mode flags
   SET_BIT(PWR->SR, PWR_SR_CSSF);
@@ -187,11 +193,11 @@ static void _control_enter_processor_shutdown_mode ( void )
   DBGMCU->CR = 0; // Disable debug, trace and IWDG in low-power modes
 #endif
 
-  /* Set Shutdown mode */
-  MODIFY_REG(PWR->CR1, PWR_CR1_LPMS, (PWR_CR1_LPMS_1 | PWR_CR1_LPMS_2));
+  /* Select Standby mode */
+  MODIFY_REG(PWR->CR1, PWR_CR1_LPMS, PWR_CR1_LPMS_2);
 
   /* Set SLEEPDEEP bit of Cortex System Control Register */
-  SET_BIT(SCB->SCR, ((uint32_t) SCB_SCR_SLEEPDEEP_Msk));
+  SET_BIT(SCB->SCR, ((uint32_t)SCB_SCR_SLEEPDEEP_Msk));
 
   // Make sure register operations are complete
   (void) PWR->CR1;

@@ -62,6 +62,7 @@ rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_b
   self->request_queue = request_queue;
   self->complete_flags = complete_flags;
   self->rtc_spi_bus = rtc_spi_bus;
+
   self->int_a_pin.port = RTC_INT_A_GPIO_Port;
   self->int_a_pin.pin = RTC_INT_A_Pin;
   self->int_b_pin.port = RTC_INT_B_GPIO_Port;
