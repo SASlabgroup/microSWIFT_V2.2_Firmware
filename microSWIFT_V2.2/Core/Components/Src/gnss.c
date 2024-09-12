@@ -112,6 +112,19 @@ void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
 }
 
 /**
+ * Deinitialize UART, DMA
+ *
+ * @return void
+ */
+void gnss_deinit ( void )
+{
+  // Deinit UART and DMA
+  HAL_UART_DeInit (self->gnss_uart_handle);
+  HAL_DMA_DeInit (self->gnss_rx_dma_handle);
+  HAL_DMA_DeInit (self->gnss_tx_dma_handle);
+}
+
+/**
  * Timer expiered callback -- called via ThreadX contol services.
  *
  * @param expiration_input - unused

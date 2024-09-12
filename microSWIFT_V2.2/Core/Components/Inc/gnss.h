@@ -173,6 +173,7 @@ void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
                  TX_EVENT_FLAGS_GROUP *error_flags, TX_TIMER *timer, uint8_t *ubx_process_buf,
                  uint8_t *config_response_buffer, float *GNSS_N_Array, float *GNSS_E_Array,
                  float *GNSS_D_Array );
+void gnss_deinit ( void );
 void gnss_timer_expired_callback ( ULONG expiration_input );
 bool gnss_get_timer_timeout_status ( void );
 bool gnss_get_configured_status ( void );

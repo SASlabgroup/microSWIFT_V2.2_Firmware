@@ -245,13 +245,13 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   //
   // Allocate stack for the gnss thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, L_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the gnss thread. MID priority, no preemption-threshold
-  ret = tx_thread_create(&gnss_thread, "gnss thread", gnss_thread_entry, 0, pointer, M_STACK,
+  ret = tx_thread_create(&gnss_thread, "gnss thread", gnss_thread_entry, 0, pointer, L_STACK,
                          MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
@@ -943,6 +943,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   }
 
   // Init and turn on
+  // ** NOTE: RF switch is managed by control thread
   gnss_init (&gnss, &configuration, device_handles.gnss_uart_handle,
              device_handles.gnss_uart_tx_dma_handle, device_handles.gnss_uart_rx_dma_handle,
              &irq_flags, &error_flags, &gnss_timer, &(ubx_message_process_buf[0]),
@@ -950,7 +951,6 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   gnss.on ();
 
-  //
   // Run tests if needed
   if ( tests.gnss_thread_test != NULL )
   {
@@ -974,7 +974,11 @@ static void gnss_thread_entry ( ULONG thread_input )
   watchdog_check_in (GNSS_THREAD);
 
   // Calculate the max acquisition time if we're running multiple windows per hour
-  if ( configuration.windows_per_hour > 1 )
+  if ( configuration.windows_per_hour == 1 )
+  {
+    gnss_max_acq_time = configuration.gnss_max_acquisition_wait_time;
+  }
+  else if ( configuration.windows_per_hour > 1 )
   {
     if ( is_first_sample_window () )
     {
@@ -988,7 +992,8 @@ static void gnss_thread_entry ( ULONG thread_input )
   }
   else
   {
-    gnss_max_acq_time = configuration.gnss_max_acquisition_wait_time;
+    // Invalid (negative) number case
+    gnss_max_acq_time = 0;
   }
 
   // Invalid acquisition time case
@@ -1006,8 +1011,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   // Start the timer for resolution stages
   gnss.start_timer (configuration.gnss_max_acquisition_wait_time);
 
-  // Wait until we get a series of good UBX_NAV_PVT messages and are
-  // tracking a good number of satellites before moving on
+  // Frame sync and switch to DMA circular mode
   if ( gnss.sync_and_start_reception () != GNSS_SUCCESS )
   {
     // If we were unable to get good GNSS reception and start the DMA transfer loop, then shutdown
@@ -1021,6 +1025,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   uart_logger_log_line ("GNSS successfully switched to circular DMA mode.");
 
   // Process messages until we have resolved time
+  // **NOTE: RTC will be set when time is resolved
   while ( !(gnss.all_resolution_stages_complete || gnss_get_timer_timeout_status ()) )
   {
     watchdog_check_in (GNSS_THREAD);
@@ -1036,7 +1041,7 @@ static void gnss_thread_entry ( ULONG thread_input )
     }
   }
 
-  // Failed to resolve time within alloted period case
+  // Failed to resolve time within alloted period
   if ( gnss_get_timer_timeout_status () )
   {
     gnss.off ();
@@ -1052,7 +1057,6 @@ static void gnss_thread_entry ( ULONG thread_input )
   // Process messages until complete
   while ( !gnss_get_sample_window_complete () )
   {
-
     watchdog_check_in (GNSS_THREAD);
 
     tx_return = tx_event_flags_get (&irq_flags, (GNSS_MSG_RECEIVED | GNSS_MSG_INCOMPLETE),
@@ -1062,23 +1066,21 @@ static void gnss_thread_entry ( ULONG thread_input )
     // Full message came through
     if ( (tx_return == TX_SUCCESS) && !(actual_flags & GNSS_MSG_INCOMPLETE) )
     {
-
       gnss.process_message ();
       number_of_no_sample_errors = 0;
-
     }
-    // Message was dropped or incomplete
+    // Message was dropped or incomplete -- replace with running average velocities
     else if ( (tx_return == TX_NO_EVENTS) || (actual_flags & GNSS_MSG_INCOMPLETE) )
     {
-
       gnss_return_code = gnss.get_running_average_velocities ();
 
       if ( gnss_return_code == GNSS_NO_SAMPLES_ERROR )
       {
+        // If we get a full minute worth of dropped or incomplete messages, fail out
         if ( ++number_of_no_sample_errors == configuration.gnss_sampling_rate * 60 )
         {
           gnss.off ();
-          uart_logger_log_line ("GNSS unable to acquire velocity data.");
+          uart_logger_log_line ("GNSS too many partial or dropped messages.");
           (void) tx_event_flags_set (&error_flags, GNSS_SAMPLE_WINDOW_ERROR, TX_OR);
           tx_thread_suspend (this_thread);
         }
@@ -1086,7 +1088,17 @@ static void gnss_thread_entry ( ULONG thread_input )
       }
 
     }
-    // If this evaluates to true, something hung up with GNSS sampling. End the sample window
+    // Any other return code indicates something got corrupted. Let's hope this works...
+    else
+    {
+      gnss.off ();
+      uart_logger_log_line ("Memory corruption detected in GNSS thread.");
+      (void) tx_event_flags_set (&error_flags, MEMORY_CORRUPTION, TX_OR);
+      tx_thread_suspend (this_thread);
+    }
+
+    // If this evaluates to true, something hung up with GNSS sampling and we were not able
+    // to get all required samples in the alloted time.
     if ( gnss_get_timer_timeout_status () )
     {
       gnss.off ();
@@ -1098,17 +1110,12 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   watchdog_check_in (GNSS_THREAD);
 
-  // Stop the timer
+  // Stop the timer, turn off sensor
   gnss.stop_timer ();
-  // turn off the GNSS sensor
   gnss.off ();
-  // Deinit UART and DMA to prevent spurious interrupts
-  HAL_UART_DeInit (gnss.gnss_uart_handle);
-  HAL_DMA_DeInit (gnss.gnss_rx_dma_handle);
-  HAL_DMA_DeInit (gnss.gnss_tx_dma_handle);
 
+  // Fill in the location fields in the SBD message
   gnss.get_location (&last_lat, &last_lon);
-  // Just to be overly sure about alignment
   memcpy (&sbd_message.Lat, &last_lat, sizeof(float));
   memcpy (&sbd_message.Lon, &last_lon, sizeof(float));
   // We're using the "port" field to encode how many samples were averaged divided by 10,
@@ -1116,6 +1123,9 @@ static void gnss_thread_entry ( ULONG thread_input )
   sbd_port = ((gnss.total_samples_averaged / 10) >= 255) ?
       255 : (gnss.total_samples_averaged / 10);
   memcpy (&sbd_message.port, &sbd_port, sizeof(uint8_t));
+
+  // Deinit -- this will shut down UART port and DMa channels
+  gnss_deinit ();
 
   watchdog_check_in (GNSS_THREAD);
   watchdog_deregister_thread (GNSS_THREAD);
