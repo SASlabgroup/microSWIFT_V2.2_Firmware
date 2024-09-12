@@ -8,14 +8,42 @@
 #ifndef INC_PERSISTENT_RAM_H_
 #define INC_PERSISTENT_RAM_H_
 
+#include "stdbool.h"
+#include "stddef.h"
+#include "iridium.h"
+#include "NEDWaves/rtwhalf.h"
+
 #define PERSISTENT_RAM_MAGIC_DOUBLE_WORD 0x5048494C42555348
+#define MAX_NUM_IRIDIUM_MSGS_STORED (24U * 7U)
+
+// @formatter:off
+typedef struct
+{
+  sbd_message_type_52       payload;
+  bool                      valid;
+} Iridium_Message_t;
 
 typedef struct
 {
-  uint64_t magic_word;
+  Iridium_Message_t         msg_queue[MAX_NUM_IRIDIUM_MSGS_STORED];
+  uint8_t                   num_msgs_enqueued;
+} Iridium_Message_Storage;
+
+// All of the things we need to survive in standby mode
+typedef struct
+{
+  uint64_t                  magic_number;
+  int32_t                   sample_window_counter;
+  Iridium_Message_Storage   unsent_msg_storage;
 } Persistent_Storage;
 
-void persistent_storage_init ( void );
-void persistent_storage_clear ( void );
+void                    persistent_storage_init ( void );
+void                    persistent_storage_clear ( void );
+void                    persistent_storgage_increment_sample_window_counter ( void );
+int32_t                 persistent_stotrage_get_sample_window_counter ( void );
+void                    persistent_storage_save_iridium_message ( sbd_message_type_52* msg );
+sbd_message_type_52*    persistent_storage_get_prioritized_unsent_iridium_message ( void );
+void                    persistent_storage_delete_message_element ( sbd_message_type_52 *msg_ptr );
+// @formatter:on
 
 #endif /* INC_PERSISTENT_RAM_H_ */

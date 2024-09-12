@@ -66,7 +66,6 @@ typedef enum iridium_error_code
 #define ASCII_ZERO 48
 #define ASCII_FIVE 53
 #define IRIDIUM_MAX_TRANSMIT_PERIOD 6 - 1
-#define MAX_NUM_MSGS_STORED 24 * 7
 #define ERROR_MESSAGE_MAX_LENGTH 320
 #define IRIDIUM_TIMER_INSTANCE TIM17
 #define IRIDIUM_UART_INSTANCE UART5
@@ -150,20 +149,6 @@ typedef struct Iridium
   bool timer_timeout;
   bool skip_current_message;
 } Iridium;
-
-typedef struct Iridium_message
-{
-  sbd_message_type_52 payload;
-  bool valid;
-} Iridium_message;
-
-typedef struct Iridium_message_storage
-{
-  // Store 7 days worth of messages
-  Iridium_message msg_queue[MAX_NUM_MSGS_STORED];
-  uint8_t num_msgs_enqueued;
-  uint64_t magic_number;
-} Iridium_message_storage;
 
 /* Function declarations */
 void iridium_init ( Iridium *struct_ptr, microSWIFT_configuration *global_config,
