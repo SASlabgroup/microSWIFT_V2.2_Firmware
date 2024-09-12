@@ -942,6 +942,7 @@ static void gnss_thread_entry ( ULONG thread_input )
     tx_thread_sleep (1);
   }
 
+  // Init and turn on
   gnss_init (&gnss, &configuration, device_handles.gnss_uart_handle,
              device_handles.gnss_uart_tx_dma_handle, device_handles.gnss_uart_rx_dma_handle,
              &irq_flags, &error_flags, &gnss_timer, &(ubx_message_process_buf[0]),
@@ -949,6 +950,14 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   gnss.on ();
 
+  //
+  // Run tests if needed
+  if ( tests.gnss_thread_test != NULL )
+  {
+    tests.gnss_thread_test (NULL);
+  }
+
+  // Apply configuration through UBX_VALSET messages
   if ( !gnss_apply_config (&gnss) )
   {
     gnss.off ();
@@ -956,18 +965,13 @@ static void gnss_thread_entry ( ULONG thread_input )
     tx_thread_suspend (this_thread);
   }
 
+  // Report init success
   (void) tx_event_flags_set (&initialization_flags, GNSS_INIT_SUCCESS, TX_OR);
   uart_logger_log_line ("GNSS initialization successful.");
 
+  // This thread has successfully initialized, it should now be checking in with the watchdog
   watchdog_register_thread (GNSS_THREAD);
   watchdog_check_in (GNSS_THREAD);
-
-  //
-  // Run tests if needed
-  if ( tests.gnss_thread_test != NULL )
-  {
-    tests.gnss_thread_test (NULL);
-  }
 
   // Calculate the max acquisition time if we're running multiple windows per hour
   if ( configuration.windows_per_hour > 1 )
@@ -987,10 +991,12 @@ static void gnss_thread_entry ( ULONG thread_input )
     gnss_max_acq_time = configuration.gnss_max_acquisition_wait_time;
   }
 
+  // Invalid acquisition time case
   if ( gnss_max_acq_time <= 1 )
   {
     gnss.off ();
-    uart_logger_log_line ("Invalid GNSS max acquisition time.");
+    uart_logger_log_line ("Invalid GNSS max acquisition time. Check settings for number of samples "
+                          "per window and windows per hour");
     (void) tx_event_flags_set (&error_flags, INVALID_CONFIGURATION, TX_OR);
     tx_thread_suspend (this_thread);
   }
@@ -1004,23 +1010,21 @@ static void gnss_thread_entry ( ULONG thread_input )
   // tracking a good number of satellites before moving on
   if ( gnss.sync_and_start_reception () != GNSS_SUCCESS )
   {
-    // If we were unable to get good GNSS reception and start the DMA transfer loop, then
-    // go to sleep until the top of the next hour. Sleep will be handled in end_of_cycle_thread
+    // If we were unable to get good GNSS reception and start the DMA transfer loop, then shutdown
     gnss.off ();
     uart_logger_log_line ("GNSS frame sync failed.");
     (void) tx_event_flags_set (&error_flags, GNSS_FRAME_SYNC_FAILED, TX_OR);
     tx_thread_suspend (this_thread);
   }
-  else
-  {
-    gnss.is_configured = true;
-    uart_logger_log_line ("GNSS switching to circular DMA mode.");
-  }
 
+  // We are now running in DMA circular mode
+  uart_logger_log_line ("GNSS successfully switched to circular DMA mode.");
+
+  // Process messages until we have resolved time
   while ( !(gnss.all_resolution_stages_complete || gnss_get_timer_timeout_status ()) )
   {
-
     watchdog_check_in (GNSS_THREAD);
+
     tx_return = tx_event_flags_get (&irq_flags, (GNSS_MSG_RECEIVED | GNSS_MSG_INCOMPLETE),
     TX_OR_CLEAR,
                                     &actual_flags, timer_ticks_to_get_message);
@@ -1030,18 +1034,9 @@ static void gnss_thread_entry ( ULONG thread_input )
     {
       gnss.process_message ();
     }
-    // Message was dropped or incomplete
-    else if ( (tx_return == TX_NO_EVENTS) || (actual_flags & GNSS_MSG_INCOMPLETE) )
-    {
-
-      continue;
-
-    }
   }
 
-  // If this evaluates to true, we were unable to get adequate GNSS reception to
-  // resolve time and get at least 1 good sample. Go to sleep until the top of the next hour.
-  // Sleep will be handled in end_of_cycle_thread
+  // Failed to resolve time within alloted period case
   if ( gnss_get_timer_timeout_status () )
   {
     gnss.off ();
@@ -1050,13 +1045,12 @@ static void gnss_thread_entry ( ULONG thread_input )
     tx_thread_suspend (this_thread);
   }
 
-  // We were able to resolve time within the given window of time. Now start the timer to ensure
-  // the sample window doesn't take too long
+  // Start the sample window timer
   gnss.stop_timer ();
   gnss.start_timer (sample_window_timeout);
 
-  // Wait until all the samples have been processed
-  while ( !gnss.all_samples_processed )
+  // Process messages until complete
+  while ( !gnss_get_sample_window_complete () )
   {
 
     watchdog_check_in (GNSS_THREAD);
