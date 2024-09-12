@@ -99,7 +99,9 @@ typedef enum error_flags
   SOFTWARE_RESET             = ((ULONG) 1 << 12),
   GNSS_RESOLUTION_ERROR      = ((ULONG) 1 << 13),
   GNSS_TOO_MANY_PARTIAL_MSGS = ((ULONG) 1 << 14),
-  GNSS_SAMPLE_WINDOW_TIMEOUT = ((ULONG) 1 << 15)
+  GNSS_SAMPLE_WINDOW_TIMEOUT = ((ULONG) 1 << 15),
+  GNSS_FRAME_SYNC_FAILED     = ((ULONG) 1 << 16),
+  GNSS_SAMPLE_WINDOW_ERROR   = ((ULONG) 1 << 17)
 } error_flags_t;
 
 extern TX_THREAD control_thread;

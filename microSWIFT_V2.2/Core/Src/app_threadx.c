@@ -544,12 +544,6 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
-  ret = tx_semaphore_create(&gnss_uart_sema, "GNSS UART sema", 0);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
   ret = tx_semaphore_create(&aux_uart_1_sema, "Aux UART 1 sema", 0);
   if ( ret != TX_SUCCESS )
   {
@@ -953,11 +947,12 @@ static void gnss_thread_entry ( ULONG thread_input )
              &irq_flags, &error_flags, &gnss_timer, &(ubx_message_process_buf[0]),
              &(gnss_config_response_buf[0]), north, east, down);
 
+  gnss.on ();
+
   if ( !gnss_apply_config (&gnss) )
   {
+    gnss.off ();
     uart_logger_log_line ("GNSS failed to initialize.");
-#error "ensure in all failure cases that the GNSS is shut down"
-    gnss->on_off (false);
     tx_thread_suspend (this_thread);
   }
 
@@ -994,6 +989,7 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   if ( gnss_max_acq_time <= 1 )
   {
+    gnss.off ();
     uart_logger_log_line ("Invalid GNSS max acquisition time.");
     (void) tx_event_flags_set (&error_flags, INVALID_CONFIGURATION, TX_OR);
     tx_thread_suspend (this_thread);
@@ -1010,8 +1006,10 @@ static void gnss_thread_entry ( ULONG thread_input )
   {
     // If we were unable to get good GNSS reception and start the DMA transfer loop, then
     // go to sleep until the top of the next hour. Sleep will be handled in end_of_cycle_thread
-    watchdog_check_in (GNSS_THREAD);
-    jump_to_end_of_window (GNSS_RESOLUTION_ERROR);
+    gnss.off ();
+    uart_logger_log_line ("GNSS frame sync failed.");
+    (void) tx_event_flags_set (&error_flags, GNSS_FRAME_SYNC_FAILED, TX_OR);
+    tx_thread_suspend (this_thread);
   }
   else
   {
@@ -1039,14 +1037,6 @@ static void gnss_thread_entry ( ULONG thread_input )
       continue;
 
     }
-    // Any other error code is indication of memory corruption
-    else
-    {
-
-      watchdog_check_in (GNSS_THREAD);
-      jump_to_end_of_window (MEMORY_CORRUPTION_ERROR);
-    }
-
   }
 
   // If this evaluates to true, we were unable to get adequate GNSS reception to
@@ -1054,15 +1044,16 @@ static void gnss_thread_entry ( ULONG thread_input )
   // Sleep will be handled in end_of_cycle_thread
   if ( gnss_get_timer_timeout_status () )
   {
-    watchdog_check_in (GNSS_THREAD);
-    jump_to_end_of_window (GNSS_RESOLUTION_ERROR);
+    gnss.off ();
+    uart_logger_log_line ("GNSS failed to get a fix within alloted time.");
+    (void) tx_event_flags_set (&error_flags, GNSS_RESOLUTION_ERROR, TX_OR);
+    tx_thread_suspend (this_thread);
   }
 
   // We were able to resolve time within the given window of time. Now start the timer to ensure
   // the sample window doesn't take too long
-  HAL_TIM_Base_Stop_IT (gnss.minutes_timer);
-  gnss.reset_timer (sample_window_timeout);
-  HAL_TIM_Base_Start_IT (gnss.minutes_timer);
+  gnss.stop_timer ();
+  gnss.start_timer (sample_window_timeout);
 
   // Wait until all the samples have been processed
   while ( !gnss.all_samples_processed )
@@ -1092,35 +1083,31 @@ static void gnss_thread_entry ( ULONG thread_input )
       {
         if ( ++number_of_no_sample_errors == configuration.gnss_sampling_rate * 60 )
         {
-          watchdog_check_in (GNSS_THREAD);
-          jump_to_end_of_window (SAMPLE_WINDOW_ERROR);
+          gnss.off ();
+          uart_logger_log_line ("GNSS unable to acquire velocity data.");
+          (void) tx_event_flags_set (&error_flags, GNSS_SAMPLE_WINDOW_ERROR, TX_OR);
+          tx_thread_suspend (this_thread);
         }
 
       }
 
     }
-    // Any other error code is indication of memory corruption
-    else
-    {
-
-      watchdog_check_in (GNSS_THREAD);
-      jump_to_end_of_window (MEMORY_CORRUPTION_ERROR);
-    }
-
     // If this evaluates to true, something hung up with GNSS sampling. End the sample window
-    if ( gnss.timer_timeout )
+    if ( gnss_get_timer_timeout_status () )
     {
-      watchdog_check_in (GNSS_THREAD);
-      jump_to_end_of_window (SAMPLE_WINDOW_ERROR);
+      gnss.off ();
+      uart_logger_log_line ("GNSS sample window timed out.");
+      (void) tx_event_flags_set (&error_flags, GNSS_SAMPLE_WINDOW_TIMEOUT, TX_OR);
+      tx_thread_suspend (this_thread);
     }
   }
 
   watchdog_check_in (GNSS_THREAD);
 
   // Stop the timer
-  HAL_TIM_Base_Stop_IT (gnss.minutes_timer);
+  gnss.stop_timer ();
   // turn off the GNSS sensor
-  gnss.on_off (GPIO_PIN_RESET);
+  gnss.off ();
   // Deinit UART and DMA to prevent spurious interrupts
   HAL_UART_DeInit (gnss.gnss_uart_handle);
   HAL_DMA_DeInit (gnss.gnss_rx_dma_handle);

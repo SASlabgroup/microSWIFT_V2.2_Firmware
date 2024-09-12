@@ -6,3 +6,5 @@
  */
 
 #include "error_handler.h"
+
+#warning "ensure error handler de-registers thread on error"
