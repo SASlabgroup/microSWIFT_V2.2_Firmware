@@ -24,7 +24,7 @@ void tests_init ( void )
 {
   tests.main_test = NULL;
   tests.threadx_init_test = NULL;
-  tests.startup_test = NULL;
+  tests.control_test = NULL;
   tests.gnss_thread_test = NULL;
   tests.ct_thread_test = NULL;
   tests.waves_thread_test = NULL;

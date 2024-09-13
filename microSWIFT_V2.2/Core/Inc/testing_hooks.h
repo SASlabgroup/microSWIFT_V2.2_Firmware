@@ -16,7 +16,7 @@ typedef struct
 {
   testing_funct main_test;
   testing_funct threadx_init_test;
-  testing_funct startup_test;
+  testing_funct control_test;
   testing_funct gnss_thread_test;
   testing_funct ct_thread_test;
   testing_funct waves_thread_test;

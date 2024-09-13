@@ -48,6 +48,7 @@
 #include "threadx_support.h"
 #include "watchdog.h"
 #include "controller.h"
+#include "persistent_ram.h"
 
 // Waves files
 #include "NEDWaves/NEDwaves_memlight.h"
@@ -176,9 +177,6 @@ TX_QUEUE rtc_messaging_queue;
 TX_QUEUE logger_message_queue;
 TX_QUEUE expansion_queue_1;
 TX_QUEUE expansion_queue_2;
-// Messages that failed to send are stored here
-#warning "This needs to move to non-volotile."
-Iridium_message_storage sbd_message_queue;
 
 __ALIGN_BEGIN UCHAR waves_byte_pool_buffer[WAVES_MEM_POOL_SIZE] __ALIGN_END;
 TX_BYTE_POOL waves_byte_pool;
@@ -873,18 +871,27 @@ static void control_thread_entry ( ULONG thread_input )
     tests.control_test (NULL);
   }
 
+  controller_init (&control, &configuration, &thread_handles, &error_flags, &initialization_flags,
+                   &irq_flags, &complete_flags, &control_timer, device_handles.battery_adc);
+
   watchdog_check_in (CONTROL_THREAD);
 
   // Run the self test
-  if ( !startup_procedure (&configuration) )
+  if ( !control.startup_procedure () )
   {
     shut_down_all_peripherals ();
-    // Stay stuck here
-    for ( int i = 0; i < 25; i++ )
+
+    if ( persistent_stotrage_get_sample_window_counter () == 0 )
     {
-      watchdog_check_in (CONTROL_THREAD);
-      led_sequence (TEST_FAILED_LED_SEQUENCE);
+      // Stay stuck here for a minute
+      for ( int i = 0; i < 25; i++ )
+      {
+        watchdog_check_in (CONTROL_THREAD);
+        led_sequence (TEST_FAILED_LED_SEQUENCE);
+      }
     }
+
+    tx_thread_sleep (1);
     HAL_NVIC_SystemReset ();
   }
 
@@ -1002,13 +1009,12 @@ static void gnss_thread_entry ( ULONG thread_input )
   // Invalid acquisition time case
   if ( gnss_max_acq_time <= 1 )
   {
-    gnss.off ();
     uart_logger_log_line (
         "Invalid GNSS max acquisition time: %d. Check settings for number of samples "
-        "per window and windows per hour",
+        "per window and windows per hour. Continuing with 5 min acq time.",
         gnss_max_acq_time);
-    (void) tx_event_flags_set (&error_flags, INVALID_CONFIGURATION, TX_OR);
-    tx_thread_suspend (this_thread);
+
+    gnss_max_acq_time = 5;
   }
 
   watchdog_check_in (GNSS_THREAD);

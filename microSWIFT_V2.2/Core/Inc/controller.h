@@ -33,9 +33,11 @@ typedef struct
   TX_TIMER                  *timer;
 
   bool                      (*startup_procedure)( void );
+  bool                      (*all_threads_complete) ( void );
   real16_T                  (*get_battery_voltage) ( void );
   void                      (*shutdown_all_pheripherals) ( void );
-  void                      (*enter_processor_shutdown_mode) (void);
+  void                      (*enter_processor_shutdown_mode) ( void );
+  void                      (*monitor_and_handle_errors) ( void );
 } Control;
 // @formatter:on
 

@@ -84,7 +84,7 @@ enum interrupt_flags
 
 typedef enum error_flags
 {
-  INVALID_CONFIGURATION      = ((ULONG) 1 << 0),
+//  INVALID_CONFIGURATION      = ((ULONG) 1 << 0),
   RTC_ERROR                  = ((ULONG) 1 << 1),
   GNSS_ERROR                 = ((ULONG) 1 << 2),
   CT_ERROR                   = ((ULONG) 1 << 3),

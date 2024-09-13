@@ -13,10 +13,12 @@
 static Control  *self;
 
 // Struct functions
-static bool     _control_startup_procedure(void);
-static real16_T _control_get_battery_voltage(void);
+static bool     _control_startup_procedure( void );
+static bool     _control_all_threads_complete( void );
+static real16_T _control_get_battery_voltage( void );
 static void     _control_shut_down_all_peripherals ( void );
-static void     _control_enter_processor_shutdown_mode (void);
+static void     _control_enter_processor_shutdown_mode ( void );
+static void     _control_monitor_and_handle_errors ( void );
 
 // Static helper functions
 
@@ -40,9 +42,11 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
   self->timer = timer;
 
   self->startup_procedure = _control_startup_procedure;
+  self->all_threads_complete = _control_all_threads_complete;
   self->get_battery_voltage = _control_get_battery_voltage;
   self->shutdown_all_pheripherals = _control_shut_down_all_peripherals;
   self->enter_processor_shutdown_mode = _control_enter_processor_shutdown_mode;
+  self->monitor_and_handle_errors = _control_monitor_and_handle_errors;
 
   // Init battery
   battery_init (&self->battery, battery_adc_handle, self->irq_flags);
@@ -124,6 +128,42 @@ static bool _control_startup_procedure ( void )
   return (tx_return == TX_SUCCESS);
 }
 
+static bool _control_all_threads_complete ( void )
+{
+  // Start with the core thread flags
+  ULONG complete_flags = (GNSS_THREAD_COMPLETE | WAVES_THREAD_COMPLETE | IRIDIUM_THREAD_COMPLETE);
+  ULONG dummy;
+
+  if ( self->global_config->ct_enabled )
+  {
+    complete_flags |= CT_THREAD_COMPLETE;
+  }
+
+  if ( self->global_config->temperature_enabled )
+  {
+    complete_flags |= TEMPERATURE_THREAD_COMPLETE;
+  }
+
+  if ( self->global_config->turbidity_enabled )
+  {
+    complete_flags |= TURBIDITY_THREAD_COMPLETE;
+  }
+
+  if ( self->global_config->light_enabled )
+  {
+    complete_flags |= LIGHT_THREAD_COMPLETE;
+  }
+
+  if ( self->global_config->accelerometer_enabled )
+  {
+    complete_flags |= ACCELEROMETER_THREAD_COMPLETE;
+  }
+
+  return (tx_event_flags_get (self->complete_flags, complete_flags, TX_AND_CLEAR, &dummy,
+  TX_NO_WAIT)
+          == TX_SUCCESS);
+}
+
 static real16_T _control_get_battery_voltage ( void )
 {
   real16_T battery_voltage =
@@ -181,7 +221,7 @@ static void _control_enter_processor_shutdown_mode ( void )
   CLEAR_BIT(PWR->BDCR1, PWR_BDCR1_BREN);
 
   // Make sure the RTC INT_B pin is being pulled up (open drain on RTC)
-  HAL_PWREx_EnableGPIOPullUp (RTC_INT_B_GPIO_Port, RTC_INT_B_Pin);
+  HAL_PWREx_EnableGPIOPullUp (PWR_GPIO_B, RTC_INT_B_Pin);
 
   // PWR_WAKEUP_PIN1_LOW_1 = PB2 --> RTC INT_B Low Polarity
   HAL_PWR_EnableWakeUpPin (PWR_WAKEUP_PIN1_LOW_1);
@@ -209,4 +249,13 @@ static void _control_enter_processor_shutdown_mode ( void )
     __DSB ();
     __WFI();
   }
+}
+
+static void _control_monitor_and_handle_errors ( void )
+{
+  ULONG current_flags;
+  UINT tx_ret;
+
+  (void) tx_event_flags_get (self->error_flags, 0, TX_OR_CLEAR, &current_flags, TX_NO_WAIT);
+if (current_flags & )
 }

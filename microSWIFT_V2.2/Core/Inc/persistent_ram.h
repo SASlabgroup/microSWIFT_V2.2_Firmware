@@ -38,7 +38,6 @@ typedef struct
 } Persistent_Storage;
 
 void                    persistent_storage_init ( void );
-void                    persistent_storage_clear ( void );
 void                    persistent_storgage_increment_sample_window_counter ( void );
 int32_t                 persistent_stotrage_get_sample_window_counter ( void );
 void                    persistent_storage_save_iridium_message ( sbd_message_type_52* msg );
