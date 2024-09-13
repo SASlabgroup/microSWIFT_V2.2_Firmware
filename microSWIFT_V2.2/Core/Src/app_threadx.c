@@ -895,7 +895,10 @@ static void control_thread_entry ( ULONG thread_input )
     HAL_NVIC_SystemReset ();
   }
 
-  led_sequence (TEST_PASSED_LED_SEQUENCE);
+  if ( persistent_stotrage_get_sample_window_counter () == 0 )
+  {
+    led_sequence (TEST_PASSED_LED_SEQUENCE);
+  }
 
   while ( 1 )
   {

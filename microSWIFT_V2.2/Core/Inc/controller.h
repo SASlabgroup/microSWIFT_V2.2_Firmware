@@ -32,6 +32,8 @@ typedef struct
   TX_EVENT_FLAGS_GROUP      *complete_flags;
   TX_TIMER                  *timer;
 
+#error "Supply a pointer to the current SBD message"
+
   bool                      (*startup_procedure)( void );
   bool                      (*all_threads_complete) ( void );
   real16_T                  (*get_battery_voltage) ( void );

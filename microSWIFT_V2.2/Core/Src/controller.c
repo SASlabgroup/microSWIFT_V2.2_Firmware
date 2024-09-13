@@ -8,6 +8,7 @@
 #include "controller.h"
 #include "threadx_support.h"
 #include "logger.h"
+#include "persistent_ram.h"
 
 // @formatter:off
 static Control  *self;
@@ -19,6 +20,18 @@ static real16_T _control_get_battery_voltage( void );
 static void     _control_shut_down_all_peripherals ( void );
 static void     _control_enter_processor_shutdown_mode ( void );
 static void     _control_monitor_and_handle_errors ( void );
+
+// Helper functions
+static void     __handle_rtc_error( void );
+static void     __handle_gnss_error( ULONG error_flags );
+static void     __handle_ct_error( void );
+static void     __handle_temperature_error( void );
+static void     __handle_turbidity_error( void );
+static void     __handle_light_error( void );
+static void     __handle_accelerometer_error( void );
+static void     __handle_waves_error( void );
+static void     __handle_iridium_error( ULONG error_flags );
+static void     __handle_file_system_error( void );
 
 // Static helper functions
 
@@ -120,7 +133,10 @@ static bool _control_startup_procedure ( void )
   }
 
   // Flash power up sequence (this will also give threads time to execute their init procedures)
-  led_sequence (INITIAL_LED_SEQUENCE);
+  if ( persistent_stotrage_get_sample_window_counter () == 0 )
+  {
+    led_sequence (INITIAL_LED_SEQUENCE);
+  }
 
   tx_return = tx_event_flags_get (self->init_flags, init_success_flags, TX_AND_CLEAR,
                                   &current_flags, STARTUP_SEQUENCE_MAX_WAIT_TICKS);
@@ -254,8 +270,82 @@ static void _control_enter_processor_shutdown_mode ( void )
 static void _control_monitor_and_handle_errors ( void )
 {
   ULONG current_flags;
-  UINT tx_ret;
+  ULONG gnss_errors, iridium_errors;
 
+  // Get the error flags
   (void) tx_event_flags_get (self->error_flags, 0, TX_OR_CLEAR, &current_flags, TX_NO_WAIT);
-if (current_flags & )
+
+  // Exit early case
+  if ( current_flags == 0 )
+  {
+    return;
+  }
+
+  gnss_errors =
+      current_flags
+      & (GNSS_ERROR | GNSS_RESOLUTION_ERROR | GNSS_TOO_MANY_PARTIAL_MSGS
+         | GNSS_SAMPLE_WINDOW_TIMEOUT | GNSS_FRAME_SYNC_FAILED | GNSS_SAMPLE_WINDOW_ERROR);
+  iridium_errors = current_flags & (IRIDIUM_ERROR);
+
+  if ( gnss_errors )
+  {
+    __handle_gnss_error (gnss_errors);
+  }
+
+  if ( iridium_errors )
+  {
+    __handle_iridium_error (iridium_errors);
+  }
+
+  if ( current_flags & RTC_ERROR )
+  {
+    __handle_rtc_error ();
+  }
+
+  if ( current_flags & CT_ERROR )
+  {
+    __handle_ct_error ();
+  }
+
+  if ( current_flags & TEMPERATURE_ERROR )
+  {
+    __handle_temperature_error ();
+  }
+
+  if ( current_flags & LIGHT_ERROR )
+  {
+    __handle_light_error ();
+  }
+
+  if ( current_flags & TURBIDITY_ERROR )
+  {
+    __handle_turbidity_error ();
+  }
+
+  if ( current_flags & ACCELEROMETER_ERROR )
+  {
+    __handle_accelerometer_error ();
+  }
+
+  if ( current_flags & WAVES_THREAD_ERROR )
+  {
+    __handle_waves_error ();
+  }
+
+  if ( current_flags & FILE_SYSTEM_ERROR )
+  {
+    __handle_file_system_error ();
+  }
+
 }
+
+static void __handle_rtc_error ( void );
+static void __handle_gnss_error ( ULONG error_flags );
+static void __handle_ct_error ( void );
+static void __handle_temperature_error ( void );
+static void __handle_turbidity_error ( void );
+static void __handle_light_error ( void );
+static void __handle_accelerometer_error ( void );
+static void __handle_waves_error ( void );
+static void __handle_iridium_error ( ULONG error_flags );
+static void __handle_file_system_error ( void );
