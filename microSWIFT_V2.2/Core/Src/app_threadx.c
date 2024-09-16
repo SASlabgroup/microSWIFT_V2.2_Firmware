@@ -1166,12 +1166,10 @@ static void ct_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = &ct_thread;
   CT ct;
-  CHAR ct_data[CT_DATA_ARRAY_SIZE];
-  ct_samples ct_samples_buf[TOTAL_CT_SAMPLES];
-  ct_samples self_test_readings =
+  ct_sample self_test_readings =
     { 0 };
 
-  ct_error_code_t ct_return_code;
+  ct_return_code_t ct_return_code;
   uint32_t ct_parsing_error_counter;
   real16_T half_salinity;
   real16_T half_temp;

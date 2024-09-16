@@ -45,9 +45,10 @@ static const char *salinity_units = "PSU";
  *
  * @return void
  */
-ct_return_code_t ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
-                           UART_HandleTypeDef *ct_uart_handle, TX_SEMAPHORE *uart_sema,
-                           TX_EVENT_FLAGS_GROUP *error_flags )
+void ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
+               UART_HandleTypeDef *ct_uart_handle, DMA_HandleTypeDef *ct_tx_dma_handle,
+               DMA_HandleTypeDef *ct_rx_dma_handle, TX_SEMAPHORE *uart_sema,
+               TX_EVENT_FLAGS_GROUP *error_flags )
 {
   // Assign object pointer
   self = struct_ptr;
@@ -55,6 +56,9 @@ ct_return_code_t ct_init ( CT *struct_ptr, microSWIFT_configuration *global_conf
   __reset_ct_struct_fields ();
   self->global_config = global_config;
   self->error_flags = error_flags;
+  self->uart_handle = ct_uart_handle;
+  self->tx_dma_handle = ct_tx_dma_handle;
+  self->rx_dma_handle = ct_rx_dma_handle;
   self->parse_sample = _ct_parse_sample;
   self->get_averages = _ct_get_averages;
   self->self_test = _ct_self_test;
@@ -65,13 +69,40 @@ ct_return_code_t ct_init ( CT *struct_ptr, microSWIFT_configuration *global_conf
 
   generic_uart_register_io_functions (&self->uart_driver, ct_uart_handle, uart_sema, uart5_init,
                                       uart5_deinit, NULL, NULL);
+  generic_uart_set_timeout_ticks (&self->uart_driver, CT_UART_TX_TIMEOUT_TICKS,
+                                  CT_UART_RX_TIMEOUT_TICKS);
+}
 
-  if ( self->uart_driver.init () != UART_OK )
-  {
-    return CT_UART_ERROR;
-  }
+/**
+ * Deinitialize the CT UART and DMA channels
+ *
+ * @return void
+ */
+void ct_deinit ( void )
+{
+  self->uart_driver.deinit ();
+  HAL_DMA_DeInit (self->tx_dma_handle);
+  HAL_DMA_DeInit (self->rx_dma_handle);
+}
 
-  return CT_SUCCESS;
+/**
+ * Timer timeout callback
+ *
+ * @return void
+ */
+void ct_timer_timeout ( void )
+{
+  self->timer_timeout = true;
+}
+
+/**
+ * Timer timeout callback
+ *
+ * @return void
+ */
+bool ct_get_timeout_status ( void )
+{
+  return self->timer_timeout;
 }
 
 /**
@@ -251,9 +282,8 @@ static ct_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *optiona
 
 static ct_return_code_t _ct_uart_init ( void )
 {
-  ct_return_code_t ret;
-
-  return ret;
+  return (self->uart_driver.init () == UART_OK) ?
+      CT_SUCCESS : CT_UART_ERROR;
 }
 
 /**
@@ -264,14 +294,14 @@ static ct_return_code_t _ct_uart_init ( void )
  */
 static ct_return_code_t _ct_reset_uart ( void )
 {
-  if ( !self->uart_driver.deinit () )
+  if ( self->uart_driver.deinit () != UART_OK )
   {
     return CT_UART_ERROR;
   }
 
   tx_thread_sleep (1);
 
-  return self->uart_driver.init ();
+  return _ct_uart_init ();
 }
 
 /**
@@ -296,6 +326,8 @@ static void _ct_off ( void )
 
 static void __reset_ct_struct_fields ( void )
 {
+  self->timer_timeout = false;
+
   self->samples_accumulator.salinity = 0.0f;
   self->samples_accumulator.temp = 0.0f;
   // We will know if the CT sensor fails by the value 9999 in the iridium message
