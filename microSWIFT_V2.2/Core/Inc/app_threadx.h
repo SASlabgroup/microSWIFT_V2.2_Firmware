@@ -73,7 +73,7 @@ enum complete_flags
 
 enum interrupt_flags
 {
-  // GNSS DMA Reception flags (others use semaphores)
+  // GNSS DMA flags (others use semaphores)
   GNSS_CONFIG_RECVD             = ((ULONG) 1 << 0),
   GNSS_TX_COMPLETE              = ((ULONG) 1 << 1),
   GNSS_MSG_RECEIVED             = ((ULONG) 1 << 2),

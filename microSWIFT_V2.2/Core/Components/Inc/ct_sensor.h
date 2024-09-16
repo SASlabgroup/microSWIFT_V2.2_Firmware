@@ -11,6 +11,7 @@
 #include "app_threadx.h"
 #include "tx_api.h"
 #include "generic_uart_driver.h"
+#include "stddef.h"
 #include "stdint.h"
 #include "stdbool.h"
 #include "configuration.h"
@@ -32,46 +33,46 @@
 
 typedef enum ct_error_code
 {
-  CT_SUCCESS            = 0,
+  CT_SUCCESS            =  0,
   CT_UART_ERROR         = -1,
   CT_PARSING_ERROR      = -2,
   CT_SELF_TEST_FAIL     = -3,
   CT_NOT_ENOUGH_SAMPLES = -4,
   CT_DONE_SAMPLING      = -5
-} ct_error_code_t;
+} ct_return_code_t;
 
-typedef struct ct_samples
+typedef struct
 {
   double salinity;
   double temp;
-} ct_samples;
+} ct_sample;
 
 typedef struct CT
 {
   // Our global configuration struct
-  microSWIFT_configuration *global_config;
-  generic_uart_driver uart_driver;
+  microSWIFT_configuration  *global_config;
+  generic_uart_driver       uart_driver;
   // Event flags
-  TX_EVENT_FLAGS_GROUP *control_flags;
-  TX_EVENT_FLAGS_GROUP *error_flags;
+  TX_EVENT_FLAGS_GROUP      *error_flags;
   // The buffer written to by CT sensor
-  char *data_buf;
+  char                      data_buf[CT_DATA_ARRAY_SIZE];
   // Arrays to hold conductivity/temp values
-  ct_samples *samples_buf;
-  ct_samples averages;
-  // Keep track of the number of samples
-  uint32_t total_samples;
+  ct_sample                 samples_accumulator;
+  ct_sample                 samples_averages;
+  // Track the number of samples
+  int32_t                   total_samples;
   // Function pointers
-  ct_error_code_t (*parse_sample) ( void );
-  ct_error_code_t (*get_averages) ( void );
-  void (*on_off) ( GPIO_PinState pin_state );
-  ct_error_code_t (*self_test) ( bool add_warmup_time, ct_samples *optional_readings );
-  ct_error_code_t (*reset_ct_uart) ( void );
+  ct_return_code_t          (*parse_sample) ( void );
+  ct_return_code_t          (*get_averages) ( void );
+  ct_return_code_t          (*self_test) ( bool add_warmup_time, ct_sample *optional_readings );
+  ct_return_code_t          (*uart_init) ( void );
+  ct_return_code_t          (*reset_ct_uart) ( void );
+  void                      (*on) ( void );
+  void                      (*off) ( void );
 } CT;
 
-ct_error_code_t ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
-                          UART_HandleTypeDef *ct_uart_handle, TX_EVENT_FLAGS_GROUP *control_flags,
-                          TX_EVENT_FLAGS_GROUP *error_flags, char *data_buf,
-                          ct_samples *samples_buf );
+ct_return_code_t ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
+                          UART_HandleTypeDef *ct_uart_handle, TX_SEMAPHORE *uart_sema,
+                          TX_EVENT_FLAGS_GROUP *error_flags);
 // @formatter:on
 #endif /* SRC_CT_H_ */

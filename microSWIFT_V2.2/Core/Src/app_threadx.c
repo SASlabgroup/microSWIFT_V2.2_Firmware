@@ -864,6 +864,7 @@ static void control_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   Control control;
+  int32_t sample_window_counter = persistent_stotrage_get_sample_window_counter ();
 
   // Run tests if needed
   if ( tests.control_test != NULL )
@@ -881,7 +882,7 @@ static void control_thread_entry ( ULONG thread_input )
   {
     shut_down_all_peripherals ();
 
-    if ( persistent_stotrage_get_sample_window_counter () == 0 )
+    if ( sample_window_counter == 0 )
     {
       // Stay stuck here for a minute
       for ( int i = 0; i < 25; i++ )
@@ -895,22 +896,22 @@ static void control_thread_entry ( ULONG thread_input )
     HAL_NVIC_SystemReset ();
   }
 
-  if ( persistent_stotrage_get_sample_window_counter () == 0 )
+  if ( sample_window_counter == 0 )
   {
     led_sequence (TEST_PASSED_LED_SEQUENCE);
   }
 
   while ( 1 )
   {
-    // TODO: Monitor error flags, pass them off to error handler
     watchdog_check_in (CONTROL_THREAD);
 
-    // When GNSS is complete, break
-  }
+#warning "Monitor for errors here and handle them. Monitor for state (watch complete flags) and manage threads appropriately."
+    // TODO: Continue with the correct logic, i.e. if GNSS timed out, set alarm and shut down.
+    //       Otherwise, continue with other sensors, run waves, etc. Try to keep as many threads
+    //       as possible running concurrently.
 
-  // TODO: Continue with the correct logic, i.e. if GNSS timed out, set alarm and shut down.
-  //       Otherwise, continue with other sensors, run waves, etc. Try to keep as many threads
-  //       as possible running concurrently.
+    // TODO: When GNSS is complete, break
+  }
 
 }
 

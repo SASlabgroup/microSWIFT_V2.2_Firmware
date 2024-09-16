@@ -56,13 +56,13 @@ static void                 _gnss_on ( void );
 static void                 _gnss_off ( void );
 
 // Static helper functions
-static void                 __cycle_power ( void );
 static gnss_return_code_t   __send_config ( uint8_t *config_array, size_t message_size,
                                           uint8_t response_class, uint8_t response_id );
 static gnss_return_code_t   __enable_high_performance_mode ( void );
 static gnss_return_code_t   __query_high_performance_mode ( void );
 static gnss_return_code_t   __start_GNSS_UART_DMA ( uint8_t *buffer, size_t buffer_size );
 static time_t               __get_timestamp ( void );
+static void                 __cycle_power ( void );
 static void                 __process_frame_sync_messages ( uint8_t *process_buf );
 static void                 __reset_struct_fields ( void );
 // @formatter:on
@@ -739,23 +739,6 @@ static void _gnss_off ( void )
 }
 
 /**
- * Cycle power to the unit with a short delay
- *
- * @param self - GNSS struct
- *
- * @return void
- */
-static void __cycle_power ( void )
-{
-  self->off ();
-//      HAL_Delay(25);
-  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-  self->on ();
-//      HAL_Delay(25);
-  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-}
-
-/**
  * Send a configuration to the GNSS chip. Will retry up to 10 times before
  * returning failure.
  *
@@ -1186,7 +1169,24 @@ static time_t __get_timestamp ( void )
 }
 
 /**
+ * Cycle power to the unit with a short delay
  *
+ * @param self - GNSS struct
+ *
+ * @return void
+ */
+static void __cycle_power ( void )
+{
+  self->off ();
+//      HAL_Delay(25);
+  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+  self->on ();
+//      HAL_Delay(25);
+  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+}
+
+/**
+ * Zero out all struct fields.
  *
  * @param self- GNSS struct
  * @param

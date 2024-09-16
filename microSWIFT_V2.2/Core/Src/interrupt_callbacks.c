@@ -94,7 +94,7 @@ void HAL_UART_TxCpltCallback ( UART_HandleTypeDef *huart )
   }
   else if ( huart->Instance == GNSS_UART )
   {
-    (void) tx_semaphore_put (&gnss_uart_sema);
+    (void) tx_event_flags_set (&irq_flags, GNSS_TX_COMPLETE, TX_OR);
   }
   else if ( huart->Instance == AUX_UART_1 )
   {
@@ -127,12 +127,12 @@ void HAL_UART_RxCpltCallback ( UART_HandleTypeDef *huart )
     if ( !gnss_get_configured_status () )
     {
 
-      tx_event_flags_set (&irq_flags, GNSS_CONFIG_RECVD, TX_OR);
+      (void) tx_event_flags_set (&irq_flags, GNSS_CONFIG_RECVD, TX_OR);
 
     }
     else
     {
-      tx_event_flags_set (&irq_flags, GNSS_MSG_RECEIVED, TX_OR);
+      (void) tx_event_flags_set (&irq_flags, GNSS_MSG_RECEIVED, TX_OR);
     }
   }
   else if ( huart->Instance == AUX_UART_1 )
@@ -153,7 +153,8 @@ void HAL_UART_RxCpltCallback ( UART_HandleTypeDef *huart )
 void HAL_UART_ErrorCallback ( UART_HandleTypeDef *huart )
 {
   UNUSED(huart);
-  // TODO: Add a call to set an error flag here?
+#warning "Add a call to set an error flag here. Probably best to try to manage the error in Control\
+          Thread."
 }
 
 /**
@@ -177,11 +178,11 @@ void HAL_UARTEx_RxEventCallback ( UART_HandleTypeDef *huart, uint16_t Size )
   {
     if ( Size < UBX_NAV_PVT_MESSAGE_LENGTH )
     {
-      tx_event_flags_set (&irq_flags, GNSS_MSG_INCOMPLETE, TX_OR);
+      (void) tx_event_flags_set (&irq_flags, GNSS_MSG_INCOMPLETE, TX_OR);
     }
     else
     {
-      tx_event_flags_set (&irq_flags, GNSS_MSG_RECEIVED, TX_OR);
+      (void) tx_event_flags_set (&irq_flags, GNSS_MSG_RECEIVED, TX_OR);
     }
   }
   else if ( huart->Instance == AUX_UART_1 )

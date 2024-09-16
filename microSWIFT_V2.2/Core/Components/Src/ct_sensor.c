@@ -19,51 +19,51 @@
 #include "ct_sensor.h"
 #include "stdarg.h"
 
+// @formatter:off
 // Object instance pointer
 CT *self;
 
-static ct_error_code_t ct_parse_sample ( void );
-static ct_error_code_t ct_get_averages ( void );
-static void ct_on_off ( GPIO_PinState pin_state );
-static ct_error_code_t ct_self_test ( bool add_warmup_time, ct_samples *optional_readings );
-static ct_error_code_t reset_ct_uart ( void );
+static ct_return_code_t _ct_parse_sample ( void );
+static ct_return_code_t _ct_get_averages ( void );
+static ct_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *optional_readings );
+static ct_return_code_t _ct_uart_init ( void );
+static ct_return_code_t _ct_reset_uart ( void );
+static void             _ct_on ( void );
+static void             _ct_off ( void );
 
 // Helper functions
-static void reset_ct_struct_fields ( void );
+static void             __reset_ct_struct_fields ( void );
 
 // Search terms
-static const char *temp_units = "Deg.C";
+static const char *temp_units =     "Deg.C";
 static const char *salinity_units = "PSU";
+
+// @formatter:on
 
 /**
  * Initialize the CT struct
  *
  * @return void
  */
-ct_error_code_t ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
-                          UART_HandleTypeDef *ct_uart_handle, TX_EVENT_FLAGS_GROUP *control_flags,
-                          TX_EVENT_FLAGS_GROUP *error_flags, char *data_buf,
-                          ct_samples *samples_buf )
+ct_return_code_t ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
+                           UART_HandleTypeDef *ct_uart_handle, TX_SEMAPHORE *uart_sema,
+                           TX_EVENT_FLAGS_GROUP *error_flags )
 {
   // Assign object pointer
   self = struct_ptr;
 
-  reset_ct_struct_fields ();
+  __reset_ct_struct_fields ();
   self->global_config = global_config;
-  self->control_flags = control_flags;
   self->error_flags = error_flags;
-  self->data_buf = data_buf;
-  self->samples_buf = samples_buf;
-  self->parse_sample = ct_parse_sample;
-  self->get_averages = ct_get_averages;
-  self->on_off = ct_on_off;
-  self->self_test = ct_self_test;
-  self->reset_ct_uart = reset_ct_uart;
-  // zero out the buffer
-  memset (&(self->data_buf[0]), 0, CT_DATA_ARRAY_SIZE);
-  memset (&(self->samples_buf[0]), 0, self->global_config->total_ct_samples * sizeof(ct_samples));
+  self->parse_sample = _ct_parse_sample;
+  self->get_averages = _ct_get_averages;
+  self->self_test = _ct_self_test;
+  self->uart_init = _ct_uart_init;
+  self->reset_ct_uart = _ct_reset_uart;
+  self->on = _ct_on;
+  self->off = _ct_off;
 
-  generic_uart_register_io_functions (&self->uart_driver, &huart5, &ct_uart_sema, uart5_init,
+  generic_uart_register_io_functions (&self->uart_driver, ct_uart_handle, uart_sema, uart5_init,
                                       uart5_deinit, NULL, NULL);
 
   if ( self->uart_driver.init () != UART_OK )
@@ -77,11 +77,11 @@ ct_error_code_t ct_init ( CT *struct_ptr, microSWIFT_configuration *global_confi
 /**
  *
  *
- * @return ct_error_code_t
+ * @return ct_return_code_t
  */
-static ct_error_code_t ct_parse_sample ( void )
+static ct_return_code_t _ct_parse_sample ( void )
 {
-  ct_error_code_t return_code = CT_SUCCESS;
+  ct_return_code_t return_code = CT_SUCCESS;
   int fail_counter = 0, max_retries = 10;
   double temperature, salinity;
   char *index;
@@ -139,8 +139,9 @@ static ct_error_code_t ct_parse_sample ( void )
       continue;
     }
 
-    self->samples_buf[self->total_samples].salinity = salinity;
-    self->samples_buf[self->total_samples].temp = temperature;
+    self->samples_accumulator.salinity += salinity;
+    self->samples_accumulator.temp += temperature;
+
     self->total_samples++;
 
     return_code = CT_SUCCESS;
@@ -156,24 +157,15 @@ static ct_error_code_t ct_parse_sample ( void )
  * @return ct_samples struct containing the averages conductivity
  *         and temperature values
  */
-static ct_error_code_t ct_get_averages ( void )
+static ct_return_code_t _ct_get_averages ( void )
 {
-  double temp_sum = 0.0;
-  double salinity_sum = 0.0;
-
   if ( self->total_samples < self->global_config->total_ct_samples )
   {
     return CT_NOT_ENOUGH_SAMPLES;
   }
 
-  for ( int i = 0; i < self->total_samples; i++ )
-  {
-    temp_sum += self->samples_buf[i].temp;
-    salinity_sum += self->samples_buf[i].salinity;
-  }
-
-  self->averages.temp = temp_sum / ((double) self->total_samples);
-  self->averages.salinity = salinity_sum / ((double) self->total_samples);
+  self->samples_averages.temp = self->samples_accumulator.salinity / ((double) self->total_samples);
+  self->samples_averages.salinity = self->samples_accumulator.temp / ((double) self->total_samples);
 
   return CT_SUCCESS;
 }
@@ -181,21 +173,11 @@ static ct_error_code_t ct_get_averages ( void )
 /**
  *
  *
- * @return ct_error_code_t
+ * @return ct_return_code_t
  */
-static void ct_on_off ( GPIO_PinState pin_state )
+static ct_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *optional_readings )
 {
-  HAL_GPIO_WritePin (GPIOG, CT_FET_Pin, pin_state);
-}
-
-/**
- *
- *
- * @return ct_error_code_t
- */
-static ct_error_code_t ct_self_test ( bool add_warmup_time, ct_samples *optional_readings )
-{
-  ct_error_code_t return_code;
+  ct_return_code_t return_code;
   uint32_t elapsed_time, start_time;
   double temperature, salinity;
   char *index;
@@ -267,13 +249,20 @@ static ct_error_code_t ct_self_test ( bool add_warmup_time, ct_samples *optional
 
 }
 
+static ct_return_code_t _ct_uart_init ( void )
+{
+  ct_return_code_t ret;
+
+  return ret;
+}
+
 /**
- * Reinitialize the CT UART port. Required when switching between Tx and Rx.
+ * Reinitialize the CT UART port.
  *
  * @param self - GNSS struct
  * @param baud_rate - baud rate to set port to
  */
-static ct_error_code_t reset_ct_uart ( void )
+static ct_return_code_t _ct_reset_uart ( void )
 {
   if ( !self->uart_driver.deinit () )
   {
@@ -285,11 +274,36 @@ static ct_error_code_t reset_ct_uart ( void )
   return self->uart_driver.init ();
 }
 
-static void reset_ct_struct_fields ( void )
+/**
+ * Turn on the CT sensor FET.
+ *
+ * @return Void
+ */
+static void _ct_on ( void )
 {
-  // We will know if the CT sensor fails by the value 9999 in the
-  // iridium message
-  self->averages.salinity = CT_VALUES_ERROR_CODE;
-  self->averages.temp = CT_VALUES_ERROR_CODE;
+  HAL_GPIO_WritePin (GPIOG, CT_FET_Pin, GPIO_PIN_SET);
+}
+
+/**
+ * Turn off the CT sensor FET.
+ *
+ * @return Void
+ */
+static void _ct_off ( void )
+{
+  HAL_GPIO_WritePin (GPIOG, CT_FET_Pin, GPIO_PIN_RESET);
+}
+
+static void __reset_ct_struct_fields ( void )
+{
+  self->samples_accumulator.salinity = 0.0f;
+  self->samples_accumulator.temp = 0.0f;
+  // We will know if the CT sensor fails by the value 9999 in the iridium message
+  self->samples_averages.salinity = CT_VALUES_ERROR_CODE;
+  self->samples_averages.temp = CT_VALUES_ERROR_CODE;
+
   self->total_samples = 0;
+
+  // zero out the buffer
+  memset (&(self->data_buf[0]), 0, CT_DATA_ARRAY_SIZE);
 }
