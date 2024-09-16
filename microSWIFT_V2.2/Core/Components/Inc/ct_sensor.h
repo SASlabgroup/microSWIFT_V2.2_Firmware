@@ -86,7 +86,7 @@ void ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
 
 void ct_deinit ( void );
 
-void ct_timer_timeout ( void );
+void ct_timer_expired ( ULONG expiration_input );
 bool ct_get_timeout_status ( void );
 // @formatter:on
 #endif /* SRC_CT_H_ */

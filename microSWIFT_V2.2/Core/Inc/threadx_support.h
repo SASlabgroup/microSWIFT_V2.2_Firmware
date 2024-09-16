@@ -23,6 +23,7 @@
 // @formatter:off
 
 #define ALL_EVENT_FLAGS (0xFFFFFFFF)
+#define NO_ERROR_FLAG 0U
 
 typedef enum led_sequence
 {
@@ -32,12 +33,15 @@ typedef enum led_sequence
 } led_sequence_t;
 
 bool        gnss_apply_config ( GNSS *gnss );
-bool        ct_self_test ( CT *ct, ct_samples *self_test_readings );
+bool        ct_self_test ( CT *ct, ct_sample *self_test_readings );
 bool        temperature_self_test ( Temperature *temperature, float *self_test_temp );
 bool        turbidity_self_test ( void );
 bool        light_self_test ( void );
 bool        accelerometer_self_test ( void );
 bool        iridium_apply_config ( Iridium *iridium );
+
+void        gnss_error_out(GNSS *gnss, ULONG error_flag, TX_THREAD *gnss_thread, const char *fmt, ...);
+void        ct_error_out(CT* ct, ULONG error_flag, TX_THREAD *ct_thread, const char *fmt, ...);
 
 void        expansion_timer_1_expired(ULONG expiration_input);
 void        expansion_timer_2_expired(ULONG expiration_input);

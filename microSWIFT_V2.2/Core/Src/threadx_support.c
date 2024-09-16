@@ -7,6 +7,7 @@
 
 #include "threadx_support.h"
 #include "stdbool.h"
+#include "stdarg.h"
 #include "tx_api.h"
 #include "main.h"
 #include "gnss.h"
@@ -17,6 +18,8 @@
 #include "light_sensor.h"
 #include "accelerometer_sensor.h"
 #include "iridium.h"
+#include "persistent_ram.h"
+#include "logger.h"
 
 bool gnss_apply_config ( GNSS *gnss )
 {
@@ -40,17 +43,17 @@ bool gnss_apply_config ( GNSS *gnss )
   return (gnss_return_code == GNSS_SUCCESS);
 }
 
-bool ct_and_self_test ( CT *ct )
+bool ct_self_test ( CT *ct, ct_sample *self_test_readings )
 {
   int32_t fail_counter = 0, max_retries = 10;
-  ct_error_code_t ct_return_code;
+  ct_return_code_t ct_return_code;
 
-  ct->on_off (GPIO_PIN_SET);
+  ct->on ();
 
   while ( fail_counter < max_retries )
   {
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    ct_return_code = ct->self_test (false, NULL);
+    ct_return_code = ct->self_test (false, self_test_readings);
     if ( ct_return_code != CT_SUCCESS )
     {
       fail_counter++;
@@ -61,7 +64,7 @@ bool ct_and_self_test ( CT *ct )
     }
   }
 
-  ct->on_off (GPIO_PIN_RESET);
+  ct->off ();
 
   return (ct_return_code == CT_SUCCESS);
 }
@@ -156,9 +159,41 @@ bool iridium_apply_config ( Iridium *iridium )
   return (iridium_return_code == IRIDIUM_SUCCESS);
 }
 
+void gnss_error_out ( GNSS *gnss, ULONG error_flag, TX_THREAD *gnss_thread, const char *fmt, ... )
+{
+  va_list args;
+  va_start(args, fmt);
+
+  gnss->off ();
+  uart_logger_log_line (fmt, args);
+
+  if ( error_flag != NO_ERROR_FLAG )
+  {
+    (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
+  }
+
+  tx_thread_suspend (gnss_thread);
+}
+
+void ct_error_out ( CT *ct, ULONG error_flag, TX_THREAD *ct_thread, const char *fmt, ... )
+{
+  va_list args;
+  va_start(args, fmt);
+
+  ct->off ();
+  uart_logger_log_line (fmt, args);
+
+  if ( error_flag != NO_ERROR_FLAG )
+  {
+    (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
+  }
+
+  tx_thread_suspend (ct_thread);
+}
+
 bool is_first_sample_window ( void )
 {
-  return true;
+  return (persistent_stotrage_get_sample_window_counter () == 0);
 }
 
 ULONG get_current_flags ( TX_EVENT_FLAGS_GROUP *event_flags )

@@ -90,8 +90,9 @@ void ct_deinit ( void )
  *
  * @return void
  */
-void ct_timer_timeout ( void )
+void ct_timer_expired ( ULONG expiration_input )
 {
+  (void) expiration_input;
   self->timer_timeout = true;
 }
 

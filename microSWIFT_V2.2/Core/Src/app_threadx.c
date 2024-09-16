@@ -864,7 +864,6 @@ static void control_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   Control control;
-  int32_t sample_window_counter = persistent_stotrage_get_sample_window_counter ();
 
   // Run tests if needed
   if ( tests.control_test != NULL )
@@ -882,7 +881,7 @@ static void control_thread_entry ( ULONG thread_input )
   {
     shut_down_all_peripherals ();
 
-    if ( sample_window_counter == 0 )
+    if ( !is_first_sample_window () )
     {
       // Stay stuck here for a minute
       for ( int i = 0; i < 25; i++ )
@@ -896,7 +895,7 @@ static void control_thread_entry ( ULONG thread_input )
     HAL_NVIC_SystemReset ();
   }
 
-  if ( sample_window_counter == 0 )
+  if ( !is_first_sample_window () )
   {
     led_sequence (TEST_PASSED_LED_SEQUENCE);
   }
@@ -974,9 +973,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   // Apply configuration through UBX_VALSET messages
   if ( !gnss_apply_config (&gnss) )
   {
-    gnss.off ();
-    uart_logger_log_line ("GNSS failed to initialize.");
-    tx_thread_suspend (this_thread);
+    gnss_error_out (&gnss, NO_ERROR_FLAG, this_thread, "GNSS failed to initialize.");
   }
 
   // Report init success
@@ -1030,10 +1027,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   if ( gnss.sync_and_start_reception () != GNSS_SUCCESS )
   {
     // If we were unable to get good GNSS reception and start the DMA transfer loop, then shutdown
-    gnss.off ();
-    uart_logger_log_line ("GNSS frame sync failed.");
-    (void) tx_event_flags_set (&error_flags, GNSS_FRAME_SYNC_FAILED, TX_OR);
-    tx_thread_suspend (this_thread);
+    gnss_error_out (&gnss, GNSS_FRAME_SYNC_FAILED, this_thread, "GNSS frame sync failed.");
   }
 
   // We are now running in DMA circular mode
@@ -1059,11 +1053,8 @@ static void gnss_thread_entry ( ULONG thread_input )
   // Failed to resolve time within alloted period
   if ( gnss_get_timer_timeout_status () )
   {
-    gnss.off ();
-    uart_logger_log_line ("GNSS failed to get a fix within alloted time of :%d.",
-                          gnss_max_acq_time);
-    (void) tx_event_flags_set (&error_flags, GNSS_RESOLUTION_ERROR, TX_OR);
-    tx_thread_suspend (this_thread);
+    gnss_error_out (&gnss, GNSS_RESOLUTION_ERROR, this_thread,
+                    "GNSS failed to get a fix within alloted time of :%d.", gnss_max_acq_time);
   }
 
   // Start the sample window timer
@@ -1095,11 +1086,9 @@ static void gnss_thread_entry ( ULONG thread_input )
         // If we get a full minute worth of dropped or incomplete messages, fail out
         if ( ++number_of_no_sample_errors == configuration.gnss_sampling_rate * 60 )
         {
-          gnss.off ();
-          uart_logger_log_line ("GNSS received too many partial or dropped messages: %d",
-                                number_of_no_sample_errors);
-          (void) tx_event_flags_set (&error_flags, GNSS_SAMPLE_WINDOW_ERROR, TX_OR);
-          tx_thread_suspend (this_thread);
+          gnss_error_out (&gnss, GNSS_SAMPLE_WINDOW_ERROR, this_thread,
+                          "GNSS received too many partial or dropped messages: %d",
+                          number_of_no_sample_errors);
         }
 
       }
@@ -1108,21 +1097,16 @@ static void gnss_thread_entry ( ULONG thread_input )
     // Any other return code indicates something got corrupted. Let's hope this works...
     else
     {
-      gnss.off ();
-      uart_logger_log_line ("Memory corruption detected in GNSS thread.");
-      (void) tx_event_flags_set (&error_flags, MEMORY_CORRUPTION, TX_OR);
-      tx_thread_suspend (this_thread);
+      gnss_error_out (&gnss, MEMORY_CORRUPTION, this_thread,
+                      "Memory corruption detected in GNSS thread.");
     }
 
     // If this evaluates to true, something hung up with GNSS sampling and we were not able
     // to get all required samples in the alloted time.
     if ( gnss_get_timer_timeout_status () )
     {
-      gnss.off ();
-      uart_logger_log_line ("GNSS sample window timed out after %d minutes.",
-                            sample_window_timeout);
-      (void) tx_event_flags_set (&error_flags, GNSS_SAMPLE_WINDOW_TIMEOUT, TX_OR);
-      tx_thread_suspend (this_thread);
+      gnss_error_out (&gnss, GNSS_SAMPLE_WINDOW_TIMEOUT, this_thread,
+                      "GNSS sample window timed out after %d minutes.", sample_window_timeout);
     }
   }
 
@@ -1175,14 +1159,12 @@ static void ct_thread_entry ( ULONG thread_input )
   real16_T half_temp;
   int fail_counter;
 
-  ct_init (&ct, &configuration, device_handles.ct_uart_handle, &thread_control_flags, &error_flags,
-           &(ct_data[0]), &(ct_samples_buf[0]));
+  ct_init (&ct, &configuration, device_handles.ct_uart_handle, device_handles.ct_uart_tx_dma_handle,
+           device_handles.ct_uart_rx_dma_handle, &ct_uart_sema, &error_flags);
 
   if ( !ct_self_test (&ct, &self_test_readings) )
   {
-    uart_logger_log_line ("CT self test failed.");
-#error "ensure in all failure cases that the CT sensor is shut down"
-    tx_thread_suspend (this_thread);
+    ct_error_out (&ct, NO_ERROR_FLAG, this_thread, "CT self test failed.");
   }
 
   uart_logger_log_line ("CT initialization complete. Temp = %3f, Salinity = %3f",
