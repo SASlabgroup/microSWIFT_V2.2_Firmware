@@ -1159,22 +1159,17 @@ static void ct_thread_entry ( ULONG thread_input )
   real16_T half_temp;
   int fail_counter;
 
+  // Set the mean salinity and temp values to error values in the event the sensor fails
+  half_salinity.bitPattern = CT_VALUES_ERROR_CODE;
+  half_temp.bitPattern = CT_VALUES_ERROR_CODE;
+
+  memcpy (&sbd_message.mean_salinity, &half_salinity, sizeof(real16_T));
+  memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
+
   ct_init (&ct, &configuration, device_handles.ct_uart_handle, device_handles.ct_uart_tx_dma_handle,
            device_handles.ct_uart_rx_dma_handle, &ct_uart_sema, &error_flags);
 
-  if ( !ct_self_test (&ct, &self_test_readings) )
-  {
-    ct_error_out (&ct, NO_ERROR_FLAG, this_thread, "CT self test failed.");
-  }
-
-  uart_logger_log_line ("CT initialization complete. Temp = %3f, Salinity = %3f",
-                        self_test_readings.temp, self_test_readings.salinity);
-  (void) tx_event_flags_set (&initialization_flags, CT_INIT_SUCCESS, TX_OR);
-
-  tx_thread_suspend (this_thread);
-
-  watchdog_register_thread (CT_THREAD);
-  watchdog_check_in (CT_THREAD);
+  ct.on ();
 
   //
   // Run tests if needed
@@ -1183,43 +1178,28 @@ static void ct_thread_entry ( ULONG thread_input )
     tests.ct_thread_test (NULL);
   }
 
-  watchdog_check_in (CT_THREAD);
-
-// Set the mean salinity and temp values to error values in the event the sensor fails
-  half_salinity.bitPattern = CT_AVERAGED_VALUE_ERROR_CODE;
-  half_temp.bitPattern = CT_AVERAGED_VALUE_ERROR_CODE;
-
-  memcpy (&sbd_message.mean_salinity, &half_salinity, sizeof(real16_T));
-  memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
-
-// The first message will have a different frame length from a header, so adjust the fail
-// counter appropriately
-  fail_counter = -1;
-// Turn on the CT sensor, warm it up, and frame sync
-  while ( fail_counter < MAX_SELF_TEST_RETRIES )
+  if ( !ct_self_test (&ct, false, &self_test_readings) )
   {
-
-    watchdog_check_in (CT_THREAD);
-
-    ct_return_code = ct->self_test (false);
-    if ( ct_return_code != CT_SUCCESS )
-    {
-      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-      fail_counter++;
-
-    }
-    else
-    {
-
-      break;
-    }
+    ct_error_out (&ct, NO_ERROR_FLAG, this_thread, "CT self test failed.");
   }
 
-  if ( fail_counter == MAX_SELF_TEST_RETRIES )
-  {
+  uart_logger_log_line ("CT initialization complete. Temp = %3f, Salinity = %3f",
+                        self_test_readings.temp, self_test_readings.salinity);
+  (void) tx_event_flags_set (&initialization_flags, CT_INIT_SUCCESS, TX_OR);
 
-    watchdog_check_in (CT_THREAD);
-    jump_to_waves ();
+  ct.off ();
+
+  tx_thread_suspend (this_thread);
+
+  // Control will resume when ready
+
+  watchdog_register_thread (CT_THREAD);
+  watchdog_check_in (CT_THREAD);
+
+  // Turn on the CT sensor, warm it up, and frame sync
+  if ( !ct_self_test (&ct, true, &self_test_readings) )
+  {
+    ct_error_out (&ct, NO_ERROR_FLAG, this_thread, "CT self test failed.");
   }
 
 // Take our samples

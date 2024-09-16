@@ -43,7 +43,7 @@ bool gnss_apply_config ( GNSS *gnss )
   return (gnss_return_code == GNSS_SUCCESS);
 }
 
-bool ct_self_test ( CT *ct, ct_sample *self_test_readings )
+bool ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings )
 {
   int32_t fail_counter = 0, max_retries = 10;
   ct_return_code_t ct_return_code;
@@ -53,7 +53,7 @@ bool ct_self_test ( CT *ct, ct_sample *self_test_readings )
   while ( fail_counter < max_retries )
   {
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    ct_return_code = ct->self_test (false, self_test_readings);
+    ct_return_code = ct->self_test (add_warmup_time, self_test_readings);
     if ( ct_return_code != CT_SUCCESS )
     {
       fail_counter++;
