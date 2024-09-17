@@ -1286,7 +1286,7 @@ static void temperature_thread_entry ( ULONG thread_input )
     tx_thread_suspend (this_thread);
   }
 
-  // TODO: add temperature and salinity readings to self test, report here.
+  // TODO: add temperature readings to self test, report here.
   uart_logger_log_line ("Temperature initialization complete.");
   (void) tx_event_flags_set (&initialization_flags, TEMPERATURE_INIT_SUCCESS, TX_OR);
 
