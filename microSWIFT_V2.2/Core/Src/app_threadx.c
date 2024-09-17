@@ -908,6 +908,7 @@ static void control_thread_entry ( ULONG thread_input )
     // TODO: Continue with the correct logic, i.e. if GNSS timed out, set alarm and shut down.
     //       Otherwise, continue with other sensors, run waves, etc. Try to keep as many threads
     //       as possible running concurrently.
+    // TODO: If a sensor is not present, fill the SBD message fields with 0's.
 
     // TODO: When GNSS is complete, break
   }
@@ -1152,12 +1153,9 @@ static void ct_thread_entry ( ULONG thread_input )
   CT ct;
   ct_sample ct_readings =
     { 0 };
-
   ct_return_code_t ct_return_code;
-  uint32_t ct_parsing_error_counter;
-  real16_T half_salinity;
-  real16_T half_temp;
-  int fail_counter;
+  uint32_t ct_parsing_error_counter = 0;
+  real16_T half_salinity, half_temp;
 
   // Set the mean salinity and temp values to error values in the event the sensor fails
   half_salinity.bitPattern = CT_VALUES_ERROR_CODE;
@@ -1183,16 +1181,15 @@ static void ct_thread_entry ( ULONG thread_input )
     ct_error_out (&ct, NO_ERROR_FLAG, this_thread, "CT self test failed.");
   }
 
-  uart_logger_log_line ("CT initialization complete. Temp = %3f, Salinity = %3f",
-                        self_test_readings.temp, self_test_readings.salinity);
+  uart_logger_log_line ("CT initialization complete. Temp = %3f, Salinity = %3f", ct_readings.temp,
+                        ct_readings.salinity);
   (void) tx_event_flags_set (&initialization_flags, CT_INIT_SUCCESS, TX_OR);
 
   // Control will resume when ready
   ct.off ();
   tx_thread_suspend (this_thread);
 
-  // Now begin sampling period
-
+  /******************************* Control thread resumes this thread *****************************/
   ct.on ();
   watchdog_register_thread (CT_THREAD);
   watchdog_check_in (CT_THREAD);
@@ -1203,8 +1200,7 @@ static void ct_thread_entry ( ULONG thread_input )
     ct_error_out (&ct, CT_ERROR, this_thread, "CT self test failed.");
   }
 
-// Take our samples
-  ct_parsing_error_counter = 0;
+  // Take our samples
   while ( ct.total_samples < configuration.total_ct_samples )
   {
 

@@ -15,6 +15,7 @@
 #include "stm32u5xx_hal.h"
 #include "configuration.h"
 
+// @formatter:off
 // Object instance pointer
 static Temperature *self;
 
@@ -215,3 +216,5 @@ static void reset_struct_fields ( bool reset_calibration )
   self->D1 = 0;
   self->adc = 0;
 }
+
+// @formatter:on
