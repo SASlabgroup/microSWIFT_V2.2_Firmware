@@ -71,7 +71,7 @@ typedef struct CT
   bool                      timer_timeout;
   // Function pointers
   ct_return_code_t          (*parse_sample) ( void );
-  ct_return_code_t          (*get_averages) ( void );
+  ct_return_code_t          (*get_averages) ( ct_sample *readings );
   ct_return_code_t          (*self_test) ( bool add_warmup_time, ct_sample *optional_readings );
   ct_return_code_t          (*uart_init) ( void );
   ct_return_code_t          (*reset_ct_uart) ( void );

@@ -24,7 +24,7 @@
 CT *self;
 
 static ct_return_code_t _ct_parse_sample ( void );
-static ct_return_code_t _ct_get_averages ( void );
+static ct_return_code_t _ct_get_averages ( ct_sample *readings );
 static ct_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *optional_readings );
 static ct_return_code_t _ct_uart_init ( void );
 static ct_return_code_t _ct_reset_uart ( void );
@@ -189,7 +189,7 @@ static ct_return_code_t _ct_parse_sample ( void )
  * @return ct_samples struct containing the averages conductivity
  *         and temperature values
  */
-static ct_return_code_t _ct_get_averages ( void )
+static ct_return_code_t _ct_get_averages ( ct_sample *readings )
 {
   if ( self->total_samples < self->global_config->total_ct_samples )
   {
@@ -198,6 +198,9 @@ static ct_return_code_t _ct_get_averages ( void )
 
   self->samples_averages.temp = self->samples_accumulator.salinity / ((double) self->total_samples);
   self->samples_averages.salinity = self->samples_accumulator.temp / ((double) self->total_samples);
+
+  readings->temp = self->samples_averages.temp;
+  readings->salinity = self->samples_averages.salinity;
 
   return CT_SUCCESS;
 }

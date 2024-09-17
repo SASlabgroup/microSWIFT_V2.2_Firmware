@@ -1150,7 +1150,7 @@ static void ct_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = &ct_thread;
   CT ct;
-  ct_sample self_test_readings =
+  ct_sample ct_readings =
     { 0 };
 
   ct_return_code_t ct_return_code;
@@ -1178,7 +1178,7 @@ static void ct_thread_entry ( ULONG thread_input )
     tests.ct_thread_test (NULL);
   }
 
-  if ( !ct_self_test (&ct, false, &self_test_readings) )
+  if ( !ct_self_test (&ct, false, &ct_readings) )
   {
     ct_error_out (&ct, NO_ERROR_FLAG, this_thread, "CT self test failed.");
   }
@@ -1187,28 +1187,29 @@ static void ct_thread_entry ( ULONG thread_input )
                         self_test_readings.temp, self_test_readings.salinity);
   (void) tx_event_flags_set (&initialization_flags, CT_INIT_SUCCESS, TX_OR);
 
+  // Control will resume when ready
   ct.off ();
-
   tx_thread_suspend (this_thread);
 
-  // Control will resume when ready
+  // Now begin sampling period
 
+  ct.on ();
   watchdog_register_thread (CT_THREAD);
   watchdog_check_in (CT_THREAD);
 
   // Turn on the CT sensor, warm it up, and frame sync
-  if ( !ct_self_test (&ct, true, &self_test_readings) )
+  if ( !ct_self_test (&ct, true, &ct_readings) )
   {
-    ct_error_out (&ct, NO_ERROR_FLAG, this_thread, "CT self test failed.");
+    ct_error_out (&ct, CT_ERROR, this_thread, "CT self test failed.");
   }
 
 // Take our samples
   ct_parsing_error_counter = 0;
-  while ( ct->total_samples < configuration.total_ct_samples )
+  while ( ct.total_samples < configuration.total_ct_samples )
   {
 
     watchdog_check_in (CT_THREAD);
-    ct_return_code = ct->parse_sample ();
+    ct_return_code = ct.parse_sample ();
 
     if ( ct_return_code == CT_PARSING_ERROR )
     {
@@ -1217,10 +1218,9 @@ static void ct_thread_entry ( ULONG thread_input )
 
     if ( (ct_parsing_error_counter >= 10) || (ct_return_code == CT_UART_ERROR) )
     {
-      // If there are too many parsing errors or a UART error occurs, then
-      // stop trying and
-      watchdog_check_in (CT_THREAD);
-      jump_to_waves ();
+      // If there are too many parsing errors or a UART error occurs, stop trying
+      ct_error_out (&ct, CT_ERROR, this_thread,
+                    "CT sensor too many parsing errors, shutting down.");
     }
 
     if ( ct_return_code == CT_DONE_SAMPLING )
@@ -1231,24 +1231,22 @@ static void ct_thread_entry ( ULONG thread_input )
 
   watchdog_check_in (CT_THREAD);
 
-// Turn off the CT sensor
-  ct->on_off (GPIO_PIN_RESET);
-// Deinit UART and DMA to prevent spurious interrupts
-  HAL_UART_DeInit (ct->ct_uart_handle);
-  HAL_DMA_DeInit (ct->ct_dma_handle);
+  // Turn off the CT sensor
+  ct.off ();
+  // Deinit UART and DMA to prevent spurious interrupts
+  ct_deinit ();
 
-// Got our samples, now average them
-  ct_return_code = ct->get_averages ();
-// Make sure something didn't go terribly wrong
+  // Got our samples, now average them
+  ct_return_code = ct.get_averages (&ct_readings);
+  // Make sure something didn't go terribly wrong
   if ( ct_return_code == CT_NOT_ENOUGH_SAMPLES )
   {
-    watchdog_check_in (CT_THREAD);
-    jump_to_waves ();
+    ct_error_out (&ct, CT_ERROR, this_thread, "CT sensor did not collect enough samples.");
   }
 
-// Now set the mean salinity and temp values to the real ones
-  half_salinity = floatToHalf ((float) ct->averages.salinity);
-  half_temp = floatToHalf ((float) ct->averages.temp);
+  // Now set the mean salinity and temp values to the real ones
+  half_salinity = doubleToHalf (ct_readings.salinity);
+  half_temp = doubleToHalf (ct_readings.temp);
 
   memcpy (&sbd_message.mean_salinity, &half_salinity, sizeof(real16_T));
   memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
