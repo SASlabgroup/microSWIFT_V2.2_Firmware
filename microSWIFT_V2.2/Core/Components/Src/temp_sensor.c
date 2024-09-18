@@ -20,106 +20,67 @@
 static Temperature *self;
 
 // Struct functions
-static void temperature_on ( void );
-static void temperature_off ( void );
-static temperature_error_code_t temperature_reset_i2c ( void );
-static temperature_error_code_t temperature_self_test ( void );
-static temperature_error_code_t temperature_get_readings ( void );
+static temperature_return_code_t _temperature_self_test ( float *optional_reading );
+static temperature_return_code_t _temperature_get_readings ( bool get_single_reading, float *temperature );
+static void                      _temperature_on ( void );
+static void                      _temperature_off ( void );
 
 // Helper functions
-static bool init_sensor ( void );
-static float calculate_temp ( void );
-static void reset_struct_fields ( bool reset_calibration );
+static bool                      __init_sensor ( void );
+static float                     __calculate_temp ( void );
+static void                      __reset_struct_fields ( bool reset_calibration );
+// @formatter:on
 
-void temperature_init ( Temperature *struct_ptr, I2C_HandleTypeDef *i2c_handle,
-                        TX_EVENT_FLAGS_GROUP *control_flags, TX_EVENT_FLAGS_GROUP *error_flags,
-                        GPIO_TypeDef *gpio_bus, uint16_t pwr_gpio, bool clear_calibration_data )
+void temperature_init ( microSWIFT_configuration *global_config, Temperature *struct_ptr,
+                        I2C_HandleTypeDef *i2c_handle, TX_EVENT_FLAGS_GROUP *error_flags,
+                        TX_MUTEX *i2c_mutex, bool clear_calibration_data )
 {
   self = struct_ptr;
 
+  self->global_config = global_config;
   self->i2c_handle = i2c_handle;
-  self->control_flags = control_flags;
   self->error_flags = error_flags;
-  self->pwr_gpio = pwr_gpio;
-  self->gpio_bus = gpio_bus;
+  self->i2c_mutex = i2c_mutex;
+  self->pwr_gpio.port = TEMP_FET_GPIO_Port;
+  self->pwr_gpio.pin = TEMP_FET_Pin;
 
-  self->on = temperature_on;
-  self->off = temperature_off;
-  self->reset_i2c = temperature_reset_i2c;
-  self->self_test = temperature_self_test;
-  self->get_readings = temperature_get_readings;
+  self->on = _temperature_on;
+  self->off = _temperature_off;
+  self->self_test = _temperature_self_test;
+  self->get_readings = _temperature_get_readings;
 
-  reset_struct_fields (clear_calibration_data);
+  __reset_struct_fields (clear_calibration_data);
 }
 
-static void temperature_on ( void )
+static temperature_return_code_t _temperature_self_test ( float *optional_reading )
 {
-  HAL_GPIO_WritePin (self->gpio_bus, self->pwr_gpio, GPIO_PIN_SET);
-  tx_thread_sleep (1);
+  if ( __init_sensor () )
+  {
+    if ( optional_reading == NULL )
+    {
+      return TEMPERATURE_SUCCESS;
+    }
+    else
+    {
+      return _temperature_get_readings (true, optional_reading);
+    }
+  }
+
+  return TEMPERATURE_COMMUNICATION_ERROR;
 }
 
-static void temperature_off ( void )
+static temperature_return_code_t _temperature_get_readings ( bool get_single_reading,
+                                                             float *temperature )
 {
-  HAL_GPIO_WritePin (self->gpio_bus, self->pwr_gpio, GPIO_PIN_RESET);
-}
-
-static temperature_error_code_t temperature_reset_i2c ( void )
-{
-
-  temperature_error_code_t return_code = TEMPERATURE_SUCCESS;
-
-  HAL_I2C_DeInit (self->i2c_handle);
-
-  tx_thread_sleep (1);
-
-  self->i2c_handle->Instance = self->i2c_handle->Instance;
-  self->i2c_handle->Init.Timing = 0x40000A0B;
-  self->i2c_handle->Init.OwnAddress1 = 0;
-  self->i2c_handle->Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  self->i2c_handle->Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  self->i2c_handle->Init.OwnAddress2 = 0;
-  self->i2c_handle->Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-  self->i2c_handle->Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  self->i2c_handle->Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if ( HAL_I2C_Init (self->i2c_handle) != HAL_OK )
-  {
-    return_code = TEMPERATURE_COMMUNICATION_ERROR;
-  }
-
-  if ( HAL_I2CEx_ConfigAnalogFilter (self->i2c_handle, I2C_ANALOGFILTER_ENABLE) != HAL_OK )
-  {
-    return_code = TEMPERATURE_COMMUNICATION_ERROR;
-  }
-
-  if ( HAL_I2CEx_ConfigDigitalFilter (self->i2c_handle, 0) != HAL_OK )
-  {
-    return_code = TEMPERATURE_COMMUNICATION_ERROR;
-  }
-
-  return return_code;
-}
-
-static temperature_error_code_t temperature_self_test ( void )
-{
-  if ( init_sensor () )
-  {
-    return TEMPERATURE_SUCCESS;
-  }
-  else
-  {
-    return TEMPERATURE_COMMUNICATION_ERROR;
-  }
-}
-
-static temperature_error_code_t temperature_get_readings ( void )
-{
-  temperature_error_code_t return_code = TEMPERATURE_SUCCESS;
+  temperature_return_code_t return_code = TEMPERATURE_SUCCESS;
   uint8_t command;
   uint8_t read_data[3] =
     { 0 };
+  int32_t num_readings = (get_single_reading) ?
+      1 : self->global_config->total_temp_samples;
   float readings_accumulator = 0;
 
-  for ( int i = 0; i < TOTAL_TEMPERATURE_SAMPLES; i++ )
+  for ( int i = 0; i < num_readings; i++ )
   {
 
     command = TSYS01_ADC_TEMP_CONV;
@@ -150,15 +111,28 @@ static temperature_error_code_t temperature_get_readings ( void )
 
     self->D1 = (read_data[0] << 16) | (read_data[1] << 8) | read_data[2];
 
-    readings_accumulator += calculate_temp ();
+    readings_accumulator += __calculate_temp ();
   }
 
-  self->converted_temp = readings_accumulator / TOTAL_TEMPERATURE_SAMPLES;
+  self->converted_temp = readings_accumulator / num_readings;
+
+  *temperature = self->converted_temp;
 
   return return_code;
 }
 
-static bool init_sensor ( void )
+static void _temperature_on ( void )
+{
+  HAL_GPIO_WritePin (self->pwr_gpio.port, self->pwr_gpio.pin, GPIO_PIN_SET);
+  tx_thread_sleep (1);
+}
+
+static void _temperature_off ( void )
+{
+  HAL_GPIO_WritePin (self->pwr_gpio.port, self->pwr_gpio.pin, GPIO_PIN_RESET);
+}
+
+static bool __init_sensor ( void )
 {
   uint8_t command = TSYS01_RESET;
   uint8_t read_data[2] =
@@ -194,7 +168,7 @@ static bool init_sensor ( void )
   return true;
 }
 
-static float calculate_temp ( void )
+static float __calculate_temp ( void )
 {
   float temp = 0.0;
   self->adc = self->D1 / 256;
@@ -205,7 +179,7 @@ static float calculate_temp ( void )
   return temp;
 }
 
-static void reset_struct_fields ( bool reset_calibration )
+static void __reset_struct_fields ( bool reset_calibration )
 {
   if ( reset_calibration )
   {

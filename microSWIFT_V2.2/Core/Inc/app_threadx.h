@@ -123,7 +123,6 @@ extern TX_THREAD expansion_thread_3;
 extern TX_SEMAPHORE ext_rtc_spi_sema;
 extern TX_SEMAPHORE aux_spi_1_spi_sema;
 extern TX_SEMAPHORE aux_spi_2_spi_sema;
-extern TX_SEMAPHORE core_i2c_sema;
 extern TX_SEMAPHORE aux_i2c_1_sema;
 extern TX_SEMAPHORE aux_i2c_2_sema;
 extern TX_SEMAPHORE iridium_uart_sema;

@@ -72,7 +72,7 @@ bool ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings 
 bool temperature_self_test ( Temperature *temperature, float *self_test_temp )
 {
   int32_t fail_counter = 0, max_retries = 10;
-  temperature_error_code_t temp_return_code;
+  temperature_return_code_t temp_return_code;
 
   temperature->on ();
 

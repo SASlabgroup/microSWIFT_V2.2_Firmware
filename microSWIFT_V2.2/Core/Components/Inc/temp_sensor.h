@@ -12,9 +12,14 @@
 #ifndef INC_PERIPHERALS_TEMP_SENSOR_H_
 #define INC_PERIPHERALS_TEMP_SENSOR_H_
 
+#include "stdbool.h"
+#include "stddef.h"
 #include "tx_api.h"
 #include "stm32u5xx_hal.h"
-#include "stdbool.h"
+#include "gpio.h"
+#include "configuration.h"
+
+// @formatter:off
 
 #define TSYS01_ADDR                       	(0x77 << 1)
 #define TSYS01_RESET                      	(0x1E)
@@ -30,33 +35,32 @@ typedef enum tmperature_error_code
   TEMPERATURE_CONVERSION_ERROR = -1,
   TEMPERATURE_TIMEOUT_ERROR = -2,
   TEMPERATURE_COMMUNICATION_ERROR = -3
-} temperature_error_code_t;
+} temperature_return_code_t;
 
 typedef struct Temperature
 {
-  I2C_HandleTypeDef *i2c_handle;
-  TX_EVENT_FLAGS_GROUP *control_flags;
-  TX_EVENT_FLAGS_GROUP *error_flags;
-  GPIO_TypeDef *gpio_bus;
+  microSWIFT_configuration  *global_config;
+  I2C_HandleTypeDef         *i2c_handle;
+  TX_EVENT_FLAGS_GROUP      *error_flags;
+  TX_MUTEX                  *i2c_mutex;
 
-  void (*on) ( void );
-  void (*off) ( void );
-  void (*deinit) ( void );
-  temperature_error_code_t (*reinit) ( void );
-  temperature_error_code_t (*reset_i2c) ( void );
-  temperature_error_code_t (*self_test) ( void );
-  temperature_error_code_t (*get_readings) ( void );
+  temperature_return_code_t (*self_test) ( float *optional_reading );
+  temperature_return_code_t (*get_readings) ( bool get_single_reading, float *temperature );
+  void                      (*on) ( void );
+  void                      (*off) ( void );
 
-  float converted_temp;
-  float C[8]; // Cal data array
-  uint32_t D1; // Read data (unconverted temp)
-  uint32_t adc;
+  float                     converted_temp;
+  float                     C[8]; // Cal data array
+  uint32_t                  D1; // Read data (unconverted temp)
+  uint32_t                  adc;
 
-  uint16_t pwr_gpio;
+  gpio_pin_struct           pwr_gpio;
 } Temperature;
 
-void temperature_init ( Temperature *struct_ptr, I2C_HandleTypeDef *i2c_handle,
-                        TX_EVENT_FLAGS_GROUP *control_flags, TX_EVENT_FLAGS_GROUP *error_flags,
-                        GPIO_TypeDef *gpio_bus, uint16_t pwr_gpio, bool clear_calibration_data );
+void temperature_init ( microSWIFT_configuration *global_config, Temperature *struct_ptr,
+                        I2C_HandleTypeDef *i2c_handle, TX_EVENT_FLAGS_GROUP *error_flags,
+                        TX_MUTEX *i2c_mutex, bool clear_calibration_data );
+void temperature_deinit ( void );
 
+// @formatter:on
 #endif /* INC_PERIPHERALS_TEMP_SENSOR_H_ */

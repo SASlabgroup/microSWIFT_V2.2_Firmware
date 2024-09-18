@@ -165,13 +165,14 @@ TX_TIMER expansion_timer_3;
 TX_SEMAPHORE ext_rtc_spi_sema;
 TX_SEMAPHORE aux_spi_1_spi_sema;
 TX_SEMAPHORE aux_spi_2_spi_sema;
-TX_SEMAPHORE core_i2c_sema;
 TX_SEMAPHORE aux_i2c_1_sema;
 TX_SEMAPHORE aux_i2c_2_sema;
 TX_SEMAPHORE iridium_uart_sema;
 TX_SEMAPHORE ct_uart_sema;
 TX_SEMAPHORE aux_uart_1_sema;
 TX_SEMAPHORE aux_uart_2_sema;
+// Shared bus locks
+TX_MUTEX core_i2c_mutex;
 // Server/client message queue for RTC (including watchdog function)
 TX_QUEUE rtc_messaging_queue;
 TX_QUEUE logger_message_queue;
@@ -517,6 +518,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
+
   /************************************************************************************************
    ************************************** Semaphores **********************************************
    ************************************************************************************************/
@@ -577,6 +579,17 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
 
   ret = tx_semaphore_create(&aux_uart_2_sema, "Aux UART 2 sema", 0);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  /************************************************************************************************
+   **************************************** Mutexes ***********************************************
+   ************************************************************************************************/
+  //
+  // Mutexes for shared communication busses
+  ret = tx_mutex_create(&core_i2c_mutex, "Core I2C mutex", TX_NO_INHERIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
