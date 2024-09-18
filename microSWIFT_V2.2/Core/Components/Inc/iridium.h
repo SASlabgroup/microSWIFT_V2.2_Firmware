@@ -34,7 +34,7 @@ typedef enum iridium_error_code
   IRIDIUM_TIMER_ERROR = -10,
   IRIDIUM_TRANSMIT_TIMEOUT = -11,
   IRIDIUM_TRANSMIT_UNSUCCESSFUL = -12
-} iridium_error_code_t;
+} iridium_return_code_t;
 
 // Macros
 #define IRIDIUM_INITIAL_CAP_CHARGE_TIME TX_TIMER_TICKS_PER_SECOND * 30
@@ -139,13 +139,12 @@ typedef struct Iridium
 
   bool                      timer_timeout;
 
-  iridium_error_code_t      (*config) ( void );
-  iridium_error_code_t      (*self_test) ( void );
-  iridium_error_code_t      (*transmit_message) ( void );
-  iridium_error_code_t      (*transmit_error_message) ( char *error_message );
-  iridium_error_code_t      (*start_timer) ( uint16_t timeout_in_minutes );
-  iridium_error_code_t      (*stop_timer) ( void );
-  float                     (*get_timestamp) ( void );
+  iridium_return_code_t     (*config) ( void );
+  iridium_return_code_t     (*self_test) ( void );
+  iridium_return_code_t     (*transmit_message) ( void );
+  iridium_return_code_t     (*transmit_error_message) ( char *error_message );
+  iridium_return_code_t     (*start_timer) ( uint16_t timeout_in_minutes );
+  iridium_return_code_t     (*stop_timer) ( void );
   void                      (*sleep) ( void );
   void                      (*wake) ( void );
   void                      (*on) ( void );
@@ -154,9 +153,10 @@ typedef struct Iridium
 
 /* Function declarations */
 void iridium_init ( Iridium *struct_ptr, microSWIFT_configuration *global_config,
-                    UART_HandleTypeDef *iridium_uart_handle, DMA_HandleTypeDef *uart_tx_dma_handle,
-                    DMA_HandleTypeDef *uart_rx_dma_handle, TX_TIMER *timer,
-                    TX_EVENT_FLAGS_GROUP *error_flags, sbd_message_type_52 *current_message );
+                    UART_HandleTypeDef *iridium_uart_handle, TX_SEMAPHORE *uart_sema,
+                    DMA_HandleTypeDef *uart_tx_dma_handle, DMA_HandleTypeDef *uart_rx_dma_handle,
+                    TX_TIMER *timer, TX_EVENT_FLAGS_GROUP *error_flags,
+                    sbd_message_type_52 *current_message );
 void iridium_deinit ( void );
 void iridium_timer_expired ( ULONG expiration_input );
 bool iridium_get_timeout_status ( void );
