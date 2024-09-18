@@ -14,6 +14,7 @@
 #include "time.h"
 #include "configuration.h"
 #include "generic_uart_driver.h"
+#include "gpio.h"
 
 // @formatter:off
 
@@ -131,6 +132,10 @@ typedef struct Iridium
   // UART response buffer
   uint8_t                   response_buffer[IRIDIUM_MAX_RESPONSE_SIZE];
 
+  gpio_pin_struct           bus_5v_fet;
+  gpio_pin_struct           pwr_pin;
+  gpio_pin_struct           sleep_pin;
+
 
   bool                      timer_timeout;
 
@@ -138,22 +143,24 @@ typedef struct Iridium
   iridium_error_code_t      (*self_test) ( void );
   iridium_error_code_t      (*transmit_message) ( void );
   iridium_error_code_t      (*transmit_error_message) ( char *error_message );
-  iridium_error_code_t      (*reset_uart) ( uint16_t baud_rate );
   iridium_error_code_t      (*start_timer) ( uint16_t timeout_in_minutes );
   iridium_error_code_t      (*stop_timer) ( void );
   float                     (*get_timestamp) ( void );
-  void                      (*sleep) ( bool sleep );
+  void                      (*sleep) ( void );
+  void                      (*wake) ( void );
   void                      (*on) ( void );
   void                      (*off) ( void );
 } Iridium;
 
 /* Function declarations */
 void iridium_init ( Iridium *struct_ptr, microSWIFT_configuration *global_config,
-                    UART_HandleTypeDef *iridium_uart_handle,  DMA_HandleTypeDef         *uart_tx_dma_handle,
-                    DMA_HandleTypeDef         *uart_rx_dma_handle, TX_TIMER *timer, TX_EVENT_FLAGS_GROUP *error_flags,
-                    sbd_message_type_52 *current_message );
-
+                    UART_HandleTypeDef *iridium_uart_handle, DMA_HandleTypeDef *uart_tx_dma_handle,
+                    DMA_HandleTypeDef *uart_rx_dma_handle, TX_TIMER *timer,
+                    TX_EVENT_FLAGS_GROUP *error_flags, sbd_message_type_52 *current_message );
 void iridium_deinit ( void );
+void iridium_timer_expired ( ULONG expiration_input );
+bool iridium_get_timeout_status ( void );
+
 
 // @formatter:on
 #endif /* SRC_IRIDIUM_H_ */

@@ -27,37 +27,36 @@
 // Object pointer
 static Iridium *self;
 // Object functions
-static iridium_error_code_t iridium_config ( void );
-static void                 iridium_charge_caps ( uint32_t caps_charge_time_ticks );
-static iridium_error_code_t iridium_self_test ( void );
-static void                 iridium_sleep ( GPIO_PinState pin_state );
-static void                 iridium_on_off ( GPIO_PinState pin_state );
-static iridium_error_code_t iridium_reset_iridium_uart ( uint16_t baud_rate );
-static iridium_error_code_t iridium_reset_timer ( uint16_t timeout_in_minutes );
-static iridium_error_code_t iridium_storage_queue_add ( sbd_message_type_52 *payload );
-static iridium_error_code_t iridium_storage_queue_get ( uint8_t *msg_index );
-static void                 iridium_storage_queue_flush ( void );
-static iridium_error_code_t iridium_transmit_message ( void );
-static iridium_error_code_t iridium_transmit_error_message ( char *error_message );
-static void                 iridium_cycle_power ( void );
-static float                iridium_get_timestamp ( void );
+static iridium_error_code_t _iridium_config ( void );
+static iridium_error_code_t _iridium_self_test ( void );
+static iridium_error_code_t _iridium_transmit_message ( void );
+static iridium_error_code_t _iridium_transmit_error_message ( char *error_message );
+static iridium_error_code_t _iridium_start_timer ( uint16_t timeout_in_minutes );
+static iridium_error_code_t _iridium_stop_timer ( void );
+static float                _iridium_get_timestamp ( void );
+static void                 _iridium_sleep ( void );
+static void                 _iridium_wake ( void );
+static void                 _iridium_on ( void );
+static void                 _iridium_off ( void );
 
 // Helper functions
-static void                 get_checksum ( uint8_t *payload, size_t payload_size );
-static iridium_error_code_t send_basic_command_message ( const char *command, uint8_t response_size,
+static iridium_error_code_t __send_basic_command_message ( const char *command, uint8_t response_size,
                                                          uint32_t wait_time );
-static iridium_error_code_t send_msg_from_queue ( void );
-static iridium_error_code_t internal_transmit_message ( uint8_t *payload, uint16_t payload_size );
-static void                 reset_struct_fields ( void );
+static iridium_error_code_t __send_msg_from_queue ( void );
+static iridium_error_code_t __internal_transmit_message ( uint8_t *payload, uint16_t payload_size );
+static void                 __charge_caps ( uint32_t caps_charge_time_ticks );
+static void                 __cycle_power ( void );
+static void                 __get_checksum ( uint8_t *payload, size_t payload_size );
+static void                 __reset_struct_fields ( void );
 
-// static variables
-static const char *ack =                        "AT\r";
-static const char *disable_flow_control =       "AT&K0\r";
-static const char *enable_ring_indications =    "AT+SBDMTA=1\r";
-static const char *store_config =               "AT&W0\r";
-static const char *select_power_up_profile =    "AT&Y0\r";
-static const char *clear_MO =                   "AT+SBDD0\r";
-static const char *send_sbd =                   "AT+SBDIX\r";
+// AT commands
+static const char *ack                          = "AT\r";
+static const char *disable_flow_control         = "AT&K0\r";
+static const char *enable_ring_indications      = "AT+SBDMTA=1\r";
+static const char *store_config                 = "AT&W0\r";
+static const char *select_power_up_profile      = "AT&Y0\r";
+static const char *clear_MO                     = "AT+SBDD0\r";
+static const char *send_sbd                     = "AT+SBDIX\r";
 // @formatter:on
 
 /**
@@ -83,7 +82,7 @@ void iridium_init ( Iridium *struct_ptr, microSWIFT_configuration *global_config
   self->response_buffer = response_buffer;
   self->storage_queue = storage_queue;
 
-  reset_struct_fields ();
+  __reset_struct_fields ();
 
   self->config = iridium_config;
   self->charge_caps = iridium_charge_caps;
@@ -113,6 +112,27 @@ void iridium_deinit ( void )
   (void) delf->uart_driver.deinit ();
   HAL_DMA_DeInit (self->uart_rx_dma_handle);
   HAL_DMA_DeInit (self->uart_tx_dma_handle);
+}
+
+/**
+ *
+ *
+ * @return iridium_error_code_t
+ */
+void iridium_timer_expired ( ULONG expiration_input )
+{
+  (void) expiration_input;
+  self->timer_timeout = true;
+}
+
+/**
+ *
+ *
+ * @return iridium_error_code_t
+ */
+bool iridium_get_timeout_status ( void )
+{
+  return self->timer_timeout;
 }
 
 /**
