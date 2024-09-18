@@ -20,6 +20,7 @@
 #include "iridium.h"
 #include "persistent_ram.h"
 #include "logger.h"
+#include "watchdog.h"
 
 bool gnss_apply_config ( GNSS *gnss )
 {
@@ -165,12 +166,15 @@ void gnss_error_out ( GNSS *gnss, ULONG error_flag, TX_THREAD *gnss_thread, cons
   va_start(args, fmt);
 
   gnss->off ();
+  gnss->stop_timer ();
   uart_logger_log_line (fmt, args);
 
   if ( error_flag != NO_ERROR_FLAG )
   {
     (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
   }
+
+  watchdog_deregister_thread (GNSS_THREAD);
 
   tx_thread_suspend (gnss_thread);
 }
@@ -181,6 +185,7 @@ void ct_error_out ( CT *ct, ULONG error_flag, TX_THREAD *ct_thread, const char *
   va_start(args, fmt);
 
   ct->off ();
+  ct->stop_timer ();
   uart_logger_log_line (fmt, args);
 
   if ( error_flag != NO_ERROR_FLAG )
@@ -188,7 +193,29 @@ void ct_error_out ( CT *ct, ULONG error_flag, TX_THREAD *ct_thread, const char *
     (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
   }
 
+  watchdog_deregister_thread (CT_THREAD);
+
   tx_thread_suspend (ct_thread);
+}
+
+void temperature_error_out ( Temperature *temperature, ULONG error_flag,
+                             TX_THREAD *temperature_thread, const char *fmt, ... )
+{
+  va_list args;
+  va_start(args, fmt);
+
+  temperature->off ();
+  temperature->stop_timer ();
+  uart_logger_log_line (fmt, args);
+
+  if ( error_flag != NO_ERROR_FLAG )
+  {
+    (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
+  }
+
+  watchdog_deregister_thread (TEMPERATURE_THREAD);
+
+  tx_thread_suspend (temperature_thread);
 }
 
 bool is_first_sample_window ( void )

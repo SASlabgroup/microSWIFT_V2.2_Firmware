@@ -75,6 +75,8 @@ typedef struct CT
   ct_return_code_t          (*self_test) ( bool add_warmup_time, ct_sample *optional_readings );
   ct_return_code_t          (*uart_init) ( void );
   ct_return_code_t          (*reset_ct_uart) ( void );
+  ct_return_code_t          (*start_timer) ( uint16_t timeout_in_minutes );
+  ct_return_code_t          (*stop_timer) ( void );
   void                      (*on) ( void );
   void                      (*off) ( void );
 } CT;

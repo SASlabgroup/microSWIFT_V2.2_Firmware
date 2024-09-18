@@ -362,7 +362,7 @@ void HAL_I2C_MspDeInit ( I2C_HandleTypeDef *i2cHandle )
 }
 
 /* USER CODE BEGIN 1 */
-bool i2c1_init ( void )
+int32_t i2c1_init ( void )
 {
   if ( !i2c1_init_status )
   {
@@ -377,29 +377,29 @@ bool i2c1_init ( void )
     hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_ENABLE;
     if ( HAL_I2C_Init (&hi2c1) != HAL_OK )
     {
-      return false;
+      return I2C_ERROR;
     }
 
     /** Configure Analogue filter
      */
     if ( HAL_I2CEx_ConfigAnalogFilter (&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK )
     {
-      return false;
+      return I2C_ERROR;
     }
 
     /** Configure Digital filter
      */
     if ( HAL_I2CEx_ConfigDigitalFilter (&hi2c1, 0) != HAL_OK )
     {
-      return false;
+      return I2C_ERROR;
     }
   }
 
   i2c1_init_status = true;
-  return true;
+  return I2C_OK;
 }
 
-bool i2c2_init ( void )
+int32_t i2c2_init ( void )
 {
   if ( !i2c2_init_status )
   {
@@ -414,29 +414,29 @@ bool i2c2_init ( void )
     hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
     if ( HAL_I2C_Init (&hi2c2) != HAL_OK )
     {
-      return false;
+      return I2C_ERROR;
     }
 
     /** Configure Analogue filter
      */
     if ( HAL_I2CEx_ConfigAnalogFilter (&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK )
     {
-      return false;
+      return I2C_ERROR;
     }
 
     /** Configure Digital filter
      */
     if ( HAL_I2CEx_ConfigDigitalFilter (&hi2c2, 0) != HAL_OK )
     {
-      return false;
+      return I2C_ERROR;
     }
   }
 
   i2c2_init_status = true;
-  return true;
+  return I2C_OK;
 }
 
-bool i2c3_init ( void )
+int32_t i2c3_init ( void )
 {
   if ( !i2c3_init_status )
   {
@@ -451,52 +451,58 @@ bool i2c3_init ( void )
     hi2c3.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
     if ( HAL_I2C_Init (&hi2c3) != HAL_OK )
     {
-      return false;
+      return I2C_ERROR;
     }
 
     /** Configure Analogue filter
      */
     if ( HAL_I2CEx_ConfigAnalogFilter (&hi2c3, I2C_ANALOGFILTER_ENABLE) != HAL_OK )
     {
-      return false;
+      return I2C_ERROR;
     }
 
     /** Configure Digital filter
      */
     if ( HAL_I2CEx_ConfigDigitalFilter (&hi2c3, 0) != HAL_OK )
     {
-      return false;
+      return I2C_ERROR;
     }
   }
 
   i2c3_init_status = true;
-  return true;
+  return I2C_OK;
 }
 
-void i2c1_deinit ( void )
+int32_t i2c1_deinit ( void )
 {
   if ( i2c1_init_status )
   {
     (void) HAL_I2C_DeInit (&hi2c1);
     i2c1_init_status = false;
   }
+
+  return I2C_OK;
 }
 
-void i2c2_deinit ( void )
+int32_t i2c2_deinit ( void )
 {
   if ( i2c2_init_status )
   {
     (void) HAL_I2C_DeInit (&hi2c2);
     i2c2_init_status = false;
   }
+
+  return I2C_OK;
 }
 
-void i2c3_deinit ( void )
+int32_t i2c3_deinit ( void )
 {
   if ( i2c3_init_status )
   {
     (void) HAL_I2C_DeInit (&hi2c3);
     i2c3_init_status = false;
   }
+
+  return I2C_OK;
 }
 /* USER CODE END 1 */

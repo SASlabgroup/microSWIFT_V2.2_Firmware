@@ -8,10 +8,10 @@
 #include "generic_uart_driver.h"
 #include "stddef.h"
 
-static int32_t generic_uart_read ( void *driver_ptr, uint8_t *read_buf, uint16_t size,
-                                   uint32_t timeout_ticks );
-static int32_t generic_uart_write ( void *driver_ptr, const uint8_t *write_buf, uint16_t size,
+static int32_t _generic_uart_read ( void *driver_ptr, uint8_t *read_buf, uint16_t size,
                                     uint32_t timeout_ticks );
+static int32_t _generic_uart_write ( void *driver_ptr, const uint8_t *write_buf, uint16_t size,
+                                     uint32_t timeout_ticks );
 
 void generic_uart_register_io_functions ( generic_uart_driver *driver_ptr,
                                           UART_HandleTypeDef *uart_handle, TX_SEMAPHORE *uart_sema,
@@ -30,7 +30,7 @@ void generic_uart_register_io_functions ( generic_uart_driver *driver_ptr,
   }
   else
   {
-    driver_ptr->read = generic_uart_read;
+    driver_ptr->read = _generic_uart_read;
   }
 
   if ( override_write_fn != NULL )
@@ -39,7 +39,7 @@ void generic_uart_register_io_functions ( generic_uart_driver *driver_ptr,
   }
   else
   {
-    driver_ptr->write = generic_uart_write;
+    driver_ptr->write = _generic_uart_write;
   }
 }
 
@@ -50,8 +50,8 @@ void generic_uart_set_timeout_ticks ( generic_uart_driver *driver_ptr, ULONG tx_
   driver_ptr->rx_timeout_ticks = rx_timeout_ticks;
 }
 
-static int32_t generic_uart_read ( void *driver_ptr, uint8_t *read_buf, uint16_t size,
-                                   ULONG timeout_ticks )
+static int32_t _generic_uart_read ( void *driver_ptr, uint8_t *read_buf, uint16_t size,
+                                    ULONG timeout_ticks )
 {
   generic_uart_driver *driver_handle = (generic_uart_driver*) driver_ptr;
 
@@ -65,8 +65,8 @@ static int32_t generic_uart_read ( void *driver_ptr, uint8_t *read_buf, uint16_t
   return UART_OK;
 }
 
-static int32_t generic_uart_write ( void *driver_ptr, const uint8_t *write_buf, uint16_t size,
-                                    ULONG timeout_ticks )
+static int32_t _generic_uart_write ( void *driver_ptr, const uint8_t *write_buf, uint16_t size,
+                                     ULONG timeout_ticks )
 {
   generic_uart_driver *driver_handle = (generic_uart_driver*) driver_ptr;
 

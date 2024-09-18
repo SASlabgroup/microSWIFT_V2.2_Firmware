@@ -28,6 +28,8 @@ static ct_return_code_t _ct_get_averages ( ct_sample *readings );
 static ct_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *optional_readings );
 static ct_return_code_t _ct_uart_init ( void );
 static ct_return_code_t _ct_reset_uart ( void );
+static ct_return_code_t _ct_start_timer ( uint16_t timeout_in_minutes );
+static ct_return_code_t _ct_stop_timer ( void );
 static void             _ct_on ( void );
 static void             _ct_off ( void );
 
@@ -64,6 +66,8 @@ void ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
   self->self_test = _ct_self_test;
   self->uart_init = _ct_uart_init;
   self->reset_ct_uart = _ct_reset_uart;
+  self->start_timer = _ct_start_timer;
+  self->stop_timer = _ct_stop_timer;
   self->on = _ct_on;
   self->off = _ct_off;
 
@@ -307,6 +311,15 @@ static ct_return_code_t _ct_reset_uart ( void )
 
   return _ct_uart_init ();
 }
+
+/**
+ * Start the CT thread timer
+ *
+ * @param timeout_in_minutes - timeout, in minutes
+ * @return  ct_return_code_t
+ */
+static ct_return_code_t _ct_start_timer ( uint16_t timeout_in_minutes );
+static ct_return_code_t _ct_stop_timer ( void );
 
 /**
  * Turn on the CT sensor FET.

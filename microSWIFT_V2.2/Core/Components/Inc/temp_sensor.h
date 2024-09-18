@@ -18,6 +18,7 @@
 #include "stm32u5xx_hal.h"
 #include "gpio.h"
 #include "configuration.h"
+#include "generic_i2c_driver.h"
 
 // @formatter:off
 
@@ -29,6 +30,8 @@
 
 #define TEMPERATURE_AVERAGED_ERROR_CODE		(0X70E2)
 
+#define TEMPERATURE_I2C_MUTEX_WAIT_TICKS    2
+
 typedef enum tmperature_error_code
 {
   TEMPERATURE_SUCCESS = 0,
@@ -39,10 +42,10 @@ typedef enum tmperature_error_code
 
 typedef struct Temperature
 {
+  generic_i2c_driver        i2c_driver;
+
   microSWIFT_configuration  *global_config;
-  I2C_HandleTypeDef         *i2c_handle;
   TX_EVENT_FLAGS_GROUP      *error_flags;
-  TX_MUTEX                  *i2c_mutex;
 
   temperature_return_code_t (*self_test) ( float *optional_reading );
   temperature_return_code_t (*get_readings) ( bool get_single_reading, float *temperature );

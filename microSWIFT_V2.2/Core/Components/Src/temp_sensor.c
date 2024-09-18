@@ -14,6 +14,7 @@
 #include "stdbool.h"
 #include "stm32u5xx_hal.h"
 #include "configuration.h"
+#include "i2c.h"
 
 // @formatter:off
 // Object instance pointer
@@ -38,9 +39,7 @@ void temperature_init ( microSWIFT_configuration *global_config, Temperature *st
   self = struct_ptr;
 
   self->global_config = global_config;
-  self->i2c_handle = i2c_handle;
   self->error_flags = error_flags;
-  self->i2c_mutex = i2c_mutex;
   self->pwr_gpio.port = TEMP_FET_GPIO_Port;
   self->pwr_gpio.pin = TEMP_FET_Pin;
 
@@ -50,6 +49,12 @@ void temperature_init ( microSWIFT_configuration *global_config, Temperature *st
   self->get_readings = _temperature_get_readings;
 
   __reset_struct_fields (clear_calibration_data);
+
+  generic_i2c_register_io_functions (&self->i2c_driver, i2c_handle, i2c_mutex,
+  TEMPERATURE_I2C_MUTEX_WAIT_TICKS,
+                                     i2c1_init, i2c1_deinit, NULL,
+                                     NULL,
+                                     true);
 }
 
 static temperature_return_code_t _temperature_self_test ( float *optional_reading )
@@ -84,28 +89,27 @@ static temperature_return_code_t _temperature_get_readings ( bool get_single_rea
   {
 
     command = TSYS01_ADC_TEMP_CONV;
-    if ( HAL_I2C_Master_Transmit (self->i2c_handle, TSYS01_ADDR, &command, sizeof(command), 10)
-         != HAL_OK )
+    if ( self->i2c_driver.write (&self->i2c_driver, TSYS01_ADDR, &command,
+                                 sizeof(command)) != GENERIC_I2C_OK )
     {
-      return_code = TEMPERATURE_CONVERSION_ERROR;
+      return_code = TEMPERATURE_COMMUNICATION_ERROR;
       return return_code;
     }
 
     tx_thread_sleep (1);
 
     command = TSYS01_ADC_READ;
-    if ( HAL_I2C_Master_Transmit (self->i2c_handle, TSYS01_ADDR, &command, sizeof(command), 10)
-         != HAL_OK )
+    if ( self->i2c_driver.write (&self->i2c_driver, TSYS01_ADDR, &command,
+                                 sizeof(command)) != GENERIC_I2C_OK )
     {
-      return_code = TEMPERATURE_CONVERSION_ERROR;
+      return_code = TEMPERATURE_COMMUNICATION_ERROR;
       return return_code;
     }
 
-    if ( HAL_I2C_Master_Receive (self->i2c_handle, TSYS01_ADDR, &(read_data[0]), sizeof(read_data),
-                                 10)
-         != HAL_OK )
+    if ( self->i2c_driver.read (&self->i2c_driver, TSYS01_ADDR, &(read_data[0]),
+                                sizeof(read_data)) != GENERIC_I2C_OK )
     {
-      return_code = TEMPERATURE_CONVERSION_ERROR;
+      return_code = TEMPERATURE_COMMUNICATION_ERROR;
       return return_code;
     }
 
@@ -137,9 +141,15 @@ static bool __init_sensor ( void )
   uint8_t command = TSYS01_RESET;
   uint8_t read_data[2] =
     { 0 };
+
+  if ( self->i2c_driver.init () != I2C_OK )
+  {
+    return false;
+  }
+
   // Reset the TSYS01, per datasheet
-  if ( HAL_I2C_Master_Transmit (self->i2c_handle, TSYS01_ADDR, &command, sizeof(command), 10)
-       != HAL_OK )
+  if ( self->i2c_driver.write (&self->i2c_driver, TSYS01_ADDR, &command,
+                               sizeof(command)) != GENERIC_I2C_OK )
   {
     return false;
   }
@@ -149,15 +159,14 @@ static bool __init_sensor ( void )
   for ( uint8_t i = 0; i < 8; i++ )
   {
     command = TSYS01_PROM_READ + (i * 2);
-    if ( HAL_I2C_Master_Transmit (self->i2c_handle, TSYS01_ADDR, &command, sizeof(command), 10)
-         != HAL_OK )
+    if ( self->i2c_driver.write (&self->i2c_driver, TSYS01_ADDR, &command,
+                                 sizeof(command)) != GENERIC_I2C_OK )
     {
       return false;
     }
 
-    if ( HAL_I2C_Master_Receive (self->i2c_handle, TSYS01_ADDR, &(read_data[0]), sizeof(read_data),
-                                 10)
-         != HAL_OK )
+    if ( self->i2c_driver.read (&self->i2c_driver, TSYS01_ADDR, &(read_data[0]),
+                                sizeof(read_data)) != GENERIC_I2C_OK )
     {
       return false;
     }

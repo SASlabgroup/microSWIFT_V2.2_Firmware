@@ -1169,6 +1169,7 @@ static void ct_thread_entry ( ULONG thread_input )
   ct_return_code_t ct_return_code;
   uint32_t ct_parsing_error_counter = 0;
   real16_T half_salinity, half_temp;
+  int32_t ct_thread_timeout = TX_TIMER_TICKS_PER_SECOND * 60;
 
   // Set the mean salinity and temp values to error values in the event the sensor fails
   half_salinity.bitPattern = CT_VALUES_ERROR_CODE;
@@ -1281,18 +1282,18 @@ static void temperature_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = &temperature_thread;
   Temperature temperature;
-
-  temperature_error_code_t temp_return_code;
-  real16_T half_salinity;
-  real16_T half_temp;
+  temperature_return_code_t temp_return_code = TEMPERATURE_SUCCESS;
+  float self_test_reading = 0.0f;
+  real16_T half_salinity =
+    { 0 };
+  real16_T half_temp =
+    { 0 };
   int fail_counter = 0;
 
-  temperature_init (&temperature, device_handles.core_i2c_handle, &thread_control_flags,
-                    &error_flags,
-                    TEMP_FET_GPIO_Port,
-                    TEMP_FET_Pin, true);
+  temperature_init (&configuration, &temperature, device_handles.core_i2c_handle, &error_flags,
+                    &core_i2c_mutex, true);
 
-  if ( !temperature_self_test (&temperature) )
+  if ( !temperature_self_test (&temperature, &self_test_reading) )
   {
     uart_logger_log_line ("Temperature self test failed.");
 #error "ensure in all failure cases that the temp sensor is shut down"
