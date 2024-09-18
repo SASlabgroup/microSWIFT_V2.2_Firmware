@@ -21,6 +21,7 @@
 #include "configuration.h"
 #include "ext_rtc_api.h"
 #include "usart.h"
+#include "persistent_ram.h"
 
 // @formatter:off
 // Object pointer
@@ -60,15 +61,14 @@ static const char *send_sbd =                   "AT+SBDIX\r";
 // @formatter:on
 
 /**
- * Initialize the CT struct
+ * Initialize the Iridium struct
  *
  * @return void
  */
 void iridium_init ( Iridium *struct_ptr, microSWIFT_configuration *global_config,
-                    UART_HandleTypeDef *iridium_uart_handle, TIM_HandleTypeDef *timer,
-                    TX_EVENT_FLAGS_GROUP *control_flags, TX_EVENT_FLAGS_GROUP *error_flags,
-                    sbd_message_type_52 *current_message, uint8_t *error_message_buffer,
-                    uint8_t *response_buffer, Iridium_message_storage *storage_queue )
+                    UART_HandleTypeDef *iridium_uart_handle, DMA_HandleTypeDef *uart_tx_dma_handle,
+                    DMA_HandleTypeDef *uart_rx_dma_handle, TX_TIMER *timer,
+                    TX_EVENT_FLAGS_GROUP *error_flags, sbd_message_type_52 *current_message )
 {
   // Assign the object pointer
   self = struct_ptr;
@@ -101,6 +101,18 @@ void iridium_init ( Iridium *struct_ptr, microSWIFT_configuration *global_config
   self->queue_flush = iridium_storage_queue_flush;
 
   memset (&(self->response_buffer[0]), 0, IRIDIUM_MAX_RESPONSE_SIZE);
+}
+
+/**
+ * Deinit the UART and DMA Tx/ Rx channels
+ *
+ * @return void
+ */
+void iridium_deinit ( void )
+{
+  (void) delf->uart_driver.deinit ();
+  HAL_DMA_DeInit (self->uart_rx_dma_handle);
+  HAL_DMA_DeInit (self->uart_tx_dma_handle);
 }
 
 /**

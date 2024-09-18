@@ -178,5 +178,6 @@ void gnss_timer_expired_callback ( ULONG expiration_input );
 bool gnss_get_timer_timeout_status ( void );
 bool gnss_get_configured_status ( void );
 bool gnss_get_sample_window_complete ( void );
+double gnss_get_sample_window_frequency ( void );
 
 #endif /* SRC_GPS_H_ */

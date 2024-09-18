@@ -17,7 +17,7 @@
 typedef int32_t (*uart_init_fn) ( void );
 typedef int32_t (*uart_deinit_fn) ( void );
 typedef int32_t (*uart_read_fn) ( void *driver_ptr, uint8_t *read_buf, uint16_t size );
-typedef int32_t (*uart_write_fn) ( void *driver_ptr, const uint8_t *write_buf, uint16_t size );
+typedef int32_t (*uart_write_fn) ( void *driver_ptr, uint8_t *write_buf, uint16_t size );
 
 typedef struct
 {

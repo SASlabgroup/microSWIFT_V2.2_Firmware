@@ -13,6 +13,9 @@
 #include "stdbool.h"
 #include "time.h"
 #include "configuration.h"
+#include "generic_uart_driver.h"
+
+// @formatter:off
 
 // Return codes
 typedef enum iridium_error_code
@@ -83,9 +86,9 @@ typedef enum iridium_error_code
 
 typedef struct sbd_message_type_52
 {
-  char legacy_number_7;
-  uint8_t type;
-  uint8_t port;
+  char              legacy_number_7;
+  uint8_t           type;
+  uint8_t           port;
   __packed uint16_t size;
   __packed real16_T Hs;
   __packed real16_T Tp;
@@ -93,68 +96,64 @@ typedef struct sbd_message_type_52
   __packed real16_T E_array[42];
   __packed real16_T f_min;
   __packed real16_T f_max;
-  signed char a1_array[42];
-  signed char b1_array[42];
-  signed char a2_array[42];
-  signed char b2_array[42];
-  unsigned char cf_array[42];
-  __packed float Lat;
-  __packed float Lon;
+  signed char       a1_array[42];
+  signed char       b1_array[42];
+  signed char       a2_array[42];
+  signed char       b2_array[42];
+  unsigned char     cf_array[42];
+  __packed float    Lat;
+  __packed float    Lon;
   __packed real16_T mean_temp;
   __packed real16_T mean_salinity;
   __packed real16_T mean_voltage;
-  __packed float timestamp;
-  uint8_t checksum_a;
-  uint8_t checksum_b;
+  __packed float    timestamp;
+  uint8_t           checksum_a;
+  uint8_t           checksum_b;
 } sbd_message_type_52;
 
 typedef struct Iridium
 {
   // Our global configuration struct
   microSWIFT_configuration *global_config;
-  // The UART and DMA handle for the Iridium interface
-  UART_HandleTypeDef *iridium_uart_handle;
+  // UART driver
+  generic_uart_driver       uart_driver;
+  // DMA handles for the Iridium UART port
+  DMA_HandleTypeDef         *uart_tx_dma_handle;
+  DMA_HandleTypeDef         *uart_rx_dma_handle;
   // Pointer to hardware timer handle
-  TIM_HandleTypeDef *timer;
+  TX_TIMER                  *timer;
   // Event flags
-  TX_EVENT_FLAGS_GROUP *control_flags;
-  TX_EVENT_FLAGS_GROUP *error_flags;
+  TX_EVENT_FLAGS_GROUP      *error_flags;
   // pointer to the message array
-  sbd_message_type_52 *current_message;
-  // Pointer to the error message payload buffer
-  uint8_t *error_message_buffer;
-  // pointer to the response array
-  uint8_t *response_buffer;
-  // Unsent message storage queue
-  struct Iridium_message_storage *storage_queue;
-  // current lat/long (for future use)
-  float current_lat;
-  float current_lon;
+  sbd_message_type_52       *current_message;
+  // Error message payload buffer
+  uint8_t                   error_message_buffer[IRIDIUM_ERROR_MESSAGE_PAYLOAD_SIZE + IRIDIUM_CHECKSUM_LENGTH + 64];
+  // UART response buffer
+  uint8_t                   response_buffer[IRIDIUM_MAX_RESPONSE_SIZE];
 
-  iridium_error_code_t (*config) ( void );
-  void (*charge_caps) ( uint32_t caps_charge_time_ticks );
-  iridium_error_code_t (*self_test) ( void );
-  iridium_error_code_t (*transmit_message) ( void );
-  iridium_error_code_t (*transmit_error_message) ( char *error_message );
-  float (*get_timestamp) ( void );
-  void (*sleep) ( bool sleep );
-  void (*on_off) ( bool on );
-  void (*cycle_power) ( void );
-  iridium_error_code_t (*reset_uart) ( uint16_t baud_rate );
-  iridium_error_code_t (*reset_timer) ( uint16_t timeout_in_minutes );
-  iridium_error_code_t (*queue_add) ( sbd_message_type_52 *payload );
-  iridium_error_code_t (*queue_get) ( uint8_t *msg_index );
-  void (*queue_flush) ( void );
 
-  bool timer_timeout;
-  bool skip_current_message;
+  bool                      timer_timeout;
+
+  iridium_error_code_t      (*config) ( void );
+  iridium_error_code_t      (*self_test) ( void );
+  iridium_error_code_t      (*transmit_message) ( void );
+  iridium_error_code_t      (*transmit_error_message) ( char *error_message );
+  iridium_error_code_t      (*reset_uart) ( uint16_t baud_rate );
+  iridium_error_code_t      (*start_timer) ( uint16_t timeout_in_minutes );
+  iridium_error_code_t      (*stop_timer) ( void );
+  float                     (*get_timestamp) ( void );
+  void                      (*sleep) ( bool sleep );
+  void                      (*on) ( void );
+  void                      (*off) ( void );
 } Iridium;
 
 /* Function declarations */
 void iridium_init ( Iridium *struct_ptr, microSWIFT_configuration *global_config,
-                    UART_HandleTypeDef *iridium_uart_handle, TIM_HandleTypeDef *timer,
-                    TX_EVENT_FLAGS_GROUP *control_flags, TX_EVENT_FLAGS_GROUP *error_flags,
-                    sbd_message_type_52 *current_message, uint8_t *error_message_buffer,
-                    uint8_t *response_buffer, Iridium_message_storage *storage_queue );
+                    UART_HandleTypeDef *iridium_uart_handle,  DMA_HandleTypeDef         *uart_tx_dma_handle,
+                    DMA_HandleTypeDef         *uart_rx_dma_handle, TX_TIMER *timer, TX_EVENT_FLAGS_GROUP *error_flags,
+                    sbd_message_type_52 *current_message );
 
+void iridium_deinit ( void );
+
+// @formatter:on
 #endif /* SRC_IRIDIUM_H_ */

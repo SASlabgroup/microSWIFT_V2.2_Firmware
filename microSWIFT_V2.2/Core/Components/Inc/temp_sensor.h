@@ -66,9 +66,9 @@ typedef struct Temperature
   gpio_pin_struct           pwr_gpio;
 } Temperature;
 
-void temperature_init ( microSWIFT_configuration *global_config, Temperature *struct_ptr,
+void temperature_init ( Temperature *struct_ptr, microSWIFT_configuration *global_config,
                         I2C_HandleTypeDef *i2c_handle, TX_EVENT_FLAGS_GROUP *error_flags,
-                        TX_MUTEX *i2c_mutex, bool clear_calibration_data );
+                        TX_TIMER *timer, TX_MUTEX *i2c_mutex, bool clear_calibration_data );
 void temperature_deinit ( void );
 void temperature_timer_expired ( ULONG expiration_input );
 bool temperature_get_timeout_status ( void );

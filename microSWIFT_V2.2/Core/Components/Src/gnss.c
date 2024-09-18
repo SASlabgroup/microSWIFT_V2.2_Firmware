@@ -164,6 +164,17 @@ bool gnss_get_sample_window_complete ( void )
 {
   return self->all_samples_processed;
 }
+
+/**
+ * Get the sampling frequency calculated at the end of sampling.
+ *
+ * @return sample window frequency -- will be inaccurate if sample window is not complete
+ */
+double gnss_get_sample_window_frequency ( void )
+{
+  return self->sample_window_freq;
+}
+
 /**
  * Configure the MAX-M10S chip by sending a series of UBX_CFG_VALSET messages
  *

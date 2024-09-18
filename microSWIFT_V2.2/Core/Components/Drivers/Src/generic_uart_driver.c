@@ -8,10 +8,8 @@
 #include "generic_uart_driver.h"
 #include "stddef.h"
 
-static int32_t _generic_uart_read ( void *driver_ptr, uint8_t *read_buf, uint16_t size,
-                                    uint32_t timeout_ticks );
-static int32_t _generic_uart_write ( void *driver_ptr, const uint8_t *write_buf, uint16_t size,
-                                     uint32_t timeout_ticks );
+static int32_t _generic_uart_read ( void *driver_ptr, uint8_t *read_buf, uint16_t size );
+static int32_t _generic_uart_write ( void *driver_ptr, uint8_t *write_buf, uint16_t size );
 
 void generic_uart_register_io_functions ( generic_uart_driver *driver_ptr,
                                           UART_HandleTypeDef *uart_handle, TX_SEMAPHORE *uart_sema,

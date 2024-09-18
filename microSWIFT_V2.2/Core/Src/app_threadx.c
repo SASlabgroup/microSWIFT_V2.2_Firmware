@@ -970,7 +970,8 @@ static void control_thread_entry ( ULONG thread_input )
     //       Otherwise, continue with other sensors, run waves, etc. Try to keep as many threads
     //       as possible running concurrently.
     // TODO: If a sensor is not present, fill the SBD message fields with 0's.
-
+    // TODO: We're not doing the skip_current_message thing, so if GNSS fails to get a full sample
+    //       window, just set the alarm and power down
     // TODO: When GNSS is complete, break
   }
 
@@ -1357,8 +1358,8 @@ static void temperature_thread_entry ( ULONG thread_input )
 
   memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
 
-  temperature_init (&configuration, &temperature, device_handles.core_i2c_handle, &error_flags,
-                    &core_i2c_mutex, true);
+  temperature_init (&temperature, &configuration, device_handles.core_i2c_handle, &error_flags,
+                    &temperature_timer, &core_i2c_mutex, true);
 
   temperature.on ();
 
@@ -1731,19 +1732,16 @@ static void waves_thread_entry ( ULONG thread_input )
   unsigned char check[42];
 
   /* Call the entry-point 'NEDwaves_memlight'. */
-  NEDwaves_memlight (north, east, down, gnss.sample_window_freq, &Hs, &Tp, &Dp, E, &b_fmin, &b_fmax,
-                     a1, b1, a2, b2, check);
+  NEDwaves_memlight (waves_mem.north, waves_mem.east, waves_mem.down,
+                     gnss_get_sample_window_frequency (), &Hs, &Tp, &Dp, E, &b_fmin, &b_fmax, a1,
+                     b1, a2, b2, check);
 
-  emxDestroyArray_real32_T (down);
-  emxDestroyArray_real32_T (east);
-  emxDestroyArray_real32_T (north);
+  emxDestroyArray_real32_T (waves_mem.north);
+  emxDestroyArray_real32_T (waves_mem.east);
+  emxDestroyArray_real32_T (waves_mem.down);
 
-  // Delete the memory pool to fix the memory leak in NEDwaves_memlight
-  if ( waves_memory_pool_delete () != TX_SUCCESS )
-  {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
-  }
+  // Done with dynamic memory requirements for NEDWaves, delete the memory pool
+  (void) waves_memory_pool_delete ();
 
   memcpy (&sbd_message.Hs, &Hs, sizeof(real16_T));
   memcpy (&sbd_message.Tp, &Tp, sizeof(real16_T));
@@ -1781,13 +1779,11 @@ static void iridium_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = &iridium_thread;
   Iridium iridium;
-  uint8_t iridium_response_message[IRIDIUM_MAX_RESPONSE_SIZE];
-  uint8_t iridium_error_message[IRIDIUM_ERROR_MESSAGE_PAYLOAD_SIZE + IRIDIUM_CHECKSUM_LENGTH + 64];
-
-  iridium_error_code_t iridium_return_code;
-  ULONG actual_error_flags = 0;
-  ULONG error_occured_flags = GNSS_ERROR | MODEM_ERROR | MEMORY_ALLOC_ERROR | DMA_ERROR | UART_ERROR
-                              | RTC_ERROR | WATCHDOG_RESET | SOFTWARE_RESET | GNSS_RESOLUTION_ERROR;
+  iridium_error_code_t iridium_return_code = IRIDIUM_SUCCESS;
+  int32_t temperature_thread_timeout = TX_TIMER_TICKS_PER_SECOND * 30;
+//  ULONG actual_error_flags = 0;
+//  ULONG error_occured_flags = GNSS_ERROR | MODEM_ERROR | MEMORY_ALLOC_ERROR | DMA_ERROR | UART_ERROR
+//                              | RTC_ERROR | WATCHDOG_RESET | SOFTWARE_RESET | GNSS_RESOLUTION_ERROR;
 
   iridium_init (&iridium, &configuration, device_handles.iridium_uart_handle,
                 device_handles.iridium_minutes_timer, &thread_control_flags, &error_flags,

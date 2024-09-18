@@ -34,7 +34,7 @@ static float                     __calculate_temp ( void );
 static void                      __reset_struct_fields ( bool reset_calibration );
 // @formatter:on
 
-void temperature_init ( microSWIFT_configuration *global_config, Temperature *struct_ptr,
+void temperature_init ( Temperature *struct_ptr, microSWIFT_configuration *global_config,
                         I2C_HandleTypeDef *i2c_handle, TX_EVENT_FLAGS_GROUP *error_flags,
                         TX_TIMER *timer, TX_MUTEX *i2c_mutex, bool clear_calibration_data )
 {
