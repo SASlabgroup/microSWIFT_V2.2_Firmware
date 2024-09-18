@@ -29,16 +29,18 @@ bool gnss_apply_config ( GNSS *gnss )
 
   while ( fail_counter < max_retries )
   {
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     gnss_return_code = gnss->config ();
-    if ( gnss_return_code != GNSS_SUCCESS )
-    {
-      fail_counter++;
-    }
-    else
+
+    if ( gnss_return_code == GNSS_SUCCESS )
     {
       break;
     }
+
+    gnss->off ();
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+    gnss->on ();
+
+    fail_counter++;
   }
 
   return (gnss_return_code == GNSS_SUCCESS);
@@ -49,23 +51,21 @@ bool ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings 
   int32_t fail_counter = 0, max_retries = 10;
   ct_return_code_t ct_return_code;
 
-  ct->on ();
-
   while ( fail_counter < max_retries )
   {
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     ct_return_code = ct->self_test (add_warmup_time, self_test_readings);
-    if ( ct_return_code != CT_SUCCESS )
-    {
-      fail_counter++;
-    }
-    else
+
+    if ( ct_return_code == CT_SUCCESS )
     {
       break;
     }
-  }
 
-  ct->off ();
+    ct->off ();
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+    ct->on ();
+
+    fail_counter++;
+  }
 
   return (ct_return_code == CT_SUCCESS);
 }
@@ -75,24 +75,23 @@ bool temperature_self_test ( Temperature *temperature, float *self_test_temp )
   int32_t fail_counter = 0, max_retries = 10;
   temperature_return_code_t temp_return_code;
 
-  temperature->on ();
-
   while ( fail_counter < max_retries )
   {
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    temp_return_code = temperature->self_test ();
-    if ( temp_return_code != TEMPERATURE_SUCCESS )
-    {
-      temperature->reset_i2c ();
-      fail_counter++;
-    }
-    else
+
+    temp_return_code = temperature->self_test (self_test_temp);
+
+    if ( temp_return_code == TEMPERATURE_SUCCESS )
     {
       break;
     }
-  }
 
-  temperature->off ();
+    temperature->off ();
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+    temperature->on ();
+
+    fail_counter++;
+  }
 
   return (temp_return_code == TEMPERATURE_SUCCESS);
 }

@@ -156,8 +156,13 @@ TX_EVENT_FLAGS_GROUP expansion_flags_3;
 // Timers for threads
 TX_TIMER control_timer;
 TX_TIMER gnss_timer;
-TX_TIMER iridium_timer;
 TX_TIMER ct_timer;
+TX_TIMER temperature_timer;
+TX_TIMER light_timer;
+TX_TIMER turbidity_timer;
+TX_TIMER accelerometer_timer;
+TX_TIMER waves_timer;
+TX_TIMER iridium_timer;
 TX_TIMER expansion_timer_1;
 TX_TIMER expansion_timer_2;
 TX_TIMER expansion_timer_3;
@@ -485,14 +490,49 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
-  ret = tx_timer_create(&iridium_timer, "Iridium thread timer", iridium_timer_expired, 0, 0, 0,
+  ret = tx_timer_create(&ct_timer, "CT thread timer", ct_timer_expired, 0, 0, 0, TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_timer_create(&temperature_timer, "Temperature thread timer", temperature_timer_expired,
+                        0, 0, 0, TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_timer_create(&light_timer, "Light thread timer", light_timer_expired, 0, 0, 0,
                         TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
-  ret = tx_timer_create(&ct_timer, "CT thread timer", ct_timer_expired, 0, 0, 0, TX_NO_ACTIVATE);
+  ret = tx_timer_create(&turbidity_timer, "Turbidity thread timer", turbidity_timer_expired, 0, 0,
+                        0, TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_timer_create(&accelerometer_timer, "Accelerometer thread timer",
+                        accelerometer_timer_expired, 0, 0, 0, TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_timer_create(&waves_timer, "Waves thread timer", waves_timer_expired, 0, 0, 0,
+                        TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_timer_create(&iridium_timer, "Iridium thread timer", iridium_timer_expired, 0, 0, 0,
+                        TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -537,12 +577,6 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
 
   ret = tx_semaphore_create(&aux_spi_2_spi_sema, "Aux SPI 2 sema", 0);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_semaphore_create(&core_i2c_sema, "Core I2C sema", 0);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -1179,7 +1213,7 @@ static void ct_thread_entry ( ULONG thread_input )
   memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
 
   ct_init (&ct, &configuration, device_handles.ct_uart_handle, device_handles.ct_uart_tx_dma_handle,
-           device_handles.ct_uart_rx_dma_handle, &ct_uart_sema, &error_flags, ct_timer);
+           device_handles.ct_uart_rx_dma_handle, &ct_uart_sema, &error_flags, &ct_timer);
 
   ct.on ();
 
@@ -1218,8 +1252,8 @@ static void ct_thread_entry ( ULONG thread_input )
   // Take our samples
   while ( ct.total_samples < configuration.total_ct_samples )
   {
-
     watchdog_check_in (CT_THREAD);
+
     ct_return_code = ct.parse_sample ();
 
     if ( ct_return_code == CT_PARSING_ERROR )
@@ -1238,18 +1272,14 @@ static void ct_thread_entry ( ULONG thread_input )
     {
       break;
     }
-
-    if ( ct_get_timeout_status () )
-    {
-      ct_error_out (&ct, CT_ERROR, this_thread, "CT thread timed out.");
-    }
   }
 
   watchdog_check_in (CT_THREAD);
 
   // Turn off the CT sensor
-  ct.off ();
   ct.stop_timer ();
+  ct.off ();
+
   // Deinit UART and DMA to prevent spurious interrupts
   ct_deinit ();
 
@@ -1290,31 +1320,21 @@ static void temperature_thread_entry ( ULONG thread_input )
   TX_THREAD *this_thread = &temperature_thread;
   Temperature temperature;
   temperature_return_code_t temp_return_code = TEMPERATURE_SUCCESS;
-  float self_test_reading = 0.0f;
-  real16_T half_salinity =
-    { 0 };
+  float self_test_reading = 0.0f, sampling_reading = 0.0f;
   real16_T half_temp =
     { 0 };
-  int fail_counter = 0;
+  int32_t temperature_thread_timeout = TX_TIMER_TICKS_PER_SECOND * 30;
+  int32_t fail_counter = 0, max_retries = 10;
+
+  // Set the mean salinity and temp values to error values in the event the sensor fails
+  half_temp.bitPattern = TEMPERATURE_VALUES_ERROR_CODE;
+
+  memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
 
   temperature_init (&configuration, &temperature, device_handles.core_i2c_handle, &error_flags,
                     &core_i2c_mutex, true);
 
-  if ( !temperature_self_test (&temperature, &self_test_reading) )
-  {
-    uart_logger_log_line ("Temperature self test failed.");
-#error "ensure in all failure cases that the temp sensor is shut down"
-    tx_thread_suspend (this_thread);
-  }
-
-  // TODO: add temperature readings to self test, report here.
-  uart_logger_log_line ("Temperature initialization complete.");
-  (void) tx_event_flags_set (&initialization_flags, TEMPERATURE_INIT_SUCCESS, TX_OR);
-
-  tx_thread_suspend (this_thread);
-
-  watchdog_register_thread (TEMPERATURE_THREAD);
-  watchdog_check_in (TEMPERATURE_THREAD);
+  temperature.on ();
 
   //
   // Run tests if needed
@@ -1323,38 +1343,57 @@ static void temperature_thread_entry ( ULONG thread_input )
     tests.temperature_thread_test (NULL);
   }
 
+  if ( !temperature_self_test (&temperature, &self_test_reading) )
+  {
+    temperature_error_out (&temperature, NO_ERROR_FLAG, this_thread,
+                           "Temperature self test failed.");
+  }
+
+  uart_logger_log_line ("Temperature initialization complete. Temp =%3f", self_test_reading);
+  (void) tx_event_flags_set (&initialization_flags, TEMPERATURE_INIT_SUCCESS, TX_OR);
+
+  temperature.off ();
+  tx_thread_suspend (this_thread);
+
+  /******************************* Control thread resumes this thread *****************************/
+  temperature.on ();
+  temperature.start_timer (temperature_thread_timeout);
+  watchdog_register_thread (TEMPERATURE_THREAD);
   watchdog_check_in (TEMPERATURE_THREAD);
 
-  temperature->on ();
-
-  while ( fail_counter < MAX_RETRIES )
+  while ( fail_counter < max_retries )
   {
-    temp_return_code = temperature->get_readings ();
+    watchdog_check_in (TEMPERATURE_THREAD);
+
+    temp_return_code = temperature.get_readings (false, &sampling_reading);
 
     if ( temp_return_code == TEMPERATURE_SUCCESS )
     {
       break;
     }
-    else
+
+    if ( temperature_get_timeout_status () )
     {
-      fail_counter++;
+      temperature_error_out (&temperature, TEMPERATURE_ERROR, this_thread,
+                             "Temperature thread timed out.");
     }
+
+    fail_counter++;
   }
 
-  if ( fail_counter == MAX_RETRIES )
+  if ( fail_counter == max_retries )
   {
-    half_temp.bitPattern = TEMPERATURE_AVERAGED_ERROR_CODE;
-  }
-  else
-  {
-    half_temp = floatToHalf (temperature->converted_temp);
+    temperature_error_out (
+        &temperature, TEMPERATURE_ERROR, this_thread,
+        "Unable to get readings from temperature sensor after %d failed attempts.", max_retries);
   }
 
-  temperature->off ();
+  half_temp = floatToHalf (sampling_reading);
 
-  half_salinity.bitPattern = CT_AVERAGED_VALUE_ERROR_CODE;
+  temperature.stop_timer ();
+  temperature.off ();
+
   memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
-  memcpy (&sbd_message.mean_salinity, &half_salinity, sizeof(real16_T));
 
   watchdog_check_in (TEMPERATURE_THREAD);
   watchdog_deregister_thread (TEMPERATURE_THREAD);
@@ -1383,7 +1422,7 @@ static void light_thread_entry ( ULONG thread_input )
   // Run tests if needed
   if ( tests.light_thread_test != NULL )
   {
-    tests.gnss_thread_test (NULL);
+    tests.light_thread_test (NULL);
   }
 
   tx_thread_suspend (this_thread);
@@ -1420,7 +1459,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
   // Run tests if needed
   if ( tests.turbidity_thread_test != NULL )
   {
-    tests.gnss_thread_test (NULL);
+    tests.turbidity_thread_test (NULL);
   }
 
   tx_thread_suspend (this_thread);
@@ -1439,6 +1478,43 @@ static void turbidity_thread_entry ( ULONG thread_input )
   tx_thread_terminate (this_thread);
 }
 
+/**
+ * @brief  accelerometer_thread_entry
+ *         This thread will manage the accelerometer sensor
+ *
+ * @param  ULONG thread_input - unused
+ * @retval void
+ */
+static void accelerometer_thread_entry ( ULONG thread_input )
+{
+  UNUSED(thread_input);
+  TX_THREAD *this_thread = &accelerometer_thread;
+
+  // TODO: init and self test
+
+  //
+  // Run tests if needed
+  if ( tests.accelerometer_thread_test != NULL )
+  {
+    tests.accelerometer_thread_test (NULL);
+  }
+
+  tx_thread_suspend (this_thread);
+
+  watchdog_register_thread (ACCELEROMETER_THREAD);
+  watchdog_check_in (ACCELEROMETER_THREAD);
+
+  // TODO: Run sensor
+
+  watchdog_check_in (ACCELEROMETER_THREAD);
+  watchdog_deregister_thread (ACCELEROMETER_THREAD);
+
+  uart_logger_log_line ("Accelerometer Thread complete, now terminating.");
+
+  (void) tx_event_flags_set (&complete_flags, ACCELEROMETER_THREAD_COMPLETE, TX_OR);
+  tx_thread_terminate (this_thread);
+}
+
 static void expansion_thread_1_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
@@ -1448,9 +1524,9 @@ static void expansion_thread_1_entry ( ULONG thread_input )
 
   //
   // Run tests if needed
-  if ( tests.expansion_thread_1 != NULL )
+  if ( tests.expansion_thread_1_test != NULL )
   {
-    tests.expansion_thread_1 (NULL);
+    tests.expansion_thread_1_test (NULL);
   }
 
   tx_thread_suspend (this_thread);
@@ -1478,9 +1554,9 @@ static void expansion_thread_2_entry ( ULONG thread_input )
 
   //
   // Run tests if needed
-  if ( tests.expansion_thread_2 != NULL )
+  if ( tests.expansion_thread_2_test != NULL )
   {
-    tests.expansion_thread_2 (NULL);
+    tests.expansion_thread_2_test (NULL);
   }
 
   tx_thread_suspend (this_thread);
@@ -1508,9 +1584,9 @@ static void expansion_thread_3_entry ( ULONG thread_input )
 
   //
   // Run tests if needed
-  if ( tests.expansion_thread_3 != NULL )
+  if ( tests.expansion_thread_3_test != NULL )
   {
-    tests.expansion_thread_3 (NULL);
+    tests.expansion_thread_3_test (NULL);
   }
 
   tx_thread_suspend (this_thread);
@@ -1526,42 +1602,6 @@ static void expansion_thread_3_entry ( ULONG thread_input )
 //  uart_logger_log_line ("Expansion Thread 3 complete, now terminating.");
 //
 //  (void) tx_event_flags_set (&complete_flags, EXPANSION_THREAD_3_COMPLETE, TX_OR);
-  tx_thread_terminate (this_thread);
-}
-/**
- * @brief  accelerometer_thread_entry
- *         This thread will manage the accelerometer sensor
- *
- * @param  ULONG thread_input - unused
- * @retval void
- */
-static void accelerometer_thread_entry ( ULONG thread_input )
-{
-  UNUSED(thread_input);
-  TX_THREAD *this_thread = &accelerometer_thread;
-
-  // TODO: init and self test
-
-  //
-  // Run tests if needed
-  if ( tests.accelerometer_thread_test != NULL )
-  {
-    tests.gnss_thread_test (NULL);
-  }
-
-  tx_thread_suspend (this_thread);
-
-  watchdog_register_thread (ACCELEROMETER_THREAD);
-  watchdog_check_in (ACCELEROMETER_THREAD);
-
-  // TODO: Run sensor
-
-  watchdog_check_in (ACCELEROMETER_THREAD);
-  watchdog_deregister_thread (ACCELEROMETER_THREAD);
-
-  uart_logger_log_line ("Accelerometer Thread complete, now terminating.");
-
-  (void) tx_event_flags_set (&complete_flags, ACCELEROMETER_THREAD_COMPLETE, TX_OR);
   tx_thread_terminate (this_thread);
 }
 
