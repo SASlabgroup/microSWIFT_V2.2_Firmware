@@ -49,6 +49,7 @@
 #include "watchdog.h"
 #include "controller.h"
 #include "persistent_ram.h"
+#include "sbd.h"
 
 // Waves files
 #include "NEDWaves/NEDwaves_memlight.h"
@@ -933,7 +934,8 @@ static void control_thread_entry ( ULONG thread_input )
   }
 
   controller_init (&control, &configuration, &thread_handles, &error_flags, &initialization_flags,
-                   &irq_flags, &complete_flags, &control_timer, device_handles.battery_adc);
+                   &irq_flags, &complete_flags, &control_timer, device_handles.battery_adc,
+                   &sbd_message);
 
   watchdog_check_in (CONTROL_THREAD);
 

@@ -41,7 +41,7 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
                        Thread_Handles *thread_handles, TX_EVENT_FLAGS_GROUP *error_flags,
                        TX_EVENT_FLAGS_GROUP *init_flags, TX_EVENT_FLAGS_GROUP *irq_flags,
                        TX_EVENT_FLAGS_GROUP *complete_flags, TX_TIMER *timer,
-                       ADC_HandleTypeDef *battery_adc_handle )
+                       ADC_HandleTypeDef *battery_adc_handle, sbd_message_type_52 *current_message )
 {
   // Init self
   self = struct_ptr;
@@ -53,6 +53,7 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
   self->irq_flags = irq_flags;
   self->complete_flags = complete_flags;
   self->timer = timer;
+  self->current_message = current_message;
 
   self->startup_procedure = _control_startup_procedure;
   self->all_threads_complete = _control_all_threads_complete;

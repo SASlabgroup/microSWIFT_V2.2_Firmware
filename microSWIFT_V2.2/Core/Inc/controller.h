@@ -13,6 +13,7 @@
 #include "battery.h"
 #include "rf_switch.h"
 #include "tx_api.h"
+#include "sbd.h"
 
 #define STARTUP_SEQUENCE_MAX_WAIT_TICKS (TX_TIMER_TICKS_PER_SECOND * 20)
 
@@ -32,7 +33,7 @@ typedef struct
   TX_EVENT_FLAGS_GROUP      *complete_flags;
   TX_TIMER                  *timer;
 
-#error "Supply a pointer to the current SBD message"
+  sbd_message_type_52       *current_message;
 
   bool                      (*startup_procedure)( void );
   bool                      (*all_threads_complete) ( void );
@@ -47,7 +48,7 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
                        Thread_Handles *thread_handles, TX_EVENT_FLAGS_GROUP *error_flags,
                        TX_EVENT_FLAGS_GROUP *init_flags, TX_EVENT_FLAGS_GROUP *irq_flags,
                        TX_EVENT_FLAGS_GROUP *complete_flags, TX_TIMER *timer,
-                       ADC_HandleTypeDef *battery_adc_handle );
+                       ADC_HandleTypeDef *battery_adc_handle, sbd_message_type_52 *current_message );
 
 void control_timer_expired ( ULONG expiration_input );
 
