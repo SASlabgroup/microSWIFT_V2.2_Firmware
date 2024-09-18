@@ -43,6 +43,7 @@ bool        iridium_apply_config ( Iridium *iridium );
 void        gnss_error_out(GNSS *gnss, ULONG error_flag, TX_THREAD *gnss_thread, const char *fmt, ...);
 void        ct_error_out(CT* ct, ULONG error_flag, TX_THREAD *ct_thread, const char *fmt, ...);
 void        temperature_error_out(Temperature* temperature, ULONG error_flag, TX_THREAD *temperature_thread, const char *fmt, ...);
+void        iridium_error_out(Iridium* iridium, ULONG error_flag, TX_THREAD *iridium_thread, const char *fmt, ...);
 
 void        expansion_timer_1_expired(ULONG expiration_input);
 void        expansion_timer_2_expired(ULONG expiration_input);

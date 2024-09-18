@@ -37,7 +37,7 @@ bool gnss_apply_config ( GNSS *gnss )
     }
 
     gnss->off ();
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+    tx_thread_sleep (1);
     gnss->on ();
 
     fail_counter++;
@@ -61,7 +61,7 @@ bool ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings 
     }
 
     ct->off ();
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+    tx_thread_sleep (1);
     ct->on ();
 
     fail_counter++;
@@ -87,7 +87,7 @@ bool temperature_self_test ( Temperature *temperature, float *self_test_temp )
     }
 
     temperature->off ();
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+    tx_thread_sleep (1);
     temperature->on ();
 
     fail_counter++;
@@ -114,7 +114,7 @@ bool accelerometer_self_test ( void )
 bool iridium_apply_config ( Iridium *iridium )
 {
   int32_t fail_counter = 0, max_retries = 10;
-  iridium_error_code_t iridium_return_code;
+  iridium_return_code_t iridium_return_code;
 
   iridium->on_off (true);
 
@@ -215,6 +215,27 @@ void temperature_error_out ( Temperature *temperature, ULONG error_flag,
   watchdog_deregister_thread (TEMPERATURE_THREAD);
 
   tx_thread_suspend (temperature_thread);
+}
+
+void iridium_error_out ( Iridium *iridium, ULONG error_flag, TX_THREAD *iridium_thread,
+                         const char *fmt, ... )
+{
+  va_list args;
+  va_start(args, fmt);
+
+  iridium->sleep ();
+  iridium->off ();
+  iridium->stop_timer ();
+  uart_logger_log_line (fmt, args);
+
+  if ( error_flag != NO_ERROR_FLAG )
+  {
+    (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
+  }
+
+  watchdog_deregister_thread (IRIDIUM_THREAD);
+
+  tx_thread_suspend (iridium_thread);
 }
 
 bool is_first_sample_window ( void )

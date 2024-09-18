@@ -174,7 +174,7 @@ void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
                  uint8_t *config_response_buffer, float *GNSS_N_Array, float *GNSS_E_Array,
                  float *GNSS_D_Array );
 void gnss_deinit ( void );
-void gnss_timer_expired_callback ( ULONG expiration_input );
+void gnss_timer_expired ( ULONG expiration_input );
 bool gnss_get_timer_timeout_status ( void );
 bool gnss_get_configured_status ( void );
 bool gnss_get_sample_window_complete ( void );

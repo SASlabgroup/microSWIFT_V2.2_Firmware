@@ -129,7 +129,7 @@ void gnss_deinit ( void )
  *
  * @param expiration_input - unused
  */
-void gnss_timer_expired_callback ( ULONG expiration_input )
+void gnss_timer_expired ( ULONG expiration_input )
 {
   (void) expiration_input;
   self->timer_timeout = true;

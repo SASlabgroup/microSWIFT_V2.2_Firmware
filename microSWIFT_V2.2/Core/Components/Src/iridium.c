@@ -33,6 +33,7 @@ static iridium_return_code_t _iridium_transmit_message ( void );
 static iridium_return_code_t _iridium_transmit_error_message ( char *error_message );
 static iridium_return_code_t _iridium_start_timer ( uint16_t timeout_in_minutes );
 static iridium_return_code_t _iridium_stop_timer ( void );
+static void                  _iridium_charge_caps ( uint32_t caps_charge_time_ticks );
 static void                  _iridium_sleep ( void );
 static void                  _iridium_wake ( void );
 static void                  _iridium_on ( void );
@@ -44,7 +45,6 @@ static iridium_return_code_t __send_basic_command_message ( const char *command,
 static iridium_return_code_t __send_msg_from_queue ( void );
 static iridium_return_code_t __internal_transmit_message ( uint8_t *payload, uint16_t payload_size );
 static float                 __get_timestamp ( void );
-static void                  __charge_caps ( uint32_t caps_charge_time_ticks );
 static void                  __cycle_power ( void );
 static void                  __get_checksum ( uint8_t *payload, size_t payload_size );
 
@@ -96,11 +96,16 @@ void iridium_init ( Iridium *struct_ptr, microSWIFT_configuration *global_config
   self->transmit_error_message = _iridium_transmit_error_message;
   self->start_timer = _iridium_start_timer;
   self->stop_timer = _iridium_stop_timer;
+  self->charge_caps = _iridium_charge_caps;
   self->sleep = _iridium_sleep;
   self->wake = _iridium_wake;
   self->on = _iridium_on;
   self->off = _iridium_off;
 
+  generic_uart_register_io_functions (&self->uart_driver, iridium_uart_handle, uart_sema,
+                                      uart4_init, uart4_deinit, NULL, NULL);
+  generic_uart_set_timeout_ticks (&self->uart_driver, IRIDIUM_MAX_UART_TX_TICKS,
+                                  IRIDIUM_MAX_UART_RX_TICKS);
 }
 
 /**
@@ -117,8 +122,7 @@ void iridium_deinit ( void )
 
 /**
  *
- *
- * @return iridium_return_code_t
+ * @return void
  */
 void iridium_timer_expired ( ULONG expiration_input )
 {
@@ -129,7 +133,7 @@ void iridium_timer_expired ( ULONG expiration_input )
 /**
  *
  *
- * @return iridium_return_code_t
+ * @return bool
  */
 bool iridium_get_timeout_status ( void )
 {
@@ -185,10 +189,9 @@ static iridium_return_code_t _iridium_config ( void )
 
 /**
  *
- *
- * @return iridium_return_code_t
+ * @return void
  */
-static void __charge_caps ( uint32_t caps_charge_time_ticks )
+static void _iridium_charge_caps ( uint32_t caps_charge_time_ticks )
 {
   // Power the unit by pulling the sleep pin to ground.
   self->on ();
@@ -208,61 +211,48 @@ static iridium_return_code_t _iridium_self_test ( void )
 }
 
 /**
- * Function to change GPIO pin state for the sleep/ on-off pin.
- * Note that power is still available at the unit and the capacitors
- * will remain charged, but there is a current consumption.
- *
- * @param self - Iridium struct
- * @param pin_state - GPIO_PIN_SET for on
- * 					  GPIO_PIN_RESET for off
  *
  * @return void
  */
 static void _iridium_sleep ( void )
 {
-  HAL_GPIO_WritePin (self->sleep_pin.port, self->sleep_pin.pin, GPIO_PIN_SET);
-}
-
-static void _iridium_wake ( void )
-{
-
+  HAL_GPIO_WritePin (self->sleep_pin.port, self->sleep_pin.pin, GPIO_PIN_RESET);
 }
 
 /**
- * Function to change GPIO pin state for the power FET. Note that
- * the capacitors will not remain charged when the device is powered
- * down using this function
- *
- * @param self - Iridium struct
- * @param pin_state - GPIO_PIN_SET for on
- * 					  GPIO_PIN_RESET for off
  *
  * @return void
  */
-static void iridium_on_off ( GPIO_PinState pin_state )
+static void _iridium_wake ( void )
 {
-  if ( pin_state == GPIO_PIN_SET )
-  {
-    HAL_GPIO_WritePin (GPIOF, BUS_5V_FET_Pin, pin_state);
-    // Wait 10ms between powering 5V bus FET and the Iridium power FET
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    HAL_GPIO_WritePin (GPIOD, IRIDIUM_FET_Pin, pin_state);
-  }
-  else
-  {
-    HAL_GPIO_WritePin (GPIOD, IRIDIUM_FET_Pin, pin_state);
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    HAL_GPIO_WritePin (GPIOF, BUS_5V_FET_Pin, pin_state);
-  }
+  HAL_GPIO_WritePin (self->sleep_pin.port, self->sleep_pin.pin, GPIO_PIN_SET);
 }
 
 /**
- * Reset the Iridium UART.
  *
- * @param self - Iridium struct
+ * @return void
+ */
+static void _iridium_on ( void )
+{
+  HAL_GPIO_WritePin (self->bus_5v_fet.port, self->bus_5v_fet.pin, GPIO_PIN_SET);
+  tx_thread_sleep (1);
+  HAL_GPIO_WritePin (self->pwr_pin.port, self->pwr_pin.pin, GPIO_PIN_SET);
+}
+
+/**
  *
- * @return IRIDIUM_SUCCESS on success
- * 		   IRIDIUM_UART_ERROR when an error is encountered
+ * @return void
+ */
+static void _iridium_off ( void )
+{
+  HAL_GPIO_WritePin (self->pwr_pin.port, self->pwr_pin.pin, GPIO_PIN_RESET);
+  tx_thread_sleep (1);
+  HAL_GPIO_WritePin (self->bus_5v_fet.port, self->bus_5v_fet.pin, GPIO_PIN_RESET);
+}
+
+/**
+ *
+ * @return iridium_return_code_t
  */
 static iridium_return_code_t iridium_reset_iridium_uart ( uint16_t baud_rate )
 {
@@ -281,13 +271,8 @@ static iridium_return_code_t iridium_reset_iridium_uart ( uint16_t baud_rate )
 }
 
 /**
- * Reset the Iridium timer. Will generate an interrupt after timeout_in_minutes.
  *
- * @param self- Iridium struct
- * @param timeout_in_minutes - number of minutes to set the timeout to
- *
- * @return IRIDIUM_SUCCESS or
- * 		   IRIDIUM_TIMER_ERROR on error when trying to initialize timer
+ * @return iridium_return_code_t
  */
 static iridium_return_code_t iridium_reset_timer ( uint16_t timeout_in_minutes )
 {
@@ -302,112 +287,7 @@ static iridium_return_code_t iridium_reset_timer ( uint16_t timeout_in_minutes )
 }
 
 /**
- * Addd a message to the Iridium storage queue
  *
- * @param self- Iridium struct
- * @param payload - message to store
- *
- * @return 	IRIDIUM_SUCCESS or
- * 			IRIDIUM_STORAGE_QUEUE_FULL if there is no space remaining in the queue
- */
-static iridium_return_code_t iridium_storage_queue_add ( sbd_message_type_52 *payload )
-{
-//  if ( self->storage_queue->num_msgs_enqueued == MAX_NUM_MSGS_STORED )
-//  {
-//    return IRIDIUM_STORAGE_QUEUE_FULL;
-//  }
-//
-//  for ( int i = 0; i < MAX_NUM_MSGS_STORED; i++ )
-//  {
-//    if ( !self->storage_queue->msg_queue[i].valid )
-//    {
-//      // copy the message over
-//      memcpy (&(self->storage_queue->msg_queue[i].payload), payload, sizeof(sbd_message_type_52));
-//      // Make the entry valid
-//      self->storage_queue->msg_queue[i].valid = true;
-//      self->storage_queue->num_msgs_enqueued++;
-//      break;
-//    }
-//  }
-//
-//  return IRIDIUM_SUCCESS;
-}
-
-/**
- * Find the next message to be sent from the storage queue based on significant wave height.
- * NOTE: does not mark message as invalid -- this must be done by the sender.
- *
- * @param self- Iridium struct
- * @param msg_index - return parameter for next message index
- *
- * @return 	IRIDIUM_SUCCESS or
- * 			IRIDIUM_STORAGE_QUEUE_EMPTY if the queue is empty
- */
-static iridium_return_code_t iridium_storage_queue_get ( uint8_t *msg_index )
-{
-//  float significant_wave_height = 0.0;
-//  float msg_wave_float = 0.0;
-//  real16_T msg_wave_height;
-//  msg_wave_height.bitPattern = 0;
-//
-//  // Queue corruption check
-//  if ( self->storage_queue->magic_number != SBD_QUEUE_MAGIC_NUMBER )
-//  {
-//    self->queue_flush ();
-//    return IRIDIUM_STORAGE_QUEUE_EMPTY;
-//  }
-//  // Empty queue check
-//  if ( self->storage_queue->num_msgs_enqueued == 0 )
-//  {
-//    return IRIDIUM_STORAGE_QUEUE_EMPTY;
-//  }
-//
-//  // Find the largest significant wave height
-//  for ( int i = 0; i < MAX_NUM_MSGS_STORED; i++ )
-//  {
-//    if ( self->storage_queue->msg_queue[i].valid )
-//    {
-//      msg_wave_height = self->storage_queue->msg_queue[i].payload.Hs;
-//      // Try following that! Gets the absolute value of msg_wave_height
-//      msg_wave_float = (float) fabs ((double) halfToFloat (msg_wave_height));
-//
-//      if ( msg_wave_float >= significant_wave_height )
-//      {
-//        significant_wave_height = msg_wave_float;
-//        *msg_index = i;
-//      }
-//    }
-//  }
-//
-//  return IRIDIUM_SUCCESS;
-}
-
-/**
- * Flushes the message storage queue.
- *
- * @param self- Iridium struct
- * @return void
- */
-static void iridium_storage_queue_flush ( void )
-{
-  if ( self->storage_queue->magic_number != SBD_QUEUE_MAGIC_NUMBER )
-  {
-    // Zero out the whole thing
-    for ( int i = 0; i < MAX_NUM_MSGS_STORED; i++ )
-    {
-      self->storage_queue->msg_queue[i].valid = false;
-      memset (&(self->storage_queue->msg_queue[i].payload), 0, sizeof(sbd_message_type_52));
-    }
-    self->storage_queue->num_msgs_enqueued = 0;
-    // Set the magic number to indicate the queue has been initialized
-    self->storage_queue->magic_number = SBD_QUEUE_MAGIC_NUMBER;
-  }
-}
-
-/**
- * Static helper function to send message from the queue.
- *
- * @param self- Iridium struct
  * @return iridium_return_code_t
  */
 static iridium_return_code_t send_msg_from_queue ( void )
@@ -433,11 +313,6 @@ static iridium_return_code_t send_msg_from_queue ( void )
 }
 
 /**
- * Static helper function to get the checksum of an Iridium message.
- *
- * @param self- Iridium struct
- * @param payload_size - size in bytes of the payload for which the
- * 						 checksum is being calculates
  *
  * @return void
  */
@@ -457,16 +332,8 @@ static void get_checksum ( uint8_t *payload, size_t payload_size )
 }
 
 /**
- * Static helper function to send a basic command message to the modem
  *
- * @param self- Iridium struct
- * @param command - command string
- * @param response_size - size of the modem response
- * @param wait_time_ticks - maximum length of time the modem could take to respond
- * 							(in scheduler ticks)
- *
- * @return	IRIDIUM_SUCCESS or
- * 			IRIDIUM_UART_ERROR
+ * @return iridium_return_code_t
  */
 static iridium_return_code_t __send_basic_command_message ( const char *command,
                                                             uint8_t response_size,
@@ -502,12 +369,8 @@ static iridium_return_code_t __send_basic_command_message ( const char *command,
 }
 
 /**
- * Transmit a message from the modem. First, the current window's message will be sent,
- * and if time is remaining, messages from the queue will be sent after.
  *
- * @param self- Iridium struct
- *
- * @return	IRIDIUM_SUCCESS or
+ * @return iridium_return_code_t
  */
 static iridium_return_code_t iridium_transmit_message ( void )
 {
@@ -601,20 +464,10 @@ static iridium_return_code_t iridium_transmit_message ( void )
 }
 
 /**
- ********************************************************************************************
- * TODO: When we get to the point of implimenting two-way comms, this will need significant
- *       overhaul
- ********************************************************************************************
- * Helper method to transmit a message via Iridium modem.
  *
- * @param self - pointer to Iridium struct
- * @param payload - pointer to a SBD message payload
- *
- * @return IRIDIUM_SUCCESS to indicate message was sent
- * 		   IRIDIUM_TRANSMIT_ERROR if it didn't send
- * 		   IRIDIUM_UART_ERROR if something went wrong trying to talk to the modem
+ * @return iridium_return_code_t
  */
-static iridium_return_code_t internal_transmit_message ( uint8_t *payload, uint16_t payload_size )
+static iridium_return_code_t __internal_transmit_message ( uint8_t *payload, uint16_t payload_size )
 {
   iridium_return_code_t return_code = IRIDIUM_TRANSMIT_TIMEOUT;
   ULONG actual_flags;
@@ -794,17 +647,10 @@ static iridium_return_code_t internal_transmit_message ( uint8_t *payload, uint1
 }
 
 /**
- * Helper method to get the current signal strength.
  *
- * @param self - Iridium struct
- * @param error_message - null terminated error message of 320 bytes or less. Note that this
- * 						  string is mutable to handle the case of terminating a too-long string
- *
- * @return IRIDIUM_SUCCESS to indicate message was sent
- * 		   IRIDIUM_TRANSMIT_ERROR if it didn't send
- * 		   IRIDIUM_UART_ERROR if something went wrong trying to talk to the modem
+ * @return iridium_return_code_t
  */
-static iridium_return_code_t iridium_transmit_error_message ( char *error_message )
+static iridium_return_code_t _iridium_transmit_error_message ( char *error_message )
 {
   iridium_return_code_t return_code = IRIDIUM_SUCCESS;
   uint16_t error_msg_str_length = strlen (error_message);
@@ -867,40 +713,3 @@ static iridium_return_code_t iridium_transmit_error_message ( char *error_messag
   return return_code;
 }
 
-/**
- * Helper method to cycle power to the modem via the sleep pin.
- * Iridium developers manual states a 2 second wait period should
- * be adhered to when cycling power.
- *
- * @param self - Iridium struct
- * @return void
- */
-static void iridium_cycle_power ( void )
-{
-  self->sleep (GPIO_PIN_RESET);
-  tx_thread_sleep ((TX_TIMER_TICKS_PER_SECOND * 2) + 1);
-  self->sleep (GPIO_PIN_SET);
-  tx_thread_sleep ((TX_TIMER_TICKS_PER_SECOND * 2) + 1);
-}
-
-/**
- * Helper method to generate a timestamp from the RTC.
- *
- * @param self - Iridium struct
- * @return timestamp as a float
- */
-static float iridium_get_timestamp ( void )
-{
-  rtc_return_code rtc_ret = RTC_SUCCESS;
-  struct tm time;
-
-  rtc_ret = rtc_server_get_time (&time, IRIDIUM_REQUEST_PROCESSED);
-  if ( rtc_ret != RTC_SUCCESS )
-  {
-    return -1;
-  }
-
-  time.tm_isdst = -1;
-
-  return (float) mktime (&time);
-}

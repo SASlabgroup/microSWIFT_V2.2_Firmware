@@ -485,7 +485,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
-  ret = tx_timer_create(&gnss_timer, "GNSS thread timer", gnss_timer_expired_callback, 0, 0, 0,
+  ret = tx_timer_create(&gnss_timer, "GNSS thread timer", gnss_timer_expired, 0, 0, 0,
                         TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
@@ -1706,6 +1706,7 @@ static void waves_thread_entry ( ULONG thread_input )
 
   tx_thread_suspend (this_thread);
 
+  /******************************* Control thread resumes this thread *****************************/
   watchdog_register_thread (WAVES_THREAD);
   watchdog_check_in (WAVES_THREAD);
 
@@ -1779,33 +1780,33 @@ static void iridium_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = &iridium_thread;
   Iridium iridium;
-  iridium_error_code_t iridium_return_code = IRIDIUM_SUCCESS;
-  int32_t temperature_thread_timeout = TX_TIMER_TICKS_PER_SECOND * 30;
-//  ULONG actual_error_flags = 0;
-//  ULONG error_occured_flags = GNSS_ERROR | MODEM_ERROR | MEMORY_ALLOC_ERROR | DMA_ERROR | UART_ERROR
-//                              | RTC_ERROR | WATCHDOG_RESET | SOFTWARE_RESET | GNSS_RESOLUTION_ERROR;
+  iridium_return_code_t iridium_return_code = IRIDIUM_SUCCESS;
+  int32_t iridium_thread_timeout = configuration.iridium_max_transmit_time;
 
   iridium_init (&iridium, &configuration, device_handles.iridium_uart_handle,
                 device_handles.iridium_minutes_timer, &thread_control_flags, &error_flags,
                 &sbd_message, &(iridium_error_message[0]), &(iridium_response_message[0]),
                 &sbd_message_queue);
 
+  iridium.on ();
+  iridium.wake ();
+
   if ( !iridium_apply_config (&iridium) )
   {
-    uart_logger_log_line ("Iridium modem failed to initialize.");
-#error "Ensure in all failure cases that the modem is powered down"
-    tx_thread_suspend (this_thread);
+    iridium_error_out (&iridium, NO_ERROR_FLAG, this_thread, "Iridium modem failed to initialize.");
   }
 
   uart_logger_log_line ("Iridium modem initialized successfully.");
   (void) tx_event_flags_set (&initialization_flags, IRIDIUM_INIT_SUCCESS, TX_OR);
 
   // Turn on the modem and charge up the caps
-  iridium->charge_caps (IRIDIUM_INITIAL_CAP_CHARGE_TIME);
-#endif // #ifdef DEBUGGING_FAST_CYCLE
-  iridium->sleep (true);
+  iridium.charge_caps (IRIDIUM_INITIAL_CAP_CHARGE_TIME);
+  iridium.sleep ();
 
   tx_thread_suspend (this_thread);
+
+  /******************************* Control thread resumes this thread *****************************/
+  iridium.wake ();
 
   watchdog_register_thread (IRIDIUM_THREAD);
   watchdog_check_in (IRIDIUM_THREAD);

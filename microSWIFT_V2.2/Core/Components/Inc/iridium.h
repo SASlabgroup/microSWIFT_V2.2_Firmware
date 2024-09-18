@@ -15,6 +15,7 @@
 #include "configuration.h"
 #include "generic_uart_driver.h"
 #include "gpio.h"
+#include "generic_uart_driver.h"
 
 // @formatter:off
 
@@ -39,7 +40,8 @@ typedef enum iridium_error_code
 // Macros
 #define IRIDIUM_INITIAL_CAP_CHARGE_TIME TX_TIMER_TICKS_PER_SECOND * 30
 #define IRIDIUM_TOP_UP_CAP_CHARGE_TIME TX_TIMER_TICKS_PER_SECOND * 10
-#define MAX_RETRIES 10
+#define IRIDIUM_MAX_UART_TX_TICKS TX_TIMER_TICKS_PER_SECOND
+#define IRIDIUM_MAX_UART_RX_TICKS (TX_TIMER_TICKS_PER_SECOND * 45)
 #define ACK_MESSAGE_SIZE 9
 #define DISABLE_FLOW_CTRL_SIZE 12
 #define ENABLE_RI_SIZE 18
@@ -59,31 +61,13 @@ typedef enum iridium_error_code
 #define ERROR_MESSAGE_TYPE 99
 #define IRIDIUM_CHECKSUM_LENGTH 2
 #define IRIDIUM_MAX_RESPONSE_SIZE 64
-#define IRIDIUM_FET_PIN 0
-#define IRIDIUM_NETAV_PIN 0
-#define IRIDIUM_RI_PIN 0
-#define IRIDIUM_ONOFF_PIN 0
 #define IRIDIUM_DEFAULT_BAUD_RATE 19200
 #define CHECKSUM_FIRST_BYTE_INDEX 327
 #define CHECKSUM_SECOND_BYTE_INDEX 328
 #define ONE_SECOND 1000
 #define ASCII_ZERO 48
 #define ASCII_FIVE 53
-#define IRIDIUM_MAX_TRANSMIT_PERIOD 6 - 1
 #define ERROR_MESSAGE_MAX_LENGTH 320
-#define IRIDIUM_TIMER_INSTANCE TIM17
-#define IRIDIUM_UART_INSTANCE UART5
-#define IRIDIUM_LL_TX_DMA_HANDLE LL_DMA_CHANNEL_2
-#define IRIDIUM_LL_RX_DMA_HANDLE LL_DMA_CHANNEL_3
-#define SECONDS_IN_MIN 60
-#define SECONDS_IN_HOUR 3600
-#define SECONDS_IN_DAY 86400
-#define SECONDS_IN_YEAR 31536000 // 365 day year, not accounting for 1/4 leap days
-#define SECONDS_1970_TO_2000 946684800
-#define EPOCH_YEAR 1970
-#define CURRENT_CENTURY 2000
-// Magic number used to indicate the SBD message queue has been initialized
-#define SBD_QUEUE_MAGIC_NUMBER 0x101340
 
 typedef struct sbd_message_type_52
 {
@@ -145,6 +129,7 @@ typedef struct Iridium
   iridium_return_code_t     (*transmit_error_message) ( char *error_message );
   iridium_return_code_t     (*start_timer) ( uint16_t timeout_in_minutes );
   iridium_return_code_t     (*stop_timer) ( void );
+  void                      (*charge_caps) ( uint32_t caps_charge_time_ticks );
   void                      (*sleep) ( void );
   void                      (*wake) ( void );
   void                      (*on) ( void );
