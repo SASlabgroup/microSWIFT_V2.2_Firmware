@@ -40,7 +40,8 @@ typedef enum ct_error_code
   CT_PARSING_ERROR      = -2,
   CT_SELF_TEST_FAIL     = -3,
   CT_NOT_ENOUGH_SAMPLES = -4,
-  CT_DONE_SAMPLING      = -5
+  CT_DONE_SAMPLING      = -5,
+  CT_TIMER_ERROR        = -6
 } ct_return_code_t;
 
 typedef struct
@@ -60,6 +61,8 @@ typedef struct CT
   DMA_HandleTypeDef         *rx_dma_handle;
   // Event flags
   TX_EVENT_FLAGS_GROUP      *error_flags;
+  // Pointer to timer
+  TX_TIMER                  *timer;
   // The buffer written to by CT sensor
   char                      data_buf[CT_DATA_ARRAY_SIZE];
   // Arrays to hold conductivity/temp values
@@ -82,9 +85,9 @@ typedef struct CT
 } CT;
 
 void ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
-               UART_HandleTypeDef *ct_uart_handle,  DMA_HandleTypeDef *ct_tx_dma_handle,
+               UART_HandleTypeDef *ct_uart_handle, DMA_HandleTypeDef *ct_tx_dma_handle,
                DMA_HandleTypeDef *ct_rx_dma_handle, TX_SEMAPHORE *uart_sema,
-               TX_EVENT_FLAGS_GROUP *error_flags);
+               TX_EVENT_FLAGS_GROUP *error_flags, TX_TIMER *timer );
 
 void ct_deinit ( void );
 

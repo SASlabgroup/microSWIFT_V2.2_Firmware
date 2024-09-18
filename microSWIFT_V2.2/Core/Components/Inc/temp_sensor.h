@@ -36,7 +36,7 @@ typedef enum tmperature_error_code
 {
   TEMPERATURE_SUCCESS = 0,
   TEMPERATURE_CONVERSION_ERROR = -1,
-  TEMPERATURE_TIMEOUT_ERROR = -2,
+  TEMPERATURE_TIMER_ERROR = -2,
   TEMPERATURE_COMMUNICATION_ERROR = -3
 } temperature_return_code_t;
 
@@ -47,8 +47,14 @@ typedef struct Temperature
   microSWIFT_configuration  *global_config;
   TX_EVENT_FLAGS_GROUP      *error_flags;
 
+  TX_TIMER                  *timer;
+
+  bool                      timer_timeout;
+
   temperature_return_code_t (*self_test) ( float *optional_reading );
   temperature_return_code_t (*get_readings) ( bool get_single_reading, float *temperature );
+  temperature_return_code_t (*start_timer) ( uint16_t timeout_in_minutes );
+  temperature_return_code_t (*stop_timer) ( void );
   void                      (*on) ( void );
   void                      (*off) ( void );
 
@@ -64,6 +70,8 @@ void temperature_init ( microSWIFT_configuration *global_config, Temperature *st
                         I2C_HandleTypeDef *i2c_handle, TX_EVENT_FLAGS_GROUP *error_flags,
                         TX_MUTEX *i2c_mutex, bool clear_calibration_data );
 void temperature_deinit ( void );
+void temperature_timer_expired ( ULONG expiration_input );
+bool temperature_get_timeout_status ( void );
 
 // @formatter:on
 #endif /* INC_PERIPHERALS_TEMP_SENSOR_H_ */

@@ -1169,7 +1169,7 @@ static void ct_thread_entry ( ULONG thread_input )
   ct_return_code_t ct_return_code;
   uint32_t ct_parsing_error_counter = 0;
   real16_T half_salinity, half_temp;
-  int32_t ct_thread_timeout = TX_TIMER_TICKS_PER_SECOND * 60;
+  int32_t ct_thread_timeout = TX_TIMER_TICKS_PER_SECOND * 90;
 
   // Set the mean salinity and temp values to error values in the event the sensor fails
   half_salinity.bitPattern = CT_VALUES_ERROR_CODE;
@@ -1179,7 +1179,7 @@ static void ct_thread_entry ( ULONG thread_input )
   memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
 
   ct_init (&ct, &configuration, device_handles.ct_uart_handle, device_handles.ct_uart_tx_dma_handle,
-           device_handles.ct_uart_rx_dma_handle, &ct_uart_sema, &error_flags);
+           device_handles.ct_uart_rx_dma_handle, &ct_uart_sema, &error_flags, ct_timer);
 
   ct.on ();
 
@@ -1205,6 +1205,7 @@ static void ct_thread_entry ( ULONG thread_input )
 
   /******************************* Control thread resumes this thread *****************************/
   ct.on ();
+  ct.start_timer (ct_thread_timeout);
   watchdog_register_thread (CT_THREAD);
   watchdog_check_in (CT_THREAD);
 
@@ -1237,12 +1238,18 @@ static void ct_thread_entry ( ULONG thread_input )
     {
       break;
     }
+
+    if ( ct_get_timeout_status () )
+    {
+      ct_error_out (&ct, CT_ERROR, this_thread, "CT thread timed out.");
+    }
   }
 
   watchdog_check_in (CT_THREAD);
 
   // Turn off the CT sensor
   ct.off ();
+  ct.stop_timer ();
   // Deinit UART and DMA to prevent spurious interrupts
   ct_deinit ();
 

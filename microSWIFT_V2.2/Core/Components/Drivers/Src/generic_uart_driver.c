@@ -50,14 +50,13 @@ void generic_uart_set_timeout_ticks ( generic_uart_driver *driver_ptr, ULONG tx_
   driver_ptr->rx_timeout_ticks = rx_timeout_ticks;
 }
 
-static int32_t _generic_uart_read ( void *driver_ptr, uint8_t *read_buf, uint16_t size,
-                                    ULONG timeout_ticks )
+static int32_t _generic_uart_read ( void *driver_ptr, uint8_t *read_buf, uint16_t size )
 {
   generic_uart_driver *driver_handle = (generic_uart_driver*) driver_ptr;
 
   HAL_UART_Receive_DMA (driver_handle->uart_handle, read_buf, size);
 
-  if ( tx_semaphore_get (driver_handle->uart_sema, timeout_ticks) != TX_SUCCESS )
+  if ( tx_semaphore_get (driver_handle->uart_sema, driver_handle->rx_timeout_ticks) != TX_SUCCESS )
   {
     return UART_ERR;
   }
@@ -65,14 +64,13 @@ static int32_t _generic_uart_read ( void *driver_ptr, uint8_t *read_buf, uint16_
   return UART_OK;
 }
 
-static int32_t _generic_uart_write ( void *driver_ptr, const uint8_t *write_buf, uint16_t size,
-                                     ULONG timeout_ticks )
+static int32_t _generic_uart_write ( void *driver_ptr, uint8_t *write_buf, uint16_t size )
 {
   generic_uart_driver *driver_handle = (generic_uart_driver*) driver_ptr;
 
   HAL_UART_Transmit_DMA (driver_handle->uart_handle, write_buf, size);
 
-  if ( tx_semaphore_get (driver_handle->uart_sema, timeout_ticks) != TX_SUCCESS )
+  if ( tx_semaphore_get (driver_handle->uart_sema, driver_handle->tx_timeout_ticks) != TX_SUCCESS )
   {
     return UART_ERR;
   }

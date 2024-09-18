@@ -50,7 +50,7 @@ static const char *salinity_units = "PSU";
 void ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
                UART_HandleTypeDef *ct_uart_handle, DMA_HandleTypeDef *ct_tx_dma_handle,
                DMA_HandleTypeDef *ct_rx_dma_handle, TX_SEMAPHORE *uart_sema,
-               TX_EVENT_FLAGS_GROUP *error_flags )
+               TX_EVENT_FLAGS_GROUP *error_flags, TX_TIMER *timer )
 {
   // Assign object pointer
   self = struct_ptr;
@@ -58,6 +58,7 @@ void ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
   __reset_ct_struct_fields ();
   self->global_config = global_config;
   self->error_flags = error_flags;
+  self->timer = timer;
   self->uart_handle = ct_uart_handle;
   self->tx_dma_handle = ct_tx_dma_handle;
   self->rx_dma_handle = ct_rx_dma_handle;
@@ -121,8 +122,6 @@ static ct_return_code_t _ct_parse_sample ( void )
   int fail_counter = 0, max_retries = 10;
   double temperature, salinity;
   char *index;
-  // Sensor sends a message every 2 seconds @ 9600 baud, takes 0.245 seconds to get it out
-  int required_ticks_to_get_message = TX_TIMER_TICKS_PER_SECOND * 3;
 
   // Samples array overflow safety check
   if ( self->total_samples >= self->global_config->total_ct_samples )
@@ -134,9 +133,8 @@ static ct_return_code_t _ct_parse_sample ( void )
   while ( ++fail_counter < max_retries )
   {
 
-    if ( generic_uart_read (&self->uart_driver, (uint8_t*) &(self->data_buf[0]),
-    CT_DATA_ARRAY_SIZE,
-                            required_ticks_to_get_message)
+    if ( self->uart_driver.read (&self->uart_driver, (uint8_t*) &(self->data_buf[0]),
+    CT_DATA_ARRAY_SIZE)
          != UART_OK )
     {
       self->reset_ct_uart ();
@@ -220,13 +218,11 @@ static ct_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *optiona
   uint32_t elapsed_time, start_time;
   double temperature, salinity;
   char *index;
-  // Sensor sends a message every 2 seconds @ 9600 baud, takes 0.245 seconds to get it out
-  int required_ticks_to_get_message = TX_TIMER_TICKS_PER_SECOND * 3;
 
   start_time = tx_time_get ();
 
-  if ( generic_uart_read (&self->uart_driver, (uint8_t*) &(self->data_buf[0]), CT_DATA_ARRAY_SIZE,
-                          required_ticks_to_get_message)
+  if ( self->uart_driver.read (&self->uart_driver, (uint8_t*) &(self->data_buf[0]),
+  CT_DATA_ARRAY_SIZE)
        != UART_OK )
   {
     self->reset_ct_uart ();
@@ -318,8 +314,35 @@ static ct_return_code_t _ct_reset_uart ( void )
  * @param timeout_in_minutes - timeout, in minutes
  * @return  ct_return_code_t
  */
-static ct_return_code_t _ct_start_timer ( uint16_t timeout_in_minutes );
-static ct_return_code_t _ct_stop_timer ( void );
+static ct_return_code_t _ct_start_timer ( uint16_t timeout_in_minutes )
+{
+  uint16_t timeout = TX_TIMER_TICKS_PER_SECOND * timeout_in_minutes;
+  ct_return_code_t ret = CT_SUCCESS;
+
+  if ( tx_timer_change (self->timer, timeout, 0) != TX_SUCCESS )
+  {
+    ret = CT_TIMER_ERROR;
+    return ret;
+  }
+
+  if ( tx_timer_activate (self->timer) != TX_SUCCESS )
+  {
+    ret = CT_TIMER_ERROR;
+  }
+
+  return ret;
+}
+
+/**
+ * Stop the CT thread timer
+ *
+ * @return  ct_return_code_t
+ */
+static ct_return_code_t _ct_stop_timer ( void )
+{
+  return (tx_timer_deactivate (self->timer) == TX_SUCCESS) ?
+      CT_SUCCESS : CT_TIMER_ERROR;
+}
 
 /**
  * Turn on the CT sensor FET.

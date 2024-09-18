@@ -23,6 +23,8 @@ static Temperature *self;
 // Struct functions
 static temperature_return_code_t _temperature_self_test ( float *optional_reading );
 static temperature_return_code_t _temperature_get_readings ( bool get_single_reading, float *temperature );
+static temperature_return_code_t _temperature_start_timer ( uint16_t timeout_in_minutes );
+static temperature_return_code_t _temperature_stop_timer ( void );
 static void                      _temperature_on ( void );
 static void                      _temperature_off ( void );
 
@@ -34,19 +36,23 @@ static void                      __reset_struct_fields ( bool reset_calibration 
 
 void temperature_init ( microSWIFT_configuration *global_config, Temperature *struct_ptr,
                         I2C_HandleTypeDef *i2c_handle, TX_EVENT_FLAGS_GROUP *error_flags,
-                        TX_MUTEX *i2c_mutex, bool clear_calibration_data )
+                        TX_TIMER *timer, TX_MUTEX *i2c_mutex, bool clear_calibration_data )
 {
   self = struct_ptr;
 
   self->global_config = global_config;
   self->error_flags = error_flags;
+  self->timer = timer;
   self->pwr_gpio.port = TEMP_FET_GPIO_Port;
   self->pwr_gpio.pin = TEMP_FET_Pin;
+  self->timer_timeout = false;
 
-  self->on = _temperature_on;
-  self->off = _temperature_off;
   self->self_test = _temperature_self_test;
   self->get_readings = _temperature_get_readings;
+  self->start_timer = _temperature_start_timer;
+  self->stop_timer = _temperature_stop_timer;
+  self->on = _temperature_on;
+  self->off = _temperature_off;
 
   __reset_struct_fields (clear_calibration_data);
 
@@ -55,6 +61,21 @@ void temperature_init ( microSWIFT_configuration *global_config, Temperature *st
                                      i2c1_init, i2c1_deinit, NULL,
                                      NULL,
                                      true);
+}
+
+void temperature_deinit ( void )
+{
+
+}
+
+void temperature_timer_expired ( ULONG expiration_input )
+{
+  self->timer_timeout = true;
+}
+
+bool temperature_get_timeout_status ( void )
+{
+  return self->timer_timeout;
 }
 
 static temperature_return_code_t _temperature_self_test ( float *optional_reading )
@@ -123,6 +144,31 @@ static temperature_return_code_t _temperature_get_readings ( bool get_single_rea
   *temperature = self->converted_temp;
 
   return return_code;
+}
+
+static temperature_return_code_t _temperature_start_timer ( uint16_t timeout_in_minutes )
+{
+  uint16_t timeout = TX_TIMER_TICKS_PER_SECOND * timeout_in_minutes;
+  temperature_return_code_t ret = TEMPERATURE_SUCCESS;
+
+  if ( tx_timer_change (self->timer, timeout, 0) != TX_SUCCESS )
+  {
+    ret = TEMPERATURE_TIMER_ERROR;
+    return ret;
+  }
+
+  if ( tx_timer_activate (self->timer) != TX_SUCCESS )
+  {
+    ret = TEMPERATURE_TIMER_ERROR;
+  }
+
+  return ret;
+}
+
+static temperature_return_code_t _temperature_stop_timer ( void )
+{
+  return (tx_timer_deactivate (self->timer) == TX_SUCCESS) ?
+      TEMPERATURE_SUCCESS : TEMPERATURE_TIMER_ERROR;
 }
 
 static void _temperature_on ( void )
