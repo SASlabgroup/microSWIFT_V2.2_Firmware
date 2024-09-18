@@ -49,6 +49,19 @@ extern UART_HandleTypeDef huart3;
 extern UART_HandleTypeDef huart6;
 
 /* USER CODE BEGIN Private defines */
+extern DMA_HandleTypeDef handle_GPDMA1_Channel0;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel1;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel2;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel3;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel4;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel5;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel6;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel7;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel8;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel9;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel10;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel11;
+
 #define CT_UART UART4
 #define IRIDIUM_UART UART5
 #define GNSS_UART USART1
@@ -56,12 +69,12 @@ extern UART_HandleTypeDef huart6;
 #define AUX_UART_2 USART3
 /* USER CODE END Private defines */
 
-void MX_UART4_Init(void);
-void MX_UART5_Init(void);
-void MX_USART1_UART_Init(void);
-void MX_USART2_UART_Init(void);
-void MX_USART3_UART_Init(void);
-void MX_USART6_UART_Init(void);
+void MX_UART4_Init ( void );
+void MX_UART5_Init ( void );
+void MX_USART1_UART_Init ( void );
+void MX_USART2_UART_Init ( void );
+void MX_USART3_UART_Init ( void );
+void MX_USART6_UART_Init ( void );
 
 /* USER CODE BEGIN Prototypes */
 int32_t uart4_init ( void );

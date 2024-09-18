@@ -7,6 +7,7 @@
 
 #include "threadx_support.h"
 #include "stdbool.h"
+#include "stdarg.h"
 #include "tx_api.h"
 #include "main.h"
 #include "gnss.h"
@@ -17,115 +18,54 @@
 #include "light_sensor.h"
 #include "accelerometer_sensor.h"
 #include "iridium.h"
-
-bool startup_procedure ( microSWIFT_configuration *global_config )
-{
-
-  // TODO: In subsequent sampling windows, if a non-critical sensor fails, set an error flag, shut
-  //       the component and thread down, and continue on.
-  // TODO: Add filex thread to the list (core) when the interface is completed
-
-  UINT tx_return;
-  ULONG init_success_flags = (RTC_INIT_SUCCESS | GNSS_INIT_SUCCESS | WAVES_THREAD_INIT_SUCCESS
-                              | IRIDIUM_INIT_SUCCESS);
-  ULONG current_flags;
-
-  // Start core threads
-  (void) tx_thread_resume (&gnss_thread);
-  (void) tx_thread_resume (&waves_thread);
-  (void) tx_thread_resume (&iridium_thread);
-
-  // Start optional component threads if enabled
-  if ( global_config->ct_enabled )
-  {
-    init_success_flags |= CT_INIT_SUCCESS;
-    (void) tx_thread_resume (&ct_thread);
-  }
-
-  if ( global_config->temperature_enabled )
-  {
-    init_success_flags |= TEMPERATURE_INIT_SUCCESS;
-    (void) tx_thread_resume (&temperature_thread);
-  }
-
-  if ( global_config->light_enabled )
-  {
-    init_success_flags |= LIGHT_INIT_SUCCESS;
-    (void) tx_thread_resume (&light_thread);
-  }
-
-  if ( global_config->turbidity_enabled )
-  {
-    init_success_flags |= TURBIDITY_INIT_SUCCESS;
-    (void) tx_thread_resume (&turbidity_thread);
-  }
-
-  if ( global_config->accelerometer_enabled )
-  {
-    init_success_flags |= ACCELEROMETER_INIT_SUCCESS;
-    (void) tx_thread_resume (&accelerometer_thread);
-  }
-
-  // Flash power up sequence (this will also give threads time to execute their init procedures)
-  led_sequence (INITIAL_LED_SEQUENCE);
-
-  tx_return = tx_event_flags_get (&initialization_flags, init_success_flags, TX_AND_CLEAR,
-                                  &current_flags, STARTUP_SEQUENCE_MAX_WAIT_TICKS);
-
-  return (tx_return == TX_SUCCESS);
-}
+#include "persistent_ram.h"
+#include "logger.h"
+#include "watchdog.h"
 
 bool gnss_apply_config ( GNSS *gnss )
 {
   int fail_counter = 0, max_retries = 10;
-  gnss_error_code_t gnss_return_code;
-
-  gnss->on_off (GPIO_PIN_SET);
+  gnss_return_code_t gnss_return_code = GNSS_SUCCESS;
 
   while ( fail_counter < max_retries )
   {
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     gnss_return_code = gnss->config ();
-    if ( gnss_return_code != GNSS_SUCCESS )
-    {
-      fail_counter++;
-    }
-    else
+
+    if ( gnss_return_code == GNSS_SUCCESS )
     {
       break;
     }
-  }
 
-  if ( gnss_return_code != GNSS_SUCCESS )
-  {
-    gnss->on_off (GPIO_PIN_RESET);
+    gnss->off ();
+    tx_thread_sleep (1);
+    gnss->on ();
+
+    fail_counter++;
   }
 
   return (gnss_return_code == GNSS_SUCCESS);
 }
 
-bool ct_and_self_test ( CT *ct )
+bool ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings )
 {
   int32_t fail_counter = 0, max_retries = 10;
-  ct_error_code_t ct_return_code;
-
-  ct->on_off (GPIO_PIN_SET);
+  ct_return_code_t ct_return_code;
 
   while ( fail_counter < max_retries )
   {
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    ct_return_code = ct->self_test (false, NULL);
-    if ( ct_return_code != CT_SUCCESS )
-    {
-      fail_counter++;
-    }
-    else
+    ct_return_code = ct->self_test (add_warmup_time, self_test_readings);
+
+    if ( ct_return_code == CT_SUCCESS )
     {
       break;
     }
-  }
 
-  ct->on_off (GPIO_PIN_RESET);
+    ct->off ();
+    tx_thread_sleep (1);
+    ct->on ();
+
+    fail_counter++;
+  }
 
   return (ct_return_code == CT_SUCCESS);
 }
@@ -133,26 +73,25 @@ bool ct_and_self_test ( CT *ct )
 bool temperature_self_test ( Temperature *temperature, float *self_test_temp )
 {
   int32_t fail_counter = 0, max_retries = 10;
-  temperature_error_code_t temp_return_code;
-
-  temperature->on ();
+  temperature_return_code_t temp_return_code;
 
   while ( fail_counter < max_retries )
   {
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    temp_return_code = temperature->self_test ();
-    if ( temp_return_code != TEMPERATURE_SUCCESS )
-    {
-      temperature->reset_i2c ();
-      fail_counter++;
-    }
-    else
+
+    temp_return_code = temperature->self_test (self_test_temp);
+
+    if ( temp_return_code == TEMPERATURE_SUCCESS )
     {
       break;
     }
-  }
 
-  temperature->off ();
+    temperature->off ();
+    tx_thread_sleep (1);
+    temperature->on ();
+
+    fail_counter++;
+  }
 
   return (temp_return_code == TEMPERATURE_SUCCESS);
 }
@@ -175,7 +114,7 @@ bool accelerometer_self_test ( void )
 bool iridium_apply_config ( Iridium *iridium )
 {
   int32_t fail_counter = 0, max_retries = 10;
-  iridium_error_code_t iridium_return_code;
+  iridium_return_code_t iridium_return_code;
 
   iridium->on_off (true);
 
@@ -220,9 +159,88 @@ bool iridium_apply_config ( Iridium *iridium )
   return (iridium_return_code == IRIDIUM_SUCCESS);
 }
 
+void gnss_error_out ( GNSS *gnss, ULONG error_flag, TX_THREAD *gnss_thread, const char *fmt, ... )
+{
+  va_list args;
+  va_start(args, fmt);
+
+  gnss->off ();
+  gnss->stop_timer ();
+  uart_logger_log_line (fmt, args);
+
+  if ( error_flag != NO_ERROR_FLAG )
+  {
+    (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
+  }
+
+  watchdog_deregister_thread (GNSS_THREAD);
+
+  tx_thread_suspend (gnss_thread);
+}
+
+void ct_error_out ( CT *ct, ULONG error_flag, TX_THREAD *ct_thread, const char *fmt, ... )
+{
+  va_list args;
+  va_start(args, fmt);
+
+  ct->off ();
+  ct->stop_timer ();
+  uart_logger_log_line (fmt, args);
+
+  if ( error_flag != NO_ERROR_FLAG )
+  {
+    (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
+  }
+
+  watchdog_deregister_thread (CT_THREAD);
+
+  tx_thread_suspend (ct_thread);
+}
+
+void temperature_error_out ( Temperature *temperature, ULONG error_flag,
+                             TX_THREAD *temperature_thread, const char *fmt, ... )
+{
+  va_list args;
+  va_start(args, fmt);
+
+  temperature->off ();
+  temperature->stop_timer ();
+  uart_logger_log_line (fmt, args);
+
+  if ( error_flag != NO_ERROR_FLAG )
+  {
+    (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
+  }
+
+  watchdog_deregister_thread (TEMPERATURE_THREAD);
+
+  tx_thread_suspend (temperature_thread);
+}
+
+void iridium_error_out ( Iridium *iridium, ULONG error_flag, TX_THREAD *iridium_thread,
+                         const char *fmt, ... )
+{
+  va_list args;
+  va_start(args, fmt);
+
+  iridium->sleep ();
+  iridium->off ();
+  iridium->stop_timer ();
+  uart_logger_log_line (fmt, args);
+
+  if ( error_flag != NO_ERROR_FLAG )
+  {
+    (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
+  }
+
+  watchdog_deregister_thread (IRIDIUM_THREAD);
+
+  tx_thread_suspend (iridium_thread);
+}
+
 bool is_first_sample_window ( void )
 {
-  return true;
+  return (persistent_stotrage_get_sample_window_counter () == 0);
 }
 
 ULONG get_current_flags ( TX_EVENT_FLAGS_GROUP *event_flags )
@@ -493,7 +511,7 @@ void send_error_message ( Iridium *iridium, ULONG error_flags )
  *
  * @retval void
  */
-void shut_it_all_down ( void )
+void shut_down_all_peripherals ( void )
 {
 // Shut down Iridium modem
   HAL_GPIO_WritePin (GPIOD, IRIDIUM_OnOff_Pin, GPIO_PIN_RESET);

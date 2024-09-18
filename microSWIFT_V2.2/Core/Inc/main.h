@@ -117,10 +117,12 @@ void Error_Handler(void);
 #define RTC_TIMESTAMP_3_GPIO_Port GPIOB
 #define RTC_INT_B_Pin GPIO_PIN_2
 #define RTC_INT_B_GPIO_Port GPIOB
+#define RTC_INT_B_EXTI_IRQn EXTI2_IRQn
 #define AUX_GPIO_11_Pin GPIO_PIN_11
 #define AUX_GPIO_11_GPIO_Port GPIOF
 #define RTC_INT_A_Pin GPIO_PIN_12
 #define RTC_INT_A_GPIO_Port GPIOF
+#define RTC_INT_A_EXTI_IRQn EXTI12_IRQn
 #define AUX_GPIO_12_Pin GPIO_PIN_13
 #define AUX_GPIO_12_GPIO_Port GPIOF
 #define AUX_GPIO_13_Pin GPIO_PIN_14
@@ -171,6 +173,11 @@ void Error_Handler(void);
 #define AUX_SPI_2_MISO_GPIO_Port GPIOC
 #define SD_CK_Pin GPIO_PIN_12
 #define SD_CK_GPIO_Port GPIOC
+#define IRIDIUM_RI_N_Pin GPIO_PIN_0
+#define IRIDIUM_RI_N_GPIO_Port GPIOD
+#define IRIDIUM_RI_N_EXTI_IRQn EXTI0_IRQn
+#define IRIDIUM_NET_AV_Pin GPIO_PIN_1
+#define IRIDIUM_NET_AV_GPIO_Port GPIOD
 #define SD_CMD_Pin GPIO_PIN_2
 #define SD_CMD_GPIO_Port GPIOD
 #define IRIDIUM_OnOff_Pin GPIO_PIN_3
