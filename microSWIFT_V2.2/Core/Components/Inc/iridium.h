@@ -82,8 +82,6 @@ typedef struct Iridium
   TX_TIMER                  *timer;
   // Event flags
   TX_EVENT_FLAGS_GROUP      *error_flags;
-  // pointer to the message array
-  sbd_message_type_52       *current_message;
   // Error message payload buffer
   uint8_t                   error_message_buffer[IRIDIUM_ERROR_MESSAGE_PAYLOAD_SIZE + IRIDIUM_CHECKSUM_LENGTH + 64];
   // UART response buffer
@@ -100,7 +98,7 @@ typedef struct Iridium
   iridium_return_code_t     (*self_test) ( void );
   iridium_return_code_t     (*start_timer) ( uint16_t timeout_in_minutes );
   iridium_return_code_t     (*stop_timer) ( void );
-  iridium_return_code_t     (*transmit_message) ( void );
+  iridium_return_code_t     (*transmit_message) ( sbd_message_type_52 *msg );
   iridium_return_code_t     (*transmit_error_message) ( char *error_message );
   void                      (*charge_caps) ( uint32_t caps_charge_time_ticks );
   void                      (*sleep) ( void );
@@ -113,8 +111,7 @@ typedef struct Iridium
 void iridium_init ( Iridium *struct_ptr, microSWIFT_configuration *global_config,
                     UART_HandleTypeDef *iridium_uart_handle, TX_SEMAPHORE *uart_sema,
                     DMA_HandleTypeDef *uart_tx_dma_handle, DMA_HandleTypeDef *uart_rx_dma_handle,
-                    TX_TIMER *timer, TX_EVENT_FLAGS_GROUP *error_flags,
-                    sbd_message_type_52 *current_message );
+                    TX_TIMER *timer, TX_EVENT_FLAGS_GROUP *error_flags );
 void iridium_deinit ( void );
 void iridium_timer_expired ( ULONG expiration_input );
 bool iridium_get_timeout_status ( void );
