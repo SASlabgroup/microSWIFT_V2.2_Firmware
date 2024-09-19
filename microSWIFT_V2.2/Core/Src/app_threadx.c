@@ -1850,7 +1850,10 @@ static void iridium_thread_entry ( ULONG thread_input )
 
   watchdog_check_in (IRIDIUM_THREAD);
 
-  iridium.transmit_message ();
+#warning "Put this in a loop checking for timeout condition. Also need to manage queued \
+  message sending here as transmit_message is greatly simplified."
+
+  iridium.transmit_message (&sbd_message);
 
   watchdog_check_in (IRIDIUM_THREAD);
 
