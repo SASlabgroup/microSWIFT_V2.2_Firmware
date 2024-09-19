@@ -98,10 +98,10 @@ typedef struct Iridium
 
   iridium_return_code_t     (*config) ( void );
   iridium_return_code_t     (*self_test) ( void );
-  iridium_return_code_t     (*transmit_message) ( void );
-  iridium_return_code_t     (*transmit_error_message) ( char *error_message );
   iridium_return_code_t     (*start_timer) ( uint16_t timeout_in_minutes );
   iridium_return_code_t     (*stop_timer) ( void );
+  iridium_return_code_t     (*transmit_message) ( void );
+  iridium_return_code_t     (*transmit_error_message) ( char *error_message );
   void                      (*charge_caps) ( uint32_t caps_charge_time_ticks );
   void                      (*sleep) ( void );
   void                      (*wake) ( void );

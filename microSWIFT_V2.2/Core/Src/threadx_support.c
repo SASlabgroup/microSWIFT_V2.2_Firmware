@@ -39,6 +39,7 @@ bool gnss_apply_config ( GNSS *gnss )
     gnss->off ();
     tx_thread_sleep (1);
     gnss->on ();
+    tx_thread_sleep (1);
 
     fail_counter++;
   }
@@ -63,6 +64,7 @@ bool ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings 
     ct->off ();
     tx_thread_sleep (1);
     ct->on ();
+    tx_thread_sleep (1);
 
     fail_counter++;
   }
@@ -89,6 +91,7 @@ bool temperature_self_test ( Temperature *temperature, float *self_test_temp )
     temperature->off ();
     tx_thread_sleep (1);
     temperature->on ();
+    tx_thread_sleep (1);
 
     fail_counter++;
   }
@@ -116,26 +119,24 @@ bool iridium_apply_config ( Iridium *iridium )
   int32_t fail_counter = 0, max_retries = 10;
   iridium_return_code_t iridium_return_code;
 
-  iridium->on_off (true);
-
   while ( fail_counter < max_retries )
   {
     iridium_return_code = iridium->self_test ();
-    if ( iridium_return_code != IRIDIUM_SUCCESS )
-    {
-      iridium->cycle_power ();
-      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-      fail_counter++;
-    }
-    else
+
+    if ( iridium_return_code == IRIDIUM_SUCCESS )
     {
       break;
     }
+
+    iridium->off ();
+    tx_thread_sleep (1);
+    iridium->on ();
+    tx_thread_sleep (1);
+    fail_counter++;
   }
 
   if ( iridium_return_code != IRIDIUM_SUCCESS )
   {
-    iridium->sleep (GPIO_PIN_RESET);
     return false;
   }
 
@@ -144,16 +145,17 @@ bool iridium_apply_config ( Iridium *iridium )
   while ( fail_counter < max_retries )
   {
     iridium_return_code = iridium->config ();
-    if ( iridium_return_code != IRIDIUM_SUCCESS )
-    {
-      iridium->cycle_power ();
-      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-      fail_counter++;
-    }
-    else
+
+    if ( iridium_return_code == IRIDIUM_SUCCESS )
     {
       break;
     }
+
+    iridium->off ();
+    tx_thread_sleep (1);
+    iridium->on ();
+    tx_thread_sleep (1);
+    fail_counter++;
   }
 
   return (iridium_return_code == IRIDIUM_SUCCESS);

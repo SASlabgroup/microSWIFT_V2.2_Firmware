@@ -1189,11 +1189,9 @@ static time_t __get_timestamp ( void )
 static void __cycle_power ( void )
 {
   self->off ();
-//      HAL_Delay(25);
-  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+  tx_thread_sleep (1);
   self->on ();
-//      HAL_Delay(25);
-  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+  tx_thread_sleep (1);
 }
 
 /**

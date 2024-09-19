@@ -211,11 +211,11 @@ static void expansion_thread_3_entry ( ULONG thread_input );
 /* USER CODE END PFP */
 
 /**
-  * @brief  Application ThreadX Initialization.
-  * @param memory_ptr: memory pointer
-  * @retval int
-  */
-UINT App_ThreadX_Init(VOID *memory_ptr)
+ * @brief  Application ThreadX Initialization.
+ * @param memory_ptr: memory pointer
+ * @retval int
+ */
+UINT App_ThreadX_Init ( VOID *memory_ptr )
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -754,18 +754,18 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   return ret;
 }
 
-  /**
-  * @brief  Function that implements the kernel's initialization.
-  * @param  None
-  * @retval None
-  */
-void MX_ThreadX_Init(void)
+/**
+ * @brief  Function that implements the kernel's initialization.
+ * @param  None
+ * @retval None
+ */
+void MX_ThreadX_Init ( void )
 {
   /* USER CODE BEGIN  Before_Kernel_Start */
 
   /* USER CODE END  Before_Kernel_Start */
 
-  tx_kernel_enter();
+  tx_kernel_enter ();
 
   /* USER CODE BEGIN  Kernel_Start_Error */
 
@@ -826,8 +826,6 @@ static void rtc_thread_entry ( ULONG thread_input )
     tx_ret = tx_queue_receive (&rtc_messaging_queue, &req, TX_WAIT_FOREVER);
     if ( tx_ret == TX_SUCCESS )
     {
-#warning "If the return code is not RTC_SUCCESS, something needs to be done. Decide whether that \
-    Should happen here, in rtc_server, or in each respective thread."
       switch ( req.request )
       {
         case REFRESH_WATCHDOG:
@@ -863,9 +861,11 @@ static void rtc_thread_entry ( ULONG thread_input )
 
       if ( ret != RTC_SUCCESS )
       {
+#warning "If the return code is not RTC_SUCCESS, something needs to be done. Decide whether that \
+    Should happen here, in rtc_server, or in each respective thread."
         uart_logger_log_line ("RTC error detected");
         (void) tx_event_flags_set (&error_flags, RTC_ERROR, TX_OR);
-        (void) tx_thread_suspend (this_thread);
+//        (void) tx_thread_suspend (this_thread);
       }
 
       *req.return_code = ret;
@@ -965,7 +965,8 @@ static void control_thread_entry ( ULONG thread_input )
   {
     watchdog_check_in (CONTROL_THREAD);
 
-#warning "Monitor for errors here and handle them. Monitor for state (watch complete flags) and manage threads appropriately."
+#warning "Monitor for errors here and handle them. Monitor for state (watch complete flags) and\
+  manage threads appropriately."
     // TODO: Continue with the correct logic, i.e. if GNSS timed out, set alarm and shut down.
     //       Otherwise, continue with other sensors, run waves, etc. Try to keep as many threads
     //       as possible running concurrently.
@@ -974,6 +975,9 @@ static void control_thread_entry ( ULONG thread_input )
     //       window, just set the alarm and power down
     // TODO: When GNSS is complete, break
   }
+
+#warning "Make a utility that logs errors into a type 99 message as errors come in. \
+  Add timestamps to each error."
 
 }
 
@@ -1782,6 +1786,15 @@ static void iridium_thread_entry ( ULONG thread_input )
   Iridium iridium;
   iridium_return_code_t iridium_return_code = IRIDIUM_SUCCESS;
   int32_t iridium_thread_timeout = configuration.iridium_max_transmit_time;
+  UINT tx_return;
+  int fail_counter;
+  char ascii_7 = '7';
+  uint8_t sbd_type = 52;
+  uint16_t sbd_size = 327;
+  uint32_t sbd_timestamp = 0;
+  struct tm time_struct =
+    { 0 };
+  time_t time_now = 0;
 
   iridium_init (&iridium, &configuration, device_handles.iridium_uart_handle,
                 device_handles.iridium_minutes_timer, &thread_control_flags, &error_flags,
@@ -1799,7 +1812,6 @@ static void iridium_thread_entry ( ULONG thread_input )
   uart_logger_log_line ("Iridium modem initialized successfully.");
   (void) tx_event_flags_set (&initialization_flags, IRIDIUM_INIT_SUCCESS, TX_OR);
 
-  // Turn on the modem and charge up the caps
   iridium.charge_caps (IRIDIUM_INITIAL_CAP_CHARGE_TIME);
   iridium.sleep ();
 
@@ -1811,6 +1823,8 @@ static void iridium_thread_entry ( ULONG thread_input )
   watchdog_register_thread (IRIDIUM_THREAD);
   watchdog_check_in (IRIDIUM_THREAD);
 
+  iridium.start_timer (iridium_thread_timeout);
+
   //
   // Run tests if needed
   if ( tests.iridium_thread_test != NULL )
@@ -1818,144 +1832,36 @@ static void iridium_thread_entry ( ULONG thread_input )
     tests.iridium_thread_test (NULL);
   }
 
-  UINT tx_return;
-  int fail_counter;
-  char ascii_7 = '7';
-  uint8_t sbd_type = 52;
-  uint16_t sbd_size = 327;
-  real16_T voltage;
-  float sbd_timestamp = iridium->get_timestamp ();
-  bool queue_empty = iridium->storage_queue->num_msgs_enqueued == 0;
-
-  watchdog_check_in (IRIDIUM_THREAD);
-
-  watchdog_check_in (IRIDIUM_THREAD);
-
-// Check if we are skipping this message
-  tx_return = tx_event_flags_get (&error_flags, GNSS_EXITED_EARLY, TX_OR_CLEAR, &actual_error_flags,
-  TX_NO_WAIT);
-
-  if ( tx_return == TX_SUCCESS )
-  {
-    iridium->skip_current_message = true;
-  }
-
-// If this message was skipped and there's nothing in the queue, exit and jump to end_of_cycle_thread
-  if ( iridium->skip_current_message && queue_empty )
-  {
-    // Turn off the modem and RF switch
-    iridium->sleep (GPIO_PIN_RESET);
-    iridium->on_off (GPIO_PIN_RESET);
-    rf_switch->power_off ();
-    // Deinit UART and DMA to prevent spurious interrupts
-    HAL_UART_DeInit (iridium->iridium_uart_handle);
-    HAL_DMA_DeInit (iridium->iridium_rx_dma_handle);
-    HAL_DMA_DeInit (iridium->iridium_tx_dma_handle);
-    HAL_TIM_Base_Stop_IT (iridium->timer);
-
-    // Resume EOC thread
-    if ( tx_thread_resume (&end_of_cycle_thread) != TX_SUCCESS )
-    {
-      shut_it_all_down ();
-      HAL_NVIC_SystemReset ();
-    }
-
-    tx_thread_terminate (&iridium_thread);
-  }
-
-// Port the RF switch to the modem
-  rf_switch->set_iridium_port ();
-
-// Grab the battery voltage
-  battery->start_conversion ();
-  battery->get_voltage (&voltage);
-  battery->shutdown_adc ();
-  memcpy (&sbd_message.mean_voltage, &voltage, sizeof(real16_T));
-
-// finish filling out the SBD message
+  // finish filling out the SBD message
+  rtc_server_get_time (&time_struct, IRIDIUM_THREAD_COMPLETE);
+  time_now = mktime (&time_struct);
+  sbd_timestamp = (uint32_t) time_now;
   memcpy (&sbd_message.legacy_number_7, &ascii_7, sizeof(char));
   memcpy (&sbd_message.type, &sbd_type, sizeof(uint8_t));
   memcpy (&sbd_message.size, &sbd_size, sizeof(uint16_t));
   memcpy (&sbd_message.timestamp, &sbd_timestamp, sizeof(float));
 
-// Last posit was placed in the SBD message in GNSS thread, copy that over to
-// the Iridium struct
-  memcpy (&iridium->current_lat, &sbd_message.Lat, sizeof(float));
-  memcpy (&iridium->current_lon, &sbd_message.Lon, sizeof(float));
-
-// This will turn on the modem and make sure the caps are charged
-  iridium->charge_caps (IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
-
-  fail_counter = 0;
-  while ( fail_counter < MAX_SELF_TEST_RETRIES )
+  if ( !iridium_apply_config (&iridium) )
   {
-
-    watchdog_check_in (IRIDIUM_THREAD);
-    // See if we can get an ack message from the modem
-    iridium_return_code = iridium->self_test ();
-    if ( iridium_return_code != IRIDIUM_SUCCESS )
-    {
-
-      iridium->cycle_power ();
-      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-      fail_counter++;
-
-    }
-    else
-    {
-
-      break;
-    }
-  }
-
-  if ( fail_counter == MAX_SELF_TEST_RETRIES )
-  {
-    // If we couldn't get a response from the modem, shut everything down and force reset.
-    // But save the current message first
-    if ( !iridium->skip_current_message )
-    {
-      iridium->queue_add (iridium->current_message);
-    }
-    shut_it_all_down ();
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    HAL_NVIC_SystemReset ();
+    // Need to save the message
+    persistent_storage_save_iridium_message (&sbd_message);
+    iridium_error_out (&iridium, NO_ERROR_FLAG, this_thread, "Iridium modem failed to initialize.");
   }
 
   watchdog_check_in (IRIDIUM_THREAD);
 
-  iridium->transmit_message ();
+  iridium.transmit_message ();
 
   watchdog_check_in (IRIDIUM_THREAD);
 
-// Check for error messages
-  tx_event_flags_get (&error_flags, error_occured_flags, TX_OR_CLEAR, &actual_error_flags,
-  TX_NO_WAIT);
+#warning "Figure out error message reporting here."
 
-// If we have an error flag, send an error message
-  if ( actual_error_flags )
-  {
-    watchdog_check_in (IRIDIUM_THREAD);
-    send_error_message (actual_error_flags);
+  // Turn off the modem
+  iridium.stop_timer ();
+  iridium.sleep ();
+  iridium.off ();
 
-    watchdog_check_in (IRIDIUM_THREAD);
-  }
-
-// If something went wrong with the RTC, we'll reset
-  if ( actual_error_flags & RTC_ERROR )
-  {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
-  }
-
-// Turn off the modem and RF switch
-  iridium->sleep (GPIO_PIN_RESET);
-  iridium->on_off (GPIO_PIN_RESET);
-  rf_switch->power_off ();
-// Deinit UART and DMA to prevent spurious interrupts
-  HAL_UART_DeInit (iridium->iridium_uart_handle);
-  HAL_DMA_DeInit (iridium->iridium_rx_dma_handle);
-  HAL_DMA_DeInit (iridium->iridium_tx_dma_handle);
-  HAL_TIM_Base_Stop_IT (iridium->timer);
+  iridium_deinit ();
 
   watchdog_check_in (IRIDIUM_THREAD);
   watchdog_deregister_thread (IRIDIUM_THREAD);
