@@ -1803,6 +1803,7 @@ static void iridium_thread_entry ( ULONG thread_input )
 
   iridium.on ();
   iridium.wake ();
+  iridium.charge_caps (IRIDIUM_INITIAL_CAP_CHARGE_TIME);
 
   if ( !iridium_apply_config (&iridium) )
   {
@@ -1812,16 +1813,17 @@ static void iridium_thread_entry ( ULONG thread_input )
   uart_logger_log_line ("Iridium modem initialized successfully.");
   (void) tx_event_flags_set (&initialization_flags, IRIDIUM_INIT_SUCCESS, TX_OR);
 
-  iridium.charge_caps (IRIDIUM_INITIAL_CAP_CHARGE_TIME);
+  iridium.charge_caps (IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
   iridium.sleep ();
 
   tx_thread_suspend (this_thread);
 
   /******************************* Control thread resumes this thread *****************************/
-  iridium.wake ();
-
   watchdog_register_thread (IRIDIUM_THREAD);
   watchdog_check_in (IRIDIUM_THREAD);
+
+  iridium.wake ();
+  iridium.charge_caps (IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
 
   iridium.start_timer (iridium_thread_timeout);
 
