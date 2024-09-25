@@ -1043,6 +1043,11 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   tx_thread_sleep (1);
 
+  if ( usart1_init () != UART_OK )
+  {
+    gnss_error_out (&gnss, NO_ERROR_FLAG, this_thread, "GNSS UART port failed to initialize.");
+  }
+
   // Make sure the waves thread has initialized properly before proceeding
   while ( 1 )
   {
@@ -1259,6 +1264,11 @@ static void ct_thread_entry ( ULONG thread_input )
   int32_t ct_thread_timeout = TX_TIMER_TICKS_PER_SECOND * 90;
 
   tx_thread_sleep (1);
+
+  if ( uart5_init () != UART_OK )
+  {
+    ct_error_out (&ct, NO_ERROR_FLAG, this_thread, "CT UART port failed to initialize.");
+  }
 
   // Set the mean salinity and temp values to error values in the event the sensor fails
   half_salinity.bitPattern = CT_VALUES_ERROR_CODE;
@@ -1840,6 +1850,12 @@ static void iridium_thread_entry ( ULONG thread_input )
   bool current_message_sent = false;
 
   tx_thread_sleep (1);
+
+  if ( uart4_init () != UART_OK )
+  {
+    iridium_error_out (&iridium, NO_ERROR_FLAG, this_thread,
+                       "Iridium UART port failed to initialize.");
+  }
 
   iridium_init (&iridium, &configuration, device_handles.iridium_uart_handle, &iridium_uart_sema,
                 device_handles.iridium_uart_tx_dma_handle,

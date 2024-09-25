@@ -103,6 +103,7 @@ static bool _control_startup_procedure ( void )
   self->rf_switch.set_gnss_port ();
 
   // Start core threads
+  (void) tx_thread_resume (self->thread_handles->rtc_thread);
   (void) tx_thread_resume (self->thread_handles->waves_thread);
   (void) tx_thread_resume (self->thread_handles->gnss_thread);
   (void) tx_thread_resume (self->thread_handles->iridium_thread);

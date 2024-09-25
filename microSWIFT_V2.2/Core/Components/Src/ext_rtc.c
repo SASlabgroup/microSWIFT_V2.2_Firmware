@@ -33,12 +33,12 @@ static int32_t _ext_rtc_read_reg_spi_blocking ( void *unused_handle, uint16_t un
 static int32_t _ext_rtc_write_reg_spi_blocking ( void *unused_handle, uint16_t unused_bus_address,
                                                  uint16_t reg_address, uint8_t *write_data,
                                                  uint16_t data_length );
-static int32_t _ext_rtc_read_reg_spi_dma ( void *unused_handle, uint16_t unused_bus_address,
-                                           uint16_t reg_address, uint8_t *read_data,
-                                           uint16_t data_length );
-static int32_t _ext_rtc_write_reg_spi_dma ( void *unused_handle, uint16_t unused_bus_address,
-                                            uint16_t reg_address, uint8_t *write_data,
-                                            uint16_t data_length );
+//static int32_t _ext_rtc_read_reg_spi_dma ( void *unused_handle, uint16_t unused_bus_address,
+//                                           uint16_t reg_address, uint8_t *read_data,
+//                                           uint16_t data_length );
+//static int32_t _ext_rtc_write_reg_spi_dma ( void *unused_handle, uint16_t unused_bus_address,
+//                                            uint16_t reg_address, uint8_t *write_data,
+//                                            uint16_t data_length );
 
 /**
  * @brief  Initialize the Ext_RTC struct
@@ -97,7 +97,8 @@ rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_b
 
   // Register dev_ctx functions
   if ( pcf2131_register_io_functions (&self->dev_ctx, _ext_rtc_spi_init, _ext_rtc_spi_deinit,
-                                      _ext_rtc_write_reg_spi_dma, _ext_rtc_read_reg_spi_dma, NULL)
+                                      _ext_rtc_write_reg_spi_blocking,
+                                      _ext_rtc_read_reg_spi_blocking, NULL)
        != PCF2131_OK )
   {
     return RTC_SPI_ERROR;
@@ -378,7 +379,6 @@ static int32_t _ext_rtc_spi_init ( void )
   if ( !spi_bus_init_status (self->rtc_spi_bus->Instance) )
   {
     retval = spi1_init ();
-
   }
 
   return retval;
@@ -471,88 +471,88 @@ static int32_t _ext_rtc_write_reg_spi_blocking ( void *unused_handle, uint16_t u
   return retval;
 }
 
-/**
- * @brief SPI read for the Sensor using DMA. CS pin handled within function.
- * @param  bus_address - Unused -- used when I2C is the interfacing bus
- * @param  reg_address - register address
- * @param  read_data - read data return pointer
- * @param  data_length - read data length in bytes
- * @retval rtc_return_code
- */
-static int32_t _ext_rtc_read_reg_spi_dma ( void *unused_handle, uint16_t unused_bus_address,
-                                           uint16_t reg_address, uint8_t *read_data,
-                                           uint16_t data_length )
-{
-  (void) unused_handle;
-  (void) unused_bus_address;
-  int32_t retval = PCF2131_OK;
-  uint8_t write_buf[RTC_SPI_BUF_SIZE] =
-    { 0 };
-  write_buf[0] = (uint8_t) (reg_address | PCF2131_SPI_READ_BIT);
-
-  assert(data_length <= sizeof(write_buf));
-
-  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
-
-  if ( HAL_SPI_TransmitReceive_DMA (self->rtc_spi_bus, write_buf, read_data, data_length)
-       != HAL_OK )
-  {
-    retval = PCF2131_ERROR;
-    goto done;
-  }
-
-  if ( tx_semaphore_get (&ext_rtc_spi_sema, RTC_SPI_TIMEOUT) != TX_SUCCESS )
-  {
-    retval = PCF2131_ERROR;
-    goto done;
-  }
-
-done:
-
-  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_SET);
-
-  return retval;
-}
-
-/**
- * @brief SPI write for the Sensor using DMA. CS pin handled within function.
- * @param  bus_address - Unused -- used when I2C is the interfacing bus
- * @param  reg_address - register address
- * @param  write_data - write data buffer pointer
- * @param  data_length - write data length in bytes
- * @retval rtc_return_code
- */
-static int32_t _ext_rtc_write_reg_spi_dma ( void *unused_handle, uint16_t unused_bus_address,
-                                            uint16_t reg_address, uint8_t *write_data,
-                                            uint16_t data_length )
-{
-  (void) unused_handle;
-  (void) unused_bus_address;
-  int32_t retval = PCF2131_OK;
-  uint8_t write_buf[RTC_SPI_BUF_SIZE + 1] =
-    { 0 };
-
-  assert(data_length <= sizeof(write_buf));
-
-  write_buf[0] = (uint8_t) reg_address;
-  memcpy (&(write_buf[1]), write_data, data_length);
-
-  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
-
-  if ( HAL_SPI_Transmit_DMA (self->rtc_spi_bus, write_buf, data_length + 1) != HAL_OK )
-  {
-    retval = PCF2131_ERROR;
-    goto done;
-  }
-
-  if ( tx_semaphore_get (&ext_rtc_spi_sema, RTC_SPI_TIMEOUT) != TX_SUCCESS )
-  {
-    retval = PCF2131_ERROR;
-  }
-
-done:
-
-  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_SET);
-
-  return retval;
-}
+///**
+// * @brief SPI read for the Sensor using DMA. CS pin handled within function.
+// * @param  bus_address - Unused -- used when I2C is the interfacing bus
+// * @param  reg_address - register address
+// * @param  read_data - read data return pointer
+// * @param  data_length - read data length in bytes
+// * @retval rtc_return_code
+// */
+//static int32_t _ext_rtc_read_reg_spi_dma ( void *unused_handle, uint16_t unused_bus_address,
+//                                           uint16_t reg_address, uint8_t *read_data,
+//                                           uint16_t data_length )
+//{
+//  (void) unused_handle;
+//  (void) unused_bus_address;
+//  int32_t retval = PCF2131_OK;
+//  uint8_t write_buf[RTC_SPI_BUF_SIZE] =
+//    { 0 };
+//  write_buf[0] = (uint8_t) (reg_address | PCF2131_SPI_READ_BIT);
+//
+//  assert(data_length <= sizeof(write_buf));
+//
+//  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
+//
+//  if ( HAL_SPI_TransmitReceive_DMA (self->rtc_spi_bus, write_buf, read_data, data_length)
+//       != HAL_OK )
+//  {
+//    retval = PCF2131_ERROR;
+//    goto done;
+//  }
+//
+//  if ( tx_semaphore_get (&ext_rtc_spi_sema, RTC_SPI_TIMEOUT) != TX_SUCCESS )
+//  {
+//    retval = PCF2131_ERROR;
+//    goto done;
+//  }
+//
+//done:
+//
+//  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_SET);
+//
+//  return retval;
+//}
+//
+///**
+// * @brief SPI write for the Sensor using DMA. CS pin handled within function.
+// * @param  bus_address - Unused -- used when I2C is the interfacing bus
+// * @param  reg_address - register address
+// * @param  write_data - write data buffer pointer
+// * @param  data_length - write data length in bytes
+// * @retval rtc_return_code
+// */
+//static int32_t _ext_rtc_write_reg_spi_dma ( void *unused_handle, uint16_t unused_bus_address,
+//                                            uint16_t reg_address, uint8_t *write_data,
+//                                            uint16_t data_length )
+//{
+//  (void) unused_handle;
+//  (void) unused_bus_address;
+//  int32_t retval = PCF2131_OK;
+//  uint8_t write_buf[RTC_SPI_BUF_SIZE + 1] =
+//    { 0 };
+//
+//  assert(data_length <= sizeof(write_buf));
+//
+//  write_buf[0] = (uint8_t) reg_address;
+//  memcpy (&(write_buf[1]), write_data, data_length);
+//
+//  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
+//
+//  if ( HAL_SPI_Transmit_DMA (self->rtc_spi_bus, write_buf, data_length + 1) != HAL_OK )
+//  {
+//    retval = PCF2131_ERROR;
+//    goto done;
+//  }
+//
+//  if ( tx_semaphore_get (&ext_rtc_spi_sema, RTC_SPI_TIMEOUT) != TX_SUCCESS )
+//  {
+//    retval = PCF2131_ERROR;
+//  }
+//
+//done:
+//
+//  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_SET);
+//
+//  return retval;
+//}
