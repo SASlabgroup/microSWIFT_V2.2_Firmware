@@ -129,7 +129,7 @@ SECTIONS
     *(.RamFunc*)       /* .RamFunc* sections */
 
     _edata = .;        /* define a global symbol at data end */
-  } >(RAM1 | RAM2) AT> FLASH
+  } > RAM1 AT> FLASH
 
   /* Uninitialized data section into "RAM" Ram type memory */
   .bss :
@@ -143,7 +143,7 @@ SECTIONS
 
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
-  } >(RAM1 | RAM2)
+  } > RAM1
 
   /* User_heap_stack section, used to check that there is enough "RAM" Ram type memory left */
   ._user_heap_stack :
@@ -154,7 +154,7 @@ SECTIONS
     . = . + _Min_Heap_Size;
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
-  } >(RAM1 | RAM2)
+  } > RAM1
   
   /* SRAM2 persistent storage, defined as no-load -- retained in standby mode */
   .sram2 (NOLOAD):

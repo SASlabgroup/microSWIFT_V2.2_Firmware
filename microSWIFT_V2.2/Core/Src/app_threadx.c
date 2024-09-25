@@ -503,34 +503,34 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
-
-  ret = tx_timer_create(&light_timer, "Light thread timer", light_timer_expired, 0, 0, 0,
-                        TX_NO_ACTIVATE);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_timer_create(&turbidity_timer, "Turbidity thread timer", turbidity_timer_expired, 0, 0,
-                        0, TX_NO_ACTIVATE);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_timer_create(&accelerometer_timer, "Accelerometer thread timer",
-                        accelerometer_timer_expired, 0, 0, 0, TX_NO_ACTIVATE);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_timer_create(&waves_timer, "Waves thread timer", waves_timer_expired, 0, 0, 0,
-                        TX_NO_ACTIVATE);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
+//
+//  ret = tx_timer_create(&light_timer, "Light thread timer", light_timer_expired, 0, 0, 0,
+//                        TX_NO_ACTIVATE);
+//  if ( ret != TX_SUCCESS )
+//  {
+//    return ret;
+//  }
+//
+//  ret = tx_timer_create(&turbidity_timer, "Turbidity thread timer", turbidity_timer_expired, 0, 0,
+//                        0, TX_NO_ACTIVATE);
+//  if ( ret != TX_SUCCESS )
+//  {
+//    return ret;
+//  }
+//
+//  ret = tx_timer_create(&accelerometer_timer, "Accelerometer thread timer",
+//                        accelerometer_timer_expired, 0, 0, 0, TX_NO_ACTIVATE);
+//  if ( ret != TX_SUCCESS )
+//  {
+//    return ret;
+//  }
+//
+//  ret = tx_timer_create(&waves_timer, "Waves thread timer", waves_timer_expired, 0, 0, 0,
+//                        TX_NO_ACTIVATE);
+//  if ( ret != TX_SUCCESS )
+//  {
+//    return ret;
+//  }
 
   ret = tx_timer_create(&iridium_timer, "Iridium thread timer", iridium_timer_expired, 0, 0, 0,
                         TX_NO_ACTIVATE);
@@ -1787,7 +1787,6 @@ static void iridium_thread_entry ( ULONG thread_input )
   iridium_return_code_t iridium_return_code = IRIDIUM_SUCCESS;
   int32_t iridium_thread_timeout = configuration.iridium_max_transmit_time;
   UINT tx_return;
-  int fail_counter;
   char ascii_7 = '7';
   uint8_t sbd_type = 52;
   uint16_t sbd_size = 327;
@@ -1795,11 +1794,12 @@ static void iridium_thread_entry ( ULONG thread_input )
   struct tm time_struct =
     { 0 };
   time_t time_now = 0;
+  sbd_message_type_52 *msg_ptr = &sbd_message;
+  bool current_message_sent = false;
 
-  iridium_init (&iridium, &configuration, device_handles.iridium_uart_handle,
-                device_handles.iridium_minutes_timer, &thread_control_flags, &error_flags,
-                &sbd_message, &(iridium_error_message[0]), &(iridium_response_message[0]),
-                &sbd_message_queue);
+  iridium_init (&iridium, &configuration, device_handles.iridium_uart_handle, &iridium_uart_sema,
+                device_handles.iridium_uart_tx_dma_handle,
+                device_handles.iridium_uart_rx_dma_handle, &iridium_timer, &error_flags);
 
   iridium.on ();
   iridium.wake ();
@@ -1807,6 +1807,8 @@ static void iridium_thread_entry ( ULONG thread_input )
 
   if ( !iridium_apply_config (&iridium) )
   {
+    // Need to save the message
+    persistent_storage_save_iridium_message (&sbd_message);
     iridium_error_out (&iridium, NO_ERROR_FLAG, this_thread, "Iridium modem failed to initialize.");
   }
 
@@ -1850,14 +1852,41 @@ static void iridium_thread_entry ( ULONG thread_input )
     iridium_error_out (&iridium, NO_ERROR_FLAG, this_thread, "Iridium modem failed to initialize.");
   }
 
+  // Send the current message followed by asny cached messages, until time runs out
+  while ( !iridium_get_timeout_status () )
+  {
+
+    watchdog_check_in (IRIDIUM_THREAD);
+
+    if ( !current_message_sent )
+    {
+      if ( iridium.transmit_message (msg_ptr) == IRIDIUM_SUCCESS )
+      {
+        current_message_sent = true;
+      }
+
+      continue;
+    }
+
+    msg_ptr = persistent_storage_get_prioritized_unsent_iridium_message ();
+
+    if ( msg_ptr == NULL )
+    {
+      break;
+    }
+
+    if ( iridium.transmit_message (msg_ptr) == IRIDIUM_SUCCESS )
+    {
+      persistent_storage_delete_message_element (msg_ptr);
+    }
+  }
+
   watchdog_check_in (IRIDIUM_THREAD);
 
-#warning "Put this in a loop checking for timeout condition. Also need to manage queued \
-  message sending here as transmit_message is greatly simplified."
-
-  iridium.transmit_message (&sbd_message);
-
-  watchdog_check_in (IRIDIUM_THREAD);
+  if ( !current_message_sent )
+  {
+    persistent_storage_save_iridium_message (msg_ptr);
+  }
 
 #warning "Figure out error message reporting here."
 

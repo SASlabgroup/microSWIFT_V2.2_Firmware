@@ -340,13 +340,43 @@ static void _control_monitor_and_handle_errors ( void )
 
 }
 
-static void __handle_rtc_error ( void );
-static void __handle_gnss_error ( ULONG error_flags );
-static void __handle_ct_error ( void );
-static void __handle_temperature_error ( void );
-static void __handle_turbidity_error ( void );
-static void __handle_light_error ( void );
-static void __handle_accelerometer_error ( void );
-static void __handle_waves_error ( void );
-static void __handle_iridium_error ( ULONG error_flags );
-static void __handle_file_system_error ( void );
+static void __handle_rtc_error ( void )
+{
+
+}
+static void __handle_gnss_error ( ULONG error_flags )
+{
+
+}
+static void __handle_ct_error ( void )
+{
+
+}
+static void __handle_temperature_error ( void )
+{
+
+}
+static void __handle_turbidity_error ( void )
+{
+
+}
+static void __handle_light_error ( void )
+{
+
+}
+static void __handle_accelerometer_error ( void )
+{
+
+}
+static void __handle_waves_error ( void )
+{
+
+}
+static void __handle_iridium_error ( ULONG error_flags )
+{
+
+}
+static void __handle_file_system_error ( void )
+{
+
+}
