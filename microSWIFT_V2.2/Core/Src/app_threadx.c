@@ -185,7 +185,7 @@ TX_QUEUE logger_message_queue;
 TX_QUEUE expansion_queue_1;
 TX_QUEUE expansion_queue_2;
 
-__ALIGN_BEGIN UCHAR waves_byte_pool_buffer[WAVES_MEM_POOL_SIZE] __ALIGN_END;
+__ALIGN_BEGIN UCHAR waves_byte_pool_buffer[WAVES_MEM_POOL_SIZE] __attribute__((section(".ram1")))__ALIGN_END;
 TX_BYTE_POOL waves_byte_pool;
 /* USER CODE END PV */
 

@@ -15,7 +15,7 @@
 #include "stdio.h"
 #include "ext_rtc_api.h"
 
-uart_logger *self;
+static uart_logger *self;
 
 const char *rtc_err_str = "RTC ERROR";
 

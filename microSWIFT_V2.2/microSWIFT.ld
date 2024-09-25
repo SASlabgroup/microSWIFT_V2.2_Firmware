@@ -36,7 +36,7 @@
 ENTRY(Reset_Handler)
 
 /* Highest address of the user mode stack */
-_estack = ORIGIN(RAM) + LENGTH(RAM); /* end of "RAM" Ram type memory */
+_estack = ORIGIN(RAM2) + LENGTH(RAM2); /* end of "RAM" Ram type memory */
 
 _Min_Heap_Size = 0x200; /* required amount of heap */
 _Min_Stack_Size = 0x400; /* required amount of stack */
@@ -129,7 +129,7 @@ SECTIONS
     *(.RamFunc*)       /* .RamFunc* sections */
 
     _edata = .;        /* define a global symbol at data end */
-  } > RAM1 AT> FLASH
+  } > RAM2 AT> FLASH
 
   /* Uninitialized data section into "RAM" Ram type memory */
   .bss :
@@ -143,7 +143,7 @@ SECTIONS
 
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
-  } > RAM1
+  } > RAM2
 
   /* User_heap_stack section, used to check that there is enough "RAM" Ram type memory left */
   ._user_heap_stack :
@@ -154,14 +154,21 @@ SECTIONS
     . = . + _Min_Heap_Size;
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
-  } > RAM1
+  } > RAM2
   
   /* SRAM2 persistent storage, defined as no-load -- retained in standby mode */
   .sram2 (NOLOAD):
   {
     . = ALIGN(4);
-    KEEP(*(.sram2))
+    KEEP (*(.sram2))
   } > SRAM2
+  
+  /* RAM1 section will be used for NED Waves memory pool and other misc things */
+  .ram1 :
+  {
+  	. = ALIGN(4);
+  	KEEP (*(.ram1))
+  } > RAM1
 
   /* Remove information from the compiler libraries */
   /DISCARD/ :
