@@ -115,9 +115,6 @@ void Error_Handler(void);
 #define CORE_SPI_MOSI_GPIO_Port GPIOA
 #define RTC_TIMESTAMP_3_Pin GPIO_PIN_0
 #define RTC_TIMESTAMP_3_GPIO_Port GPIOB
-#define RTC_INT_B_Pin GPIO_PIN_2
-#define RTC_INT_B_GPIO_Port GPIOB
-#define RTC_INT_B_EXTI_IRQn EXTI2_IRQn
 #define AUX_GPIO_11_Pin GPIO_PIN_11
 #define AUX_GPIO_11_GPIO_Port GPIOF
 #define RTC_INT_A_Pin GPIO_PIN_12
@@ -159,8 +156,11 @@ void Error_Handler(void);
 #define AUX_UART_2_RX_GPIO_Port GPIOD
 #define EXT_LED_GREEN_Pin GPIO_PIN_10
 #define EXT_LED_GREEN_GPIO_Port GPIOD
-#define AUX_GPIO_0_Pin GPIO_PIN_14
-#define AUX_GPIO_0_GPIO_Port GPIOD
+#define RTC_SPI_CS_Pin GPIO_PIN_14
+#define RTC_SPI_CS_GPIO_Port GPIOD
+#define RTC_INT_B_Pin GPIO_PIN_15
+#define RTC_INT_B_GPIO_Port GPIOD
+#define RTC_INT_B_EXTI_IRQn EXTI15_IRQn
 #define SD_D0_Pin GPIO_PIN_8
 #define SD_D0_GPIO_Port GPIOC
 #define GNSS_UART_TX_Pin GPIO_PIN_9
@@ -192,8 +192,6 @@ void Error_Handler(void);
 #define CORE_I2C_SCL_GPIO_Port GPIOG
 #define UART_LOGGER_EN_Pin GPIO_PIN_15
 #define UART_LOGGER_EN_GPIO_Port GPIOG
-#define RTC_SPI_CS_Pin GPIO_PIN_6
-#define RTC_SPI_CS_GPIO_Port GPIOB
 #define RF_SWITCH_EN_Pin GPIO_PIN_0
 #define RF_SWITCH_EN_GPIO_Port GPIOE
 #define RF_SWITCH_VCTL_Pin GPIO_PIN_1

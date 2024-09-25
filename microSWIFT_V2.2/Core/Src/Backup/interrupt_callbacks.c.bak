@@ -8,6 +8,7 @@
 #include "spi.h"
 #include "app_threadx.h"
 #include "usart.h"
+#include "gpio.h"
 #include "gnss.h"
 #include "battery.h"
 
@@ -247,4 +248,16 @@ void HAL_ADC_ConvCpltCallback ( ADC_HandleTypeDef *hadc )
     HAL_ADC_Stop_IT (hadc);
   }
 
+}
+
+void HAL_GPIO_EXTI_Callback ( uint16_t GPIO_Pin )
+{
+  if ( GPIO_Pin == RTC_INT_A_Pin )
+  {
+    __asm__("BKPT");
+  }
+  if ( GPIO_Pin == RTC_INT_B_Pin )
+  {
+    __asm__("BKPT");
+  }
 }

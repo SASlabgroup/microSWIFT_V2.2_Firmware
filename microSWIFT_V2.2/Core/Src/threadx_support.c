@@ -24,7 +24,7 @@
 
 bool gnss_apply_config ( GNSS *gnss )
 {
-  int fail_counter = 0, max_retries = 10;
+  int fail_counter = 0, max_retries = 100;
   gnss_return_code_t gnss_return_code = GNSS_SUCCESS;
 
   while ( fail_counter < max_retries )

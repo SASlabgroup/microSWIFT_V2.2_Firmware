@@ -185,8 +185,13 @@ TX_QUEUE logger_message_queue;
 TX_QUEUE expansion_queue_1;
 TX_QUEUE expansion_queue_2;
 
-__ALIGN_BEGIN UCHAR waves_byte_pool_buffer[WAVES_MEM_POOL_SIZE] __ALIGN_END;
+__ALIGN_BEGIN UCHAR waves_byte_pool_buffer[WAVES_MEM_POOL_SIZE] __attribute__((section(".ram1")))__ALIGN_END;
 TX_BYTE_POOL waves_byte_pool;
+
+// Logger stack buffer
+__ALIGN_BEGIN uint8_t logger_block_buffer[(sizeof(log_line_buf) * LOG_QUEUE_LENGTH)
+                                          + (LOG_QUEUE_LENGTH * sizeof(void*))] __attribute__((section(".ram1")))__ALIGN_END;
+TX_BLOCK_POOL logger_block_pool;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -210,14 +215,12 @@ static void expansion_thread_3_entry ( ULONG thread_input );
 
 /* USER CODE END PFP */
 
-/***************************************************************************************************
- *******************************    ThreadX Initialization    **************************************
- ***************************************************************************************************
- * @brief  Application ThreadX Initialization.
- * @param memory_ptr: memory pointer
- * @retval int
- */
-UINT App_ThreadX_Init ( VOID *memory_ptr )
+/**
+  * @brief  Application ThreadX Initialization.
+  * @param memory_ptr: memory pointer
+  * @retval int
+  */
+UINT App_ThreadX_Init(VOID *memory_ptr)
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -245,13 +248,13 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   //
   // Allocate stack for the rtc thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XS_STACK, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, S_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the rtc thread. VERY_HIGH priority level and no preemption possible
-  ret = tx_thread_create(&rtc_thread, "rtc thread", rtc_thread_entry, 0, pointer, XS_STACK,
+  ret = tx_thread_create(&rtc_thread, "rtc thread", rtc_thread_entry, 0, pointer, S_STACK,
                          VERY_HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
@@ -259,14 +262,14 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   //
   // Allocate stack for the logger thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, L_STACK,
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, S_STACK,
   TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the logger thread. Low priority priority level and no preemption possible
-  ret = tx_thread_create(&logger_thread, "logger thread", logger_thread_entry, 0, pointer, L_STACK,
+  ret = tx_thread_create(&logger_thread, "logger thread", logger_thread_entry, 0, pointer, S_STACK,
                          LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
@@ -431,6 +434,19 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
 
   /************************************************************************************************
+   ********************************** Byte and Block Pools ****************************************
+   ************************************************************************************************/
+  //
+  // Block pool for the UART logger
+  ret = tx_block_pool_create(&logger_block_pool, "UART Logger Block Pool", sizeof(log_line_buf),
+                             &logger_block_buffer[0], sizeof(logger_block_buffer));
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+  /* Note: the Waves thread will create and manage its own block pool. */
+
+  /************************************************************************************************
    ************************************** Event Flags *********************************************
    ************************************************************************************************/
   //
@@ -479,62 +495,62 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   /************************************************************************************************
    **************************************** Timers ************************************************
    ************************************************************************************************/
-  ret = tx_timer_create(&control_timer, "Control thread timer", control_timer_expired, 0, 0, 0,
+  ret = tx_timer_create(&control_timer, "Control thread timer", control_timer_expired, 0, 1, 1,
                         TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
-  ret = tx_timer_create(&gnss_timer, "GNSS thread timer", gnss_timer_expired, 0, 0, 0,
+  ret = tx_timer_create(&gnss_timer, "GNSS thread timer", gnss_timer_expired, 0, 1, 1,
                         TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
-  ret = tx_timer_create(&ct_timer, "CT thread timer", ct_timer_expired, 0, 0, 0, TX_NO_ACTIVATE);
+  ret = tx_timer_create(&ct_timer, "CT thread timer", ct_timer_expired, 0, 1, 1, TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
   ret = tx_timer_create(&temperature_timer, "Temperature thread timer", temperature_timer_expired,
-                        0, 0, 0, TX_NO_ACTIVATE);
+                        0, 1, 1, TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
+//
+//  ret = tx_timer_create(&light_timer, "Light thread timer", light_timer_expired, 0, 0, 0,
+//                        TX_NO_ACTIVATE);
+//  if ( ret != TX_SUCCESS )
+//  {
+//    return ret;
+//  }
+//
+//  ret = tx_timer_create(&turbidity_timer, "Turbidity thread timer", turbidity_timer_expired, 0, 0,
+//                        0, TX_NO_ACTIVATE);
+//  if ( ret != TX_SUCCESS )
+//  {
+//    return ret;
+//  }
+//
+//  ret = tx_timer_create(&accelerometer_timer, "Accelerometer thread timer",
+//                        accelerometer_timer_expired, 0, 0, 0, TX_NO_ACTIVATE);
+//  if ( ret != TX_SUCCESS )
+//  {
+//    return ret;
+//  }
+//
+//  ret = tx_timer_create(&waves_timer, "Waves thread timer", waves_timer_expired, 0, 0, 0,
+//                        TX_NO_ACTIVATE);
+//  if ( ret != TX_SUCCESS )
+//  {
+//    return ret;
+//  }
 
-  ret = tx_timer_create(&light_timer, "Light thread timer", light_timer_expired, 0, 0, 0,
-                        TX_NO_ACTIVATE);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_timer_create(&turbidity_timer, "Turbidity thread timer", turbidity_timer_expired, 0, 0,
-                        0, TX_NO_ACTIVATE);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_timer_create(&accelerometer_timer, "Accelerometer thread timer",
-                        accelerometer_timer_expired, 0, 0, 0, TX_NO_ACTIVATE);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_timer_create(&waves_timer, "Waves thread timer", waves_timer_expired, 0, 0, 0,
-                        TX_NO_ACTIVATE);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_timer_create(&iridium_timer, "Iridium thread timer", iridium_timer_expired, 0, 0, 0,
+  ret = tx_timer_create(&iridium_timer, "Iridium thread timer", iridium_timer_expired, 0, 1, 1,
                         TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
@@ -542,21 +558,21 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
 
   ret = tx_timer_create(&expansion_timer_1, "Expansion thread 1 timer", expansion_timer_1_expired,
-                        0, 0, 0, TX_NO_ACTIVATE);
+                        0, 1, 1, TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
   ret = tx_timer_create(&expansion_timer_2, "Expansion thread 2 timer", expansion_timer_2_expired,
-                        0, 0, 0, TX_NO_ACTIVATE);
+                        0, 1, 1, TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
   ret = tx_timer_create(&expansion_timer_3, "Expansion thread 3 timer", expansion_timer_3_expired,
-                        0, 0, 0, TX_NO_ACTIVATE);
+                        0, 1, 1, TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -660,7 +676,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
-  ret = tx_queue_create(&logger_message_queue, "RTC msg queue",
+  ret = tx_queue_create(&rtc_messaging_queue, "RTC msg queue",
                         sizeof(rtc_request_message) / sizeof(uint32_t), pointer,
                         sizeof(rtc_request_message) * RTC_QUEUE_LENGTH);
   if ( ret != TX_SUCCESS )
@@ -708,6 +724,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   device_handles.iridium_uart_handle = &huart4;
   device_handles.gnss_uart_handle = &huart1;
   device_handles.ct_uart_handle = &huart5;
+  device_handles.logger_uart_handle = &huart6;
   device_handles.ext_flash_handle = &hospi1;
   device_handles.battery_adc = &hadc1;
   device_handles.aux_spi_1_handle = &hspi2;
@@ -751,23 +768,25 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     tests.threadx_init_test (NULL);
   }
+
+  persistent_storage_init ();
   /* USER CODE END App_ThreadX_Init */
 
   return ret;
 }
 
-/**
- * @brief  Function that implements the kernel's initialization.
- * @param  None
- * @retval None
- */
-void MX_ThreadX_Init ( void )
+  /**
+  * @brief  Function that implements the kernel's initialization.
+  * @param  None
+  * @retval None
+  */
+void MX_ThreadX_Init(void)
 {
   /* USER CODE BEGIN  Before_Kernel_Start */
 
   /* USER CODE END  Before_Kernel_Start */
 
-  tx_kernel_enter ();
+  tx_kernel_enter();
 
   /* USER CODE BEGIN  Kernel_Start_Error */
 
@@ -828,8 +847,6 @@ static void rtc_thread_entry ( ULONG thread_input )
     tx_ret = tx_queue_receive (&rtc_messaging_queue, &req, TX_WAIT_FOREVER);
     if ( tx_ret == TX_SUCCESS )
     {
-#warning "If the return code is not RTC_SUCCESS, something needs to be done. Decide whether that \
-    Should happen here, in rtc_server, or in each respective thread."
       switch ( req.request )
       {
         case REFRESH_WATCHDOG:
@@ -865,9 +882,11 @@ static void rtc_thread_entry ( ULONG thread_input )
 
       if ( ret != RTC_SUCCESS )
       {
+#warning "If the return code is not RTC_SUCCESS, something needs to be done. Decide whether that \
+    Should happen here, in rtc_server, or in each respective thread."
         uart_logger_log_line ("RTC error detected");
         (void) tx_event_flags_set (&error_flags, RTC_ERROR, TX_OR);
-        (void) tx_thread_suspend (this_thread);
+//        (void) tx_thread_suspend (this_thread);
       }
 
       *req.return_code = ret;
@@ -892,13 +911,10 @@ static void logger_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   logger_message msg;
   UINT tx_ret;
-  // Logger stack buffer
-  uint8_t logger_stack_buffer[sizeof(log_line_buf) * LOG_QUEUE_LENGTH];
-  basic_stack_t logger_stack;
   uart_logger logger;
 
-  uart_logger_init (&logger, &logger_stack, &(logger_stack_buffer[0]), &logger_message_queue,
-                    &huart6);
+  uart_logger_init (&logger, &logger_block_pool, &logger_message_queue,
+                    device_handles.logger_uart_handle);
 
   while ( 1 )
   {
@@ -926,6 +942,7 @@ static void control_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   Control control;
+  struct watchdog_t watchdog;
 
   // Run tests if needed
   if ( tests.control_test != NULL )
@@ -937,7 +954,10 @@ static void control_thread_entry ( ULONG thread_input )
                    &irq_flags, &complete_flags, &control_timer, device_handles.battery_adc,
                    &sbd_message);
 
-  watchdog_check_in (CONTROL_THREAD);
+  if ( watchdog_init (&watchdog, &watchdog_check_in_flags) != WATCHDOG_OK )
+  {
+    HAL_NVIC_SystemReset ();
+  }
 
   // Run the self test
   if ( !control.startup_procedure () )
@@ -958,6 +978,8 @@ static void control_thread_entry ( ULONG thread_input )
     HAL_NVIC_SystemReset ();
   }
 
+  watchdog_check_in (CONTROL_THREAD);
+
   if ( !is_first_sample_window () )
   {
     led_sequence (TEST_PASSED_LED_SEQUENCE);
@@ -967,7 +989,8 @@ static void control_thread_entry ( ULONG thread_input )
   {
     watchdog_check_in (CONTROL_THREAD);
 
-#warning "Monitor for errors here and handle them. Monitor for state (watch complete flags) and manage threads appropriately."
+#warning "Monitor for errors here and handle them. Monitor for state (watch complete flags) and\
+  manage threads appropriately."
     // TODO: Continue with the correct logic, i.e. if GNSS timed out, set alarm and shut down.
     //       Otherwise, continue with other sensors, run waves, etc. Try to keep as many threads
     //       as possible running concurrently.
@@ -976,6 +999,9 @@ static void control_thread_entry ( ULONG thread_input )
     //       window, just set the alarm and power down
     // TODO: When GNSS is complete, break
   }
+
+#warning "Make a utility that logs errors into a type 99 message as errors come in. \
+  Add timestamps to each error."
 
 }
 
@@ -1014,6 +1040,13 @@ static void gnss_thread_entry ( ULONG thread_input )
                                     / 60)
                                    + 2;
   int32_t gnss_max_acq_time = 0;
+
+  tx_thread_sleep (1);
+
+  if ( usart1_init () != UART_OK )
+  {
+    gnss_error_out (&gnss, NO_ERROR_FLAG, this_thread, "GNSS UART port failed to initialize.");
+  }
 
   // Make sure the waves thread has initialized properly before proceeding
   while ( 1 )
@@ -1230,6 +1263,13 @@ static void ct_thread_entry ( ULONG thread_input )
   real16_T half_salinity, half_temp;
   int32_t ct_thread_timeout = TX_TIMER_TICKS_PER_SECOND * 90;
 
+  tx_thread_sleep (1);
+
+  if ( uart5_init () != UART_OK )
+  {
+    ct_error_out (&ct, NO_ERROR_FLAG, this_thread, "CT UART port failed to initialize.");
+  }
+
   // Set the mean salinity and temp values to error values in the event the sensor fails
   half_salinity.bitPattern = CT_VALUES_ERROR_CODE;
   half_temp.bitPattern = CT_VALUES_ERROR_CODE;
@@ -1355,6 +1395,8 @@ static void temperature_thread_entry ( ULONG thread_input )
   int32_t temperature_thread_timeout = TX_TIMER_TICKS_PER_SECOND * 30;
   int32_t fail_counter = 0, max_retries = 10;
 
+  tx_thread_sleep (1);
+
   // Set the mean salinity and temp values to error values in the event the sensor fails
   half_temp.bitPattern = TEMPERATURE_VALUES_ERROR_CODE;
 
@@ -1449,6 +1491,8 @@ static void light_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = &light_thread;
 
+  tx_thread_sleep (1);
+
   // TODO: init and self test
 
   //
@@ -1489,6 +1533,8 @@ static void turbidity_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = &turbidity_thread;
+
+  tx_thread_sleep (1);
 
   // TODO: init and self test
 
@@ -1572,6 +1618,8 @@ static void expansion_thread_1_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = &expansion_thread_1;
 
+  tx_thread_sleep (1);
+
   // TODO: init and self test
 
   //
@@ -1612,6 +1660,8 @@ static void expansion_thread_2_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = &expansion_thread_2;
+
+  tx_thread_sleep (1);
 
   // TODO: init and self test
 
@@ -1654,6 +1704,8 @@ static void expansion_thread_3_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = &expansion_thread_3;
 
+  tx_thread_sleep (1);
+
   // TODO: init and self test
 
   //
@@ -1695,6 +1747,8 @@ static void waves_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = &waves_thread;
   NEDWaves_memory waves_mem;
+
+  tx_thread_sleep (1);
 
   if ( !waves_memory_pool_init (&waves_mem, &configuration, &(waves_byte_pool_buffer[0]),
   WAVES_MEM_POOL_SIZE) )
@@ -1784,34 +1838,56 @@ static void iridium_thread_entry ( ULONG thread_input )
   Iridium iridium;
   iridium_return_code_t iridium_return_code = IRIDIUM_SUCCESS;
   int32_t iridium_thread_timeout = configuration.iridium_max_transmit_time;
+  UINT tx_return;
+  char ascii_7 = '7';
+  uint8_t sbd_type = 52;
+  uint16_t sbd_size = 327;
+  uint32_t sbd_timestamp = 0;
+  struct tm time_struct =
+    { 0 };
+  time_t time_now = 0;
+  sbd_message_type_52 *msg_ptr = &sbd_message;
+  bool current_message_sent = false;
 
-  iridium_init (&iridium, &configuration, device_handles.iridium_uart_handle,
-                device_handles.iridium_minutes_timer, &thread_control_flags, &error_flags,
-                &sbd_message, &(iridium_error_message[0]), &(iridium_response_message[0]),
-                &sbd_message_queue);
+  tx_thread_sleep (1);
+
+  if ( uart4_init () != UART_OK )
+  {
+    iridium_error_out (&iridium, NO_ERROR_FLAG, this_thread,
+                       "Iridium UART port failed to initialize.");
+  }
+
+  iridium_init (&iridium, &configuration, device_handles.iridium_uart_handle, &iridium_uart_sema,
+                device_handles.iridium_uart_tx_dma_handle,
+                device_handles.iridium_uart_rx_dma_handle, &iridium_timer, &error_flags);
 
   iridium.on ();
   iridium.wake ();
+  iridium.charge_caps (IRIDIUM_INITIAL_CAP_CHARGE_TIME);
 
   if ( !iridium_apply_config (&iridium) )
   {
+    // Need to save the message
+    persistent_storage_save_iridium_message (&sbd_message);
     iridium_error_out (&iridium, NO_ERROR_FLAG, this_thread, "Iridium modem failed to initialize.");
   }
 
   uart_logger_log_line ("Iridium modem initialized successfully.");
   (void) tx_event_flags_set (&initialization_flags, IRIDIUM_INIT_SUCCESS, TX_OR);
 
-  // Turn on the modem and charge up the caps
-  iridium.charge_caps (IRIDIUM_INITIAL_CAP_CHARGE_TIME);
+  iridium.charge_caps (IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
   iridium.sleep ();
 
   tx_thread_suspend (this_thread);
 
   /******************************* Control thread resumes this thread *****************************/
-  iridium.wake ();
-
   watchdog_register_thread (IRIDIUM_THREAD);
   watchdog_check_in (IRIDIUM_THREAD);
+
+  iridium.wake ();
+  iridium.charge_caps (IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
+
+  iridium.start_timer (iridium_thread_timeout);
 
   //
   // Run tests if needed
@@ -1820,144 +1896,66 @@ static void iridium_thread_entry ( ULONG thread_input )
     tests.iridium_thread_test (NULL);
   }
 
-  UINT tx_return;
-  int fail_counter;
-  char ascii_7 = '7';
-  uint8_t sbd_type = 52;
-  uint16_t sbd_size = 327;
-  real16_T voltage;
-  float sbd_timestamp = iridium->get_timestamp ();
-  bool queue_empty = iridium->storage_queue->num_msgs_enqueued == 0;
-
-  watchdog_check_in (IRIDIUM_THREAD);
-
-  watchdog_check_in (IRIDIUM_THREAD);
-
-// Check if we are skipping this message
-  tx_return = tx_event_flags_get (&error_flags, GNSS_EXITED_EARLY, TX_OR_CLEAR, &actual_error_flags,
-  TX_NO_WAIT);
-
-  if ( tx_return == TX_SUCCESS )
-  {
-    iridium->skip_current_message = true;
-  }
-
-// If this message was skipped and there's nothing in the queue, exit and jump to end_of_cycle_thread
-  if ( iridium->skip_current_message && queue_empty )
-  {
-    // Turn off the modem and RF switch
-    iridium->sleep (GPIO_PIN_RESET);
-    iridium->on_off (GPIO_PIN_RESET);
-    rf_switch->power_off ();
-    // Deinit UART and DMA to prevent spurious interrupts
-    HAL_UART_DeInit (iridium->iridium_uart_handle);
-    HAL_DMA_DeInit (iridium->iridium_rx_dma_handle);
-    HAL_DMA_DeInit (iridium->iridium_tx_dma_handle);
-    HAL_TIM_Base_Stop_IT (iridium->timer);
-
-    // Resume EOC thread
-    if ( tx_thread_resume (&end_of_cycle_thread) != TX_SUCCESS )
-    {
-      shut_it_all_down ();
-      HAL_NVIC_SystemReset ();
-    }
-
-    tx_thread_terminate (&iridium_thread);
-  }
-
-// Port the RF switch to the modem
-  rf_switch->set_iridium_port ();
-
-// Grab the battery voltage
-  battery->start_conversion ();
-  battery->get_voltage (&voltage);
-  battery->shutdown_adc ();
-  memcpy (&sbd_message.mean_voltage, &voltage, sizeof(real16_T));
-
-// finish filling out the SBD message
+  // finish filling out the SBD message
+  rtc_server_get_time (&time_struct, IRIDIUM_THREAD_COMPLETE);
+  time_now = mktime (&time_struct);
+  sbd_timestamp = (uint32_t) time_now;
   memcpy (&sbd_message.legacy_number_7, &ascii_7, sizeof(char));
   memcpy (&sbd_message.type, &sbd_type, sizeof(uint8_t));
   memcpy (&sbd_message.size, &sbd_size, sizeof(uint16_t));
   memcpy (&sbd_message.timestamp, &sbd_timestamp, sizeof(float));
 
-// Last posit was placed in the SBD message in GNSS thread, copy that over to
-// the Iridium struct
-  memcpy (&iridium->current_lat, &sbd_message.Lat, sizeof(float));
-  memcpy (&iridium->current_lon, &sbd_message.Lon, sizeof(float));
+  if ( !iridium_apply_config (&iridium) )
+  {
+    // Need to save the message
+    persistent_storage_save_iridium_message (&sbd_message);
+    iridium_error_out (&iridium, NO_ERROR_FLAG, this_thread, "Iridium modem failed to initialize.");
+  }
 
-// This will turn on the modem and make sure the caps are charged
-  iridium->charge_caps (IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
-
-  fail_counter = 0;
-  while ( fail_counter < MAX_SELF_TEST_RETRIES )
+  // Send the current message followed by asny cached messages, until time runs out
+  while ( !iridium_get_timeout_status () )
   {
 
     watchdog_check_in (IRIDIUM_THREAD);
-    // See if we can get an ack message from the modem
-    iridium_return_code = iridium->self_test ();
-    if ( iridium_return_code != IRIDIUM_SUCCESS )
+
+    if ( !current_message_sent )
     {
+      if ( iridium.transmit_message (msg_ptr) == IRIDIUM_SUCCESS )
+      {
+        current_message_sent = true;
+      }
 
-      iridium->cycle_power ();
-      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-      fail_counter++;
-
+      continue;
     }
-    else
-    {
 
+    msg_ptr = persistent_storage_get_prioritized_unsent_iridium_message ();
+
+    if ( msg_ptr == NULL )
+    {
       break;
     }
-  }
 
-  if ( fail_counter == MAX_SELF_TEST_RETRIES )
-  {
-    // If we couldn't get a response from the modem, shut everything down and force reset.
-    // But save the current message first
-    if ( !iridium->skip_current_message )
+    if ( iridium.transmit_message (msg_ptr) == IRIDIUM_SUCCESS )
     {
-      iridium->queue_add (iridium->current_message);
+      persistent_storage_delete_message_element (msg_ptr);
     }
-    shut_it_all_down ();
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    HAL_NVIC_SystemReset ();
   }
 
   watchdog_check_in (IRIDIUM_THREAD);
 
-  iridium->transmit_message ();
-
-  watchdog_check_in (IRIDIUM_THREAD);
-
-// Check for error messages
-  tx_event_flags_get (&error_flags, error_occured_flags, TX_OR_CLEAR, &actual_error_flags,
-  TX_NO_WAIT);
-
-// If we have an error flag, send an error message
-  if ( actual_error_flags )
+  if ( !current_message_sent )
   {
-    watchdog_check_in (IRIDIUM_THREAD);
-    send_error_message (actual_error_flags);
-
-    watchdog_check_in (IRIDIUM_THREAD);
+    persistent_storage_save_iridium_message (msg_ptr);
   }
 
-// If something went wrong with the RTC, we'll reset
-  if ( actual_error_flags & RTC_ERROR )
-  {
-    shut_it_all_down ();
-    HAL_NVIC_SystemReset ();
-  }
+#warning "Figure out error message reporting here."
 
-// Turn off the modem and RF switch
-  iridium->sleep (GPIO_PIN_RESET);
-  iridium->on_off (GPIO_PIN_RESET);
-  rf_switch->power_off ();
-// Deinit UART and DMA to prevent spurious interrupts
-  HAL_UART_DeInit (iridium->iridium_uart_handle);
-  HAL_DMA_DeInit (iridium->iridium_rx_dma_handle);
-  HAL_DMA_DeInit (iridium->iridium_tx_dma_handle);
-  HAL_TIM_Base_Stop_IT (iridium->timer);
+  // Turn off the modem
+  iridium.stop_timer ();
+  iridium.sleep ();
+  iridium.off ();
+
+  iridium_deinit ();
 
   watchdog_check_in (IRIDIUM_THREAD);
   watchdog_deregister_thread (IRIDIUM_THREAD);

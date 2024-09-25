@@ -68,6 +68,11 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
   rf_switch_init (&self->rf_switch);
 }
 
+void control_timer_expired ( ULONG expiration_input )
+{
+  (void) expiration_input;
+}
+
 static bool _control_startup_procedure ( void )
 {
   UINT tx_return;
@@ -98,6 +103,7 @@ static bool _control_startup_procedure ( void )
   self->rf_switch.set_gnss_port ();
 
   // Start core threads
+  (void) tx_thread_resume (self->thread_handles->rtc_thread);
   (void) tx_thread_resume (self->thread_handles->waves_thread);
   (void) tx_thread_resume (self->thread_handles->gnss_thread);
   (void) tx_thread_resume (self->thread_handles->iridium_thread);
@@ -134,7 +140,7 @@ static bool _control_startup_procedure ( void )
   }
 
   // Flash power up sequence (this will also give threads time to execute their init procedures)
-  if ( persistent_stotrage_get_sample_window_counter () == 0 )
+  if ( is_first_sample_window () )
   {
     led_sequence (INITIAL_LED_SEQUENCE);
   }
@@ -340,13 +346,43 @@ static void _control_monitor_and_handle_errors ( void )
 
 }
 
-static void __handle_rtc_error ( void );
-static void __handle_gnss_error ( ULONG error_flags );
-static void __handle_ct_error ( void );
-static void __handle_temperature_error ( void );
-static void __handle_turbidity_error ( void );
-static void __handle_light_error ( void );
-static void __handle_accelerometer_error ( void );
-static void __handle_waves_error ( void );
-static void __handle_iridium_error ( ULONG error_flags );
-static void __handle_file_system_error ( void );
+static void __handle_rtc_error ( void )
+{
+
+}
+static void __handle_gnss_error ( ULONG error_flags )
+{
+
+}
+static void __handle_ct_error ( void )
+{
+
+}
+static void __handle_temperature_error ( void )
+{
+
+}
+static void __handle_turbidity_error ( void )
+{
+
+}
+static void __handle_light_error ( void )
+{
+
+}
+static void __handle_accelerometer_error ( void )
+{
+
+}
+static void __handle_waves_error ( void )
+{
+
+}
+static void __handle_iridium_error ( ULONG error_flags )
+{
+
+}
+static void __handle_file_system_error ( void )
+{
+
+}

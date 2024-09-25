@@ -19,7 +19,7 @@ static uart_logger *logger_self;
 
 const char *rtc_err_str = "RTC ERROR";
 
-static UINT _logger_get_buffer ( log_line_buf *line_buf );
+static UINT _logger_get_buffer ( log_line_buf **line_buf );
 static void _logger_send_log_line ( log_line_buf *buf, size_t strlen );
 static void _logger_return_buffer ( log_line_buf *buffer );
 
@@ -50,7 +50,7 @@ void uart_logger_init ( uart_logger *logger, TX_BLOCK_POOL *block_pool, TX_QUEUE
 
 void uart_logger_log_line ( const char *fmt, ... )
 {
-  log_line_buf *log_buf = NULL;
+  log_line_buf *log_buf = TX_NULL;
   logger_message msg;
   size_t str_len = 0;
   size_t bytes_remaining = sizeof(log_line_buf);
@@ -59,7 +59,7 @@ void uart_logger_log_line ( const char *fmt, ... )
   va_start(args, fmt);
   UINT tx_ret;
 
-  tx_ret = _logger_get_buffer (log_buf);
+  tx_ret = _logger_get_buffer (&log_buf);
 
   if ( (tx_ret != TX_SUCCESS) || !logger_self->logger_enabled )
   {
@@ -91,9 +91,9 @@ void uart_logger_log_line ( const char *fmt, ... )
   (void) tx_queue_send (logger_self->msg_que, (VOID*) &msg, TX_NO_WAIT);
 }
 
-static UINT _logger_get_buffer ( log_line_buf *line_buf )
+static UINT _logger_get_buffer ( log_line_buf **line_buf )
 {
-  return tx_block_allocate (logger_self->block_pool, (VOID**) &line_buf, TX_NO_WAIT);
+  return tx_block_allocate (logger_self->block_pool, (VOID**) line_buf, TX_NO_WAIT);
 }
 
 static void _logger_send_log_line ( log_line_buf *buf, size_t strlen )

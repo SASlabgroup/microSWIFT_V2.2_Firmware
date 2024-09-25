@@ -826,6 +826,8 @@ static void rtc_thread_entry ( ULONG thread_input )
   UINT tx_ret;
   rtc_request_message req;
 
+  tx_thread_sleep (1);
+
   ret = ext_rtc_init (&rtc, device_handles.core_spi_handle, &rtc_messaging_queue,
                       &rtc_complete_flags);
 
@@ -1024,7 +1026,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   GNSS gnss;
   uint8_t ubx_message_process_buf[GNSS_MESSAGE_BUF_SIZE];
   uint8_t gnss_config_response_buf[GNSS_CONFIG_BUFFER_SIZE];
-  float *north, *east, *down;
+  float *north = NULL, *east = NULL, *down = NULL;
 
   gnss_return_code_t gnss_return_code;
   int number_of_no_sample_errors = 0;

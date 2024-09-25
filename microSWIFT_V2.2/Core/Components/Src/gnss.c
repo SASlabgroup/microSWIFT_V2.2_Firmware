@@ -792,35 +792,38 @@ static gnss_return_code_t __send_config ( uint8_t *config_array, size_t message_
   uint8_t response_msg_id;
 
 // Start by waiting until the UART is idle
-  while ( frame_sync_attempts < MAX_FRAME_SYNC_ATTEMPTS )
-  {
-    watchdog_check_in (GNSS_THREAD);
-    HAL_UARTEx_ReceiveToIdle_DMA (gnss_self->gnss_uart_handle, gnss_self->config_response_buf,
-    FRAME_SYNC_RX_SIZE);
+//  while ( frame_sync_attempts < MAX_FRAME_SYNC_ATTEMPTS )
+//  {
+//    watchdog_check_in (GNSS_THREAD);
+//    HAL_UARTEx_ReceiveToIdle_DMA (gnss_self->gnss_uart_handle, gnss_self->config_response_buf,
+//    FRAME_SYNC_RX_SIZE);
+//
+//    tx_return = tx_event_flags_get (gnss_self->irq_flags, GNSS_CONFIG_RECVD, TX_OR_CLEAR,
+//                                    &actual_flags, frame_sync_ticks);
+//    // If the flag is not present, then we are idle
+//    if ( tx_return == TX_NO_EVENTS )
+//    {
+//      HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
+////      gnss_self->reset_uart ();
+//      HAL_Delay (1);
+//      break;
+//    }
+//    else
+//    {
+//      frame_sync_attempts++;
+//    }
+//  }
+//
+//  if ( frame_sync_attempts == MAX_FRAME_SYNC_ATTEMPTS )
+//  {
+//    HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
+////    gnss_self->reset_uart ();
+//
+//    return GNSS_BUSY_ERROR;
+//  }
 
-    tx_return = tx_event_flags_get (gnss_self->irq_flags, GNSS_CONFIG_RECVD, TX_OR_CLEAR,
-                                    &actual_flags, frame_sync_ticks);
-    // If the flag is not present, then we are idle
-    if ( tx_return == TX_NO_EVENTS )
-    {
-      HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
-      gnss_self->reset_uart ();
-      HAL_Delay (1);
-      break;
-    }
-    else
-    {
-      frame_sync_attempts++;
-    }
-  }
-
-  if ( frame_sync_attempts == MAX_FRAME_SYNC_ATTEMPTS )
-  {
-    HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
-    gnss_self->reset_uart ();
-
-    return GNSS_BUSY_ERROR;
-  }
+  HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
+  gnss_self->reset_uart ();
 
 // Start with a blank msg buf -- this will short cycle the for loop
 // below if a message was not received
@@ -835,7 +838,6 @@ static gnss_return_code_t __send_config ( uint8_t *config_array, size_t message_
   {
     HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
     gnss_self->reset_uart ();
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     return GNSS_UART_ERROR;
 
   }
@@ -850,7 +852,6 @@ static gnss_return_code_t __send_config ( uint8_t *config_array, size_t message_
   {
     HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
     gnss_self->reset_uart ();
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     return GNSS_UART_ERROR;
   }
 

@@ -59,7 +59,7 @@ typedef enum gnss_error_code
 #define MAX_ACCEPTABLE_PDOP 1000 // (units = 0.01) greater than 10 means fair fix accuracy
 #define MAX_EMPTY_QUEUE_WAIT 50 // wait for max 50ms
 #define MAX_EMPTY_CYCLES 5*60*10 // no data for 10 mins
-#define MAX_FRAME_SYNC_ATTEMPTS 3
+#define MAX_FRAME_SYNC_ATTEMPTS 10
 #define MAX_CONFIG_STEP_ATTEMPTS 3
 #define GNSS_DEFAULT_BAUD_RATE 9600
 #define MAX_THREADX_WAIT_TICKS_FOR_CONFIG (TX_TIMER_TICKS_PER_SECOND + (TX_TIMER_TICKS_PER_SECOND / 4))

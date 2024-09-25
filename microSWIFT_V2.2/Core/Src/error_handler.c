@@ -9,6 +9,9 @@
 
 #warning "ensure error handler de-registers thread on error"
 
-void Error_Handler ( void );
+void Error_Handler ( void )
+{
+  __asm__("BKPT");
+}
 
 void safe_mode ( void );

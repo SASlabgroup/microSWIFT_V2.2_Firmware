@@ -252,6 +252,10 @@ void HAL_ADC_ConvCpltCallback ( ADC_HandleTypeDef *hadc )
 
 void HAL_GPIO_EXTI_Callback ( uint16_t GPIO_Pin )
 {
+  if ( GPIO_Pin == RTC_INT_A_Pin )
+  {
+    __asm__("BKPT");
+  }
   if ( GPIO_Pin == RTC_INT_B_Pin )
   {
     __asm__("BKPT");
