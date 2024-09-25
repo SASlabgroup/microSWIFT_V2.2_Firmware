@@ -139,7 +139,7 @@ static bool _control_startup_procedure ( void )
   }
 
   // Flash power up sequence (this will also give threads time to execute their init procedures)
-  if ( persistent_stotrage_get_sample_window_counter () == 0 )
+  if ( is_first_sample_window () )
   {
     led_sequence (INITIAL_LED_SEQUENCE);
   }

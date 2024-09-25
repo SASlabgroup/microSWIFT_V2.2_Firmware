@@ -29,7 +29,7 @@ bool waves_memory_pool_init ( NEDWaves_memory *waves_mem_ptr,
     waves_mem->east = argInit_1xUnbounded_real32_T (waves_mem->configuration);
     waves_mem->down = argInit_1xUnbounded_real32_T (waves_mem->configuration);
 
-    if ( (waves_mem->north != NULL) && (waves_mem->east != NULL) && (waves_mem->down == NULL) )
+    if ( (waves_mem->north != NULL) && (waves_mem->east != NULL) && (waves_mem->down != NULL) )
     {
       waves_mem->init_success = true;
     }

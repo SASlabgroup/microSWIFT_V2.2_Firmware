@@ -44,7 +44,6 @@ struct watchdog_t
   bool                  waves_active;
   bool                  iridium_active;
   bool                  filex_active;
-
 };
 
 typedef struct watchdog_t *watchdog_handle;

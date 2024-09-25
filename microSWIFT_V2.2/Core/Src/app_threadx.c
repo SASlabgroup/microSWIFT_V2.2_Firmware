@@ -187,6 +187,11 @@ TX_QUEUE expansion_queue_2;
 
 __ALIGN_BEGIN UCHAR waves_byte_pool_buffer[WAVES_MEM_POOL_SIZE] __attribute__((section(".ram1")))__ALIGN_END;
 TX_BYTE_POOL waves_byte_pool;
+
+// Logger stack buffer
+__ALIGN_BEGIN uint8_t logger_block_buffer[(sizeof(log_line_buf) * LOG_QUEUE_LENGTH)
+                                          + (LOG_QUEUE_LENGTH * sizeof(void*))] __attribute__((section(".ram1")))__ALIGN_END;
+TX_BLOCK_POOL logger_block_pool;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -243,13 +248,13 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   //
   // Allocate stack for the rtc thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XS_STACK, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, S_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the rtc thread. VERY_HIGH priority level and no preemption possible
-  ret = tx_thread_create(&rtc_thread, "rtc thread", rtc_thread_entry, 0, pointer, XS_STACK,
+  ret = tx_thread_create(&rtc_thread, "rtc thread", rtc_thread_entry, 0, pointer, S_STACK,
                          VERY_HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
@@ -257,14 +262,14 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   //
   // Allocate stack for the logger thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, L_STACK,
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, S_STACK,
   TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the logger thread. Low priority priority level and no preemption possible
-  ret = tx_thread_create(&logger_thread, "logger thread", logger_thread_entry, 0, pointer, L_STACK,
+  ret = tx_thread_create(&logger_thread, "logger thread", logger_thread_entry, 0, pointer, S_STACK,
                          LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
@@ -429,6 +434,19 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
 
   /************************************************************************************************
+   ********************************** Byte and Block Pools ****************************************
+   ************************************************************************************************/
+  //
+  // Block pool for the UART logger
+  ret = tx_block_pool_create(&logger_block_pool, "UART Logger Block Pool", sizeof(log_line_buf),
+                             &logger_block_buffer[0], sizeof(logger_block_buffer));
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+  /* Note: the Waves thread will create and manage its own block pool. */
+
+  /************************************************************************************************
    ************************************** Event Flags *********************************************
    ************************************************************************************************/
   //
@@ -477,28 +495,28 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   /************************************************************************************************
    **************************************** Timers ************************************************
    ************************************************************************************************/
-  ret = tx_timer_create(&control_timer, "Control thread timer", control_timer_expired, 0, 0, 0,
+  ret = tx_timer_create(&control_timer, "Control thread timer", control_timer_expired, 0, 1, 1,
                         TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
-  ret = tx_timer_create(&gnss_timer, "GNSS thread timer", gnss_timer_expired, 0, 0, 0,
+  ret = tx_timer_create(&gnss_timer, "GNSS thread timer", gnss_timer_expired, 0, 1, 1,
                         TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
-  ret = tx_timer_create(&ct_timer, "CT thread timer", ct_timer_expired, 0, 0, 0, TX_NO_ACTIVATE);
+  ret = tx_timer_create(&ct_timer, "CT thread timer", ct_timer_expired, 0, 1, 1, TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
   ret = tx_timer_create(&temperature_timer, "Temperature thread timer", temperature_timer_expired,
-                        0, 0, 0, TX_NO_ACTIVATE);
+                        0, 1, 1, TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -532,7 +550,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
 //    return ret;
 //  }
 
-  ret = tx_timer_create(&iridium_timer, "Iridium thread timer", iridium_timer_expired, 0, 0, 0,
+  ret = tx_timer_create(&iridium_timer, "Iridium thread timer", iridium_timer_expired, 0, 1, 1,
                         TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
@@ -540,21 +558,21 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
 
   ret = tx_timer_create(&expansion_timer_1, "Expansion thread 1 timer", expansion_timer_1_expired,
-                        0, 0, 0, TX_NO_ACTIVATE);
+                        0, 1, 1, TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
   ret = tx_timer_create(&expansion_timer_2, "Expansion thread 2 timer", expansion_timer_2_expired,
-                        0, 0, 0, TX_NO_ACTIVATE);
+                        0, 1, 1, TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
   ret = tx_timer_create(&expansion_timer_3, "Expansion thread 3 timer", expansion_timer_3_expired,
-                        0, 0, 0, TX_NO_ACTIVATE);
+                        0, 1, 1, TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -658,7 +676,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
-  ret = tx_queue_create(&logger_message_queue, "RTC msg queue",
+  ret = tx_queue_create(&rtc_messaging_queue, "RTC msg queue",
                         sizeof(rtc_request_message) / sizeof(uint32_t), pointer,
                         sizeof(rtc_request_message) * RTC_QUEUE_LENGTH);
   if ( ret != TX_SUCCESS )
@@ -706,6 +724,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   device_handles.iridium_uart_handle = &huart4;
   device_handles.gnss_uart_handle = &huart1;
   device_handles.ct_uart_handle = &huart5;
+  device_handles.logger_uart_handle = &huart6;
   device_handles.ext_flash_handle = &hospi1;
   device_handles.battery_adc = &hadc1;
   device_handles.aux_spi_1_handle = &hspi2;
@@ -749,6 +768,8 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     tests.threadx_init_test (NULL);
   }
+
+  persistent_storage_init ();
   /* USER CODE END App_ThreadX_Init */
 
   return ret;
@@ -890,13 +911,10 @@ static void logger_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   logger_message msg;
   UINT tx_ret;
-  // Logger stack buffer
-  uint8_t logger_stack_buffer[sizeof(log_line_buf) * LOG_QUEUE_LENGTH];
-  basic_stack_t logger_stack;
   uart_logger logger;
 
-  uart_logger_init (&logger, &logger_stack, &(logger_stack_buffer[0]), &logger_message_queue,
-                    &huart6);
+  uart_logger_init (&logger, &logger_block_pool, &logger_message_queue,
+                    device_handles.logger_uart_handle);
 
   while ( 1 )
   {
@@ -924,6 +942,7 @@ static void control_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   Control control;
+  struct watchdog_t watchdog;
 
   // Run tests if needed
   if ( tests.control_test != NULL )
@@ -935,7 +954,10 @@ static void control_thread_entry ( ULONG thread_input )
                    &irq_flags, &complete_flags, &control_timer, device_handles.battery_adc,
                    &sbd_message);
 
-  watchdog_check_in (CONTROL_THREAD);
+  if ( watchdog_init (&watchdog, &watchdog_check_in_flags) != WATCHDOG_OK )
+  {
+    HAL_NVIC_SystemReset ();
+  }
 
   // Run the self test
   if ( !control.startup_procedure () )
@@ -955,6 +977,8 @@ static void control_thread_entry ( ULONG thread_input )
     tx_thread_sleep (1);
     HAL_NVIC_SystemReset ();
   }
+
+  watchdog_check_in (CONTROL_THREAD);
 
   if ( !is_first_sample_window () )
   {
@@ -1016,6 +1040,8 @@ static void gnss_thread_entry ( ULONG thread_input )
                                     / 60)
                                    + 2;
   int32_t gnss_max_acq_time = 0;
+
+  tx_thread_sleep (1);
 
   // Make sure the waves thread has initialized properly before proceeding
   while ( 1 )
@@ -1232,6 +1258,8 @@ static void ct_thread_entry ( ULONG thread_input )
   real16_T half_salinity, half_temp;
   int32_t ct_thread_timeout = TX_TIMER_TICKS_PER_SECOND * 90;
 
+  tx_thread_sleep (1);
+
   // Set the mean salinity and temp values to error values in the event the sensor fails
   half_salinity.bitPattern = CT_VALUES_ERROR_CODE;
   half_temp.bitPattern = CT_VALUES_ERROR_CODE;
@@ -1357,6 +1385,8 @@ static void temperature_thread_entry ( ULONG thread_input )
   int32_t temperature_thread_timeout = TX_TIMER_TICKS_PER_SECOND * 30;
   int32_t fail_counter = 0, max_retries = 10;
 
+  tx_thread_sleep (1);
+
   // Set the mean salinity and temp values to error values in the event the sensor fails
   half_temp.bitPattern = TEMPERATURE_VALUES_ERROR_CODE;
 
@@ -1451,6 +1481,8 @@ static void light_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = &light_thread;
 
+  tx_thread_sleep (1);
+
   // TODO: init and self test
 
   //
@@ -1491,6 +1523,8 @@ static void turbidity_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = &turbidity_thread;
+
+  tx_thread_sleep (1);
 
   // TODO: init and self test
 
@@ -1574,6 +1608,8 @@ static void expansion_thread_1_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = &expansion_thread_1;
 
+  tx_thread_sleep (1);
+
   // TODO: init and self test
 
   //
@@ -1614,6 +1650,8 @@ static void expansion_thread_2_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = &expansion_thread_2;
+
+  tx_thread_sleep (1);
 
   // TODO: init and self test
 
@@ -1656,6 +1694,8 @@ static void expansion_thread_3_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = &expansion_thread_3;
 
+  tx_thread_sleep (1);
+
   // TODO: init and self test
 
   //
@@ -1697,6 +1737,8 @@ static void waves_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = &waves_thread;
   NEDWaves_memory waves_mem;
+
+  tx_thread_sleep (1);
 
   if ( !waves_memory_pool_init (&waves_mem, &configuration, &(waves_byte_pool_buffer[0]),
   WAVES_MEM_POOL_SIZE) )
@@ -1796,6 +1838,8 @@ static void iridium_thread_entry ( ULONG thread_input )
   time_t time_now = 0;
   sbd_message_type_52 *msg_ptr = &sbd_message;
   bool current_message_sent = false;
+
+  tx_thread_sleep (1);
 
   iridium_init (&iridium, &configuration, device_handles.iridium_uart_handle, &iridium_uart_sema,
                 device_handles.iridium_uart_tx_dma_handle,

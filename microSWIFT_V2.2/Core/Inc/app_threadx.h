@@ -145,6 +145,7 @@ typedef struct
   UART_HandleTypeDef    *iridium_uart_handle;
   UART_HandleTypeDef    *gnss_uart_handle;
   UART_HandleTypeDef    *ct_uart_handle;
+  UART_HandleTypeDef    *logger_uart_handle;
   OSPI_HandleTypeDef    *ext_flash_handle;
   ADC_HandleTypeDef     *battery_adc;
   // Expansion/ spares

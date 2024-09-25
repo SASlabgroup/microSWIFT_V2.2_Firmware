@@ -15,35 +15,36 @@
 #include "stdio.h"
 #include "ext_rtc_api.h"
 
-static uart_logger *self;
+static uart_logger *logger_self;
 
 const char *rtc_err_str = "RTC ERROR";
 
-static bool uart_logger_get_buffer ( uart_logger *logger, log_line_buf *line_buf );
+static UINT _logger_get_buffer ( log_line_buf *line_buf );
 static void _logger_send_log_line ( log_line_buf *buf, size_t strlen );
 static void _logger_return_buffer ( log_line_buf *buffer );
 
-void uart_logger_init ( uart_logger *logger, basic_stack_handle buffer_stack, uint8_t *stack_mem,
-                        TX_QUEUE *msg_que, UART_HandleTypeDef *uart_handle )
+void uart_logger_init ( uart_logger *logger, TX_BLOCK_POOL *block_pool, TX_QUEUE *msg_que,
+                        UART_HandleTypeDef *uart_handle )
 {
-  self = logger;
+  logger_self = logger;
 
-  self->enable_pin.port = UART_LOGGER_EN_GPIO_Port;
-  self->enable_pin.pin = UART_LOGGER_EN_Pin;
+  logger_self->enable_pin.port = UART_LOGGER_EN_GPIO_Port;
+  logger_self->enable_pin.pin = UART_LOGGER_EN_Pin;
 
-  self->buffer_stack = buffer_stack;
-  self->msg_que = msg_que;
-  self->uart = uart_handle;
-  self->send_log_line = _logger_send_log_line;
-  self->return_line_buffer = _logger_return_buffer;
+  logger_self->block_pool = block_pool;
+  logger_self->msg_que = msg_que;
+  logger_self->uart = uart_handle;
+  logger_self->send_log_line = _logger_send_log_line;
+  logger_self->return_line_buffer = _logger_return_buffer;
 
-  if ( HAL_GPIO_ReadPin (self->enable_pin.port, self->enable_pin.pin) == GPIO_PIN_SET )
+  if ( HAL_GPIO_ReadPin (logger_self->enable_pin.port, logger_self->enable_pin.pin)
+       == GPIO_PIN_SET )
   {
-    self->logger_enabled = true;
+    logger_self->logger_enabled = true;
   }
   else
   {
-    self->logger_enabled = false;
+    logger_self->logger_enabled = false;
   }
 }
 
@@ -56,10 +57,11 @@ void uart_logger_log_line ( const char *fmt, ... )
   struct tm time;
   va_list args;
   va_start(args, fmt);
+  UINT tx_ret;
 
-  bool stack_empty = uart_logger_get_buffer (self, log_buf);
+  tx_ret = _logger_get_buffer (log_buf);
 
-  if ( stack_empty || !self->logger_enabled )
+  if ( (tx_ret != TX_SUCCESS) || !logger_self->logger_enabled )
   {
     va_end(args);
     return;
@@ -86,22 +88,21 @@ void uart_logger_log_line ( const char *fmt, ... )
   msg.str_buf = log_buf;
   msg.strlen = sizeof(log_line_buf) - bytes_remaining;
 
-  (void) tx_queue_send (self->msg_que, (VOID*) &msg, TX_NO_WAIT);
+  (void) tx_queue_send (logger_self->msg_que, (VOID*) &msg, TX_NO_WAIT);
 }
 
-static bool uart_logger_get_buffer ( uart_logger *logger, log_line_buf *line_buf )
+static UINT _logger_get_buffer ( log_line_buf *line_buf )
 {
-  return bs_pop_element (logger->buffer_stack, (void*) line_buf);
+  return tx_block_allocate (logger_self->block_pool, (VOID**) &line_buf, TX_NO_WAIT);
 }
 
 static void _logger_send_log_line ( log_line_buf *buf, size_t strlen )
 {
-  HAL_UART_Transmit_DMA (self->uart, (uint8_t*) &(buf->line_buf[0]), strlen);
+  HAL_UART_Transmit_DMA (logger_self->uart, (uint8_t*) &(buf->line_buf[0]), strlen);
 }
 
 static void _logger_return_buffer ( log_line_buf *buffer )
 {
-  memset (&(buffer->line_buf[0]), 0, sizeof(log_line_buf));
-  bs_push_element (self->buffer_stack, (void*) buffer);
+  (void) tx_block_release ((VOID*) buffer);
 }
 

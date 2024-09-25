@@ -32,8 +32,8 @@ typedef struct
 {
   // GPIO pin to indicate enable/ disable
   gpio_pin_struct enable_pin;
-  // Circular queue for char buffers
-  basic_stack_handle buffer_stack;
+  // Block pool for the char buffers
+  TX_BLOCK_POOL *block_pool;
   // Message queue
   TX_QUEUE *msg_que;
   // UART handle
@@ -43,8 +43,8 @@ typedef struct
   bool logger_enabled;
 } uart_logger;
 
-void uart_logger_init ( uart_logger *logger, basic_stack_handle buffer_stack, uint8_t *stack_mem,
-                        TX_QUEUE *msg_que, UART_HandleTypeDef *uart_handle );
+void uart_logger_init ( uart_logger *logger, TX_BLOCK_POOL *block_pool, TX_QUEUE *msg_que,
+                        UART_HandleTypeDef *uart_handle );
 void uart_logger_log_line ( const char *fmt, ... );
 
 #endif /* COMPONENTS_INC_LOGGER_H_ */
