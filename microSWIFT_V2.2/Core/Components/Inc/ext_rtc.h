@@ -12,7 +12,6 @@
 #include "ext_rtc_api.h"
 #include "spi.h"
 #include "time.h"
-#include "pcf2131_reg.h"
 #include "gpio.h"
 
 #define RTC_SPI_TIMEOUT 25

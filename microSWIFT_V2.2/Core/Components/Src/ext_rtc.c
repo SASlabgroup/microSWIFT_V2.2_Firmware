@@ -6,7 +6,6 @@
  */
 
 #include "ext_rtc.h"
-#include "pcf2131_reg.h"
 #include "spi.h"
 #include "gpio.h"
 #include "app_threadx.h"
@@ -270,7 +269,7 @@ static rtc_return_code _ext_rtc_get_date_time ( struct tm *return_date_time )
   }
 
   // Convert to decimal
-  struct_tm_bcd_to_dec (&return_date_time);
+  struct_tm_bcd_to_dec (return_date_time);
 
   return ret;
 }
@@ -295,9 +294,11 @@ static rtc_return_code _ext_rtc_set_timestamp ( pcf2131_timestamp_t which_timest
   }
 
   // Active low pins
-  gpio_write_pin (self->ts_pins[which_timestamp], GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (self->ts_pins[which_timestamp].port, self->ts_pins[which_timestamp].pin,
+                     GPIO_PIN_RESET);
   tx_thread_sleep (1);
-  gpio_write_pin (self->ts_pins[which_timestamp], GPIO_PIN_SET);
+  HAL_GPIO_WritePin (self->ts_pins[which_timestamp].port, self->ts_pins[which_timestamp].pin,
+                     GPIO_PIN_SET);
 
   self->ts_in_use[which_timestamp] = true;
 

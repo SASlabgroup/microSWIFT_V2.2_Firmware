@@ -108,6 +108,13 @@ int32_t pcf2131_config_int_a ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct 
   return ret;
 }
 
+int32_t pcf2131_config_int_b ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config )
+{
+  int32_t ret = PCF2131_OK;
+
+  return ret;
+}
+
 int32_t pcf2131_config_int_signal_behavior ( dev_ctx_t *dev_handle, int_signal_behavior_t behavior )
 {
   int32_t ret = PCF2131_OK;
@@ -115,7 +122,8 @@ int32_t pcf2131_config_int_signal_behavior ( dev_ctx_t *dev_handle, int_signal_b
   return ret;
 }
 
-int32_t pcf2131_config_int_b ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config )
+int32_t pcf2131_get_timestamp ( dev_ctx_t *dev_handle, pcf2131_timestamp_t which_timestamp,
+                                struct tm *return_date_time )
 {
   int32_t ret = PCF2131_OK;
 

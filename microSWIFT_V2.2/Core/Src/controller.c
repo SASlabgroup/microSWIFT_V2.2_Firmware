@@ -68,6 +68,11 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
   rf_switch_init (&self->rf_switch);
 }
 
+void control_timer_expired ( ULONG expiration_input )
+{
+  (void) expiration_input;
+}
+
 static bool _control_startup_procedure ( void )
 {
   UINT tx_return;

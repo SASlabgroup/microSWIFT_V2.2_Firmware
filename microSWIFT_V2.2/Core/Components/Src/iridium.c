@@ -250,9 +250,9 @@ static iridium_return_code_t _iridium_transmit_message ( sbd_message_type_52 *ms
  *
  * @return iridium_return_code_t
  */
-//static iridium_return_code_t _iridium_transmit_error_message ( char *error_message )
-//{
-//  iridium_return_code_t return_code = IRIDIUM_SUCCESS;
+static iridium_return_code_t _iridium_transmit_error_message ( char *error_message )
+{
+  iridium_return_code_t return_code = IRIDIUM_SUCCESS;
 //  uint16_t error_msg_str_length = strlen (error_message);
 //  uint16_t payload_iterator = 0;
 //  float timestamp;
@@ -310,8 +310,8 @@ static iridium_return_code_t _iridium_transmit_message ( sbd_message_type_52 *ms
 //    __HAL_TIM_CLEAR_FLAG(self->timer, TIM_FLAG_UPDATE);
 //  }
 //
-//  return return_code;
-//}
+  return return_code;
+}
 /**
  *
  * @return void
