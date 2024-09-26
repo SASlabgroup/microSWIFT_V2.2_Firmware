@@ -1593,9 +1593,11 @@ typedef struct
   bool sec_min_pulsed_irq_en;
   // Enable watchdog interrupt
   bool watchdog_irq_en;
+  // Enable alarm flag
+  bool alarm_flag_en;
   // Enable alarm interrupt
   bool alarm_irq_en;
-  // Enable battery flag interrupt
+  // Enable battery flag
   bool batt_flag_irq_en;
   // Enable low battery interrupt
   bool batt_low_irq_en;
@@ -1634,6 +1636,8 @@ int32_t pcf2131_get_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *return_alar
 int32_t pcf2131_config_int_a ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config );
 int32_t pcf2131_config_int_b ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config );
 int32_t pcf2131_config_int_signal_behavior ( dev_ctx_t *dev_handle, int_signal_behavior_t behavior );
+int32_t pcf2131_set_timestamp_enable ( dev_ctx_t *dev_handle, pcf2131_timestamp_t which_timestamp,
+                                       bool enable );
 int32_t pcf2131_get_timestamp ( dev_ctx_t *dev_handle, pcf2131_timestamp_t which_timestamp,
                                 struct tm *return_date_time );
 int32_t pcf2131_temp_comp_config ( dev_ctx_t *dev_handle, bool en );

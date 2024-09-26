@@ -172,6 +172,8 @@ int32_t pcf2131_set_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *alarm_setti
 {
   int32_t ret = PCF2131_OK;
 
+#error "rework to set bits to true or false, not just set if true"
+
   if ( alarm_setting->weekday_alarm_en )
   {
     ret |= dev_handle->bus_write (NULL, 0, WEEKDAY_ALARM_REG_ADDR, &alarm_setting->alarm_weekday,
@@ -220,6 +222,82 @@ int32_t pcf2131_get_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *return_alar
 int32_t pcf2131_config_int_a ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config )
 {
   int32_t ret = PCF2131_OK;
+  pcf2131_ctrl4_reg_t ctrl4;
+  pcf2131_ctrl3_reg_t ctrl3;
+  pcf2131_ctrl2_reg_t ctrl2;
+  uint8_t reg_addr;
+
+#error "rework to set bits to true or false, not just set if true"
+
+  if ( irq_config->timestamp_4_irq_en )
+  {
+    reg_addr = CTRL4_REG_ADDR;
+    ret |= dev_handle->bus_read (NULL, 0, reg_addr, &ctrl4, sizeof(pcf2131_ctrl4_reg_t));
+
+    ctrl4.timestamp4_flag = 0b1;
+
+    ret |= dev_handle->bus_write (NULL, 0, reg_addr, &ctrl4, sizeof(pcf2131_ctrl4_reg_t));
+  }
+
+  if ( irq_config->timestamp_3_irq_en )
+  {
+    reg_addr = CTRL4_REG_ADDR;
+    ret |= dev_handle->bus_read (NULL, 0, reg_addr, &ctrl4, sizeof(pcf2131_ctrl4_reg_t));
+
+    ctrl4.timestamp3_flag = 0b1;
+
+    ret |= dev_handle->bus_write (NULL, 0, reg_addr, &ctrl4, sizeof(pcf2131_ctrl4_reg_t));
+  }
+
+  if ( irq_config->timestamp_2_irq_en )
+  {
+    reg_addr = CTRL4_REG_ADDR;
+    ret |= dev_handle->bus_read (NULL, 0, reg_addr, &ctrl4, sizeof(pcf2131_ctrl4_reg_t));
+
+    ctrl4.timestamp2_flag = 0b1;
+
+    ret |= dev_handle->bus_write (NULL, 0, reg_addr, &ctrl4, sizeof(pcf2131_ctrl4_reg_t));
+  }
+
+  if ( irq_config->timestamp_1_irq_en )
+  {
+    reg_addr = CTRL4_REG_ADDR;
+    ret |= dev_handle->bus_read (NULL, 0, reg_addr, &ctrl4, sizeof(pcf2131_ctrl4_reg_t));
+
+    ctrl4.timestamp1_flag = 0b1;
+
+    ret |= dev_handle->bus_write (NULL, 0, reg_addr, &ctrl4, sizeof(pcf2131_ctrl4_reg_t));
+  }
+
+  if ( irq_config->batt_low_irq_en )
+  {
+    reg_addr = CTRL3_REG_ADDR;
+    ret |= dev_handle->bus_read (NULL, 0, reg_addr, &ctrl3, sizeof(pcf2131_ctrl3_reg_t));
+
+    ctrl3.batt_irq_en;
+
+    ret |= dev_handle->bus_write (NULL, 0, reg_addr, &ctrl3, sizeof(pcf2131_ctrl3_reg_t));
+  }
+
+  if ( irq_config->batt_flag_irq_en )
+  {
+    reg_addr = CTRL3_REG_ADDR;
+    ret |= dev_handle->bus_read (NULL, 0, reg_addr, &ctrl3, sizeof(pcf2131_ctrl3_reg_t));
+
+    ctrl3.batt_low_flag_en;
+
+    ret |= dev_handle->bus_write (NULL, 0, reg_addr, &ctrl3, sizeof(pcf2131_ctrl3_reg_t));
+  }
+
+  if ( irq_config->alarm_irq_en )
+  {
+    reg_addr = CTRL2_REG_ADDR;
+    ret |= dev_handle->bus_read (NULL, 0, reg_addr, &ctrl2, sizeof(pcf2131_ctrl2_reg_t));
+
+    ctrl2.alarm_irq_en = 0b1;
+
+    ret |= dev_handle->bus_write (NULL, 0, reg_addr, &ctrl2, sizeof(pcf2131_ctrl2_reg_t));
+  }
 
   return ret;
 }
@@ -234,6 +312,24 @@ int32_t pcf2131_config_int_b ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct 
 int32_t pcf2131_config_int_signal_behavior ( dev_ctx_t *dev_handle, int_signal_behavior_t behavior )
 {
   int32_t ret = PCF2131_OK;
+
+  return ret;
+}
+
+int32_t pcf2131_set_timestamp_enable ( dev_ctx_t *dev_handle, pcf2131_timestamp_t which_timestamp,
+                                       bool enable )
+{
+  int32_t ret = PCF2131_OK;
+  uint8_t reg_addr = TIMESTAMP_1_CTRL_REG_ADDR + (7 * which_timestamp);
+  pcf2131_timestamp_1_ctrl_reg_t reg_bits;
+
+  ret |= dev_handle->bus_read (NULL, 0, reg_addr, &reg_bits,
+                               sizeof(pcf2131_timestamp_1_ctrl_reg_t));
+
+  reg_bits.timestamp_disable = !enable;
+
+  ret |= dev_handle->bus_write (NULL, 0, reg_addr, &reg_bits,
+                                sizeof(pcf2131_timestamp_1_ctrl_reg_t));
 
   return ret;
 }
