@@ -172,6 +172,30 @@ int32_t pcf2131_set_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *alarm_setti
 {
   int32_t ret = PCF2131_OK;
 
+  if ( alarm_setting->weekday_alarm_en )
+  {
+    ret |= dev_handle->bus_read (NULL, 0, WEEKDAY_ALARM_REG_ADDR, &alarm_setting->alarm_weekday, 1);
+  }
+
+  if ( alarm_setting->day_alarm_en )
+  {
+    ret |= dev_handle->bus_read (NULL, 0, DAY_ALARM_REG_ADDR, &alarm_setting->alarm_day, 1);
+  }
+
+  if ( alarm_setting->hour_alarm_en )
+  {
+    ret |= dev_handle->bus_read (NULL, 0, HOUR_ALARM_REG_ADDR, &alarm_setting->alarm_hour, 1);
+  }
+
+  if ( alarm_setting->minute_alarm_en )
+  {
+    ret |= dev_handle->bus_read (NULL, 0, MINUTE_ALARM_REG_ADDR, &alarm_setting->alarm_minute, 1);
+  }
+
+  if ( alarm_setting->second_alarm_en )
+  {
+    ret |= dev_handle->bus_read (NULL, 0, SECOND_ALARM_REG_ADDR, &alarm_setting->alarm_second, 1);
+  }
   return ret;
 }
 
