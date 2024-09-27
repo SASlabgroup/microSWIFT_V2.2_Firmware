@@ -7,6 +7,12 @@
 
 #include "pcf2131_reg.h"
 
+typedef struct
+{
+  uint8_t tens_place;
+  uint8_t units_place;
+} bcd_struct_t;
+
 uint8_t dec_to_bcd[100] =
   { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, // 0-9
     0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, // 10-19
@@ -88,7 +94,9 @@ uint8_t bcd_to_dec[256] =
     // 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF
     BCD_ERROR, BCD_ERROR, BCD_ERROR, BCD_ERROR, BCD_ERROR, BCD_ERROR, BCD_ERROR, BCD_ERROR };
 
-static uint8_t weekday_from_date ( int y, int m, int d );
+static uint8_t __weekday_from_date ( int y, int m, int d );
+static bcd_struct_t __dec_to_bcd ( uint8_t decimal_val );
+static uint8_t __bcd_to_dec ( bcd_struct_t bcd_vals );
 
 int32_t pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_init_ptr init_fn,
                                         dev_deinit_ptr deinit_fn, dev_write_ptr bus_write_fn,
@@ -110,8 +118,8 @@ int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm *input_date_tim
   uint8_t bcd_month = dec_to_bcd[input_date_time->tm_mon];
   uint8_t weekday =
       (input_date_time->tm_wday == WEEKDAY_UNKNOWN) ?
-          weekday_from_date (input_date_time->tm_year, input_date_time->tm_mon,
-                             input_date_time->tm_mday) :
+          __weekday_from_date (input_date_time->tm_year, input_date_time->tm_mon,
+                               input_date_time->tm_mday) :
           (uint8_t) input_date_time->tm_wday;
   uint8_t bcd_day = dec_to_bcd[input_date_time->tm_mday];
   uint8_t bcd_hour = dec_to_bcd[input_date_time->tm_hour];
@@ -152,6 +160,7 @@ int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_ti
   ret = dev_handle->bus_read (NULL, 0, ONE_100_SEC_REG_ADDR, (uint8_t*) &(time_date[0]),
                               sizeof(time_date));
 
+#error "make bcd to dec and dec to bcd functions that take the work out of it..."
   return_date_time->tm_sec = bcd_to_dec[time_date[1].seconds.tens_place
                                         | time_date[1].seconds.units_place];
   return_date_time->tm_min = bcd_to_dec[time_date[2].minutes.tens_place
@@ -171,33 +180,113 @@ int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_ti
 int32_t pcf2131_set_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *alarm_setting )
 {
   int32_t ret = PCF2131_OK;
+  pcf2131_ctrl1_reg_t ctrl =
+    { 0 };
+  pcf2131_second_alarm_reg_t second =
+    { 0 };
+  pcf2131_minute_alarm_reg_t minute =
+    { 0 };
+  pcf2131_hour_alarm_reg_t hour =
+    { 0 };
+  pcf2131_day_alarm_reg_t day =
+    { 0 };
+  pcf2131_weekday_alarm_reg_t weekday =
+    { 0 };
 
-#error "rework to set bits to true or false, not just set if true"
+  // Set 24 hour mode
+  ret |= dev_handle->bus_read (NULL, 0, CTRL1_REG_ADDR, (uint8_t*) &ctrl,
+                               sizeof(pcf2131_ctrl1_reg_t));
+  ctrl.hours_mode = TWENTY_FOUR_HOUR_MODE;
+  ret |= dev_handle->bus_write (NULL, 0, CTRL1_REG_ADDR, (uint8_t*) &ctrl,
+                                sizeof(pcf2131_ctrl1_reg_t));
 
-  if ( alarm_setting->weekday_alarm_en )
+  if ( alarm_setting->second_alarm_en )
   {
-    ret |= dev_handle->bus_write (NULL, 0, WEEKDAY_ALARM_REG_ADDR, &alarm_setting->alarm_weekday,
-                                  1);
+    second.tens_place = dec_to_bcd[alarm_setting->alarm_second] & 0x70;
+    second.units_place = dec_to_bcd[alarm_setting->alarm_second] & 0x0F;
+    second.alarm_disable = 0b0;
+
+    ret |= dev_handle->bus_write (NULL, 0, SECOND_ALARM_REG_ADDR, (uint8_t*) &second,
+                                  sizeof(pcf2131_second_alarm_reg_t));
   }
-
-  if ( alarm_setting->day_alarm_en )
+  else
   {
-    ret |= dev_handle->bus_write (NULL, 0, DAY_ALARM_REG_ADDR, &alarm_setting->alarm_day, 1);
-  }
-
-  if ( alarm_setting->hour_alarm_en )
-  {
-    ret |= dev_handle->bus_write (NULL, 0, HOUR_ALARM_REG_ADDR, &alarm_setting->alarm_hour, 1);
+    ret |= dev_handle->bus_read (NULL, 0, SECOND_ALARM_REG_ADDR, (uint8_t*) &second,
+                                 sizeof(pcf2131_second_alarm_reg_t));
+    second.alarm_disable = 0b1;
+    ret |= dev_handle->bus_write (NULL, 0, SECOND_ALARM_REG_ADDR, (uint8_t*) &second,
+                                  sizeof(pcf2131_second_alarm_reg_t));
   }
 
   if ( alarm_setting->minute_alarm_en )
   {
-    ret |= dev_handle->bus_write (NULL, 0, MINUTE_ALARM_REG_ADDR, &alarm_setting->alarm_minute, 1);
+    minute.tens_place = dec_to_bcd[alarm_setting->alarm_minute] & 0x70;
+    minute.units_place = dec_to_bcd[alarm_setting->alarm_minute] & 0x0F;
+    minute.alarm_disable = 0b0;
+
+    ret |= dev_handle->bus_write (NULL, 0, MINUTE_ALARM_REG_ADDR, (uint8_t*) &minute,
+                                  sizeof(pcf2131_minute_alarm_reg_t));
+  }
+  else
+  {
+    ret |= dev_handle->bus_read (NULL, 0, MINUTE_ALARM_REG_ADDR, (uint8_t*) &minute,
+                                 sizeof(pcf2131_minute_alarm_reg_t));
+    minute.alarm_disable = 0b1;
+    ret |= dev_handle->bus_write (NULL, 0, MINUTE_ALARM_REG_ADDR, (uint8_t*) &minute,
+                                  sizeof(pcf2131_minute_alarm_reg_t));
   }
 
-  if ( alarm_setting->second_alarm_en )
+  if ( alarm_setting->hour_alarm_en )
   {
-    ret |= dev_handle->bus_write (NULL, 0, SECOND_ALARM_REG_ADDR, &alarm_setting->alarm_second, 1);
+    hour.format_24hr.tens_place = dec_to_bcd[alarm_setting->alarm_hour] & 0x30;
+    hour.format_24hr.units_place = dec_to_bcd[alarm_setting->alarm_hour] & 0x0F;
+    hour.format_24hr.alarm_disable = 0b0;
+
+    ret |= dev_handle->bus_write (NULL, 0, HOUR_ALARM_REG_ADDR, (uint8_t*) &hour,
+                                  sizeof(pcf2131_hour_alarm_reg_t));
+  }
+  else
+  {
+    ret |= dev_handle->bus_read (NULL, 0, HOUR_ALARM_REG_ADDR, (uint8_t*) &hour,
+                                 sizeof(pcf2131_hour_alarm_reg_t));
+    hour.format_24hr.alarm_disable = 0b1;
+    ret |= dev_handle->bus_write (NULL, 0, HOUR_ALARM_REG_ADDR, (uint8_t*) &hour,
+                                  sizeof(pcf2131_hour_alarm_reg_t));
+  }
+
+  if ( alarm_setting->day_alarm_en )
+  {
+    day.tens_place = dec_to_bcd[alarm_setting->alarm_day] & 0x70;
+    day.units_place = dec_to_bcd[alarm_setting->alarm_day] & 0x0F;
+    day.alarm_disable = 0b0;
+
+    ret |= dev_handle->bus_write (NULL, 0, DAY_ALARM_REG_ADDR, (uint8_t*) &day,
+                                  sizeof(pcf2131_day_alarm_reg_t));
+  }
+  else
+  {
+    ret |= dev_handle->bus_read (NULL, 0, DAY_ALARM_REG_ADDR, (uint8_t*) &day,
+                                 sizeof(pcf2131_day_alarm_reg_t));
+    day.alarm_disable = 0b1;
+    ret |= dev_handle->bus_write (NULL, 0, DAY_ALARM_REG_ADDR, (uint8_t*) &day,
+                                  sizeof(pcf2131_day_alarm_reg_t));
+  }
+
+  if ( alarm_setting->weekday_alarm_en )
+  {
+    weekday.weekday = alarm_setting->alarm_weekday;
+    weekday.alarm_disable = 0b0;
+
+    ret |= dev_handle->bus_write (NULL, 0, WEEKDAY_ALARM_REG_ADDR, (uint8_t*) &weekday,
+                                  sizeof(pcf2131_weekday_alarm_reg_t));
+  }
+  else
+  {
+    ret |= dev_handle->bus_read (NULL, 0, WEEKDAY_ALARM_REG_ADDR, (uint8_t*) &weekday,
+                                 sizeof(pcf2131_weekday_alarm_reg_t));
+    weekday.alarm_disable = 0b1;
+    ret |= dev_handle->bus_write (NULL, 0, WEEKDAY_ALARM_REG_ADDR, (uint8_t*) &weekday,
+                                  sizeof(pcf2131_weekday_alarm_reg_t));
   }
 
   return ret;
@@ -206,15 +295,39 @@ int32_t pcf2131_set_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *alarm_setti
 int32_t pcf2131_get_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *return_alarm_setting )
 {
   int32_t ret = PCF2131_OK;
+  pcf2131_second_alarm_reg_t second =
+    { 0 };
+  pcf2131_minute_alarm_reg_t minute =
+    { 0 };
+  pcf2131_hour_alarm_reg_t hour =
+    { 0 };
+  pcf2131_day_alarm_reg_t day =
+    { 0 };
+  pcf2131_weekday_alarm_reg_t weekday =
+    { 0 };
 
-  ret |= dev_handle->bus_read (NULL, 0, WEEKDAY_ALARM_REG_ADDR,
-                               &return_alarm_setting->alarm_weekday, 1);
-  ret |= dev_handle->bus_read (NULL, 0, DAY_ALARM_REG_ADDR, &return_alarm_setting->alarm_day, 1);
-  ret |= dev_handle->bus_read (NULL, 0, HOUR_ALARM_REG_ADDR, &return_alarm_setting->alarm_hour, 1);
-  ret |= dev_handle->bus_read (NULL, 0, MINUTE_ALARM_REG_ADDR, &return_alarm_setting->alarm_minute,
-                               1);
-  ret |= dev_handle->bus_read (NULL, 0, SECOND_ALARM_REG_ADDR, &return_alarm_setting->alarm_second,
-                               1);
+  ret |= dev_handle->bus_read (NULL, 0, WEEKDAY_ALARM_REG_ADDR, (uint8_t*) &weekday,
+                               sizeof(pcf2131_weekday_alarm_reg_t));
+  ret |= dev_handle->bus_read (NULL, 0, DAY_ALARM_REG_ADDR, (uint8_t*) &day,
+                               sizeof(pcf2131_day_alarm_reg_t));
+  ret |= dev_handle->bus_read (NULL, 0, HOUR_ALARM_REG_ADDR, (uint8_t*) &hour,
+                               sizeof(pcf2131_hour_alarm_reg_t));
+  ret |= dev_handle->bus_read (NULL, 0, MINUTE_ALARM_REG_ADDR, (uint8_t*) &minute,
+                               sizeof(pcf2131_minute_alarm_reg_t));
+  ret |= dev_handle->bus_read (NULL, 0, SECOND_ALARM_REG_ADDR, (uint8_t*) &second,
+                               sizeof(pcf2131_second_alarm_reg_t));
+
+#warning "fix the bcd to dec conversions"
+  return_alarm_setting->alarm_weekday = weekday.weekday;
+  return_alarm_setting->weekday_alarm_en = !weekday.alarm_disable;
+  return_alarm_setting->alarm_day = 0;
+  return_alarm_setting->day_alarm_en = !day.alarm_disable;
+  return_alarm_setting->alarm_hour = 0;
+  return_alarm_setting->hour_alarm_en = !hour.format_24hr.alarm_disable;
+  return_alarm_setting->alarm_minute = 0;
+  return_alarm_setting->minute_alarm_en = !minute.alarm_disable;
+  return_alarm_setting->alarm_second = 0;
+  return_alarm_setting->second_alarm_en = !second.alarm_disable;
 
   return ret;
 }
@@ -317,7 +430,7 @@ int32_t pcf2131_config_int_signal_behavior ( dev_ctx_t *dev_handle, int_signal_b
 }
 
 int32_t pcf2131_set_timestamp_enable ( dev_ctx_t *dev_handle, pcf2131_timestamp_t which_timestamp,
-                                       bool enable )
+bool enable )
 {
   int32_t ret = PCF2131_OK;
   uint8_t reg_addr = TIMESTAMP_1_CTRL_REG_ADDR + (7 * which_timestamp);
@@ -547,7 +660,7 @@ int32_t pcf2131_set_watchdog_timer_value ( dev_ctx_t *dev_handle, uint8_t timer_
   return ret;
 }
 
-static uint8_t weekday_from_date ( int y, int m, int d )
+static uint8_t __weekday_from_date ( int y, int m, int d )
 {
   /* wikipedia.org/wiki/Determination_of_the_day_of_the_week#Implementation-dependent_methods */
   uint8_t weekday = (uint8_t) ((d += m < 3 ?
@@ -555,4 +668,17 @@ static uint8_t weekday_from_date ( int y, int m, int d )
                                % 7);
 
   return weekday;
+}
+
+static bcd_struct_t __dec_to_bcd ( uint8_t decimal_val )
+{
+  uint8_t bcd_full = dec_to_bcd[decimal_val];
+  bcd_struct_t ret =
+    { bcd_full & 0xF0, bcd_full & 0x0F };
+  return ret;
+}
+
+static uint8_t __bcd_to_dec ( bcd_struct_t bcd_vals )
+{
+  return bcd_to_dec[(bcd_vals.tens_place << 4) | bcd_vals.units_place];
 }
