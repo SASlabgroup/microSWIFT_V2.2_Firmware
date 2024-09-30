@@ -10,6 +10,7 @@
 #include "gpio.h"
 #include "app_threadx.h"
 #include "main.h"
+#include "threadx_support.h"
 
 static Ext_RTC *self;
 
@@ -129,13 +130,58 @@ rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_b
 static rtc_return_code _ext_rtc_setup_rtc ( void )
 {
   int32_t ret = RTC_SUCCESS;
-  /* set up:
-   * power management
-   * clock output
-   * temperature measurement period
-   * interrupts
-   * OTP refresh?
-   */
+  pcf2131_irq_config_struct irq_config =
+    { 0 };
+
+  // Clock output
+  ret = pcf2131_set_clkout_freq (&(self->dev_ctx), FREQ_32768);
+  if ( ret != PCF2131_OK )
+  {
+    return RTC_SPI_ERROR;
+  }
+
+  // Power management scheme
+  ret = pcf2131_config_pwr_mgmt_scheme (&(self->dev_ctx), SWITCH_OVER_DIS_LOW_BATT_DIS);
+  if ( ret != PCF2131_OK )
+  {
+    return RTC_SPI_ERROR;
+  }
+
+  // Temperature measurement/ compensation
+  ret = pcf2131_temp_comp_config (&(self->dev_ctx), true);
+  ret |= pcf2131_set_temp_meas_period (&(self->dev_ctx), EVERY_32_MINS);
+  if ( ret != PCF2131_OK )
+  {
+    return RTC_SPI_ERROR;
+  }
+
+  // Interrupts: Int A will be used for alarm, Int B for watchdog, but this is set in function _ext_rtc_config_watchdog()
+  irq_config.alarm_irq_en = true;
+  ret = pcf2131_config_int_a (&(self->dev_ctx), &irq_config);
+  if ( ret != PCF2131_OK )
+  {
+    return RTC_SPI_ERROR;
+  }
+
+  // Timestamps
+  for ( int i = 0; i < NUMBER_OF_TIMESTAMPS; i++ )
+  {
+    ret |= pcf2131_set_timestamp_enable (&self->dev_ctx, (pcf2131_timestamp_t) i, true);
+    ret |= pcf2131_set_timestamp_store_option (&self->dev_ctx, (pcf2131_timestamp_t) i,
+                                               FIRST_EVENT_STORED);
+  }
+
+  ret |= pcf2131_clear_timestamps (&self->dev_ctx);
+  if ( ret != PCF2131_OK )
+  {
+    return RTC_SPI_ERROR;
+  }
+
+  // Perform OTP refresh, only on first start
+  if ( is_first_sample_window () )
+  {
+    ret = pcf2131_perform_otp_refresh (&self->dev_ctx);
+  }
 
   return ret;
 }
@@ -150,6 +196,8 @@ static rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
 {
   int32_t ret = RTC_SUCCESS;
   watchdog_time_source_t clock_select;
+  pcf2131_irq_config_struct irq_config =
+    { 0 };
 
   // We'll establish a minimum refresh interval of 10 seconds
   if ( (period_ms < RTC_WATCHDOG_MIN_REFRESH) || (period_ms > PCF2131_1_64HZ_CLK_MAX_PERIOD_MS) )
@@ -190,13 +238,12 @@ static rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
     return RTC_SPI_ERROR;
   }
 
-  ret = pcf2131_set_watchdog_timer_value (&self->dev_ctx, self->watchdog_refresh_time_val);
-  if ( ret != PCF2131_OK )
-  {
-    return RTC_SPI_ERROR;
-  }
+  // Enable the watchdog interrupt on Int B
+  irq_config.watchdog_irq_en = true;
+  ret = pcf2131_config_int_b (&self->dev_ctx, &irq_config);
 
-  ret = pcf2131_watchdog_irq_config (&self->dev_ctx, true);
+  // Set the watchdog timer value -- watchdog will start at this point
+  ret = pcf2131_set_watchdog_timer_value (&self->dev_ctx, self->watchdog_refresh_time_val);
   if ( ret != PCF2131_OK )
   {
     return RTC_SPI_ERROR;

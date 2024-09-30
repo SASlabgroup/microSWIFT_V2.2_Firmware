@@ -1326,7 +1326,7 @@ typedef struct
 /**************************************************************************************************/
 /*********************************** Aging Offset Register ****************************************/
 /**************************************************************************************************/
-#define AGING_OFFSET_REG_ADDR (0x)
+#define AGING_OFFSET_REG_ADDR (0x30)
 #define AGING_OFFSET_REG_RESET_VAL (0b00001000)
 
 typedef enum
@@ -1598,8 +1598,6 @@ typedef struct
   bool sec_min_pulsed_irq_en;
   // Enable watchdog interrupt
   bool watchdog_irq_en;
-  // Enable alarm flag
-  bool alarm_flag_en;
   // Enable alarm interrupt
   bool alarm_irq_en;
   // Enable battery flag
@@ -1650,6 +1648,9 @@ int32_t pcf2131_config_int_b ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct 
 int32_t pcf2131_config_int_signal_behavior ( dev_ctx_t *dev_handle, int_signal_behavior_t behavior );
 int32_t pcf2131_set_timestamp_enable ( dev_ctx_t *dev_handle, pcf2131_timestamp_t which_timestamp,
 bool enable );
+int32_t pcf2131_set_timestamp_store_option ( dev_ctx_t *dev_handle,
+                                             pcf2131_timestamp_t which_timestamp,
+                                             timestamp_subsequent_event_t option );
 int32_t pcf2131_get_timestamp ( dev_ctx_t *dev_handle, pcf2131_timestamp_t which_timestamp,
                                 struct tm *return_date_time );
 int32_t pcf2131_temp_comp_config ( dev_ctx_t *dev_handle, bool en );
@@ -1665,7 +1666,7 @@ int32_t pcf2131_get_alarm_flag ( dev_ctx_t *dev_handle, bool *return_flag );
 int32_t pcf2131_clear_alarm_flag ( dev_ctx_t *dev_handle );
 int32_t pcf2131_get_battery_switch_over_flag ( dev_ctx_t *dev_handle, bool *return_flag );
 int32_t pcf2131_clear_battery_switch_over_flag ( dev_ctx_t *dev_handle );
-int32_t pcf2131_get_timestamp_flag ( dev_ctx_t *dev_handle, uint8_t which_timestamp,
+int32_t pcf2131_get_timestamp_flag ( dev_ctx_t *dev_handle, pcf2131_timestamp_t which_timestamp,
 bool *return_flag );
 int32_t pcf2131_clear_timestamp_flag ( dev_ctx_t *dev_handle, uint8_t which_timestamp );
 int32_t pcf2131_set_temp_meas_period ( dev_ctx_t *dev_handle, temp_meas_period_t meas_period );
@@ -1673,12 +1674,11 @@ int32_t pcf2131_set_clkout_freq ( dev_ctx_t *dev_handle, clock_frequency_t freq_
 int32_t pcf2131_perform_otp_refresh ( dev_ctx_t *dev_handle );
 int32_t pcf2131_set_crystal_aging_offset ( dev_ctx_t *dev_handle, aging_offset_t offset );
 int32_t pcf2131_config_pwr_mgmt_scheme ( dev_ctx_t *dev_handle, pwr_mgmt_t mgmt_scheme );
-int32_t pcf2131_get_osf_flag ( dev_ctx_t *dev_handle, bool *return_flag );
+int32_t pcf2131_get_osf_flag ( dev_ctx_t *dev_handle, seconds_osf_bit_t *return_flag );
 int32_t pcf2131_software_reset ( dev_ctx_t *dev_handle );
 int32_t pcf2131_clear_prescalar ( dev_ctx_t *dev_handle );
 int32_t pcf2131_clear_timestamps ( dev_ctx_t *dev_handle );
 int32_t pcf2131_clear_prescalar_and_timestamps ( dev_ctx_t *dev_handle );
-int32_t pcf2131_watchdog_irq_config ( dev_ctx_t *dev_handle, bool enable );
 int32_t pcf2131_watchdog_config_time_source ( dev_ctx_t *dev_handle,
                                               watchdog_time_source_t time_source );
 int32_t pcf2131_set_watchdog_timer_value ( dev_ctx_t *dev_handle, uint8_t timer_value );

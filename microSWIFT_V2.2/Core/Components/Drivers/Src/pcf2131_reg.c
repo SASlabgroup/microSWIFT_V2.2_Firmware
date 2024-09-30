@@ -527,6 +527,25 @@ bool enable )
   return ret;
 }
 
+int32_t pcf2131_set_timestamp_store_option ( dev_ctx_t *dev_handle,
+                                             pcf2131_timestamp_t which_timestamp,
+                                             timestamp_subsequent_event_t option )
+{
+  int32_t ret = PCF2131_OK;
+  uint8_t reg_addr = TIMESTAMP_1_CTRL_REG_ADDR + (7 * which_timestamp);
+  pcf2131_timestamp_1_ctrl_reg_t reg_bits;
+
+  ret |= dev_handle->bus_read (NULL, 0, reg_addr, (uint8_t*) &reg_bits,
+                               sizeof(pcf2131_timestamp_1_ctrl_reg_t));
+
+  reg_bits.timestamp_store_option = option;
+
+  ret |= dev_handle->bus_write (NULL, 0, reg_addr, (uint8_t*) &reg_bits,
+                                sizeof(pcf2131_timestamp_1_ctrl_reg_t));
+
+  return ret;
+}
+
 int32_t pcf2131_get_timestamp ( dev_ctx_t *dev_handle, pcf2131_timestamp_t which_timestamp,
                                 struct tm *return_date_time )
 {
@@ -748,7 +767,7 @@ int32_t pcf2131_clear_battery_switch_over_flag ( dev_ctx_t *dev_handle )
   return ret;
 }
 
-int32_t pcf2131_get_timestamp_flag ( dev_ctx_t *dev_handle, uint8_t which_timestamp,
+int32_t pcf2131_get_timestamp_flag ( dev_ctx_t *dev_handle, pcf2131_timestamp_t which_timestamp,
 bool *return_flag )
 {
   int32_t ret = PCF2131_OK;
@@ -757,7 +776,7 @@ bool *return_flag )
   ret |= dev_handle->bus_read (NULL, 0, CTRL4_REG_ADDR, (uint8_t*) &ctrl4,
                                sizeof(pcf2131_ctrl4_reg_t));
 
-  *return_flag = *((uint8_t*) &ctrl4) & (1 << (8 - which_timestamp));
+  *return_flag = *((uint8_t*) &ctrl4) & (1 << (7 - which_timestamp));
 
   return ret;
 }
@@ -846,6 +865,15 @@ int32_t pcf2131_perform_otp_refresh ( dev_ctx_t *dev_handle )
 int32_t pcf2131_set_crystal_aging_offset ( dev_ctx_t *dev_handle, aging_offset_t offset )
 {
   int32_t ret = PCF2131_OK;
+  pcf2131_aging_offset_reg_t aging;
+
+  ret |= dev_handle->bus_read (NULL, 0, AGING_OFFSET_REG_ADDR, (uint8_t*) &aging,
+                               sizeof(pcf2131_aging_offset_reg_t));
+
+  aging.offset = offset;
+
+  ret |= dev_handle->bus_write (NULL, 0, AGING_OFFSET_REG_ADDR, (uint8_t*) &aging,
+                                sizeof(pcf2131_aging_offset_reg_t));
 
   return ret;
 }
@@ -853,13 +881,28 @@ int32_t pcf2131_set_crystal_aging_offset ( dev_ctx_t *dev_handle, aging_offset_t
 int32_t pcf2131_config_pwr_mgmt_scheme ( dev_ctx_t *dev_handle, pwr_mgmt_t mgmt_scheme )
 {
   int32_t ret = PCF2131_OK;
+  pcf2131_ctrl3_reg_t ctrl3;
+
+  ret |= dev_handle->bus_read (NULL, 0, CTRL3_REG_ADDR, (uint8_t*) &ctrl3,
+                               sizeof(pcf2131_ctrl3_reg_t));
+
+  ctrl3.pwrmng = mgmt_scheme;
+
+  ret |= dev_handle->bus_write (NULL, 0, CTRL3_REG_ADDR, (uint8_t*) &ctrl3,
+                                sizeof(pcf2131_ctrl3_reg_t));
 
   return ret;
 }
 
-int32_t pcf2131_get_osf_flag ( dev_ctx_t *dev_handle, bool *return_flag )
+int32_t pcf2131_get_osf_flag ( dev_ctx_t *dev_handle, seconds_osf_bit_t *return_flag )
 {
   int32_t ret = PCF2131_OK;
+  pcf2131_seconds_reg_t seconds;
+
+  ret |= dev_handle->bus_read (NULL, 0, SECONDS_REG_ADDR, (uint8_t*) &seconds,
+                               sizeof(pcf2131_seconds_reg_t));
+
+  *return_flag = seconds.osf;
 
   return ret;
 }
@@ -867,6 +910,12 @@ int32_t pcf2131_get_osf_flag ( dev_ctx_t *dev_handle, bool *return_flag )
 int32_t pcf2131_software_reset ( dev_ctx_t *dev_handle )
 {
   int32_t ret = PCF2131_OK;
+  pcf2131_reset_reg_t reset;
+
+  reset.bit_pattern = SOFTWARE_RESET_BIT_PATTERN;
+
+  ret |= dev_handle->bus_read (NULL, 0, RESET_REG_ADDR, (uint8_t*) &reset,
+                               sizeof(pcf2131_reset_reg_t));
 
   return ret;
 }
@@ -874,6 +923,12 @@ int32_t pcf2131_software_reset ( dev_ctx_t *dev_handle )
 int32_t pcf2131_clear_prescalar ( dev_ctx_t *dev_handle )
 {
   int32_t ret = PCF2131_OK;
+  pcf2131_reset_reg_t reset;
+
+  reset.bit_pattern = CLEAR_PRESCALAR_BIT_PATTERN;
+
+  ret |= dev_handle->bus_read (NULL, 0, RESET_REG_ADDR, (uint8_t*) &reset,
+                               sizeof(pcf2131_reset_reg_t));
 
   return ret;
 }
@@ -881,6 +936,12 @@ int32_t pcf2131_clear_prescalar ( dev_ctx_t *dev_handle )
 int32_t pcf2131_clear_timestamps ( dev_ctx_t *dev_handle )
 {
   int32_t ret = PCF2131_OK;
+  pcf2131_reset_reg_t reset;
+
+  reset.bit_pattern = CLEAR_TIMESTAMP_BIT_PATTERN;
+
+  ret |= dev_handle->bus_read (NULL, 0, RESET_REG_ADDR, (uint8_t*) &reset,
+                               sizeof(pcf2131_reset_reg_t));
 
   return ret;
 }
@@ -888,13 +949,12 @@ int32_t pcf2131_clear_timestamps ( dev_ctx_t *dev_handle )
 int32_t pcf2131_clear_prescalar_and_timestamps ( dev_ctx_t *dev_handle )
 {
   int32_t ret = PCF2131_OK;
+  pcf2131_reset_reg_t reset;
 
-  return ret;
-}
+  reset.bit_pattern = CLEAR_PRESCALAR_AND_TIMESTAMP_BIT_PATTERN;
 
-int32_t pcf2131_watchdog_irq_config ( dev_ctx_t *dev_handle, bool enable )
-{
-  int32_t ret = PCF2131_OK;
+  ret |= dev_handle->bus_read (NULL, 0, RESET_REG_ADDR, (uint8_t*) &reset,
+                               sizeof(pcf2131_reset_reg_t));
 
   return ret;
 }
@@ -903,6 +963,15 @@ int32_t pcf2131_watchdog_config_time_source ( dev_ctx_t *dev_handle,
                                               watchdog_time_source_t time_source )
 {
   int32_t ret = PCF2131_OK;
+  pcf2131_watchdog_tim_ctrl_reg_t watchdog;
+
+  ret |= dev_handle->bus_read (NULL, 0, WATCHDOG_TIM_CTRL_REG_ADDR, (uint8_t*) &watchdog,
+                               sizeof(pcf2131_watchdog_tim_ctrl_reg_t));
+
+  watchdog.clock_source = time_source;
+
+  ret |= dev_handle->bus_write (NULL, 0, WATCHDOG_TIM_CTRL_REG_ADDR, (uint8_t*) &watchdog,
+                                sizeof(pcf2131_watchdog_tim_ctrl_reg_t));
 
   return ret;
 }
@@ -910,6 +979,11 @@ int32_t pcf2131_watchdog_config_time_source ( dev_ctx_t *dev_handle,
 int32_t pcf2131_set_watchdog_timer_value ( dev_ctx_t *dev_handle, uint8_t timer_value )
 {
   int32_t ret = PCF2131_OK;
+  pcf2131_watchdog_tim_value_reg_t watchdog =
+    { timer_value };
+
+  ret |= dev_handle->bus_read (NULL, 0, WATCHDOG_TIM_VALUE_REG_ADDR, (uint8_t*) &watchdog,
+                               sizeof(pcf2131_watchdog_tim_value_reg_t));
 
   return ret;
 }
