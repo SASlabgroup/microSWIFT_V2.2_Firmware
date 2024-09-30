@@ -33,13 +33,13 @@ static int32_t _ext_rtc_read_reg_spi_blocking ( void *unused_handle, uint16_t un
 static int32_t _ext_rtc_write_reg_spi_blocking ( void *unused_handle, uint16_t unused_bus_address,
                                                  uint16_t reg_address, uint8_t *write_data,
                                                  uint16_t data_length );
+static void _ext_rtc_ms_delay ( uint32_t delay );
 //static int32_t _ext_rtc_read_reg_spi_dma ( void *unused_handle, uint16_t unused_bus_address,
 //                                           uint16_t reg_address, uint8_t *read_data,
 //                                           uint16_t data_length );
 //static int32_t _ext_rtc_write_reg_spi_dma ( void *unused_handle, uint16_t unused_bus_address,
 //                                            uint16_t reg_address, uint8_t *write_data,
 //                                            uint16_t data_length );
-
 /**
  * @brief  Initialize the Ext_RTC struct
  *
@@ -98,7 +98,7 @@ rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_b
   // Register dev_ctx functions
   if ( pcf2131_register_io_functions (&self->dev_ctx, _ext_rtc_spi_init, _ext_rtc_spi_deinit,
                                       _ext_rtc_write_reg_spi_blocking,
-                                      _ext_rtc_read_reg_spi_blocking, NULL)
+                                      _ext_rtc_read_reg_spi_blocking, _ext_rtc_ms_delay, NULL)
        != PCF2131_OK )
   {
     return RTC_SPI_ERROR;
@@ -474,6 +474,19 @@ static int32_t _ext_rtc_write_reg_spi_blocking ( void *unused_handle, uint16_t u
   HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_SET);
 
   return retval;
+}
+
+/**
+ * @brief Millisecond delay function.
+ * @param  delay - delay in milliseconds
+ * @retval void
+ */
+static void _ext_rtc_ms_delay ( uint32_t delay )
+{
+  UINT delay_ticks = (delay == 0) ?
+      0 : delay / (1000 / TX_TIMER_TICKS_PER_SECOND);
+
+  tx_thread_sleep (delay_ticks);
 }
 
 ///**

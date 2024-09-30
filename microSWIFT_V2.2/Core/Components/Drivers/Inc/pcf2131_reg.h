@@ -139,6 +139,7 @@ typedef int32_t (*dev_deinit_ptr) ( void );
 typedef int32_t (*dev_write_ptr) ( void*, uint16_t, uint16_t, uint8_t*, uint16_t );
 //(dev_ctx->handle, i2c_addr, reg_addr, reg_data, data_size)
 typedef int32_t (*dev_read_ptr) ( void*, uint16_t, uint16_t, uint8_t*, uint16_t );
+typedef void (*dev_ms_delay_ptr) ( uint32_t delay );
 
 /**************************************************************************************************/
 /******************************** Basic I/O interface struct **************************************/
@@ -150,6 +151,7 @@ typedef struct
   dev_deinit_ptr deinit;
   dev_write_ptr bus_write;
   dev_read_ptr bus_read;
+  dev_ms_delay_ptr delay;
   /** Customizable optional pointer **/
   void *handle;
 } dev_ctx_t;
@@ -176,8 +178,8 @@ typedef enum
 typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-  uint8_t second_irq :1;
-  uint8_t minute_irq :1;
+  uint8_t second_irq_en :1;
+  uint8_t minute_irq_en :1;
   hours_mode_t hours_mode :1;
   uint8_t por_override :1;
   uint8_t one_100_sec_disable :1;
@@ -214,10 +216,10 @@ typedef struct
   uint8_t T_bit0 :1;
   uint8_t alarm_irq_en :1;
   uint8_t T_bit1 :2;
-  uint8_t alarm_flag_en :1;
+  uint8_t alarm_flag :1;
   uint8_t T_bit2 :1;
-  uint8_t watchdog_flag_en :1;
-  uint8_t min_sec_flag_en :1;
+  uint8_t watchdog_flag :1;
+  uint8_t min_sec_flag :1;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
   uint8_t min_sec_flag_en :1;
   uint8_t watchdog_flag_en :1;
@@ -253,7 +255,7 @@ typedef enum
 typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-  uint8_t batt_low_flag_en :1;
+  uint8_t batt_low_irq_en :1;
   uint8_t batt_irq_en :1;
   battery_status_t batt_stat_flag :1;
   uint8_t batt_switchover_flag :1;
@@ -697,7 +699,7 @@ typedef struct
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   clock_frequency_t clk_freq :3;
   uint8_t dash_bit :2;
-  uint8_t otp_refresh_performed :1;
+  uint8_t otp_refresh :1;
   temp_meas_period_t temp_meas_p :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
   temp_meas_period_t temp_meas_p :2;
@@ -1637,7 +1639,8 @@ typedef struct
 
 int32_t pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_init_ptr init_fn,
                                         dev_deinit_ptr deinit_fn, dev_write_ptr bus_write_fn,
-                                        dev_read_ptr bus_read_fn, void *optional_handle );
+                                        dev_read_ptr bus_read_fn, dev_ms_delay_ptr delay,
+                                        void *optional_handle );
 int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm *input_date_time );
 int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_time );
 int32_t pcf2131_set_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *alarm_setting );
