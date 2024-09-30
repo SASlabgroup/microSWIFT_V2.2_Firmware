@@ -19,6 +19,9 @@
 
 extern uint8_t bcd_to_dec[256];
 extern uint8_t dec_to_bcd[100];
+
+#define BCD_TO_DEC(t,u)(bcd_to_dec[(t << 4) | u])
+#define DEC_TO_BCD(d)(dec_to_bcd[d])
 // @formatter:on
 
 /**************************************************************************************************/
@@ -1621,6 +1624,12 @@ typedef struct
   bool day_alarm_en;
   bool weekday_alarm_en;
 } rtc_alarm_struct;
+
+typedef struct
+{
+  uint8_t tens_place;
+  uint8_t units_place;
+} bcd_struct_t;
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*################################## Function Declarations #######################################*/
