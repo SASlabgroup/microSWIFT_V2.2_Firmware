@@ -83,6 +83,7 @@ void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
   // initialize everything
   gnss_self->global_config = global_config;
   gnss_self->gnss_uart_handle = gnss_uart_handle;
+  gnss_self->gnss_tx_dma_handle = gnss_tx_dma_handle;
   gnss_self->gnss_rx_dma_handle = gnss_rx_dma_handle;
   gnss_self->GNSS_N_Array = GNSS_N_Array;
   gnss_self->GNSS_E_Array = GNSS_E_Array;
@@ -199,7 +200,6 @@ static gnss_return_code_t _gnss_config ( void )
   if ( return_code != GNSS_SUCCESS )
   {
     gnss_self->reset_uart ();
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     return return_code;
   }
 
@@ -224,9 +224,7 @@ static gnss_return_code_t _gnss_config ( void )
 
   if ( return_code != GNSS_SUCCESS )
   {
-
     gnss_self->reset_uart ();
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     return return_code;
   }
 
@@ -238,6 +236,8 @@ static gnss_return_code_t _gnss_config ( void )
     // First check to see if it has already been set
     return_code = __enable_high_performance_mode ();
   }
+
+  tx_thread_sleep (2);
 
   return return_code;
 }
@@ -308,7 +308,6 @@ static gnss_return_code_t _gnss_sync_and_start_reception ( void )
 
   // Just to be overly sure we're starting the sampling window from a fresh slate
   __reset_struct_fields ();
-  gnss_self->reset_uart ();
 
   return_code = __start_GNSS_UART_DMA (&(gnss_self->ubx_process_buf[0]),
   UBX_NAV_PVT_MESSAGE_LENGTH);
@@ -738,7 +737,7 @@ static void _gnss_process_message ( void )
  */
 static void _gnss_on ( void )
 {
-  HAL_GPIO_WritePin (GPIOG, GNSS_FET_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin (GNSS_FET_GPIO_Port, GNSS_FET_Pin, GPIO_PIN_RESET);
 }
 
 /**
@@ -750,7 +749,7 @@ static void _gnss_on ( void )
  */
 static void _gnss_off ( void )
 {
-  HAL_GPIO_WritePin (GPIOG, GNSS_FET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (GNSS_FET_GPIO_Port, GNSS_FET_Pin, GPIO_PIN_SET);
 }
 
 /**
@@ -791,73 +790,30 @@ static gnss_return_code_t __send_config ( uint8_t *config_array, size_t message_
   uint8_t response_msg_class;
   uint8_t response_msg_id;
 
-// Start by waiting until the UART is idle
-//  while ( frame_sync_attempts < MAX_FRAME_SYNC_ATTEMPTS )
-//  {
-//    watchdog_check_in (GNSS_THREAD);
-//    HAL_UARTEx_ReceiveToIdle_DMA (gnss_self->gnss_uart_handle, gnss_self->config_response_buf,
-//    FRAME_SYNC_RX_SIZE);
-//
-//    tx_return = tx_event_flags_get (gnss_self->irq_flags, GNSS_CONFIG_RECVD, TX_OR_CLEAR,
-//                                    &actual_flags, frame_sync_ticks);
-//    // If the flag is not present, then we are idle
-//    if ( tx_return == TX_NO_EVENTS )
-//    {
-//      HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
-////      gnss_self->reset_uart ();
-//      HAL_Delay (1);
-//      break;
-//    }
-//    else
-//    {
-//      frame_sync_attempts++;
-//    }
-//  }
-//
-//  if ( frame_sync_attempts == MAX_FRAME_SYNC_ATTEMPTS )
-//  {
-//    HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
-////    gnss_self->reset_uart ();
-//
-//    return GNSS_BUSY_ERROR;
-//  }
-
   HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
   gnss_self->reset_uart ();
 
-// Start with a blank msg buf -- this will short cycle the for loop
-// below if a message was not received
-  memset (gnss_self->config_response_buf, 0, GNSS_CONFIG_BUFFER_SIZE);
-
-// Send over the configuration settings
+  // Start with a blank msg_buf -- this will short cycle the for loop
+  // below if a message was not received in 10 tries
+  memset (&(gnss_self->config_response_buf[0]), 0, GNSS_CONFIG_BUFFER_SIZE);
+  // Send over the configuration settings
   HAL_UART_Transmit_DMA (gnss_self->gnss_uart_handle, &(config_array[0]), message_size);
-// Make sure the transmission went through completely
-  if ( tx_event_flags_get (gnss_self->irq_flags, GNSS_TX_COMPLETE, TX_OR_CLEAR, &actual_flags,
-                           ticks_to_send_config)
-       != TX_SUCCESS )
-  {
-    HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
-    gnss_self->reset_uart ();
-    return GNSS_UART_ERROR;
+  __HAL_DMA_DISABLE_IT(gnss_self->gnss_tx_dma_handle, DMA_IT_HT);
 
-  }
-
-  HAL_UART_Receive_DMA (gnss_self->gnss_uart_handle, gnss_self->config_response_buf,
+  // Grab the acknowledgment message
+  HAL_UART_Receive_DMA (gnss_self->gnss_uart_handle, &(gnss_self->config_response_buf[0]),
   GNSS_CONFIG_BUFFER_SIZE);
-
-// Make sure we receive the response within the right amount of time
+  __HAL_DMA_DISABLE_IT(gnss_self->gnss_rx_dma_handle, DMA_IT_HT);
   if ( tx_event_flags_get (gnss_self->irq_flags, GNSS_CONFIG_RECVD, TX_OR_CLEAR, &actual_flags,
                            ticks_to_receive_msgs)
        != TX_SUCCESS )
   {
     HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
     gnss_self->reset_uart ();
-    return GNSS_UART_ERROR;
+    tx_thread_sleep (1);
+    return GNSS_CONFIG_ERROR;
   }
 
-  /* The ack/nak message is guaranteed to be sent within one second, but
-   * we may receive a few navigation messages before the ack is received,
-   * so we have to sift through at least one second worth of messages */
   for ( num_payload_bytes = uUbxProtocolDecode (buf_start, buf_length, &message_class, &message_id,
                                                 payload, sizeof(payload), &buf_end);
       num_payload_bytes > 0;
@@ -884,6 +840,7 @@ static gnss_return_code_t __send_config ( uint8_t *config_array, size_t message_
         {
           // This is an acknowledgement of our configuration message
           gnss_self->reset_uart ();
+          tx_thread_sleep (10);
           return GNSS_SUCCESS;
         }
       }
@@ -893,10 +850,9 @@ static gnss_return_code_t __send_config ( uint8_t *config_array, size_t message_
     buf_start = buf_end;
   }
 
-// If we made it here, the ack message was not in the buffer
+  // If we made it here, the ack message was not in the buffer
   HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
   gnss_self->reset_uart ();
-  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
   return GNSS_CONFIG_ERROR;
 }
 
@@ -1244,43 +1200,14 @@ static gnss_return_code_t __start_GNSS_UART_DMA ( uint8_t *buffer, size_t msg_si
 {
   gnss_return_code_t return_code = GNSS_SUCCESS;
   HAL_StatusTypeDef hal_return_code = HAL_OK;
-  DMA_NodeConfTypeDef pNodeConfig;
-  DMA_NodeTypeDef gnss_dma_linked_list_node;
-  DMA_QListTypeDef gnss_dma_linked_list;
-
-  watchdog_check_in (GNSS_THREAD);
-
-  gnss_self->reset_uart ();
 
   memset (&(buffer[0]), 0, UBX_MESSAGE_SIZE * 2);
 
-  HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
+  gnss_self->reset_uart ();
+  HAL_DMA_Abort (gnss_self->gnss_rx_dma_handle);
+  HAL_DMA_Abort (gnss_self->gnss_tx_dma_handle);
 
-  /* Set node configuration ################################################*/
-  pNodeConfig.NodeType = DMA_LPDMA_LINEAR_NODE;
-  pNodeConfig.Init.Request = GPDMA1_REQUEST_USART1_RX;
-  pNodeConfig.Init.BlkHWRequest = DMA_BREQ_SINGLE_BURST;
-  pNodeConfig.Init.Direction = DMA_PERIPH_TO_MEMORY;
-  pNodeConfig.Init.SrcInc = DMA_SINC_FIXED;
-  pNodeConfig.Init.DestInc = DMA_DINC_INCREMENTED;
-  pNodeConfig.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_BYTE;
-  pNodeConfig.Init.DestDataWidth = DMA_DEST_DATAWIDTH_BYTE;
-  pNodeConfig.Init.TransferEventMode = DMA_TCEM_EACH_LL_ITEM_TRANSFER;
-  pNodeConfig.TriggerConfig.TriggerPolarity = DMA_TRIG_POLARITY_MASKED;
-  pNodeConfig.DataHandlingConfig.DataExchange = DMA_EXCHANGE_NONE;
-  pNodeConfig.DataHandlingConfig.DataAlignment = DMA_DATA_RIGHTALIGN_ZEROPADDED;
-  pNodeConfig.SrcAddress = 0;
-  pNodeConfig.DstAddress = 0;
-  pNodeConfig.DataSize = 0;
-
-  /* Build gnss_dma_linked_list_node Node */
-  hal_return_code |= HAL_DMAEx_List_BuildNode (&pNodeConfig, &gnss_dma_linked_list_node);
-
-  /* Insert gnss_dma_linked_list_node to Queue */
-  hal_return_code |= HAL_DMAEx_List_InsertNode_Tail (&gnss_dma_linked_list,
-                                                     &gnss_dma_linked_list_node);
-
-  hal_return_code |= HAL_DMAEx_List_SetCircularMode (&gnss_dma_linked_list);
+  hal_return_code = MX_gnss_dma_linked_list_Config ();
 
   if ( hal_return_code != HAL_OK )
   {
@@ -1295,9 +1222,13 @@ static gnss_return_code_t __start_GNSS_UART_DMA ( uint8_t *buffer, size_t msg_si
     return_code = GNSS_UART_ERROR;
   }
 
+  __HAL_DMA_DISABLE_IT(gnss_self->gnss_tx_dma_handle, DMA_IT_HT);
+  __HAL_DMA_DISABLE_IT(gnss_self->gnss_rx_dma_handle, DMA_IT_HT);
+
   hal_return_code = HAL_UARTEx_ReceiveToIdle_DMA (gnss_self->gnss_uart_handle,
                                                   (uint8_t*) &(buffer[0]), msg_size);
-//  No need for the half-transfer complete interrupt, so disable it
+
+  __HAL_DMA_DISABLE_IT(gnss_self->gnss_tx_dma_handle, DMA_IT_HT);
   __HAL_DMA_DISABLE_IT(gnss_self->gnss_rx_dma_handle, DMA_IT_HT);
 
   if ( hal_return_code != HAL_OK )

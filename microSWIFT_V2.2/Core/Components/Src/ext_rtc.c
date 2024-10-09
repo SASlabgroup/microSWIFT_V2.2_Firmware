@@ -51,16 +51,13 @@ static void _ext_rtc_ms_delay ( uint32_t delay );
  * @param  messaging_queue:= Pointer to global messaging queue for inbound requests
  * @retval rtc_return_code
  */
-rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus,
-                               TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP *complete_flags )
+rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus )
 {
   int32_t ret;
   uint8_t register_read = 0;
   // Grab the global struct pointer
   self = struct_ptr;
 
-  self->request_queue = request_queue;
-  self->complete_flags = complete_flags;
   self->rtc_spi_bus = rtc_spi_bus;
 
   self->int_a_pin.port = RTC_INT_A_GPIO_Port;

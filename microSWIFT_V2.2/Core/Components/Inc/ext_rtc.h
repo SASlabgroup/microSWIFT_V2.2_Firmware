@@ -15,7 +15,7 @@
 #include "gpio.h"
 
 #define RTC_SPI_TIMEOUT 25
-#define RTC_SPI_BUF_SIZE 8
+#define RTC_SPI_BUF_SIZE 32
 #define RTC_WATCHDOG_MIN_REFRESH 10000
 #define SECONDS_TO_MILLISECONDS(x) (x * 1000)
 #define MILLISECONDS_TO_SECONDS(x) (x / 1000)
@@ -23,8 +23,6 @@
 typedef struct
 {
   dev_ctx_t dev_ctx;
-  TX_QUEUE *request_queue;
-  TX_EVENT_FLAGS_GROUP *complete_flags;
   SPI_HandleTypeDef *rtc_spi_bus;
   gpio_pin_struct int_a_pin;
   gpio_pin_struct int_b_pin;
@@ -44,7 +42,6 @@ typedef struct
   rtc_return_code (*set_alarm) ( rtc_alarm_struct alarm_setting );
 } Ext_RTC;
 
-rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus,
-                               TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP *complete_flags );
+rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus );
 
 #endif /* COMPONENTS_INC_EXT_RTC_H_ */

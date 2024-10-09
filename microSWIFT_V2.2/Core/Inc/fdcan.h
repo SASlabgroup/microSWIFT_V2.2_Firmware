@@ -1,9 +1,9 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    octospi.h
+  * @file    fdcan.h
   * @brief   This file contains all the function prototypes for
-  *          the octospi.c file
+  *          the fdcan.c file
   ******************************************************************************
   * @attention
   *
@@ -18,8 +18,8 @@
   */
 /* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __OCTOSPI_H__
-#define __OCTOSPI_H__
+#ifndef __FDCAN_H__
+#define __FDCAN_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,16 +32,13 @@ extern "C" {
 
 /* USER CODE END Includes */
 
-extern OSPI_HandleTypeDef hospi1;
-
-extern OSPI_HandleTypeDef hospi2;
+extern FDCAN_HandleTypeDef hfdcan1;
 
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
 
-void MX_OCTOSPI1_Init(void);
-void MX_OCTOSPI2_Init(void);
+void MX_FDCAN1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 
@@ -51,5 +48,5 @@ void MX_OCTOSPI2_Init(void);
 }
 #endif
 
-#endif /* __OCTOSPI_H__ */
+#endif /* __FDCAN_H__ */
 

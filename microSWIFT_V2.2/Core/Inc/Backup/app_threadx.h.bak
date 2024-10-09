@@ -59,16 +59,37 @@ enum initialization_flags
   IRIDIUM_INIT_SUCCESS          = ((ULONG) 1 << 8)
 };
 
-enum complete_flags
+enum rtc_server_complete_flags
 {
-  GNSS_THREAD_COMPLETE          = ((ULONG) 1 << 0),
-  CT_THREAD_COMPLETE            = ((ULONG) 1 << 1),
-  TEMPERATURE_THREAD_COMPLETE   = ((ULONG) 1 << 2),
-  TURBIDITY_THREAD_COMPLETE     = ((ULONG) 1 << 3),
-  LIGHT_THREAD_COMPLETE         = ((ULONG) 1 << 4),
-  ACCELEROMETER_THREAD_COMPLETE = ((ULONG) 1 << 5),
-  WAVES_THREAD_COMPLETE         = ((ULONG) 1 << 6),
-  IRIDIUM_THREAD_COMPLETE       = ((ULONG) 1 << 7),
+  CONTROL_REQUEST_COMPLETE          = ((ULONG) 1 << 0),
+  GNSS_REQUEST_COMPLETE             = ((ULONG) 1 << 1),
+  CT_REQUEST_COMPLETE               = ((ULONG) 1 << 2),
+  TEMPERATURE_REQUEST_COMPLETE      = ((ULONG) 1 << 3),
+  LIGHT_REQUEST_COMPLETE            = ((ULONG) 1 << 4),
+  TURBIDITY_REQUEST_COMPLETE        = ((ULONG) 1 << 5),
+  ACCELEROMETER_REQUEST_COMPLETE    = ((ULONG) 1 << 6),
+  WAVES_REQUEST_COMPLETE            = ((ULONG) 1 << 7),
+  IRIDIUM_REQUEST_COMPLETE          = ((ULONG) 1 << 8),
+};
+
+enum thread_complete_flags
+{
+  GNSS_THREAD_COMPLETED_SUCCESSFULLY            = ((ULONG) 1 << 0),
+  GNSS_THREAD_COMPLETED_WITH_ERRORS             = ((ULONG) 1 << 1),
+  CT_THREAD_COMPLETED_SUCCESSFULLY              = ((ULONG) 1 << 2),
+  CT_THREAD_COMPLETED_WITH_ERRORS               = ((ULONG) 1 << 3),
+  TEMPERATURE_THREAD_COMPLETED_SUCCESSFULLY     = ((ULONG) 1 << 4),
+  TEMPERATURE_THREAD_COMPLETED_WITH_ERRORS      = ((ULONG) 1 << 5),
+  TURBIDITY_THREAD_COMPLETED_SUCCESSFULLY       = ((ULONG) 1 << 6),
+  TURBIDITY_THREAD_COMPLETED_WITH_ERRORS        = ((ULONG) 1 << 7),
+  LIGHT_THREAD_COMPLETED_SUCCESSFULLY           = ((ULONG) 1 << 8),
+  LIGHT_THREAD_COMPLETED_WITH_ERRORS            = ((ULONG) 1 << 9),
+  ACCELEROMETER_THREAD_COMPLETED_SUCCESSFULLY   = ((ULONG) 1 << 10),
+  ACCELEROMETER_THREAD_COMPLETED_WITH_ERRORS    = ((ULONG) 1 << 11),
+  WAVES_THREAD_COMPLETED_SUCCESSFULLY           = ((ULONG) 1 << 12),
+  WAVES_THREAD_COMPLETED_WITH_ERRORS            = ((ULONG) 1 << 13),
+  IRIDIUM_THREAD_COMPLETED_SUCCESSFULLY         = ((ULONG) 1 << 14),
+  IRIDIUM_THREAD_COMPLETED_WITH_ERRORS          = ((ULONG) 1 << 15),
 };
 
 enum interrupt_flags
@@ -102,37 +123,8 @@ typedef enum error_flags
   GNSS_SAMPLE_WINDOW_TIMEOUT = ((ULONG) 1 << 15),
   GNSS_FRAME_SYNC_FAILED     = ((ULONG) 1 << 16),
   GNSS_SAMPLE_WINDOW_ERROR   = ((ULONG) 1 << 17),
-  MEMORY_CORRUPTION          = ((ULONG) 1 << 18)
+  MEMORY_CORRUPTION_ERROR    = ((ULONG) 1 << 18)
 } error_flags_t;
-
-extern TX_THREAD control_thread;
-extern TX_THREAD rtc_thread;
-extern TX_THREAD logger_thread;
-extern TX_THREAD gnss_thread;
-extern TX_THREAD ct_thread;
-extern TX_THREAD temperature_thread;
-extern TX_THREAD light_thread;
-extern TX_THREAD turbidity_thread;
-extern TX_THREAD accelerometer_thread;
-extern TX_THREAD waves_thread;
-extern TX_THREAD iridium_thread;
-extern TX_THREAD expansion_thread_1;
-extern TX_THREAD expansion_thread_2;
-extern TX_THREAD expansion_thread_3;
-
-extern TX_SEMAPHORE ext_rtc_spi_sema;
-extern TX_SEMAPHORE aux_spi_1_spi_sema;
-extern TX_SEMAPHORE aux_spi_2_spi_sema;
-extern TX_SEMAPHORE aux_i2c_1_sema;
-extern TX_SEMAPHORE aux_i2c_2_sema;
-extern TX_SEMAPHORE iridium_uart_sema;
-extern TX_SEMAPHORE ct_uart_sema;
-extern TX_SEMAPHORE aux_uart_1_sema;
-extern TX_SEMAPHORE aux_uart_2_sema;
-
-extern TX_EVENT_FLAGS_GROUP initialization_flags;
-extern TX_EVENT_FLAGS_GROUP irq_flags;
-extern TX_EVENT_FLAGS_GROUP error_flags;
 
 typedef struct
 {
@@ -181,10 +173,24 @@ typedef struct
   TX_THREAD *accelerometer_thread;
   TX_THREAD *waves_thread;
   TX_THREAD *iridium_thread;
-  TX_THREAD *expansion_thread_1;
-  TX_THREAD *expansion_thread_2;
-  TX_THREAD *expansion_thread_3;
 } Thread_Handles;
+
+extern Thread_Handles thread_handles;
+extern Device_Handles device_handles;
+
+extern TX_SEMAPHORE ext_rtc_spi_sema;
+extern TX_SEMAPHORE aux_spi_1_spi_sema;
+extern TX_SEMAPHORE aux_spi_2_spi_sema;
+extern TX_SEMAPHORE aux_i2c_1_sema;
+extern TX_SEMAPHORE aux_i2c_2_sema;
+extern TX_SEMAPHORE iridium_uart_sema;
+extern TX_SEMAPHORE ct_uart_sema;
+extern TX_SEMAPHORE aux_uart_1_sema;
+extern TX_SEMAPHORE aux_uart_2_sema;
+
+extern TX_EVENT_FLAGS_GROUP initialization_flags;
+extern TX_EVENT_FLAGS_GROUP irq_flags;
+extern TX_EVENT_FLAGS_GROUP error_flags;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/

@@ -90,7 +90,7 @@ typedef struct
 
   // For set requests, this contains input data
   // For get requests, this is written back to
-  rtc_data_t    *input_output_struct;
+  rtc_data_t    input_output_struct;
   UINT          complete_flag;
   int32_t       *return_code;
 } rtc_request_message;
@@ -103,8 +103,7 @@ typedef struct
 } rtc_server;
 
 // Interface functions
-void            rtc_server_init ( TX_QUEUE *request_queue, TX_SEMAPHORE *watchdog_refresh_semaphore,
-                       TX_EVENT_FLAGS_GROUP *complete_flags );
+void            rtc_server_init ( TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP *complete_flags );
 void            rtc_server_refresh_watchdog ( void );
 rtc_return_code rtc_server_get_time ( struct tm *return_time_struct, UINT complete_flag );
 rtc_return_code rtc_server_set_time ( struct tm input_time_struct, UINT complete_flag );

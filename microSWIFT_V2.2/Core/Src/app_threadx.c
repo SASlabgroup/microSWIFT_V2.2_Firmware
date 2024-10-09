@@ -116,9 +116,6 @@ TX_THREAD turbidity_thread;
 TX_THREAD accelerometer_thread;
 TX_THREAD waves_thread;
 TX_THREAD iridium_thread;
-TX_THREAD expansion_thread_1;
-TX_THREAD expansion_thread_2;
-TX_THREAD expansion_thread_3;
 // @formatter:off
 Thread_Handles thread_handles =
   {
@@ -133,9 +130,6 @@ Thread_Handles thread_handles =
     &accelerometer_thread,
     &waves_thread,
     &iridium_thread,
-    &expansion_thread_1,
-    &expansion_thread_2,
-    &expansion_thread_3
   };
 // @formatter:on
 // Used to track initialization status of threads and components
@@ -150,10 +144,6 @@ TX_EVENT_FLAGS_GROUP error_flags;
 TX_EVENT_FLAGS_GROUP rtc_complete_flags;
 // Flags for which thread is checkin in with watchdog
 TX_EVENT_FLAGS_GROUP watchdog_check_in_flags;
-// Expansion event flags
-TX_EVENT_FLAGS_GROUP expansion_flags_1;
-TX_EVENT_FLAGS_GROUP expansion_flags_2;
-TX_EVENT_FLAGS_GROUP expansion_flags_3;
 // Timers for threads
 TX_TIMER control_timer;
 TX_TIMER gnss_timer;
@@ -164,9 +154,6 @@ TX_TIMER turbidity_timer;
 TX_TIMER accelerometer_timer;
 TX_TIMER waves_timer;
 TX_TIMER iridium_timer;
-TX_TIMER expansion_timer_1;
-TX_TIMER expansion_timer_2;
-TX_TIMER expansion_timer_3;
 // Comms buses semaphores
 TX_SEMAPHORE ext_rtc_spi_sema;
 TX_SEMAPHORE aux_spi_1_spi_sema;
@@ -182,8 +169,6 @@ TX_MUTEX core_i2c_mutex;
 // Server/client message queue for RTC (including watchdog function)
 TX_QUEUE rtc_messaging_queue;
 TX_QUEUE logger_message_queue;
-TX_QUEUE expansion_queue_1;
-TX_QUEUE expansion_queue_2;
 
 __ALIGN_BEGIN UCHAR waves_byte_pool_buffer[WAVES_MEM_POOL_SIZE] __attribute__((section(".ram1")))__ALIGN_END;
 TX_BYTE_POOL waves_byte_pool;
@@ -209,9 +194,6 @@ static void temperature_thread_entry ( ULONG thread_input );
 static void light_thread_entry ( ULONG thread_input );
 static void turbidity_thread_entry ( ULONG thread_input );
 static void accelerometer_thread_entry ( ULONG thread_input );
-static void expansion_thread_1_entry ( ULONG thread_input );
-static void expansion_thread_2_entry ( ULONG thread_input );
-static void expansion_thread_3_entry ( ULONG thread_input );
 
 /* USER CODE END PFP */
 
@@ -390,49 +372,6 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
-  // Create the expansion threads
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK, TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_thread_create(&expansion_thread_1, "expansion_thread_1", expansion_thread_1_entry, 0,
-                         pointer, M_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
-                         TX_DONT_START);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK, TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_thread_create(&expansion_thread_2, "expansion_thread_2", expansion_thread_2_entry, 0,
-                         pointer, M_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
-                         TX_DONT_START);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK, TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_thread_create(&expansion_thread_3, "expansion_thread_3", expansion_thread_3_entry, 0,
-                         pointer, M_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
-                         TX_DONT_START);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
   /************************************************************************************************
    ********************************** Byte and Block Pools ****************************************
    ************************************************************************************************/
@@ -492,6 +431,17 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
+  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   * This is important!! If any flags are set in the "error_flags" group, the function
+   * control_error_flag_set() will be called automatically, which will then call Error_Handler().
+   * There are many cases where an error flag will result in the device being reset.
+   */
+  ret = tx_event_flags_set_notify (&error_flags, control_error_flag_set);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
   /************************************************************************************************
    **************************************** Timers ************************************************
    ************************************************************************************************/
@@ -521,16 +471,16 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
-//
-//  ret = tx_timer_create(&light_timer, "Light thread timer", light_timer_expired, 0, 0, 0,
+
+//  ret = tx_timer_create(&light_timer, "Light thread timer", light_timer_expired, 0, 1, 1,
 //                        TX_NO_ACTIVATE);
 //  if ( ret != TX_SUCCESS )
 //  {
 //    return ret;
 //  }
 //
-//  ret = tx_timer_create(&turbidity_timer, "Turbidity thread timer", turbidity_timer_expired, 0, 0,
-//                        0, TX_NO_ACTIVATE);
+//  ret = tx_timer_create(&turbidity_timer, "Turbidity thread timer", turbidity_timer_expired, 0, 1,
+//                        1, TX_NO_ACTIVATE);
 //  if ( ret != TX_SUCCESS )
 //  {
 //    return ret;
@@ -542,37 +492,9 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
 //  {
 //    return ret;
 //  }
-//
-//  ret = tx_timer_create(&waves_timer, "Waves thread timer", waves_timer_expired, 0, 0, 0,
-//                        TX_NO_ACTIVATE);
-//  if ( ret != TX_SUCCESS )
-//  {
-//    return ret;
-//  }
 
   ret = tx_timer_create(&iridium_timer, "Iridium thread timer", iridium_timer_expired, 0, 1, 1,
                         TX_NO_ACTIVATE);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_timer_create(&expansion_timer_1, "Expansion thread 1 timer", expansion_timer_1_expired,
-                        0, 1, 1, TX_NO_ACTIVATE);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_timer_create(&expansion_timer_2, "Expansion thread 2 timer", expansion_timer_2_expired,
-                        0, 1, 1, TX_NO_ACTIVATE);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_timer_create(&expansion_timer_3, "Expansion thread 3 timer", expansion_timer_3_expired,
-                        0, 1, 1, TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -684,38 +606,6 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer,
-  EXPANSION_QUEUE_MSG_SIZE * EXPANSION_QUEUE_LENGTH,
-                          TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_queue_create(&expansion_queue_1, "Expansion queue 1",
-                        EXPANSION_QUEUE_MSG_SIZE / sizeof(uint32_t), pointer,
-                        EXPANSION_QUEUE_MSG_SIZE * EXPANSION_QUEUE_LENGTH);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer,
-  EXPANSION_QUEUE_MSG_SIZE * EXPANSION_QUEUE_LENGTH,
-                          TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_queue_create(&expansion_queue_2, "Expansion queue 2",
-                        EXPANSION_QUEUE_MSG_SIZE / sizeof(uint32_t), pointer,
-                        EXPANSION_QUEUE_MSG_SIZE * EXPANSION_QUEUE_LENGTH);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
   /************************************************************************************************
    ***************************************** Misc init ********************************************
    ************************************************************************************************/
@@ -769,7 +659,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     tests.threadx_init_test (NULL);
   }
 
-  persistent_storage_init ();
+  persistent_ram_init ();
   /* USER CODE END App_ThreadX_Init */
 
   return ret;
@@ -820,7 +710,7 @@ void MX_ThreadX_Init ( void )
 static void rtc_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
-  TX_THREAD *this_thread = &rtc_thread;
+  TX_THREAD *this_thread = tx_thread_identify ();
   Ext_RTC rtc;
   rtc_return_code ret;
   UINT tx_ret;
@@ -828,8 +718,9 @@ static void rtc_thread_entry ( ULONG thread_input )
 
   tx_thread_sleep (1);
 
-  ret = ext_rtc_init (&rtc, device_handles.core_spi_handle, &rtc_messaging_queue,
-                      &rtc_complete_flags);
+  ret = ext_rtc_init (&rtc, device_handles.core_spi_handle);
+
+  rtc_server_init (&rtc_messaging_queue, &rtc_complete_flags);
 
   // Initialize the watchdog
   ret |= rtc.config_watchdog (WATCHDOG_PERIOD);
@@ -856,25 +747,25 @@ static void rtc_thread_entry ( ULONG thread_input )
           break;
 
         case GET_TIME:
-          ret = rtc.get_date_time (&req.input_output_struct->get_set_time.time_struct);
+          ret = rtc.get_date_time (&req.input_output_struct.get_set_time.time_struct);
           break;
 
         case SET_TIME:
 
-          ret = rtc.set_date_time (req.input_output_struct->get_set_time.time_struct);
+          ret = rtc.set_date_time (req.input_output_struct.get_set_time.time_struct);
           break;
 
         case SET_TIMESTAMP:
-          ret = rtc.set_timestamp (req.input_output_struct->get_set_timestamp.which_timestamp);
+          ret = rtc.set_timestamp (req.input_output_struct.get_set_timestamp.which_timestamp);
           break;
 
         case GET_TIMESTAMP:
-          ret = rtc.get_timestamp (req.input_output_struct->get_set_timestamp.which_timestamp,
-                                   &req.input_output_struct->get_set_timestamp.timestamp);
+          ret = rtc.get_timestamp (req.input_output_struct.get_set_timestamp.which_timestamp,
+                                   &req.input_output_struct.get_set_timestamp.timestamp);
           break;
 
         case SET_ALARM:
-          ret = rtc.set_alarm (req.input_output_struct->set_alarm);
+          ret = rtc.set_alarm (req.input_output_struct.set_alarm);
           break;
 
         default:
@@ -884,14 +775,15 @@ static void rtc_thread_entry ( ULONG thread_input )
 
       if ( ret != RTC_SUCCESS )
       {
-#warning "If the return code is not RTC_SUCCESS, something needs to be done. Decide whether that \
-    Should happen here, in rtc_server, or in each respective thread."
         uart_logger_log_line ("RTC error detected");
         (void) tx_event_flags_set (&error_flags, RTC_ERROR, TX_OR);
-//        (void) tx_thread_suspend (this_thread);
+        (void) tx_thread_suspend (this_thread);
       }
 
-      *req.return_code = ret;
+      if ( req.return_code != NULL )
+      {
+        *req.return_code = ret;
+      }
       (void) tx_event_flags_set (&rtc_complete_flags, req.complete_flag, TX_OR);
     }
 
@@ -991,8 +883,6 @@ static void control_thread_entry ( ULONG thread_input )
   {
     watchdog_check_in (CONTROL_THREAD);
 
-#warning "Monitor for errors here and handle them. Monitor for state (watch complete flags) and\
-  manage threads appropriately."
     // TODO: Continue with the correct logic, i.e. if GNSS timed out, set alarm and shut down.
     //       Otherwise, continue with other sensors, run waves, etc. Try to keep as many threads
     //       as possible running concurrently.
@@ -1022,7 +912,7 @@ static void control_thread_entry ( ULONG thread_input )
 static void gnss_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
-  TX_THREAD *this_thread = &gnss_thread;
+  TX_THREAD *this_thread = tx_thread_identify ();
   GNSS gnss;
   uint8_t ubx_message_process_buf[GNSS_MESSAGE_BUF_SIZE];
   uint8_t gnss_config_response_buf[GNSS_CONFIG_BUFFER_SIZE];
@@ -1053,7 +943,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   // Make sure the waves thread has initialized properly before proceeding
   while ( 1 )
   {
-    if ( waves_memory_get_raw_data_pointers (north, east, down) )
+    if ( waves_memory_get_raw_data_pointers (&north, &east, &down) )
     {
       break;
     }
@@ -1125,7 +1015,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   watchdog_check_in (GNSS_THREAD);
 
   // Start the timer for resolution stages
-  gnss.start_timer (gnss_max_acq_time);
+  gnss.start_timer (TX_TIMER_TICKS_PER_SECOND * 60 * gnss_max_acq_time);
 
   // Frame sync and switch to DMA circular mode
   if ( gnss.sync_and_start_reception () != GNSS_SUCCESS )
@@ -1163,7 +1053,7 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   // Start the sample window timer
   gnss.stop_timer ();
-  gnss.start_timer (sample_window_timeout);
+  gnss.start_timer (TX_TIMER_TICKS_PER_SECOND * 60 * sample_window_timeout);
 
   // Process messages until complete
   while ( !gnss_get_sample_window_complete () )
@@ -1201,7 +1091,7 @@ static void gnss_thread_entry ( ULONG thread_input )
     // Any other return code indicates something got corrupted. Let's hope this works...
     else
     {
-      gnss_error_out (&gnss, MEMORY_CORRUPTION, this_thread,
+      gnss_error_out (&gnss, MEMORY_CORRUPTION_ERROR, this_thread,
                       "Memory corruption detected in GNSS thread.");
     }
 
@@ -1238,7 +1128,7 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   uart_logger_log_line ("GNSS Thread complete, now terminating.");
 
-  (void) tx_event_flags_set (&complete_flags, GNSS_THREAD_COMPLETE, TX_OR);
+  (void) tx_event_flags_set (&complete_flags, GNSS_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
 }
 
@@ -1256,7 +1146,7 @@ static void gnss_thread_entry ( ULONG thread_input )
 static void ct_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
-  TX_THREAD *this_thread = &ct_thread;
+  TX_THREAD *this_thread = tx_thread_identify ();
   CT ct;
   ct_sample ct_readings =
     { 0 };
@@ -1370,7 +1260,7 @@ static void ct_thread_entry ( ULONG thread_input )
 
   uart_logger_log_line ("CT Thread complete, now terminating.");
 
-  (void) tx_event_flags_set (&complete_flags, CT_THREAD_COMPLETE, TX_OR);
+  (void) tx_event_flags_set (&complete_flags, CT_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
 }
 
@@ -1473,7 +1363,7 @@ static void temperature_thread_entry ( ULONG thread_input )
 
   uart_logger_log_line ("Temperature Thread complete, now terminating.");
 
-  (void) tx_event_flags_set (&complete_flags, TEMPERATURE_THREAD_COMPLETE, TX_OR);
+  (void) tx_event_flags_set (&complete_flags, TEMPERATURE_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
 }
 
@@ -1516,7 +1406,7 @@ static void light_thread_entry ( ULONG thread_input )
 
   uart_logger_log_line ("Light Thread complete, now terminating.");
 
-  (void) tx_event_flags_set (&complete_flags, LIGHT_THREAD_COMPLETE, TX_OR);
+  (void) tx_event_flags_set (&complete_flags, LIGHT_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
 }
 
@@ -1559,7 +1449,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
 
   uart_logger_log_line ("Turbidity Thread complete, now terminating.");
 
-  (void) tx_event_flags_set (&complete_flags, TURBIDITY_THREAD_COMPLETE, TX_OR);
+  (void) tx_event_flags_set (&complete_flags, TURBIDITY_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
 }
 
@@ -1600,136 +1490,7 @@ static void accelerometer_thread_entry ( ULONG thread_input )
 
   uart_logger_log_line ("Accelerometer Thread complete, now terminating.");
 
-  (void) tx_event_flags_set (&complete_flags, ACCELEROMETER_THREAD_COMPLETE, TX_OR);
-  tx_thread_terminate (this_thread);
-}
-
-/***************************************************************************************************
- ***************************************************************************************************
- *********************************    Expansion Thread 1    ****************************************
- ***************************************************************************************************
- ***************************************************************************************************
- * @brief  expansion_thread_1_entry
- *         This thread will manage an expansion sensor or module (for future use)
- *
- * @param  ULONG thread_input - unused
- * @retval void
- */
-static void expansion_thread_1_entry ( ULONG thread_input )
-{
-  UNUSED(thread_input);
-  TX_THREAD *this_thread = &expansion_thread_1;
-
-  tx_thread_sleep (1);
-
-  // TODO: init and self test
-
-  //
-  // Run tests if needed
-  if ( tests.expansion_thread_1_test != NULL )
-  {
-    tests.expansion_thread_1_test (NULL);
-  }
-
-  tx_thread_suspend (this_thread);
-
-//  watchdog_register_thread (EXPANSION_THREAD_1);
-//  watchdog_check_in (EXPANSION_THREAD_1);
-//
-//  // TODO: Run sensor
-//
-//  watchdog_check_in (EXPANSION_THREAD_1);
-//  watchdog_deregister_thread (EXPANSION_THREAD_1);
-//
-//  uart_logger_log_line ("Expansion Thread 1 complete, now terminating.");
-//
-//  (void) tx_event_flags_set (&complete_flags, EXPANSION_THREAD_1_COMPLETE, TX_OR);
-  tx_thread_terminate (this_thread);
-}
-
-/***************************************************************************************************
- ***************************************************************************************************
- *********************************    Expansion Thread 2    ****************************************
- ***************************************************************************************************
- ***************************************************************************************************
- * @brief  expansion_thread_2_entry
- *         This thread will manage an expansion sensor or module (for future use)
- *
- * @param  ULONG thread_input - unused
- * @retval void
- */
-static void expansion_thread_2_entry ( ULONG thread_input )
-{
-  UNUSED(thread_input);
-  TX_THREAD *this_thread = &expansion_thread_2;
-
-  tx_thread_sleep (1);
-
-  // TODO: init and self test
-
-  //
-  // Run tests if needed
-  if ( tests.expansion_thread_2_test != NULL )
-  {
-    tests.expansion_thread_2_test (NULL);
-  }
-
-  tx_thread_suspend (this_thread);
-
-//  watchdog_register_thread (EXPANSION_THREAD_2);
-//  watchdog_check_in (EXPANSION_THREAD_2);
-//
-//  // TODO: Run sensor
-//
-//  watchdog_check_in (EXPANSION_THREAD_2);
-//  watchdog_deregister_thread (EXPANSION_THREAD_2);
-//
-//  uart_logger_log_line ("Expansion Thread 2 complete, now terminating.");
-//
-//  (void) tx_event_flags_set (&complete_flags, EXPANSION_THREAD_2_COMPLETE, TX_OR);
-  tx_thread_terminate (this_thread);
-}
-
-/***************************************************************************************************
- ***************************************************************************************************
- *********************************    Expansion Thread 3    ****************************************
- ***************************************************************************************************
- ***************************************************************************************************
- * @brief  expansion_thread_3_entry
- *         This thread will manage an expansion sensor or module (for future use)
- *
- * @param  ULONG thread_input - unused
- * @retval void
- */
-static void expansion_thread_3_entry ( ULONG thread_input )
-{
-  UNUSED(thread_input);
-  TX_THREAD *this_thread = &expansion_thread_3;
-
-  tx_thread_sleep (1);
-
-  // TODO: init and self test
-
-  //
-  // Run tests if needed
-  if ( tests.expansion_thread_3_test != NULL )
-  {
-    tests.expansion_thread_3_test (NULL);
-  }
-
-  tx_thread_suspend (this_thread);
-//
-//  watchdog_register_thread (EXPANSION_THREAD_3);
-//  watchdog_check_in (EXPANSION_THREAD_3);
-//
-//  // TODO: Run sensor
-//
-//  watchdog_check_in (EXPANSION_THREAD_3);
-//  watchdog_deregister_thread (EXPANSION_THREAD_3);
-//
-//  uart_logger_log_line ("Expansion Thread 3 complete, now terminating.");
-//
-//  (void) tx_event_flags_set (&complete_flags, EXPANSION_THREAD_3_COMPLETE, TX_OR);
+  (void) tx_event_flags_set (&complete_flags, ACCELEROMETER_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
 }
 
@@ -1755,11 +1516,12 @@ static void waves_thread_entry ( ULONG thread_input )
   if ( !waves_memory_pool_init (&waves_mem, &configuration, &(waves_byte_pool_buffer[0]),
   WAVES_MEM_POOL_SIZE) )
   {
+#warning "Figure out what to do in this case."
     uart_logger_log_line ("NED Waves memory pool failed to initialize.");
     tx_thread_suspend (this_thread);
   }
 
-  (void) tx_event_flags_set (&error_flags, WAVES_THREAD_INIT_SUCCESS, TX_OR);
+  (void) tx_event_flags_set (&initialization_flags, WAVES_THREAD_INIT_SUCCESS, TX_OR);
   uart_logger_log_line ("NED Waves initialization successful.");
 
   tx_thread_suspend (this_thread);
@@ -1819,7 +1581,7 @@ static void waves_thread_entry ( ULONG thread_input )
 
   uart_logger_log_line ("NEDWaves Thread complete, now terminating.");
 
-  (void) tx_event_flags_set (&complete_flags, WAVES_THREAD_COMPLETE, TX_OR);
+  (void) tx_event_flags_set (&complete_flags, WAVES_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
 }
 /***************************************************************************************************
@@ -1865,12 +1627,13 @@ static void iridium_thread_entry ( ULONG thread_input )
 
   iridium.on ();
   iridium.wake ();
-  iridium.charge_caps (IRIDIUM_INITIAL_CAP_CHARGE_TIME);
+  iridium.charge_caps ((is_first_sample_window ()) ?
+      IRIDIUM_INITIAL_CAP_CHARGE_TIME : IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
 
   if ( !iridium_apply_config (&iridium) )
   {
     // Need to save the message
-    persistent_storage_save_iridium_message (&sbd_message);
+    persistent_ram_save_iridium_message (&sbd_message);
     iridium_error_out (&iridium, NO_ERROR_FLAG, this_thread, "Iridium modem failed to initialize.");
   }
 
@@ -1899,7 +1662,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   }
 
   // finish filling out the SBD message
-  rtc_server_get_time (&time_struct, IRIDIUM_THREAD_COMPLETE);
+  rtc_server_get_time (&time_struct, IRIDIUM_REQUEST_COMPLETE);
   time_now = mktime (&time_struct);
   sbd_timestamp = (uint32_t) time_now;
   memcpy (&sbd_message.legacy_number_7, &ascii_7, sizeof(char));
@@ -1910,7 +1673,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   if ( !iridium_apply_config (&iridium) )
   {
     // Need to save the message
-    persistent_storage_save_iridium_message (&sbd_message);
+    persistent_ram_save_iridium_message (&sbd_message);
     iridium_error_out (&iridium, NO_ERROR_FLAG, this_thread, "Iridium modem failed to initialize.");
   }
 
@@ -1930,7 +1693,7 @@ static void iridium_thread_entry ( ULONG thread_input )
       continue;
     }
 
-    msg_ptr = persistent_storage_get_prioritized_unsent_iridium_message ();
+    msg_ptr = persistent_ram_get_prioritized_unsent_iridium_message ();
 
     if ( msg_ptr == NULL )
     {
@@ -1939,7 +1702,7 @@ static void iridium_thread_entry ( ULONG thread_input )
 
     if ( iridium.transmit_message (msg_ptr) == IRIDIUM_SUCCESS )
     {
-      persistent_storage_delete_message_element (msg_ptr);
+      persistent_ram_delete_message_element (msg_ptr);
     }
   }
 
@@ -1947,7 +1710,7 @@ static void iridium_thread_entry ( ULONG thread_input )
 
   if ( !current_message_sent )
   {
-    persistent_storage_save_iridium_message (msg_ptr);
+    persistent_ram_save_iridium_message (msg_ptr);
   }
 
 #warning "Figure out error message reporting here."
@@ -1964,7 +1727,7 @@ static void iridium_thread_entry ( ULONG thread_input )
 
   uart_logger_log_line ("Iridium Thread complete, now terminating.");
 
-  (void) tx_event_flags_set (&complete_flags, IRIDIUM_THREAD_COMPLETE, TX_OR);
+  (void) tx_event_flags_set (&complete_flags, IRIDIUM_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
 }
 /* USER CODE END 1 */

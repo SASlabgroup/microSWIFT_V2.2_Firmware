@@ -124,16 +124,13 @@ void HAL_UART_RxCpltCallback ( UART_HandleTypeDef *huart )
   }
   else if ( huart->Instance == GNSS_UART )
   {
-
-    if ( !gnss_get_configured_status () )
+    if ( gnss_get_configured_status () )
     {
-
-      (void) tx_event_flags_set (&irq_flags, GNSS_CONFIG_RECVD, TX_OR);
-
+      (void) tx_event_flags_set (&irq_flags, GNSS_MSG_RECEIVED, TX_OR);
     }
     else
     {
-      (void) tx_event_flags_set (&irq_flags, GNSS_MSG_RECEIVED, TX_OR);
+      (void) tx_event_flags_set (&irq_flags, GNSS_CONFIG_RECVD, TX_OR);
     }
   }
   else if ( huart->Instance == AUX_UART_1 )
@@ -177,7 +174,14 @@ void HAL_UARTEx_RxEventCallback ( UART_HandleTypeDef *huart, uint16_t Size )
   }
   else if ( huart->Instance == GNSS_UART )
   {
-    if ( Size < UBX_NAV_PVT_MESSAGE_LENGTH )
+    if ( !gnss_get_configured_status () )
+    {
+      if ( Size == FRAME_SYNC_RX_SIZE )
+      {
+        (void) tx_event_flags_set (&irq_flags, GNSS_CONFIG_RECVD, TX_OR);
+      }
+    }
+    else if ( Size < UBX_NAV_PVT_MESSAGE_LENGTH )
     {
       (void) tx_event_flags_set (&irq_flags, GNSS_MSG_INCOMPLETE, TX_OR);
     }
@@ -254,10 +258,14 @@ void HAL_GPIO_EXTI_Callback ( uint16_t GPIO_Pin )
 {
   if ( GPIO_Pin == RTC_INT_A_Pin )
   {
+#ifdef DEBUG
     __asm__("BKPT");
+#endif
   }
   if ( GPIO_Pin == RTC_INT_B_Pin )
   {
+#ifdef DEBUG
     __asm__("BKPT");
+#endif
   }
 }

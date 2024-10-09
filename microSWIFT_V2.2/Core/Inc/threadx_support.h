@@ -45,10 +45,6 @@ void        ct_error_out(CT* ct, ULONG error_flag, TX_THREAD *ct_thread, const c
 void        temperature_error_out(Temperature* temperature, ULONG error_flag, TX_THREAD *temperature_thread, const char *fmt, ...);
 void        iridium_error_out(Iridium* iridium, ULONG error_flag, TX_THREAD *iridium_thread, const char *fmt, ...);
 
-void        expansion_timer_1_expired(ULONG expiration_input);
-void        expansion_timer_2_expired(ULONG expiration_input);
-void        expansion_timer_3_expired(ULONG expiration_input);
-
 bool        is_first_sample_window ( void );
 
 ULONG       get_current_flags ( TX_EVENT_FLAGS_GROUP *event_flags );

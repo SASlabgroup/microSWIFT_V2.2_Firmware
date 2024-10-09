@@ -6,12 +6,25 @@
  */
 
 #include "error_handler.h"
-
-#warning "ensure error handler de-registers thread on error"
+#include "threadx_support.h"
+#include "persistent_ram.h"
+#include "app_threadx.h"
+#include "main.h"
 
 void Error_Handler ( void )
 {
+  __disable_irq ();
+
+#ifdef DEBUG
   __asm__("BKPT");
+#endif
+  safe_mode ();
+  HAL_NVIC_SystemReset ();
+
+  __enable_irq ();
 }
 
-void safe_mode ( void );
+void safe_mode ( void )
+{
+#warning "Turn off all peripherals here"
+}

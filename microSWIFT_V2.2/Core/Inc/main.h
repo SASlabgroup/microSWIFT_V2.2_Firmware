@@ -31,7 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "stdbool.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -41,7 +41,7 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-
+extern bool initial_config_complete;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -69,18 +69,16 @@ void Error_Handler(void);
 #define LIGHT_FET_GPIO_Port GPIOE
 #define TURBIDITY_FET_Pin GPIO_PIN_13
 #define TURBIDITY_FET_GPIO_Port GPIOC
-#define LOGGER_UART_TX_Pin GPIO_PIN_0
-#define LOGGER_UART_TX_GPIO_Port GPIOF
+#define AUX_I2C_1_SDA_Pin GPIO_PIN_0
+#define AUX_I2C_1_SDA_GPIO_Port GPIOF
 #define AUX_I2C_1_SCL_Pin GPIO_PIN_1
 #define AUX_I2C_1_SCL_GPIO_Port GPIOF
-#define AUX_GPIO_9_Pin GPIO_PIN_2
-#define AUX_GPIO_9_GPIO_Port GPIOF
-#define CT_UART_TX_Pin GPIO_PIN_3
-#define CT_UART_TX_GPIO_Port GPIOF
-#define CT_UART_RX_Pin GPIO_PIN_4
-#define CT_UART_RX_GPIO_Port GPIOF
-#define AUX_GPIO_10_Pin GPIO_PIN_5
-#define AUX_GPIO_10_GPIO_Port GPIOF
+#define SPARE_GPIO5_Pin GPIO_PIN_2
+#define SPARE_GPIO5_GPIO_Port GPIOF
+#define SPARE_GPIO6_Pin GPIO_PIN_3
+#define SPARE_GPIO6_GPIO_Port GPIOF
+#define RAM_CLK_Pin GPIO_PIN_4
+#define RAM_CLK_GPIO_Port GPIOF
 #define FLASH_IO3_Pin GPIO_PIN_6
 #define FLASH_IO3_GPIO_Port GPIOF
 #define FLASH_IO2_Pin GPIO_PIN_7
@@ -95,8 +93,6 @@ void Error_Handler(void);
 #define VBATT_ADC_IN_GPIO_Port GPIOC
 #define RTC_TIMESTAMP_4_Pin GPIO_PIN_1
 #define RTC_TIMESTAMP_4_GPIO_Port GPIOC
-#define LOGGER_UART_RX_Pin GPIO_PIN_2
-#define LOGGER_UART_RX_GPIO_Port GPIOC
 #define RTC_TIMESTAMP_2_Pin GPIO_PIN_3
 #define RTC_TIMESTAMP_2_GPIO_Port GPIOC
 #define IRIDIUM_UART_TX_Pin GPIO_PIN_0
@@ -115,45 +111,47 @@ void Error_Handler(void);
 #define CORE_SPI_MOSI_GPIO_Port GPIOA
 #define RTC_TIMESTAMP_3_Pin GPIO_PIN_0
 #define RTC_TIMESTAMP_3_GPIO_Port GPIOB
-#define AUX_GPIO_11_Pin GPIO_PIN_11
-#define AUX_GPIO_11_GPIO_Port GPIOF
+#define SPI2_CSn1_Pin GPIO_PIN_1
+#define SPI2_CSn1_GPIO_Port GPIOB
+#define SPI2_CSn2_Pin GPIO_PIN_2
+#define SPI2_CSn2_GPIO_Port GPIOB
+#define SPI1_CSn1_Pin GPIO_PIN_11
+#define SPI1_CSn1_GPIO_Port GPIOF
 #define RTC_INT_A_Pin GPIO_PIN_12
 #define RTC_INT_A_GPIO_Port GPIOF
 #define RTC_INT_A_EXTI_IRQn EXTI12_IRQn
-#define AUX_GPIO_12_Pin GPIO_PIN_13
-#define AUX_GPIO_12_GPIO_Port GPIOF
-#define AUX_GPIO_13_Pin GPIO_PIN_14
-#define AUX_GPIO_13_GPIO_Port GPIOF
-#define AUX_GPIO_14_Pin GPIO_PIN_15
-#define AUX_GPIO_14_GPIO_Port GPIOF
-#define AUX_GPIO_15_Pin GPIO_PIN_0
-#define AUX_GPIO_15_GPIO_Port GPIOG
-#define AUX_GPIO_16_Pin GPIO_PIN_1
-#define AUX_GPIO_16_GPIO_Port GPIOG
-#define AUX_GPIO_1_Pin GPIO_PIN_7
-#define AUX_GPIO_1_GPIO_Port GPIOE
-#define AUX_GPIO_2_Pin GPIO_PIN_8
-#define AUX_GPIO_2_GPIO_Port GPIOE
-#define AUX_GPIO_3_Pin GPIO_PIN_9
-#define AUX_GPIO_3_GPIO_Port GPIOE
-#define AUX_GPIO_4_Pin GPIO_PIN_10
-#define AUX_GPIO_4_GPIO_Port GPIOE
+#define SPI1_CSn2_Pin GPIO_PIN_13
+#define SPI1_CSn2_GPIO_Port GPIOF
+#define SPI1_CSn3_Pin GPIO_PIN_14
+#define SPI1_CSn3_GPIO_Port GPIOF
+#define SPI2_CSn3_Pin GPIO_PIN_15
+#define SPI2_CSn3_GPIO_Port GPIOF
+#define RAM_IO0_Pin GPIO_PIN_0
+#define RAM_IO0_GPIO_Port GPIOG
+#define RAM_IO1_Pin GPIO_PIN_1
+#define RAM_IO1_GPIO_Port GPIOG
+#define SPARE_GPIO2_Pin GPIO_PIN_7
+#define SPARE_GPIO2_GPIO_Port GPIOE
+#define SPARE_GPIO3_Pin GPIO_PIN_8
+#define SPARE_GPIO3_GPIO_Port GPIOE
+#define SPARE_GPIO0_Pin GPIO_PIN_9
+#define SPARE_GPIO0_GPIO_Port GPIOE
+#define SPARE_GPIO4_Pin GPIO_PIN_10
+#define SPARE_GPIO4_GPIO_Port GPIOE
 #define ACCELEROMETER_FET_Pin GPIO_PIN_11
 #define ACCELEROMETER_FET_GPIO_Port GPIOE
-#define AUX_GPIO_5_Pin GPIO_PIN_12
-#define AUX_GPIO_5_GPIO_Port GPIOE
-#define AUX_GPIO_6_Pin GPIO_PIN_13
-#define AUX_GPIO_6_GPIO_Port GPIOE
-#define AUX_GPIO_7_Pin GPIO_PIN_14
-#define AUX_GPIO_7_GPIO_Port GPIOE
-#define AUX_GPIO_8_Pin GPIO_PIN_15
-#define AUX_GPIO_8_GPIO_Port GPIOE
-#define AUX_I2C_1_SDA_Pin GPIO_PIN_11
-#define AUX_I2C_1_SDA_GPIO_Port GPIOB
+#define SPARE_GPIO1_Pin GPIO_PIN_12
+#define SPARE_GPIO1_GPIO_Port GPIOE
+#define SPI3_CSn1_Pin GPIO_PIN_13
+#define SPI3_CSn1_GPIO_Port GPIOE
+#define SPI3_CSn2_Pin GPIO_PIN_14
+#define SPI3_CSn2_GPIO_Port GPIOE
+#define SPI3_CSn3_Pin GPIO_PIN_15
+#define SPI3_CSn3_GPIO_Port GPIOE
+#define SD_CARD_D0_Pin GPIO_PIN_14
+#define SD_CARD_D0_GPIO_Port GPIOB
 #define EXT_LED_RED_Pin GPIO_PIN_8
 #define EXT_LED_RED_GPIO_Port GPIOD
-#define AUX_UART_2_RX_Pin GPIO_PIN_9
-#define AUX_UART_2_RX_GPIO_Port GPIOD
 #define EXT_LED_GREEN_Pin GPIO_PIN_10
 #define EXT_LED_GREEN_GPIO_Port GPIOD
 #define RTC_SPI_CS_Pin GPIO_PIN_14
@@ -161,37 +159,51 @@ void Error_Handler(void);
 #define RTC_INT_B_Pin GPIO_PIN_15
 #define RTC_INT_B_GPIO_Port GPIOD
 #define RTC_INT_B_EXTI_IRQn EXTI15_IRQn
-#define SD_D0_Pin GPIO_PIN_8
-#define SD_D0_GPIO_Port GPIOC
+#define LOGGER_UART_RX_Pin GPIO_PIN_8
+#define LOGGER_UART_RX_GPIO_Port GPIOC
+#define LOGGER_UART_TX_Pin GPIO_PIN_9
+#define LOGGER_UART_TX_GPIO_Port GPIOC
 #define GNSS_UART_TX_Pin GPIO_PIN_9
 #define GNSS_UART_TX_GPIO_Port GPIOA
 #define GNSS_UART_RX_Pin GPIO_PIN_10
 #define GNSS_UART_RX_GPIO_Port GPIOA
+#define CAN_RX_Pin GPIO_PIN_11
+#define CAN_RX_GPIO_Port GPIOA
+#define RAM_NCS_Pin GPIO_PIN_12
+#define RAM_NCS_GPIO_Port GPIOA
 #define AUX_SPI_2_SCK_Pin GPIO_PIN_10
 #define AUX_SPI_2_SCK_GPIO_Port GPIOC
 #define AUX_SPI_2_MISO_Pin GPIO_PIN_11
 #define AUX_SPI_2_MISO_GPIO_Port GPIOC
-#define SD_CK_Pin GPIO_PIN_12
-#define SD_CK_GPIO_Port GPIOC
+#define CT_UART_TX_Pin GPIO_PIN_12
+#define CT_UART_TX_GPIO_Port GPIOC
 #define IRIDIUM_RI_N_Pin GPIO_PIN_0
 #define IRIDIUM_RI_N_GPIO_Port GPIOD
 #define IRIDIUM_RI_N_EXTI_IRQn EXTI0_IRQn
-#define IRIDIUM_NET_AV_Pin GPIO_PIN_1
-#define IRIDIUM_NET_AV_GPIO_Port GPIOD
-#define SD_CMD_Pin GPIO_PIN_2
-#define SD_CMD_GPIO_Port GPIOD
+#define CAN_TX_Pin GPIO_PIN_1
+#define CAN_TX_GPIO_Port GPIOD
+#define CT_UART_RX_Pin GPIO_PIN_2
+#define CT_UART_RX_GPIO_Port GPIOD
 #define IRIDIUM_OnOff_Pin GPIO_PIN_3
 #define IRIDIUM_OnOff_GPIO_Port GPIOD
 #define BUS_5V_FET_Pin GPIO_PIN_4
 #define BUS_5V_FET_GPIO_Port GPIOD
-#define AUX_SPI_2_MOSI_Pin GPIO_PIN_6
-#define AUX_SPI_2_MOSI_GPIO_Port GPIOD
+#define SD_CARD_CK_Pin GPIO_PIN_6
+#define SD_CARD_CK_GPIO_Port GPIOD
+#define SD_CARD_CMD_Pin GPIO_PIN_7
+#define SD_CARD_CMD_GPIO_Port GPIOD
+#define RAM_IO2_Pin GPIO_PIN_9
+#define RAM_IO2_GPIO_Port GPIOG
+#define RAM_IO3_Pin GPIO_PIN_10
+#define RAM_IO3_GPIO_Port GPIOG
 #define CORE_I2C_SDA_Pin GPIO_PIN_13
 #define CORE_I2C_SDA_GPIO_Port GPIOG
 #define CORE_I2C_SCL_Pin GPIO_PIN_14
 #define CORE_I2C_SCL_GPIO_Port GPIOG
 #define UART_LOGGER_EN_Pin GPIO_PIN_15
 #define UART_LOGGER_EN_GPIO_Port GPIOG
+#define AUX_SPI_2_MOSI_Pin GPIO_PIN_5
+#define AUX_SPI_2_MOSI_GPIO_Port GPIOB
 #define RF_SWITCH_EN_Pin GPIO_PIN_0
 #define RF_SWITCH_EN_GPIO_Port GPIOE
 #define RF_SWITCH_VCTL_Pin GPIO_PIN_1

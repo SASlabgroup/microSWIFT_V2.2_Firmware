@@ -9,11 +9,9 @@
 
 static rtc_server self;
 
-void rtc_server_init ( TX_QUEUE *request_queue, TX_SEMAPHORE *watchdog_refresh_semaphore,
-                       TX_EVENT_FLAGS_GROUP *complete_flags )
+void rtc_server_init ( TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP *complete_flags )
 {
   self.request_queue = request_queue;
-  self.watchdog_refresh_semaphore = watchdog_refresh_semaphore;
   self.complete_flags = complete_flags;
 }
 
@@ -23,9 +21,8 @@ void rtc_server_refresh_watchdog ( void )
     { 0 };
 
   queue_msg.request = REFRESH_WATCHDOG;
-  queue_msg.input_output_struct = NULL;
   queue_msg.complete_flag = 0;
-  queue_msg.return_code = 0;
+  queue_msg.return_code = NULL;
 
   (void) tx_queue_send (self.request_queue, &queue_msg, RTC_QUEUE_MAX_WAIT_TICKS);
 }
@@ -38,7 +35,7 @@ rtc_return_code rtc_server_get_time ( struct tm *return_time_struct, UINT comple
   ULONG event_flags;
 
   queue_msg.request = GET_TIME;
-  queue_msg.input_output_struct->get_set_time.time_struct = *return_time_struct;
+  queue_msg.input_output_struct.get_set_time.time_struct = *return_time_struct;
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 
@@ -65,7 +62,7 @@ rtc_return_code rtc_server_set_time ( struct tm input_time_struct, UINT complete
   ULONG event_flags;
 
   queue_msg.request = SET_TIME;
-  queue_msg.input_output_struct->get_set_time.time_struct = input_time_struct;
+  queue_msg.input_output_struct.get_set_time.time_struct = input_time_struct;
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 
@@ -92,7 +89,7 @@ rtc_return_code rtc_server_set_timestamp ( pcf2131_timestamp_t which_timestamp, 
   ULONG event_flags;
 
   queue_msg.request = SET_TIMESTAMP;
-  queue_msg.input_output_struct->get_set_timestamp.which_timestamp = which_timestamp;
+  queue_msg.input_output_struct.get_set_timestamp.which_timestamp = which_timestamp;
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 
@@ -119,7 +116,7 @@ rtc_return_code rtc_server_get_timestamp ( pcf2131_timestamp_t which_timestamp, 
   ULONG event_flags;
 
   queue_msg.request = GET_TIMESTAMP;
-  queue_msg.input_output_struct->get_set_timestamp.which_timestamp = which_timestamp;
+  queue_msg.input_output_struct.get_set_timestamp.which_timestamp = which_timestamp;
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 
@@ -146,7 +143,7 @@ rtc_return_code rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UINT com
   ULONG event_flags;
 
   queue_msg.request = SET_ALARM;
-  queue_msg.input_output_struct->set_alarm = alarm_settings;
+  queue_msg.input_output_struct.set_alarm = alarm_settings;
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 
@@ -198,7 +195,7 @@ void struct_tm_dec_to_bcd ( struct tm *struct_ptr )
       BCD_ERROR : dec_to_bcd[struct_ptr->tm_mday];
   struct_ptr->tm_mon = (struct_ptr->tm_mon > 11) ?
       BCD_ERROR : dec_to_bcd[struct_ptr->tm_mon];
-  struct_ptr->tm_year = (struct_ptr->tm_year - 1900 > 99) ?
+  struct_ptr->tm_year = (struct_ptr->tm_year - 2000 > 99) ?
       BCD_ERROR : dec_to_bcd[struct_ptr->tm_year];
   struct_ptr->tm_wday = (struct_ptr->tm_wday > 6) ?
       BCD_ERROR : dec_to_bcd[struct_ptr->tm_wday];

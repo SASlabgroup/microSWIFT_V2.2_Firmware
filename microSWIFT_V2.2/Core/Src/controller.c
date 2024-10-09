@@ -73,6 +73,13 @@ void control_timer_expired ( ULONG expiration_input )
   (void) expiration_input;
 }
 
+void control_error_flag_set ( TX_EVENT_FLAGS_GROUP *error_flags_group )
+{
+  (void) error_flags_group;
+
+  self->monitor_and_handle_errors ();
+}
+
 static bool _control_startup_procedure ( void )
 {
   UINT tx_return;
@@ -153,38 +160,38 @@ static bool _control_startup_procedure ( void )
 
 static bool _control_all_threads_complete ( void )
 {
-  // Start with the core thread flags
-  ULONG complete_flags = (GNSS_THREAD_COMPLETE | WAVES_THREAD_COMPLETE | IRIDIUM_THREAD_COMPLETE);
-  ULONG dummy;
-
-  if ( self->global_config->ct_enabled )
-  {
-    complete_flags |= CT_THREAD_COMPLETE;
-  }
-
-  if ( self->global_config->temperature_enabled )
-  {
-    complete_flags |= TEMPERATURE_THREAD_COMPLETE;
-  }
-
-  if ( self->global_config->turbidity_enabled )
-  {
-    complete_flags |= TURBIDITY_THREAD_COMPLETE;
-  }
-
-  if ( self->global_config->light_enabled )
-  {
-    complete_flags |= LIGHT_THREAD_COMPLETE;
-  }
-
-  if ( self->global_config->accelerometer_enabled )
-  {
-    complete_flags |= ACCELEROMETER_THREAD_COMPLETE;
-  }
-
-  return (tx_event_flags_get (self->complete_flags, complete_flags, TX_AND_CLEAR, &dummy,
-  TX_NO_WAIT)
-          == TX_SUCCESS);
+//  // Start with the core thread flags
+//  ULONG complete_flags = (GNSS_THREAD_COMPLETE | WAVES_THREAD_COMPLETE | IRIDIUM_THREAD_COMPLETE);
+//  ULONG dummy;
+//
+//  if ( self->global_config->ct_enabled )
+//  {
+//    complete_flags |= CT_THREAD_COMPLETE;
+//  }
+//
+//  if ( self->global_config->temperature_enabled )
+//  {
+//    complete_flags |= TEMPERATURE_THREAD_COMPLETE;
+//  }
+//
+//  if ( self->global_config->turbidity_enabled )
+//  {
+//    complete_flags |= TURBIDITY_THREAD_COMPLETE;
+//  }
+//
+//  if ( self->global_config->light_enabled )
+//  {
+//    complete_flags |= LIGHT_THREAD_COMPLETE;
+//  }
+//
+//  if ( self->global_config->accelerometer_enabled )
+//  {
+//    complete_flags |= ACCELEROMETER_THREAD_COMPLETE;
+//  }
+//
+//  return (tx_event_flags_get (self->complete_flags, complete_flags, TX_AND_CLEAR, &dummy,
+//  TX_NO_WAIT)
+//          == TX_SUCCESS);
 }
 
 static real16_T _control_get_battery_voltage ( void )
@@ -229,6 +236,8 @@ static void _control_shut_down_all_peripherals ( void )
   HAL_GPIO_WritePin (GPIOD, RF_SWITCH_EN_Pin, GPIO_PIN_RESET);
 // Shut down CT sensor
   HAL_GPIO_WritePin (GPIOG, CT_FET_Pin, GPIO_PIN_RESET);
+
+#warning "Make sure all peripherals are covered here."
 }
 
 static void _control_enter_processor_shutdown_mode ( void )
@@ -344,45 +353,123 @@ static void _control_monitor_and_handle_errors ( void )
     __handle_file_system_error ();
   }
 
+  if ( current_flags & MEMORY_CORRUPTION_ERROR )
+  {
+    self->shutdown_all_pheripherals ();
+    persistent_ram_deinit ();
+    HAL_Delay (10);
+    HAL_NVIC_SystemReset ();
+  }
+
 }
 
 static void __handle_rtc_error ( void )
 {
-
+  /*
+   * TODO:
+   *    [ ] Software reset the RTC
+   *    [ ] Write the error to the error message buffer
+   *    [ ] send the error message
+   *    [ ] software reset
+   */
 }
 static void __handle_gnss_error ( ULONG error_flags )
 {
-
+  /*
+   * TODO:
+   *    [ ] Shut down GNSS
+   *    [ ] Set all the fields of the SBD message to error values
+   *    [ ] Set the GNSS_THREAD_COMPLETED_WITH_ERRORS
+   *        [ ] Ensure the waves thread does not run
+   *    [ ] Terminate the GNSS thread
+   *    [ ] Continue application logic
+   */
 }
 static void __handle_ct_error ( void )
 {
-
+  /*
+   * TODO:
+   *    [ ] Shut down the CT sensor
+   *    [ ] Set the temperature and salinity fields to error values
+   *    [ ] Log the error in the error message buffer
+   *    [ ] Set the CT_THREAD_SOMPLETED_WITH_ERRORS flag
+   *    [ ] Terminate CT thread
+   *    [ ] Continue application logic
+   */
 }
 static void __handle_temperature_error ( void )
 {
-
+  /*
+   * TODO:
+   *    [ ] Turn off the temperature sensor
+   *    [ ] Set the temperature field to error code, salinity field to 0
+   *    [ ] Log the error in the error message buffer
+   *    [ ] Set the TEMPERATURE_THREAD_COMPLETED_WITH_ERORRS flag
+   *    [ ] Terminate the Temperature thread
+   *    [ ] Continue application logic
+   */
 }
 static void __handle_turbidity_error ( void )
 {
-
+  /*
+   * TODO:
+   *    [ ] Turn off the turbidity sensor
+   *    [ ] Set fields in the SBD message to error values
+   *    [ ] Log the error in the error message buffer
+   *    [ ] Set the TURBIDITY_THREAD_COMPLETED_WITH_ERORRS flag
+   *    [ ] Terminate the turbidity thread
+   *    [ ] Continue application logic
+   */
 }
 static void __handle_light_error ( void )
 {
-
+  /*
+   * TODO:
+   *    [ ] Turn off the light sensor
+   *    [ ] Set fields in the SBD message to error values
+   *    [ ] Log the error in the error message buffer
+   *    [ ] Set the LIGHT_THREAD_COMPLETED_WITH_ERORRS flag
+   *    [ ] Terminate the light thread
+   *    [ ] Continue application logic
+   */
 }
 static void __handle_accelerometer_error ( void )
 {
-
+  /*
+   * TODO:
+   *    [ ] Turn off the accelerometer sensor
+   *    [ ] Set fields in the SBD message to error values
+   *    [ ] Log the error in the error message buffer
+   *    [ ] Set the ACCELEROMETER_THREAD_COMPLETED_WITH_ERORRS flag
+   *    [ ] Terminate the accelerometer thread
+   *    [ ] Continue application logic
+   */
 }
 static void __handle_waves_error ( void )
 {
-
+  /*
+   * TODO:
+   *    [ ] First, ensure the error flag is set in the Waves thread somewhere...
+   *    [ ] Set all SBD fields to error values
+   *    [ ] Terminate waves thread
+   *    [ ] Continue application logic
+   */
 }
 static void __handle_iridium_error ( ULONG error_flags )
 {
-
+  /*
+   * TODO:
+   *    [ ] Power cycle modem
+   *    [ ] Think about switching the on/off pin mode in case the wrong setting was input?
+   *    [ ] Log the error in the error message buffer
+   *    [ ] Controlled shut down
+   *    [ ] System reset
+   */
 }
 static void __handle_file_system_error ( void )
 {
-
+  /*
+   * TODO:
+   *    [ ] Unknown
+   */
 }

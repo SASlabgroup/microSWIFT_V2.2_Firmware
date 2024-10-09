@@ -1,21 +1,21 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * File Name          : linked_list.c
-  * Description        : This file provides code for the configuration
-  *                      of the LinkedList.
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2023 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * File Name          : linked_list.c
+ * Description        : This file provides code for the configuration
+ *                      of the LinkedList.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2023 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "linked_list.h"
@@ -55,7 +55,7 @@ HAL_StatusTypeDef MX_gnss_dma_linked_list_Config(void)
   DMA_NodeConfTypeDef pNodeConfig;
 
   /* Set node configuration ################################################*/
-  pNodeConfig.NodeType = DMA_LPDMA_LINEAR_NODE;
+  pNodeConfig.NodeType = DMA_GPDMA_LINEAR_NODE;
   pNodeConfig.Init.Request = GPDMA1_REQUEST_USART1_RX;
   pNodeConfig.Init.BlkHWRequest = DMA_BREQ_SINGLE_BURST;
   pNodeConfig.Init.Direction = DMA_PERIPH_TO_MEMORY;
@@ -63,13 +63,16 @@ HAL_StatusTypeDef MX_gnss_dma_linked_list_Config(void)
   pNodeConfig.Init.DestInc = DMA_DINC_INCREMENTED;
   pNodeConfig.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_BYTE;
   pNodeConfig.Init.DestDataWidth = DMA_DEST_DATAWIDTH_BYTE;
+  pNodeConfig.Init.SrcBurstLength = 1;
+  pNodeConfig.Init.DestBurstLength = 1;
+  pNodeConfig.Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT0|DMA_DEST_ALLOCATED_PORT0;
   pNodeConfig.Init.TransferEventMode = DMA_TCEM_EACH_LL_ITEM_TRANSFER;
   pNodeConfig.TriggerConfig.TriggerPolarity = DMA_TRIG_POLARITY_MASKED;
   pNodeConfig.DataHandlingConfig.DataExchange = DMA_EXCHANGE_NONE;
   pNodeConfig.DataHandlingConfig.DataAlignment = DMA_DATA_RIGHTALIGN_ZEROPADDED;
   pNodeConfig.SrcAddress = 0;
   pNodeConfig.DstAddress = 0;
-  pNodeConfig.DataSize = 0;
+  pNodeConfig.DataSize = 100;
 
   /* Build gnss_dma_linked_list_node Node */
   ret |= HAL_DMAEx_List_BuildNode(&pNodeConfig, &gnss_dma_linked_list_node);

@@ -10,16 +10,24 @@
 // Save the struct in SRAM2 -- NOLOAD section which will be retained in standby mode
 static Persistent_Storage persistent_self __attribute__((section(".sram2")));
 
-static void _persistent_storage_clear ( void );
+static void _persistent_ram_clear ( void );
 
-void persistent_storage_init ( void )
+void persistent_ram_init ( void )
 {
   // The ram section "persistent_self" resides in is a NOLOAD section -- the contents reset and standby mode
   // once set.
   if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
   {
-    _persistent_storage_clear ();
+    _persistent_ram_clear ();
   }
+}
+
+void persistent_ram_deinit ( void )
+{
+  // Clear everything out
+  persistent_self.sample_window_counter = 0;
+  memset (&persistent_self.unsent_msg_storage, 0, sizeof(Iridium_Message_Storage));
+  persistent_self.magic_number = 0;
 }
 
 void persistent_storgage_increment_sample_window_counter ( void )
@@ -32,12 +40,12 @@ int32_t persistent_stotrage_get_sample_window_counter ( void )
   return persistent_self.sample_window_counter;
 }
 
-void persistent_storage_save_iridium_message ( sbd_message_type_52 *msg )
+void persistent_ram_save_iridium_message ( sbd_message_type_52 *msg )
 {
   // Corruption, lack of initialization check
   if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
   {
-    _persistent_storage_clear ();
+    _persistent_ram_clear ();
   }
 
   // If the storage queue is full, see if we can replace an element
@@ -77,7 +85,7 @@ void persistent_storage_save_iridium_message ( sbd_message_type_52 *msg )
   }
 }
 
-sbd_message_type_52* persistent_storage_get_prioritized_unsent_iridium_message ( void )
+sbd_message_type_52* persistent_ram_get_prioritized_unsent_iridium_message ( void )
 {
   float most_significant_wave_height = 0.0;
   float msg_wave_height = 0.0;
@@ -89,7 +97,7 @@ sbd_message_type_52* persistent_storage_get_prioritized_unsent_iridium_message (
   // Corruption, lack of initialization check
   if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
   {
-    _persistent_storage_clear ();
+    _persistent_ram_clear ();
     return ret_ptr;
   }
 
@@ -124,12 +132,12 @@ sbd_message_type_52* persistent_storage_get_prioritized_unsent_iridium_message (
   return ret_ptr;
 }
 
-void persistent_storage_delete_message_element ( sbd_message_type_52 *msg_ptr )
+void persistent_ram_delete_message_element ( sbd_message_type_52 *msg_ptr )
 {
   // Corruption, lack of initialization check
   if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
   {
-    _persistent_storage_clear ();
+    _persistent_ram_clear ();
   }
 
   // Find the pointer
@@ -148,7 +156,7 @@ void persistent_storage_delete_message_element ( sbd_message_type_52 *msg_ptr )
   }
 }
 
-static void _persistent_storage_clear ( void )
+static void _persistent_ram_clear ( void )
 {
   // Clear everything out
   persistent_self.sample_window_counter = 0;

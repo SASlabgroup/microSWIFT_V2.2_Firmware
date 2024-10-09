@@ -148,7 +148,6 @@ int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm *input_date_tim
 
 int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_time )
 {
-// TODO: need to ensure sequential read is happening in this function
   int32_t ret = PCF2131_OK;
   pcf2131_reg_t time_date[8] =
     { 0 };

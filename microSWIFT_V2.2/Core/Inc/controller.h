@@ -15,7 +15,7 @@
 #include "tx_api.h"
 #include "sbd.h"
 
-#define STARTUP_SEQUENCE_MAX_WAIT_TICKS (TX_TIMER_TICKS_PER_SECOND * 20)
+#define STARTUP_SEQUENCE_MAX_WAIT_TICKS (TX_TIMER_TICKS_PER_SECOND * 30)
 
 // @formatter:off
 typedef struct
@@ -51,5 +51,6 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
                        ADC_HandleTypeDef *battery_adc_handle, sbd_message_type_52 *current_message );
 
 void control_timer_expired ( ULONG expiration_input );
+void control_error_flag_set ( TX_EVENT_FLAGS_GROUP *error_flags_group );
 
 #endif /* INC_CONTROLLER_H_ */

@@ -37,12 +37,13 @@ typedef struct
   Iridium_Message_Storage   unsent_msg_storage;
 } Persistent_Storage;
 
-void                    persistent_storage_init ( void );
-void                    persistent_storgage_increment_sample_window_counter ( void );
-int32_t                 persistent_stotrage_get_sample_window_counter ( void );
-void                    persistent_storage_save_iridium_message ( sbd_message_type_52* msg );
-sbd_message_type_52*    persistent_storage_get_prioritized_unsent_iridium_message ( void );
-void                    persistent_storage_delete_message_element ( sbd_message_type_52 *msg_ptr );
+void                    persistent_ram_init ( void );
+void                    persistent_ram_deinit ( void );
+void                    persistent_ram_increment_sample_window_counter ( void );
+int32_t                 persistent_ram_get_sample_window_counter ( void );
+void                    persistent_ram_save_iridium_message ( sbd_message_type_52* msg );
+sbd_message_type_52*    persistent_ram_get_prioritized_unsent_iridium_message ( void );
+void                    persistent_ram_delete_message_element ( sbd_message_type_52 *msg_ptr );
 // @formatter:on
 
 #endif /* INC_PERSISTENT_RAM_H_ */

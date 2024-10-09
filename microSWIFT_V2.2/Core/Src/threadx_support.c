@@ -268,19 +268,6 @@ uint32_t ticks_from_milliseconds ( uint32_t milliseconds )
   return ((uint32_t) (ceil (((float) milliseconds) / ((1.0f / TX_TIMER_TICKS_PER_SECOND) * 1000.0f))));
 }
 
-void expansion_timer_1_expired ( ULONG expiration_input )
-{
-  (void) expiration_input;
-}
-void expansion_timer_2_expired ( ULONG expiration_input )
-{
-  (void) expiration_input;
-}
-void expansion_timer_3_expired ( ULONG expiration_input )
-{
-  (void) expiration_input;
-}
-
 /**
  * @brief  Static function to flash a sequence of onboard LEDs to indicate
  * success or failure of self-test.

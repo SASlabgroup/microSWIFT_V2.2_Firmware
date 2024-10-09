@@ -36,6 +36,8 @@ extern "C" {
 
 /* USER CODE END Includes */
 
+extern UART_HandleTypeDef hlpuart1;
+
 extern UART_HandleTypeDef huart4;
 
 extern UART_HandleTypeDef huart5;
@@ -62,13 +64,14 @@ extern DMA_HandleTypeDef handle_GPDMA1_Channel9;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel10;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel11;
 
-#define CT_UART UART4
-#define IRIDIUM_UART UART5
+#define CT_UART UART5
+#define IRIDIUM_UART UART4
 #define GNSS_UART USART1
 #define AUX_UART_1 USART2
 #define AUX_UART_2 USART3
 /* USER CODE END Private defines */
 
+void MX_LPUART1_UART_Init(void);
 void MX_UART4_Init(void);
 void MX_UART5_Init(void);
 void MX_USART1_UART_Init(void);

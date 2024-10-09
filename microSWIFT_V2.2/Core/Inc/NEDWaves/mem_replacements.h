@@ -30,7 +30,7 @@ bool waves_memory_pool_init ( NEDWaves_memory *waves_mem_ptr,
                               VOID *pool_start,
                               size_t pool_size );
 bool waves_memory_pool_delete ( void );
-bool waves_memory_get_raw_data_pointers ( float *north, float *east, float *down );
+bool waves_memory_get_raw_data_pointers ( float **north, float **east, float **down );
 void* malloc_replacement ( size_t size );
 void* calloc_replacement ( size_t num, size_t size );
 void free_replacement ( void *ptr );
