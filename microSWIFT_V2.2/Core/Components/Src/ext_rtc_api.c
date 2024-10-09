@@ -196,7 +196,7 @@ void struct_tm_dec_to_bcd ( struct tm *struct_ptr )
   struct_ptr->tm_mon = (struct_ptr->tm_mon > 11) ?
       BCD_ERROR : dec_to_bcd[struct_ptr->tm_mon];
   struct_ptr->tm_year = (struct_ptr->tm_year - 2000 > 99) ?
-      BCD_ERROR : dec_to_bcd[struct_ptr->tm_year];
+      BCD_ERROR : struct_ptr->tm_year - 2000;
   struct_ptr->tm_wday = (struct_ptr->tm_wday > 6) ?
       BCD_ERROR : dec_to_bcd[struct_ptr->tm_wday];
 }

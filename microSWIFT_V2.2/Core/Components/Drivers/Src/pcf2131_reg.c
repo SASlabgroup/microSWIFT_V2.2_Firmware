@@ -110,17 +110,17 @@ int32_t pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_init_ptr init
 int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm *input_date_time )
 {
   int32_t ret = PCF2131_OK;
-  uint8_t bcd_year = dec_to_bcd[input_date_time->tm_year];
-  uint8_t bcd_month = dec_to_bcd[input_date_time->tm_mon];
+  uint8_t bcd_year = (uint8_t) input_date_time->tm_year;
+  uint8_t bcd_month = (uint8_t) input_date_time->tm_mon;
   uint8_t weekday =
       (input_date_time->tm_wday == WEEKDAY_UNKNOWN) ?
           __weekday_from_date (input_date_time->tm_year, input_date_time->tm_mon,
                                input_date_time->tm_mday) :
           (uint8_t) input_date_time->tm_wday;
-  uint8_t bcd_day = dec_to_bcd[input_date_time->tm_mday];
-  uint8_t bcd_hour = dec_to_bcd[input_date_time->tm_hour];
-  uint8_t bcd_min = dec_to_bcd[input_date_time->tm_min];
-  uint8_t bcd_sec = dec_to_bcd[input_date_time->tm_sec];
+  uint8_t bcd_day = (uint8_t) input_date_time->tm_mday;
+  uint8_t bcd_hour = (uint8_t) input_date_time->tm_hour;
+  uint8_t bcd_min = (uint8_t) input_date_time->tm_min;
+  uint8_t bcd_sec = (uint8_t) input_date_time->tm_sec;
   uint8_t bcd_sec_fraction = 0x00;
   uint8_t rtc_date_time[8] =
     { bcd_sec_fraction, bcd_sec, bcd_min, bcd_hour, bcd_day, weekday, bcd_month, bcd_year };
@@ -989,6 +989,7 @@ int32_t pcf2131_set_watchdog_timer_value ( dev_ctx_t *dev_handle, uint8_t timer_
 
 static uint8_t __weekday_from_date ( int y, int m, int d )
 {
+  y += 100;
   /* wikipedia.org/wiki/Determination_of_the_day_of_the_week#Implementation-dependent_methods */
   uint8_t weekday = (uint8_t) ((d += m < 3 ?
       y-- : y - 2, 23 * m / 9 + d + 4 + y / 4 - y / 100 + y / 400)
