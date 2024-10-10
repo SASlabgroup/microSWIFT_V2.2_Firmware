@@ -174,7 +174,7 @@ int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_ti
   return_date_time->tm_mon = time_date[6].months.month;
   return_date_time->tm_year = BCD_TO_DEC(time_date[7].years.tens_place,
       time_date[7].years.units_place)
-                              + 2000;
+                              + 100;
 
   return ret;
 }
