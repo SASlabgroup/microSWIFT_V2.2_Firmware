@@ -122,8 +122,9 @@ int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm *input_date_tim
   uint8_t bcd_min = (uint8_t) input_date_time->tm_min;
   uint8_t bcd_sec = (uint8_t) input_date_time->tm_sec;
   uint8_t bcd_sec_fraction = 0x00;
-  uint8_t rtc_date_time[8] =
-    { bcd_sec_fraction, bcd_sec, bcd_min, bcd_hour, bcd_day, weekday, bcd_month, bcd_year };
+  uint8_t rtc_date_time[9] =
+    { CLEAR_PRESCALAR_BIT_PATTERN, bcd_sec_fraction, bcd_sec, bcd_min, bcd_hour, bcd_day, weekday,
+      bcd_month, bcd_year };
 
   /*
    • set STOP bit
@@ -134,11 +135,13 @@ int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm *input_date_tim
    • clear STOP bit (time starts counting from now)
    */
 
+#error "Start here, something is wrong with setting or retrieving time."
+
   ret = pcf2131_set_stop_bit (dev_handle);
 
-  ret |= pcf2131_clear_prescalar (dev_handle);
+//  ret |= pcf2131_clear_prescalar (dev_handle);
 
-  ret |= dev_handle->bus_write (NULL, 0, ONE_100_SEC_REG_ADDR, &(rtc_date_time[0]),
+  ret |= dev_handle->bus_write (NULL, 0, RESET_REG_ADDR, &(rtc_date_time[0]),
                                 sizeof(rtc_date_time));
 
   ret |= pcf2131_clear_stop_bit (dev_handle);
@@ -151,9 +154,13 @@ int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_ti
   int32_t ret = PCF2131_OK;
   pcf2131_reg_t time_date[8] =
     { 0 };
+  uint8_t time_date_bytes =
+    { 0 };
 
   ret = dev_handle->bus_read (NULL, 0, ONE_100_SEC_REG_ADDR, (uint8_t*) &(time_date[0]),
                               sizeof(time_date));
+
+  memcpy (&(time_date_bytes[0]), &(time_date[0]), sizeof(time_date_bytes));
 
   return_date_time->tm_sec = BCD_TO_DEC(time_date[1].seconds.tens_place,
                                         time_date[1].seconds.units_place);
@@ -166,7 +173,8 @@ int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_ti
   return_date_time->tm_wday = time_date[5].weekday.weekday;
   return_date_time->tm_mon = time_date[6].months.month;
   return_date_time->tm_year = BCD_TO_DEC(time_date[7].years.tens_place,
-                                         time_date[7].years.units_place);
+      time_date[7].years.units_place)
+                              + 2000;
 
   return ret;
 }
