@@ -12,13 +12,13 @@
 #include "main.h"
 #include "threadx_support.h"
 
-static Ext_RTC *self;
+static Ext_RTC *rtc_self;
 
 /* Core struct functions */
 static rtc_return_code _ext_rtc_setup_rtc ( void );
 static rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms );
 static rtc_return_code _ext_rtc_refresh_watchdog ( void );
-static rtc_return_code _ext_rtc_set_date_time ( struct tm input_date_time );
+static rtc_return_code _ext_rtc_set_date_time ( struct tm *input_date_time );
 static rtc_return_code _ext_rtc_get_date_time ( struct tm *return_date_time );
 static rtc_return_code _ext_rtc_set_timestamp ( pcf2131_timestamp_t which_timestamp );
 static rtc_return_code _ext_rtc_get_timestamp ( pcf2131_timestamp_t which_timestamp,
@@ -35,6 +35,7 @@ static int32_t _ext_rtc_write_reg_spi_blocking ( void *unused_handle, uint16_t u
                                                  uint16_t reg_address, uint8_t *write_data,
                                                  uint16_t data_length );
 static void _ext_rtc_ms_delay ( uint32_t delay );
+static uint8_t __weekday_from_date ( int y, int m, int d );
 //static int32_t _ext_rtc_read_reg_spi_dma ( void *unused_handle, uint16_t unused_bus_address,
 //                                           uint16_t reg_address, uint8_t *read_data,
 //                                           uint16_t data_length );
@@ -56,45 +57,45 @@ rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_b
   int32_t ret;
   uint8_t register_read = 0;
   // Grab the global struct pointer
-  self = struct_ptr;
+  rtc_self = struct_ptr;
 
-  self->rtc_spi_bus = rtc_spi_bus;
+  rtc_self->rtc_spi_bus = rtc_spi_bus;
 
-  self->int_a_pin.port = RTC_INT_A_GPIO_Port;
-  self->int_a_pin.pin = RTC_INT_A_Pin;
-  self->int_b_pin.port = RTC_INT_B_GPIO_Port;
-  self->int_b_pin.pin = RTC_INT_B_Pin;
+  rtc_self->int_a_pin.port = RTC_INT_A_GPIO_Port;
+  rtc_self->int_a_pin.pin = RTC_INT_A_Pin;
+  rtc_self->int_b_pin.port = RTC_INT_B_GPIO_Port;
+  rtc_self->int_b_pin.pin = RTC_INT_B_Pin;
 
-  self->ts_pins[0].port = RTC_TIMESTAMP_1_GPIO_Port;
-  self->ts_pins[0].pin = RTC_TIMESTAMP_1_Pin;
+  rtc_self->ts_pins[0].port = RTC_TIMESTAMP_1_GPIO_Port;
+  rtc_self->ts_pins[0].pin = RTC_TIMESTAMP_1_Pin;
 
-  self->ts_pins[1].port = RTC_TIMESTAMP_2_GPIO_Port;
-  self->ts_pins[1].pin = RTC_TIMESTAMP_2_Pin;
+  rtc_self->ts_pins[1].port = RTC_TIMESTAMP_2_GPIO_Port;
+  rtc_self->ts_pins[1].pin = RTC_TIMESTAMP_2_Pin;
 
-  self->ts_pins[2].port = RTC_TIMESTAMP_3_GPIO_Port;
-  self->ts_pins[2].pin = RTC_TIMESTAMP_3_Pin;
+  rtc_self->ts_pins[2].port = RTC_TIMESTAMP_3_GPIO_Port;
+  rtc_self->ts_pins[2].pin = RTC_TIMESTAMP_3_Pin;
 
-  self->ts_pins[3].port = RTC_TIMESTAMP_4_GPIO_Port;
-  self->ts_pins[3].pin = RTC_TIMESTAMP_4_Pin;
+  rtc_self->ts_pins[3].port = RTC_TIMESTAMP_4_GPIO_Port;
+  rtc_self->ts_pins[3].pin = RTC_TIMESTAMP_4_Pin;
 
-  self->ts_in_use[0] = false;
-  self->ts_in_use[1] = false;
-  self->ts_in_use[2] = false;
-  self->ts_in_use[3] = false;
+  rtc_self->ts_in_use[0] = false;
+  rtc_self->ts_in_use[1] = false;
+  rtc_self->ts_in_use[2] = false;
+  rtc_self->ts_in_use[3] = false;
 
-  self->watchdog_refresh_time_val = 0;
+  rtc_self->watchdog_refresh_time_val = 0;
 
-  self->setup_rtc = _ext_rtc_setup_rtc;
-  self->config_watchdog = _ext_rtc_config_watchdog;
-  self->refresh_watchdog = _ext_rtc_refresh_watchdog;
-  self->set_date_time = _ext_rtc_set_date_time;
-  self->get_date_time = _ext_rtc_get_date_time;
-  self->set_timestamp = _ext_rtc_set_timestamp;
-  self->get_timestamp = _ext_rtc_get_timestamp;
-  self->set_alarm = _ext_rtc_set_alarm;
+  rtc_self->setup_rtc = _ext_rtc_setup_rtc;
+  rtc_self->config_watchdog = _ext_rtc_config_watchdog;
+  rtc_self->refresh_watchdog = _ext_rtc_refresh_watchdog;
+  rtc_self->set_date_time = _ext_rtc_set_date_time;
+  rtc_self->get_date_time = _ext_rtc_get_date_time;
+  rtc_self->set_timestamp = _ext_rtc_set_timestamp;
+  rtc_self->get_timestamp = _ext_rtc_get_timestamp;
+  rtc_self->set_alarm = _ext_rtc_set_alarm;
 
   // Register dev_ctx functions
-  if ( pcf2131_register_io_functions (&self->dev_ctx, _ext_rtc_spi_init, _ext_rtc_spi_deinit,
+  if ( pcf2131_register_io_functions (&rtc_self->dev_ctx, _ext_rtc_spi_init, _ext_rtc_spi_deinit,
                                       _ext_rtc_write_reg_spi_blocking,
                                       _ext_rtc_read_reg_spi_blocking, _ext_rtc_ms_delay, NULL)
        != PCF2131_OK )
@@ -103,13 +104,13 @@ rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_b
   }
 
   // Software reset the RTC
-  if ( pcf2131_software_reset (&self->dev_ctx) != PCF2131_OK )
+  if ( pcf2131_software_reset (&rtc_self->dev_ctx) != PCF2131_OK )
   {
     return RTC_SPI_ERROR;
   }
 
   // read the Software Reset register to see if the bit pattern matches default
-  ret = self->dev_ctx.bus_read (NULL, 0, RESET_REG_ADDR, &register_read, 1);
+  ret = rtc_self->dev_ctx.bus_read (NULL, 0, RESET_REG_ADDR, &register_read, 1);
 
   if ( ret != PCF2131_OK || register_read != RESET_REG_RESET_VAL )
   {
@@ -131,22 +132,22 @@ static rtc_return_code _ext_rtc_setup_rtc ( void )
     { 0 };
 
   // Clock output
-  ret = pcf2131_set_clkout_freq (&(self->dev_ctx), FREQ_32768);
+  ret = pcf2131_set_clkout_freq (&(rtc_self->dev_ctx), FREQ_32768);
   if ( ret != PCF2131_OK )
   {
     return RTC_SPI_ERROR;
   }
 
   // Power management scheme
-  ret = pcf2131_config_pwr_mgmt_scheme (&(self->dev_ctx), SWITCH_OVER_DIS_LOW_BATT_DIS);
+  ret = pcf2131_config_pwr_mgmt_scheme (&(rtc_self->dev_ctx), SWITCH_OVER_DIS_LOW_BATT_DIS);
   if ( ret != PCF2131_OK )
   {
     return RTC_SPI_ERROR;
   }
 
   // Temperature measurement/ compensation
-  ret = pcf2131_temp_comp_config (&(self->dev_ctx), true);
-  ret |= pcf2131_set_temp_meas_period (&(self->dev_ctx), EVERY_32_MINS);
+  ret = pcf2131_temp_comp_config (&(rtc_self->dev_ctx), true);
+  ret |= pcf2131_set_temp_meas_period (&(rtc_self->dev_ctx), EVERY_32_MINS);
   if ( ret != PCF2131_OK )
   {
     return RTC_SPI_ERROR;
@@ -154,7 +155,7 @@ static rtc_return_code _ext_rtc_setup_rtc ( void )
 
   // Interrupts: Int A will be used for alarm, Int B for watchdog, but this is set in function _ext_rtc_config_watchdog()
   irq_config.alarm_irq_en = true;
-  ret = pcf2131_config_int_a (&(self->dev_ctx), &irq_config);
+  ret = pcf2131_config_int_a (&(rtc_self->dev_ctx), &irq_config);
   if ( ret != PCF2131_OK )
   {
     return RTC_SPI_ERROR;
@@ -163,12 +164,12 @@ static rtc_return_code _ext_rtc_setup_rtc ( void )
   // Timestamps
   for ( int i = 0; i < NUMBER_OF_TIMESTAMPS; i++ )
   {
-    ret |= pcf2131_set_timestamp_enable (&self->dev_ctx, (pcf2131_timestamp_t) i, true);
-    ret |= pcf2131_set_timestamp_store_option (&self->dev_ctx, (pcf2131_timestamp_t) i,
+    ret |= pcf2131_set_timestamp_enable (&rtc_self->dev_ctx, (pcf2131_timestamp_t) i, true);
+    ret |= pcf2131_set_timestamp_store_option (&rtc_self->dev_ctx, (pcf2131_timestamp_t) i,
                                                FIRST_EVENT_STORED);
   }
 
-  ret |= pcf2131_clear_timestamps (&self->dev_ctx);
+  ret |= pcf2131_clear_timestamps (&rtc_self->dev_ctx);
   if ( ret != PCF2131_OK )
   {
     return RTC_SPI_ERROR;
@@ -177,7 +178,7 @@ static rtc_return_code _ext_rtc_setup_rtc ( void )
   // Perform OTP refresh, only on first start
   if ( is_first_sample_window () )
   {
-    ret = pcf2131_perform_otp_refresh (&self->dev_ctx);
+    ret = pcf2131_perform_otp_refresh (&rtc_self->dev_ctx);
   }
 
   return ret;
@@ -207,29 +208,29 @@ static rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
   if ( period_ms > PCF2131_1_4HZ_CLK_MAX_PERIOD_MS )
   {
     clock_select = HZ_1_64;
-    self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
+    rtc_self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
         round (((float) period_ms) * (1.0f / 64.0f)) + 1));
   }
   else if ( period_ms > (PCF2131_4HZ_CLK_MAX_PERIOD_MS) )
   {
     clock_select = HZ_1_4;
-    self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
+    rtc_self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
         round (((float) period_ms) * (1.0f / 4.0f)) + 1));
   }
   else if ( period_ms > PCF2131_64HZ_CLK_MAX_PERIOD_MS )
   {
     clock_select = HZ_4;
-    self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
+    rtc_self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
         round (((float) period_ms) * 4.0f) + 1));
   }
   else
   {
     clock_select = HZ_64;
-    self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
+    rtc_self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
         round (((float) period_ms) * 64.0f) + 1));
   }
 
-  ret = pcf2131_watchdog_config_time_source (&self->dev_ctx, clock_select);
+  ret = pcf2131_watchdog_config_time_source (&rtc_self->dev_ctx, clock_select);
   if ( ret != PCF2131_OK )
   {
     return RTC_SPI_ERROR;
@@ -237,10 +238,10 @@ static rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
 
   // Enable the watchdog interrupt on Int B
   irq_config.watchdog_irq_en = true;
-  ret = pcf2131_config_int_b (&self->dev_ctx, &irq_config);
+  ret = pcf2131_config_int_b (&rtc_self->dev_ctx, &irq_config);
 
   // Set the watchdog timer value -- watchdog will start at this point
-  ret = pcf2131_set_watchdog_timer_value (&self->dev_ctx, self->watchdog_refresh_time_val);
+  ret = pcf2131_set_watchdog_timer_value (&rtc_self->dev_ctx, rtc_self->watchdog_refresh_time_val);
   if ( ret != PCF2131_OK )
   {
     return RTC_SPI_ERROR;
@@ -258,7 +259,7 @@ static rtc_return_code _ext_rtc_refresh_watchdog ( void )
 {
   int32_t ret = RTC_SUCCESS;
 
-  ret = pcf2131_set_watchdog_timer_value (&self->dev_ctx, self->watchdog_refresh_time_val);
+  ret = pcf2131_set_watchdog_timer_value (&rtc_self->dev_ctx, rtc_self->watchdog_refresh_time_val);
   if ( ret != PCF2131_OK )
   {
     ret = RTC_SPI_ERROR;
@@ -272,22 +273,28 @@ static rtc_return_code _ext_rtc_refresh_watchdog ( void )
  * @param  input_date_time:= struct tm containing the desired time settings
  * @retval rtc_return_code
  */
-static rtc_return_code _ext_rtc_set_date_time ( struct tm input_date_time )
+static rtc_return_code _ext_rtc_set_date_time ( struct tm *input_date_time )
 {
   int32_t ret = RTC_SUCCESS;
 
-  // Convert to BCD format
-  struct_tm_dec_to_bcd (&input_date_time);
+  input_date_time->tm_wday =
+      (input_date_time->tm_wday == WEEKDAY_UNKNOWN) ?
+          __weekday_from_date (input_date_time->tm_year, input_date_time->tm_mon,
+                               input_date_time->tm_mday) :
+          (uint8_t) input_date_time->tm_wday;
 
-  if ( (input_date_time.tm_sec == BCD_ERROR) || (input_date_time.tm_min == BCD_ERROR)
-       || (input_date_time.tm_hour == BCD_ERROR) || (input_date_time.tm_mday == BCD_ERROR)
-       || (input_date_time.tm_mon == BCD_ERROR) || (input_date_time.tm_year == BCD_ERROR)
-       || (input_date_time.tm_year == BCD_ERROR) )
+  // Convert to BCD format
+  struct_tm_dec_to_bcd (input_date_time);
+
+  if ( (input_date_time->tm_sec == BCD_ERROR) || (input_date_time->tm_min == BCD_ERROR)
+       || (input_date_time->tm_hour == BCD_ERROR) || (input_date_time->tm_mday == BCD_ERROR)
+       || (input_date_time->tm_mon == BCD_ERROR) || (input_date_time->tm_year == BCD_ERROR)
+       || (input_date_time->tm_year == BCD_ERROR) )
   {
     return RTC_PARAMETERS_INVALID;
   }
 
-  ret = pcf2131_set_date_time (&self->dev_ctx, &input_date_time);
+  ret = pcf2131_set_date_time (&rtc_self->dev_ctx, input_date_time);
 
   if ( ret != PCF2131_OK )
   {
@@ -306,15 +313,12 @@ static rtc_return_code _ext_rtc_get_date_time ( struct tm *return_date_time )
 {
   int32_t ret = RTC_SUCCESS;
 
-  ret = pcf2131_get_date_time (&self->dev_ctx, return_date_time);
+  ret = pcf2131_get_date_time (&rtc_self->dev_ctx, return_date_time);
 
   if ( ret != PCF2131_OK )
   {
     ret = RTC_SPI_ERROR;
   }
-
-  // Convert to decimal
-  struct_tm_bcd_to_dec (return_date_time);
 
   return ret;
 }
@@ -333,19 +337,19 @@ static rtc_return_code _ext_rtc_set_timestamp ( pcf2131_timestamp_t which_timest
     return RTC_PARAMETERS_INVALID;
   }
 
-  if ( self->ts_in_use[which_timestamp] )
+  if ( rtc_self->ts_in_use[which_timestamp] )
   {
     return RTC_TIMESTAMP_ALREADY_IN_USE;
   }
 
   // Active low pins
-  HAL_GPIO_WritePin (self->ts_pins[which_timestamp].port, self->ts_pins[which_timestamp].pin,
-                     GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (rtc_self->ts_pins[which_timestamp].port,
+                     rtc_self->ts_pins[which_timestamp].pin, GPIO_PIN_RESET);
   tx_thread_sleep (1);
-  HAL_GPIO_WritePin (self->ts_pins[which_timestamp].port, self->ts_pins[which_timestamp].pin,
-                     GPIO_PIN_SET);
+  HAL_GPIO_WritePin (rtc_self->ts_pins[which_timestamp].port,
+                     rtc_self->ts_pins[which_timestamp].pin, GPIO_PIN_SET);
 
-  self->ts_in_use[which_timestamp] = true;
+  rtc_self->ts_in_use[which_timestamp] = true;
 
   return ret;
 }
@@ -367,26 +371,26 @@ static rtc_return_code _ext_rtc_get_timestamp ( pcf2131_timestamp_t which_timest
     return RTC_PARAMETERS_INVALID;
   }
 
-  if ( !self->ts_in_use[which_timestamp] )
+  if ( !rtc_self->ts_in_use[which_timestamp] )
   {
     return RTC_TIMESTAMP_NOT_SET;
   }
 
   // Grab the timestamp
-  ret = pcf2131_get_timestamp (&self->dev_ctx, which_timestamp, &timestamp_struct);
+  ret = pcf2131_get_timestamp (&rtc_self->dev_ctx, which_timestamp, &timestamp_struct);
   if ( ret != PCF2131_OK )
   {
     return RTC_SPI_ERROR;
   }
 
   // Clear the timestamp flag
-  ret = pcf2131_clear_timestamp_flag (&self->dev_ctx, which_timestamp);
+  ret = pcf2131_clear_timestamp_flag (&rtc_self->dev_ctx, which_timestamp);
   if ( ret != PCF2131_OK )
   {
     return RTC_SPI_ERROR;
   }
 
-  self->ts_in_use[which_timestamp] = false;
+  rtc_self->ts_in_use[which_timestamp] = false;
 
   *return_timestamp = mktime (&timestamp_struct);
 
@@ -402,7 +406,7 @@ static rtc_return_code _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting )
 {
   int32_t ret = RTC_SUCCESS;
 
-  ret = pcf2131_set_alarm (&self->dev_ctx, &alarm_setting);
+  ret = pcf2131_set_alarm (&rtc_self->dev_ctx, &alarm_setting);
   if ( ret != PCF2131_OK )
   {
     return RTC_SPI_ERROR;
@@ -420,7 +424,7 @@ static int32_t _ext_rtc_spi_init ( void )
 {
   rtc_return_code retval = PCF2131_OK;
 
-  if ( !spi_bus_init_status (self->rtc_spi_bus->Instance) )
+  if ( !spi_bus_init_status (rtc_self->rtc_spi_bus->Instance) )
   {
     retval = spi1_init ();
   }
@@ -437,7 +441,7 @@ static int32_t _ext_rtc_spi_deinit ( void )
 {
   int32_t retval = PCF2131_OK;
 
-  if ( spi_bus_init_status (self->rtc_spi_bus->Instance) )
+  if ( spi_bus_init_status (rtc_self->rtc_spi_bus->Instance) )
   {
     retval = spi1_deinit ();
   }
@@ -471,8 +475,9 @@ static int32_t _ext_rtc_read_reg_spi_blocking ( void *unused_handle, uint16_t un
 
   HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
 
-  if ( HAL_SPI_TransmitReceive (self->rtc_spi_bus, &(write_buf[0]), &read_buf[0], data_length + 1,
-  RTC_SPI_TIMEOUT)
+  if ( HAL_SPI_TransmitReceive (rtc_self->rtc_spi_bus, &(write_buf[0]), &read_buf[0],
+                                data_length + 1,
+                                RTC_SPI_TIMEOUT)
        != HAL_OK )
   {
     retval = PCF2131_ERROR;
@@ -510,7 +515,8 @@ static int32_t _ext_rtc_write_reg_spi_blocking ( void *unused_handle, uint16_t u
 
   HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
 
-  if ( HAL_SPI_Transmit (self->rtc_spi_bus, write_buf, data_length + 1, RTC_SPI_TIMEOUT) != HAL_OK )
+  if ( HAL_SPI_Transmit (rtc_self->rtc_spi_bus, write_buf, data_length + 1, RTC_SPI_TIMEOUT)
+       != HAL_OK )
   {
     retval = PCF2131_ERROR;
   }
@@ -531,6 +537,17 @@ static void _ext_rtc_ms_delay ( uint32_t delay )
       0 : delay / (1000 / TX_TIMER_TICKS_PER_SECOND);
 
   tx_thread_sleep (delay_ticks);
+}
+
+static uint8_t __weekday_from_date ( int y, int m, int d )
+{
+  y += 2000;
+  /* wikipedia.org/wiki/Determination_of_the_day_of_the_week#Implementation-dependent_methods */
+  uint8_t weekday = (uint8_t) ((d += m < 3 ?
+      y-- : y - 2, 23 * m / 9 + d + 4 + y / 4 - y / 100 + y / 400)
+                               % 7);
+
+  return weekday;
 }
 
 ///**
@@ -556,7 +573,7 @@ static void _ext_rtc_ms_delay ( uint32_t delay )
 //
 //  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
 //
-//  if ( HAL_SPI_TransmitReceive_DMA (self->rtc_spi_bus, write_buf, read_data, data_length)
+//  if ( HAL_SPI_TransmitReceive_DMA (rtc_self->rtc_spi_bus, write_buf, read_data, data_length)
 //       != HAL_OK )
 //  {
 //    retval = PCF2131_ERROR;
@@ -601,7 +618,7 @@ static void _ext_rtc_ms_delay ( uint32_t delay )
 //
 //  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
 //
-//  if ( HAL_SPI_Transmit_DMA (self->rtc_spi_bus, write_buf, data_length + 1) != HAL_OK )
+//  if ( HAL_SPI_Transmit_DMA (rtc_self->rtc_spi_bus, write_buf, data_length + 1) != HAL_OK )
 //  {
 //    retval = PCF2131_ERROR;
 //    goto done;

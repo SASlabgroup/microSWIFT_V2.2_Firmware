@@ -57,14 +57,14 @@
 /* External variables --------------------------------------------------------*/
 extern I2C_HandleTypeDef hi2c1;
 extern I2C_HandleTypeDef hi2c2;
-extern DMA_HandleTypeDef handle_GPDMA1_Channel9;
-extern DMA_HandleTypeDef handle_GPDMA1_Channel8;
-extern DMA_HandleTypeDef handle_GPDMA1_Channel11;
-extern DMA_HandleTypeDef handle_GPDMA1_Channel10;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel1;
 extern DMA_NodeTypeDef Node_GPDMA1_Channel0;
 extern DMA_QListTypeDef List_GPDMA1_Channel0;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel0;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel9;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel8;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel11;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel10;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel3;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel2;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel5;

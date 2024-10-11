@@ -433,7 +433,7 @@ typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
   uint8_t hours_units_place :4;
-  uint8_t hours_tens_place :4;
+  uint8_t hours_tens_place :2;
   uint8_t dash_bit :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
   uint8_t dash_bit :2;

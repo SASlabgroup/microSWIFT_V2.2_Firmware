@@ -35,7 +35,7 @@ rtc_return_code rtc_server_get_time ( struct tm *return_time_struct, UINT comple
   ULONG event_flags;
 
   queue_msg.request = GET_TIME;
-  queue_msg.input_output_struct.get_set_time.time_struct = *return_time_struct;
+  queue_msg.input_output_struct.get_set_time.time_struct = return_time_struct;
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 
@@ -54,7 +54,7 @@ rtc_return_code rtc_server_get_time ( struct tm *return_time_struct, UINT comple
   return ret;
 }
 
-rtc_return_code rtc_server_set_time ( struct tm input_time_struct, UINT complete_flag )
+rtc_return_code rtc_server_set_time ( struct tm *input_time_struct, UINT complete_flag )
 {
   int32_t ret = RTC_SUCCESS;
   rtc_request_message queue_msg =
@@ -196,9 +196,7 @@ void struct_tm_dec_to_bcd ( struct tm *struct_ptr )
   struct_ptr->tm_mon = (struct_ptr->tm_mon > 11) ?
       BCD_ERROR : dec_to_bcd[struct_ptr->tm_mon];
   struct_ptr->tm_year = (struct_ptr->tm_year - 2000 > 99) ?
-      BCD_ERROR : struct_ptr->tm_year - 2000;
-  struct_ptr->tm_wday = (struct_ptr->tm_wday > 6) ?
-      BCD_ERROR : dec_to_bcd[struct_ptr->tm_wday];
+      BCD_ERROR : dec_to_bcd[struct_ptr->tm_year - 2000];
 }
 
 // Not guaranteed to be safe...

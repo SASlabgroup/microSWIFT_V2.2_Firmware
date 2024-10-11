@@ -198,11 +198,11 @@ static void accelerometer_thread_entry ( ULONG thread_input );
 /* USER CODE END PFP */
 
 /**
- * @brief  Application ThreadX Initialization.
- * @param memory_ptr: memory pointer
- * @retval int
- */
-UINT App_ThreadX_Init ( VOID *memory_ptr )
+  * @brief  Application ThreadX Initialization.
+  * @param memory_ptr: memory pointer
+  * @retval int
+  */
+UINT App_ThreadX_Init(VOID *memory_ptr)
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -445,28 +445,28 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   /************************************************************************************************
    **************************************** Timers ************************************************
    ************************************************************************************************/
-  ret = tx_timer_create(&control_timer, "Control thread timer", control_timer_expired, 0, 1, 1,
+  ret = tx_timer_create(&control_timer, "Control thread timer", control_timer_expired, 0, 1, 0,
                         TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
-  ret = tx_timer_create(&gnss_timer, "GNSS thread timer", gnss_timer_expired, 0, 1, 1,
+  ret = tx_timer_create(&gnss_timer, "GNSS thread timer", gnss_timer_expired, 0, 1, 0,
                         TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
-  ret = tx_timer_create(&ct_timer, "CT thread timer", ct_timer_expired, 0, 1, 1, TX_NO_ACTIVATE);
+  ret = tx_timer_create(&ct_timer, "CT thread timer", ct_timer_expired, 0, 1, 0, TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
   ret = tx_timer_create(&temperature_timer, "Temperature thread timer", temperature_timer_expired,
-                        0, 1, 1, TX_NO_ACTIVATE);
+                        0, 1, 0, TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -612,7 +612,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   device_handles.core_spi_handle = &hspi1;
   device_handles.core_i2c_handle = &hi2c1;
   device_handles.iridium_uart_handle = &huart4;
-  device_handles.gnss_uart_handle = &huart1;
+  device_handles.gnss_uart_handle = &hlpuart1;
   device_handles.ct_uart_handle = &huart5;
   device_handles.logger_uart_handle = &huart6;
   device_handles.ext_flash_handle = &hospi1;
@@ -665,18 +665,18 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   return ret;
 }
 
-/**
- * @brief  Function that implements the kernel's initialization.
- * @param  None
- * @retval None
- */
-void MX_ThreadX_Init ( void )
+  /**
+  * @brief  Function that implements the kernel's initialization.
+  * @param  None
+  * @retval None
+  */
+void MX_ThreadX_Init(void)
 {
   /* USER CODE BEGIN  Before_Kernel_Start */
 
   /* USER CODE END  Before_Kernel_Start */
 
-  tx_kernel_enter ();
+  tx_kernel_enter();
 
   /* USER CODE BEGIN  Kernel_Start_Error */
 
@@ -722,6 +722,9 @@ static void rtc_thread_entry ( ULONG thread_input )
 
   rtc_server_init (&rtc_messaging_queue, &rtc_complete_flags);
 
+  // Setup the RTC
+  ret |= rtc.setup_rtc ();
+
   // Initialize the watchdog
   ret |= rtc.config_watchdog (WATCHDOG_PERIOD);
 
@@ -747,7 +750,7 @@ static void rtc_thread_entry ( ULONG thread_input )
           break;
 
         case GET_TIME:
-          ret = rtc.get_date_time (&req.input_output_struct.get_set_time.time_struct);
+          ret = rtc.get_date_time (req.input_output_struct.get_set_time.time_struct);
           break;
 
         case SET_TIME:
@@ -882,6 +885,7 @@ static void control_thread_entry ( ULONG thread_input )
   while ( 1 )
   {
     watchdog_check_in (CONTROL_THREAD);
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
 
     // TODO: Continue with the correct logic, i.e. if GNSS timed out, set alarm and shut down.
     //       Otherwise, continue with other sensors, run waves, etc. Try to keep as many threads
@@ -917,7 +921,6 @@ static void gnss_thread_entry ( ULONG thread_input )
   uint8_t ubx_message_process_buf[GNSS_MESSAGE_BUF_SIZE];
   uint8_t gnss_config_response_buf[GNSS_CONFIG_BUFFER_SIZE];
   float *north = NULL, *east = NULL, *down = NULL;
-
   gnss_return_code_t gnss_return_code;
   int number_of_no_sample_errors = 0;
   float last_lat = 0;
@@ -926,7 +929,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   UINT tx_return;
   ULONG actual_flags;
   int timer_ticks_to_get_message = round (
-      ((float) TX_TIMER_TICKS_PER_SECOND / (float) configuration.gnss_sampling_rate) + 1);
+      ((float) TX_TIMER_TICKS_PER_SECOND / (float) configuration.gnss_sampling_rate) + 5);
   uint16_t sample_window_timeout = ((configuration.samples_per_window
                                      / configuration.gnss_sampling_rate)
                                     / 60)
@@ -1015,7 +1018,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   watchdog_check_in (GNSS_THREAD);
 
   // Start the timer for resolution stages
-  gnss.start_timer (TX_TIMER_TICKS_PER_SECOND * 60 * gnss_max_acq_time);
+  gnss.start_timer (gnss_max_acq_time);
 
   // Frame sync and switch to DMA circular mode
   if ( gnss.sync_and_start_reception () != GNSS_SUCCESS )
@@ -1031,7 +1034,11 @@ static void gnss_thread_entry ( ULONG thread_input )
   // **NOTE: RTC will be set when time is resolved
   while ( !(gnss.all_resolution_stages_complete || gnss_get_timer_timeout_status ()) )
   {
-    watchdog_check_in (GNSS_THREAD);
+    // Refresh watchdog every 30 seconds
+    if ( tx_time_get () % (TX_TIMER_TICKS_PER_SECOND * 30) == 0 )
+    {
+      watchdog_check_in (GNSS_THREAD);
+    }
 
     tx_return = tx_event_flags_get (&irq_flags, (GNSS_MSG_RECEIVED | GNSS_MSG_INCOMPLETE),
     TX_OR_CLEAR,
@@ -1053,12 +1060,15 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   // Start the sample window timer
   gnss.stop_timer ();
-  gnss.start_timer (TX_TIMER_TICKS_PER_SECOND * 60 * sample_window_timeout);
+  gnss.start_timer (sample_window_timeout);
 
   // Process messages until complete
   while ( !gnss_get_sample_window_complete () )
   {
-    watchdog_check_in (GNSS_THREAD);
+    if ( tx_time_get () % (TX_TIMER_TICKS_PER_SECOND * 30) == 0 )
+    {
+      watchdog_check_in (GNSS_THREAD);
+    }
 
     tx_return = tx_event_flags_get (&irq_flags, (GNSS_MSG_RECEIVED | GNSS_MSG_INCOMPLETE),
     TX_OR_CLEAR,

@@ -66,18 +66,18 @@ extern DMA_HandleTypeDef handle_GPDMA1_Channel11;
 
 #define CT_UART UART5
 #define IRIDIUM_UART UART4
-#define GNSS_UART USART1
+#define GNSS_UART LPUART1
 #define AUX_UART_1 USART2
 #define AUX_UART_2 USART3
 /* USER CODE END Private defines */
 
-void MX_LPUART1_UART_Init(void);
-void MX_UART4_Init(void);
-void MX_UART5_Init(void);
-void MX_USART1_UART_Init(void);
-void MX_USART2_UART_Init(void);
-void MX_USART3_UART_Init(void);
-void MX_USART6_UART_Init(void);
+void MX_LPUART1_UART_Init ( void );
+void MX_UART4_Init ( void );
+void MX_UART5_Init ( void );
+void MX_USART1_UART_Init ( void );
+void MX_USART2_UART_Init ( void );
+void MX_USART3_UART_Init ( void );
+void MX_USART6_UART_Init ( void );
 
 /* USER CODE BEGIN Prototypes */
 int32_t uart4_init ( void );

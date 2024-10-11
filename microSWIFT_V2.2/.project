@@ -68,11 +68,6 @@
 			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_exti.c</locationURI>
 		</link>
 		<link>
-			<name>Drivers/STM32U5xx_HAL_Driver/stm32u5xx_hal_fdcan.c</name>
-			<type>1</type>
-			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_fdcan.c</locationURI>
-		</link>
-		<link>
 			<name>Drivers/STM32U5xx_HAL_Driver/stm32u5xx_hal_flash.c</name>
 			<type>1</type>
 			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_flash.c</locationURI>
@@ -133,16 +128,6 @@
 			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_rcc_ex.c</locationURI>
 		</link>
 		<link>
-			<name>Drivers/STM32U5xx_HAL_Driver/stm32u5xx_hal_sd.c</name>
-			<type>1</type>
-			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_sd.c</locationURI>
-		</link>
-		<link>
-			<name>Drivers/STM32U5xx_HAL_Driver/stm32u5xx_hal_sd_ex.c</name>
-			<type>1</type>
-			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_sd_ex.c</locationURI>
-		</link>
-		<link>
 			<name>Drivers/STM32U5xx_HAL_Driver/stm32u5xx_hal_spi.c</name>
 			<type>1</type>
 			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_spi.c</locationURI>
@@ -176,11 +161,6 @@
 			<name>Drivers/STM32U5xx_HAL_Driver/stm32u5xx_ll_dlyb.c</name>
 			<type>1</type>
 			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_dlyb.c</locationURI>
-		</link>
-		<link>
-			<name>Drivers/STM32U5xx_HAL_Driver/stm32u5xx_ll_sdmmc.c</name>
-			<type>1</type>
-			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_sdmmc.c</locationURI>
 		</link>
 		<link>
 			<name>Middlewares/FileX/Core/fx_directory_attributes_read.c</name>

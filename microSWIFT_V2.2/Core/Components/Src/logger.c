@@ -37,8 +37,9 @@ void uart_logger_init ( uart_logger *logger, TX_BLOCK_POOL *block_pool, TX_QUEUE
   logger_self->send_log_line = _logger_send_log_line;
   logger_self->return_line_buffer = _logger_return_buffer;
 
+  // If the enable pin is being pulled to ground, enable the logger
   if ( HAL_GPIO_ReadPin (logger_self->enable_pin.port, logger_self->enable_pin.pin)
-       == GPIO_PIN_SET )
+       == GPIO_PIN_RESET )
   {
     logger_self->logger_enabled = true;
   }

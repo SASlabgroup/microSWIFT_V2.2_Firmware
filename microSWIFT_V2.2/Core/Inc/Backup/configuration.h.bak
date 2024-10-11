@@ -34,7 +34,7 @@
 #define WATCHDOG_PERIOD 600000 // 1 min (in ms)
 #else
 // Number of samples in each sampling window
-#define TOTAL_SAMPLES_PER_WINDOW 8192
+#define TOTAL_SAMPLES_PER_WINDOW 1024
 
 // The max time in MINUTES to try to get an Iridium message off
 #define IRIDIUM_MAX_TRANSMIT_TIME 15

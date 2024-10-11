@@ -6,6 +6,7 @@
  */
 
 #include "pcf2131_reg.h"
+#include "string.h"
 
 uint8_t dec_to_bcd[100] =
   { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, // 0-9
@@ -110,13 +111,13 @@ int32_t pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_init_ptr init
 int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm *input_date_time )
 {
   int32_t ret = PCF2131_OK;
-  uint8_t bcd_year = (uint8_t) input_date_time->tm_year;
-  uint8_t bcd_month = (uint8_t) input_date_time->tm_mon;
   uint8_t weekday =
       (input_date_time->tm_wday == WEEKDAY_UNKNOWN) ?
           __weekday_from_date (input_date_time->tm_year, input_date_time->tm_mon,
                                input_date_time->tm_mday) :
           (uint8_t) input_date_time->tm_wday;
+  uint8_t bcd_year = (uint8_t) input_date_time->tm_year;
+  uint8_t bcd_month = (uint8_t) input_date_time->tm_mon;
   uint8_t bcd_day = (uint8_t) input_date_time->tm_mday;
   uint8_t bcd_hour = (uint8_t) input_date_time->tm_hour;
   uint8_t bcd_min = (uint8_t) input_date_time->tm_min;
@@ -135,8 +136,6 @@ int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm *input_date_tim
    • clear STOP bit (time starts counting from now)
    */
 
-#error "Start here, something is wrong with setting or retrieving time."
-
   ret = pcf2131_set_stop_bit (dev_handle);
 
 //  ret |= pcf2131_clear_prescalar (dev_handle);
@@ -154,13 +153,13 @@ int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_ti
   int32_t ret = PCF2131_OK;
   pcf2131_reg_t time_date[8] =
     { 0 };
-  uint8_t time_date_bytes =
+  uint8_t time_date_bytes[8] =
     { 0 };
 
   ret = dev_handle->bus_read (NULL, 0, ONE_100_SEC_REG_ADDR, (uint8_t*) &(time_date[0]),
                               sizeof(time_date));
 
-  memcpy (&(time_date_bytes[0]), &(time_date[0]), sizeof(time_date_bytes));
+  memcpy ((void*) &(time_date_bytes[0]), (void*) &(time_date[0]), sizeof(time_date_bytes));
 
   return_date_time->tm_sec = BCD_TO_DEC(time_date[1].seconds.tens_place,
                                         time_date[1].seconds.units_place);
@@ -171,10 +170,14 @@ int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_ti
   return_date_time->tm_mday = BCD_TO_DEC(time_date[4].days.tens_place,
                                          time_date[4].days.units_place);
   return_date_time->tm_wday = time_date[5].weekday.weekday;
-  return_date_time->tm_mon = time_date[6].months.month;
+  return_date_time->tm_mon = BCD_TO_DEC(((time_date[6].months.month & 0x10) >> 4),
+      (time_date[6].months.month & 0x0F))
+                             - 1;
   return_date_time->tm_year = BCD_TO_DEC(time_date[7].years.tens_place,
       time_date[7].years.units_place)
                               + 100;
+  return_date_time->tm_yday = 0;
+  return_date_time->tm_isdst = 0;
 
   return ret;
 }
@@ -997,7 +1000,7 @@ int32_t pcf2131_set_watchdog_timer_value ( dev_ctx_t *dev_handle, uint8_t timer_
 
 static uint8_t __weekday_from_date ( int y, int m, int d )
 {
-  y += 100;
+  y += 2000;
   /* wikipedia.org/wiki/Determination_of_the_day_of_the_week#Implementation-dependent_methods */
   uint8_t weekday = (uint8_t) ((d += m < 3 ?
       y-- : y - 2, 23 * m / 9 + d + 4 + y / 4 - y / 100 + y / 400)

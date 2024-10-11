@@ -35,7 +35,7 @@ typedef struct
   rtc_return_code (*setup_rtc) ( void );
   rtc_return_code (*config_watchdog) ( uint32_t period_ms );
   rtc_return_code (*refresh_watchdog) ( void );
-  rtc_return_code (*set_date_time) ( struct tm input_date_time );
+  rtc_return_code (*set_date_time) ( struct tm *input_date_time );
   rtc_return_code (*get_date_time) ( struct tm *return_date_time );
   rtc_return_code (*set_timestamp) ( pcf2131_timestamp_t which_timestamp );
   rtc_return_code (*get_timestamp) ( pcf2131_timestamp_t which_timestamp, time_t *return_timestamp );

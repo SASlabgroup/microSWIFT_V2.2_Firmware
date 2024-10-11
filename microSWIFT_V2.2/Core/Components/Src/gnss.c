@@ -265,7 +265,10 @@ static gnss_return_code_t _gnss_sync_and_start_reception ( void )
   // the gnss_max_acquisition_wait_time
   while ( !gnss_self->timer_timeout )
   {
-    watchdog_check_in (GNSS_THREAD);
+    if ( tx_time_get () % (TX_TIMER_TICKS_PER_SECOND * 30) == 0 )
+    {
+      watchdog_check_in (GNSS_THREAD);
+    }
     // Grab 5 UBX_NAV_PVT messages
     HAL_UART_Receive_DMA (gnss_self->gnss_uart_handle, &(msg_buf[0]), INITIAL_STAGES_BUFFER_SIZE);
 
@@ -521,11 +524,12 @@ static gnss_return_code_t _gnss_set_rtc ( uint8_t *msg_payload )
   time.tm_year = year;
   time.tm_mon = month;
   time.tm_mday = day;
+  time.tm_wday = WEEKDAY_UNKNOWN;
   time.tm_hour = hour;
   time.tm_min = min;
   time.tm_sec = sec;
 
-  rtc_ret = rtc_server_set_time (time, GNSS_REQUEST_PROCESSED);
+  rtc_ret = rtc_server_set_time (&time, GNSS_REQUEST_PROCESSED);
 
   if ( rtc_ret != RTC_SUCCESS )
   {
@@ -571,7 +575,7 @@ static gnss_return_code_t _gnss_reset_uart ( void )
  */
 static gnss_return_code_t _gnss_start_timer ( uint16_t timeout_in_minutes )
 {
-  uint16_t timeout = TX_TIMER_TICKS_PER_SECOND * timeout_in_minutes;
+  ULONG timeout = TX_TIMER_TICKS_PER_SECOND * 60 * timeout_in_minutes;
   gnss_return_code_t ret = GNSS_SUCCESS;
 
   if ( tx_timer_change (gnss_self->timer, timeout, 0) != TX_SUCCESS )
@@ -936,7 +940,6 @@ static gnss_return_code_t __enable_high_performance_mode ( void )
         // Now send over the command to enable high performance mode
         while ( config_step_attempts < MAX_CONFIG_STEP_ATTEMPTS )
         {
-          watchdog_check_in (GNSS_THREAD);
           return_code = __send_config (&(enable_high_performance_mode[0]),
           ENABLE_HIGH_PERFORMANCE_SIZE,
                                        0x06, 0x41);
@@ -972,7 +975,6 @@ static gnss_return_code_t __enable_high_performance_mode ( void )
         // Now check to see if the changes stuck
         while ( config_step_attempts < MAX_CONFIG_STEP_ATTEMPTS )
         {
-          watchdog_check_in (GNSS_THREAD);
           return_code = __query_high_performance_mode ();
 
           if ( return_code != GNSS_SUCCESS )
@@ -1136,8 +1138,6 @@ static time_t __get_timestamp ( void )
   {
     return -1;
   }
-
-  time.tm_isdst = -1;
 
   return mktime (&time);
 }

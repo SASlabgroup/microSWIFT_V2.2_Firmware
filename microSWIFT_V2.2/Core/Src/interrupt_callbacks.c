@@ -162,6 +162,7 @@ void HAL_UART_ErrorCallback ( UART_HandleTypeDef *huart )
  *               reception buffer until which, data are available)
  * @retval None
  */
+uint16_t msg_size = 0;
 void HAL_UARTEx_RxEventCallback ( UART_HandleTypeDef *huart, uint16_t Size )
 {
   if ( huart->Instance == CT_UART )
@@ -183,6 +184,7 @@ void HAL_UARTEx_RxEventCallback ( UART_HandleTypeDef *huart, uint16_t Size )
     }
     else if ( Size < UBX_NAV_PVT_MESSAGE_LENGTH )
     {
+      msg_size = Size;
       (void) tx_event_flags_set (&irq_flags, GNSS_MSG_INCOMPLETE, TX_OR);
     }
     else

@@ -66,7 +66,7 @@ extern DMA_HandleTypeDef handle_GPDMA1_Channel11;
 
 #define CT_UART UART5
 #define IRIDIUM_UART UART4
-#define GNSS_UART USART1
+#define GNSS_UART LPUART1
 #define AUX_UART_1 USART2
 #define AUX_UART_2 USART3
 /* USER CODE END Private defines */

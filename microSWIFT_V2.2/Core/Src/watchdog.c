@@ -97,7 +97,7 @@ void watchdog_event_callback ( TX_EVENT_FLAGS_GROUP *flags_group_ptr )
   // Control thread always has to check in
   required_flags |= CONTROL_THREAD;
 
-  retval = tx_event_flags_get (flags_group_ptr, required_flags, TX_OR, &current_flags, TX_NO_WAIT);
+  retval = tx_event_flags_get (flags_group_ptr, required_flags, TX_AND, &current_flags, TX_NO_WAIT);
 
   // All of the threads have not checked in
   if ( retval != TX_SUCCESS )

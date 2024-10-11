@@ -31,10 +31,8 @@
 #include "main.h"
 
 /* Exported types ------------------------------------------------------------*/
-/* USER CODE BEGIN ET */
 extern DMA_NodeTypeDef gnss_dma_linked_list_node;
 extern DMA_QListTypeDef gnss_dma_linked_list;
-/* USER CODE END ET */
 /* Exported constants --------------------------------------------------------*/
 HAL_StatusTypeDef MX_gnss_dma_linked_list_Config ( void );
 

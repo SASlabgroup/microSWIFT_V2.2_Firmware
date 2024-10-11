@@ -167,8 +167,6 @@ void Error_Handler(void);
 #define GNSS_UART_TX_GPIO_Port GPIOA
 #define GNSS_UART_RX_Pin GPIO_PIN_10
 #define GNSS_UART_RX_GPIO_Port GPIOA
-#define CAN_RX_Pin GPIO_PIN_11
-#define CAN_RX_GPIO_Port GPIOA
 #define RAM_NCS_Pin GPIO_PIN_12
 #define RAM_NCS_GPIO_Port GPIOA
 #define AUX_SPI_2_SCK_Pin GPIO_PIN_10
@@ -180,8 +178,6 @@ void Error_Handler(void);
 #define IRIDIUM_RI_N_Pin GPIO_PIN_0
 #define IRIDIUM_RI_N_GPIO_Port GPIOD
 #define IRIDIUM_RI_N_EXTI_IRQn EXTI0_IRQn
-#define CAN_TX_Pin GPIO_PIN_1
-#define CAN_TX_GPIO_Port GPIOD
 #define CT_UART_RX_Pin GPIO_PIN_2
 #define CT_UART_RX_GPIO_Port GPIOD
 #define IRIDIUM_OnOff_Pin GPIO_PIN_3

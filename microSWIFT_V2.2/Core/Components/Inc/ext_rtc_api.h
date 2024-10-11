@@ -59,13 +59,13 @@ typedef enum
 // Message struct for GET_TIME request
 typedef struct
 {
-  struct tm time_struct;
+  struct tm *time_struct;
 } rtc_get_time_t;
 
 // Message struct for SET_TIME request
 typedef struct
 {
-  struct tm time_struct;
+  struct tm *time_struct;
 } rtc_set_time_t;
 
 // Message struct for GET_TIMESTAMP request
@@ -106,7 +106,7 @@ typedef struct
 void            rtc_server_init ( TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP *complete_flags );
 void            rtc_server_refresh_watchdog ( void );
 rtc_return_code rtc_server_get_time ( struct tm *return_time_struct, UINT complete_flag );
-rtc_return_code rtc_server_set_time ( struct tm input_time_struct, UINT complete_flag );
+rtc_return_code rtc_server_set_time ( struct tm *input_time_struct, UINT complete_flag );
 rtc_return_code rtc_server_set_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag );
 rtc_return_code rtc_server_get_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag );
 rtc_return_code rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UINT complete_flag );
