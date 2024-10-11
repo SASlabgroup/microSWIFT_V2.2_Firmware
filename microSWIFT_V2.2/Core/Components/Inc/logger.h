@@ -14,6 +14,7 @@
 #include "stdarg.h"
 #include "stdbool.h"
 #include "gpio.h"
+#include "time.h"
 
 #define LOG_QUEUE_LENGTH 16
 

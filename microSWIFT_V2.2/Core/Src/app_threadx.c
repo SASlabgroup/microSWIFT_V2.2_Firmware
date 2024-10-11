@@ -198,11 +198,11 @@ static void accelerometer_thread_entry ( ULONG thread_input );
 /* USER CODE END PFP */
 
 /**
-  * @brief  Application ThreadX Initialization.
-  * @param memory_ptr: memory pointer
-  * @retval int
-  */
-UINT App_ThreadX_Init(VOID *memory_ptr)
+ * @brief  Application ThreadX Initialization.
+ * @param memory_ptr: memory pointer
+ * @retval int
+ */
+UINT App_ThreadX_Init ( VOID *memory_ptr )
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -230,28 +230,28 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   }
   //
   // Allocate stack for the rtc thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, S_STACK, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the rtc thread. VERY_HIGH priority level and no preemption possible
-  ret = tx_thread_create(&rtc_thread, "rtc thread", rtc_thread_entry, 0, pointer, S_STACK,
-                         VERY_HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
+  ret = tx_thread_create(&rtc_thread, "rtc thread", rtc_thread_entry, 0, pointer, M_STACK,
+                         VERY_HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   //
   // Allocate stack for the logger thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, S_STACK,
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK,
   TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the logger thread. Low priority priority level and no preemption possible
-  ret = tx_thread_create(&logger_thread, "logger thread", logger_thread_entry, 0, pointer, S_STACK,
+  ret = tx_thread_create(&logger_thread, "logger thread", logger_thread_entry, 0, pointer, M_STACK,
                          LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
@@ -665,18 +665,18 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   return ret;
 }
 
-  /**
-  * @brief  Function that implements the kernel's initialization.
-  * @param  None
-  * @retval None
-  */
-void MX_ThreadX_Init(void)
+/**
+ * @brief  Function that implements the kernel's initialization.
+ * @param  None
+ * @retval None
+ */
+void MX_ThreadX_Init ( void )
 {
   /* USER CODE BEGIN  Before_Kernel_Start */
 
   /* USER CODE END  Before_Kernel_Start */
 
-  tx_kernel_enter();
+  tx_kernel_enter ();
 
   /* USER CODE BEGIN  Kernel_Start_Error */
 
@@ -730,12 +730,10 @@ static void rtc_thread_entry ( ULONG thread_input )
 
   if ( ret != RTC_SUCCESS )
   {
-    uart_logger_log_line ("RTC failed to initialize.");
     (void) tx_thread_suspend (this_thread);
   }
 
   (void) tx_event_flags_set (&initialization_flags, RTC_INIT_SUCCESS, TX_OR);
-  uart_logger_log_line ("RTC initialization successful.");
 
   while ( 1 )
   {
@@ -809,6 +807,8 @@ static void logger_thread_entry ( ULONG thread_input )
   logger_message msg;
   UINT tx_ret;
   uart_logger logger;
+
+  usart6_init ();
 
   uart_logger_init (&logger, &logger_block_pool, &logger_message_queue,
                     device_handles.logger_uart_handle);
@@ -1526,7 +1526,6 @@ static void waves_thread_entry ( ULONG thread_input )
   if ( !waves_memory_pool_init (&waves_mem, &configuration, &(waves_byte_pool_buffer[0]),
   WAVES_MEM_POOL_SIZE) )
   {
-#warning "Figure out what to do in this case."
     uart_logger_log_line ("NED Waves memory pool failed to initialize.");
     tx_thread_suspend (this_thread);
   }

@@ -105,12 +105,13 @@ static bool _control_startup_procedure ( void )
     tx_event_flags_set (&error_flags, SOFTWARE_RESET, TX_OR);
   }
 
+  tx_thread_sleep (2);
+
   // Set the RF switch to GNSS port
   self->rf_switch.power_on ();
   self->rf_switch.set_gnss_port ();
 
   // Start core threads
-  (void) tx_thread_resume (self->thread_handles->rtc_thread);
   (void) tx_thread_resume (self->thread_handles->waves_thread);
   (void) tx_thread_resume (self->thread_handles->gnss_thread);
   (void) tx_thread_resume (self->thread_handles->iridium_thread);

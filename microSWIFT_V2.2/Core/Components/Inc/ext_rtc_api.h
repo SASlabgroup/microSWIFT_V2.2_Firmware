@@ -18,7 +18,7 @@
 
 #define RTC_QUEUE_LENGTH            16U
 #define RTC_QUEUE_MAX_WAIT_TICKS    2U
-#define RTC_FLAG_MAX_WAIT_TICKS     5U
+#define RTC_FLAG_MAX_WAIT_TICKS     10U
 
 typedef enum
 {

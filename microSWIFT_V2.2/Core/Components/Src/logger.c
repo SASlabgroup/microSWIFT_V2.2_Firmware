@@ -89,6 +89,10 @@ void uart_logger_log_line ( const char *fmt, ... )
   msg.str_buf = log_buf;
   msg.strlen = sizeof(log_line_buf) - bytes_remaining;
 
+  // Put a break line at the end
+  log_buf->line_buf[sizeof(log_line_buf) - (bytes_remaining)] = (uint8_t) '/n';
+  log_buf->line_buf[sizeof(log_line_buf) - (--bytes_remaining)] = 0;
+
   (void) tx_queue_send (logger_self->msg_que, (VOID*) &msg, TX_NO_WAIT);
 }
 

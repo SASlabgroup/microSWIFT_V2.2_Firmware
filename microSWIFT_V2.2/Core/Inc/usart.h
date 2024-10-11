@@ -71,13 +71,13 @@ extern DMA_HandleTypeDef handle_GPDMA1_Channel11;
 #define AUX_UART_2 USART3
 /* USER CODE END Private defines */
 
-void MX_LPUART1_UART_Init(void);
-void MX_UART4_Init(void);
-void MX_UART5_Init(void);
-void MX_USART1_UART_Init(void);
-void MX_USART2_UART_Init(void);
-void MX_USART3_UART_Init(void);
-void MX_USART6_UART_Init(void);
+void MX_LPUART1_UART_Init ( void );
+void MX_UART4_Init ( void );
+void MX_UART5_Init ( void );
+void MX_USART1_UART_Init ( void );
+void MX_USART2_UART_Init ( void );
+void MX_USART3_UART_Init ( void );
+void MX_USART6_UART_Init ( void );
 
 /* USER CODE BEGIN Prototypes */
 int32_t uart4_init ( void );
@@ -85,12 +85,14 @@ int32_t uart5_init ( void );
 int32_t usart1_init ( void );
 int32_t usart2_init ( void );
 int32_t usart3_init ( void );
+int32_t usart6_init ( void );
 
 int32_t uart4_deinit ( void );
 int32_t uart5_deinit ( void );
 int32_t usart1_deinit ( void );
 int32_t usart2_deinit ( void );
 int32_t usart3_deinit ( void );
+int32_t usart6_deinit ( void );
 
 bool uart_init_status ( UART_HandleTypeDef *port );
 /* USER CODE END Prototypes */
