@@ -80,6 +80,7 @@ void uart_log ( const char *fmt, ... )
     bytes_remaining -= str_len;
   }
 
+#error "The va_args are not being passed correctly or something. Check this out."
   str_len = snprintf (&(log_buf->line_buf[sizeof(log_line_buf) - bytes_remaining]), strlen (fmt),
                       fmt, args);
   bytes_remaining -= str_len;

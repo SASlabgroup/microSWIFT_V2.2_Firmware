@@ -882,7 +882,11 @@ static void control_thread_entry ( ULONG thread_input )
   while ( 1 )
   {
     watchdog_check_in (CONTROL_THREAD);
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
+
+    control.manage_state ();
+    control.monitor_and_handle_errors ();
+
+    tx_thread_sleep (1);
 
     // TODO: Continue with the correct logic, i.e. if GNSS timed out, set alarm and shut down.
     //       Otherwise, continue with other sensors, run waves, etc. Try to keep as many threads

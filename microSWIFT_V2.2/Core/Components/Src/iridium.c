@@ -23,6 +23,7 @@
 #include "usart.h"
 #include "persistent_ram.h"
 #include "watchdog.h"
+#include "logger.h"
 
 // @formatter:off
 // Object pointer
@@ -101,7 +102,7 @@ void iridium_init ( Iridium *struct_ptr, microSWIFT_configuration *global_config
   generic_uart_register_io_functions (&iridium_self->uart_driver, iridium_uart_handle, uart_sema,
                                       uart4_init, uart4_deinit, NULL, NULL);
   generic_uart_set_timeout_ticks (&iridium_self->uart_driver, IRIDIUM_MAX_UART_TX_TICKS,
-                                  IRIDIUM_MAX_UART_RX_TICKS_NO_TX);
+  IRIDIUM_MAX_UART_RX_TICKS_NO_TX);
 }
 
 /**
@@ -421,7 +422,7 @@ static iridium_return_code_t __internal_transmit_message ( uint8_t *payload, uin
 
   // Reset the UART Tx/Rx timeouts
   generic_uart_set_timeout_ticks (&iridium_self->uart_driver, IRIDIUM_MAX_UART_TX_TICKS,
-                                  IRIDIUM_MAX_UART_RX_TICKS_NO_TX);
+  IRIDIUM_MAX_UART_RX_TICKS_NO_TX);
 
   while ( !iridium_self->timer_timeout )
   {
@@ -522,7 +523,7 @@ static iridium_return_code_t __internal_transmit_message ( uint8_t *payload, uin
     // Need to adjust the timeout for UART reception as the message can take up to 45r seconds to
     // get a response
     generic_uart_set_timeout_ticks (&iridium_self->uart_driver, TX_TIMER_TICKS_PER_SECOND,
-                                    IRIDIUM_MAX_UART_RX_TICKS_TX);
+    IRIDIUM_MAX_UART_RX_TICKS_TX);
 
     // Tell the modem to send the message
     if ( iridium_self->uart_driver.read (&iridium_self->uart_driver, (uint8_t*) &(send_sbd[0]),
@@ -548,11 +549,15 @@ static iridium_return_code_t __internal_transmit_message ( uint8_t *payload, uin
 
     if ( SBDIX_response_code <= 4 )
     {
+#error "Messages are not coming through. See if this is a modem issue or if reactivation is required."
       // Success case
 #warning "May need to reimplement timeout as an inpout to __send_basic_command_message."
       __send_basic_command_message (clear_MO, SBDD_RESPONSE_SIZE);
+      uart_log ("Iridium transmission successful.");
       return IRIDIUM_SUCCESS;
     }
+
+    uart_log ("Iridium transmission unsuccessful.");
 
     // If message Tx failed, put the modem to sleep and delay for a total of 30 seconds
     iridium_self->sleep ();

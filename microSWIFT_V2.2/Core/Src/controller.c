@@ -192,6 +192,12 @@ static void _control_shutdown_procedure ( void )
     HAL_NVIC_SystemReset ();
   }
 
+  uart_log ("All threads complete. Entering processor standby mode. Alarm set for %d:%d:%d",
+            (int) alarm_settings.alarm_hour, (int) alarm_settings.alarm_minute,
+            (int) alarm_settings.alarm_second);
+
+  tx_thread_sleep (2);
+
   // Enter standby mode -- processor will be woken by RTC alarm
   controller_self->enter_processor_standby_mode ();
 }
@@ -256,6 +262,8 @@ static void _control_enter_processor_standby_mode ( void )
   // Make sure the RTC INT_B pin is being pulled up (open drain on RTC)
   HAL_PWREx_EnableGPIOPullUp (PWR_GPIO_B, RTC_INT_B_Pin);
 
+#error "This doesn't work, see if this can be changed or if an external pullup will be required."
+
   // PWR_WAKEUP_PIN1_LOW_1 = PB2 --> RTC INT_B Low Polarity
   HAL_PWR_EnableWakeUpPin (PWR_WAKEUP_PIN1_LOW_1);
 
@@ -297,7 +305,7 @@ static void _control_manage_state ( void )
               accelerometer_complete = false,
               waves_complete = false,
               iridium_complete = false;
-            // @formatter:on
+                      // @formatter:on
   bool iridium_ready = false;
 
   ct_complete = !controller_self->global_config->ct_enabled;
