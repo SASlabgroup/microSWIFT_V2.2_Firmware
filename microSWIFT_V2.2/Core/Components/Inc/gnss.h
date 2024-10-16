@@ -136,11 +136,11 @@ typedef struct GNSS
   // The true calculated sample window frequency
   double                    sample_window_freq;
   // Increment with each sample or running average
-  uint16_t                  total_samples;
+  uint32_t                  total_samples;
   // We'll keep track of how many times we had to sub in a running average
-  uint16_t                  total_samples_averaged;
+  uint32_t                  total_samples_averaged;
   // How many times we've had to skip a sample - gets reset with valid data
-  uint16_t                  number_cycles_without_data;
+  uint32_t                  number_cycles_without_data;
   // Flags
   bool                      current_fix_is_good;
   bool                      all_resolution_stages_complete;
@@ -178,6 +178,7 @@ void gnss_timer_expired ( ULONG expiration_input );
 bool gnss_get_timer_timeout_status ( void );
 bool gnss_get_configured_status ( void );
 bool gnss_get_sample_window_complete ( void );
+uint32_t gnss_get_samples_processed ( void );
 double gnss_get_sample_window_frequency ( void );
 
 #endif /* SRC_GPS_H_ */

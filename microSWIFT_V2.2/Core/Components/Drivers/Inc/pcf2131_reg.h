@@ -1660,11 +1660,13 @@ int32_t pcf2131_get_watchdog_flag ( dev_ctx_t *dev_handle, bool *return_flag );
 int32_t pcf2131_clear_watchdog_flag ( dev_ctx_t *dev_handle );
 int32_t pcf2131_get_alarm_flag ( dev_ctx_t *dev_handle, bool *return_flag );
 int32_t pcf2131_clear_alarm_flag ( dev_ctx_t *dev_handle );
+int32_t pcf2131_get_battery_status_flag ( dev_ctx_t *dev_handle, bool *return_flag );
+int32_t pcf2131_clear_battery_status_flag ( dev_ctx_t *dev_handle );
 int32_t pcf2131_get_battery_switch_over_flag ( dev_ctx_t *dev_handle, bool *return_flag );
 int32_t pcf2131_clear_battery_switch_over_flag ( dev_ctx_t *dev_handle );
 int32_t pcf2131_get_timestamp_flag ( dev_ctx_t *dev_handle, pcf2131_timestamp_t which_timestamp,
 bool *return_flag );
-int32_t pcf2131_clear_timestamp_flag ( dev_ctx_t *dev_handle, uint8_t which_timestamp );
+int32_t pcf2131_clear_timestamp_flag ( dev_ctx_t *dev_handle, pcf2131_timestamp_t which_timestamp );
 int32_t pcf2131_set_temp_meas_period ( dev_ctx_t *dev_handle, temp_meas_period_t meas_period );
 int32_t pcf2131_set_clkout_freq ( dev_ctx_t *dev_handle, clock_frequency_t freq_out );
 int32_t pcf2131_perform_otp_refresh ( dev_ctx_t *dev_handle );

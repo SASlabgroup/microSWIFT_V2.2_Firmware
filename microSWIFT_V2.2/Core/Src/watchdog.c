@@ -168,7 +168,7 @@ void watchdog_register_thread ( enum watchdog_thread_flags which_thread )
       break;
 
     default:
-      uart_logger_log_line ("Invalid arg supplied to watchdog_register_thread().");
+      uart_log ("Invalid arg supplied to watchdog_register_thread().");
       break;
   }
 }
@@ -214,7 +214,7 @@ void watchdog_deregister_thread ( enum watchdog_thread_flags which_thread )
       break;
 
     default:
-      uart_logger_log_line ("Invalid arg supplied to watchdog_deregister_thread().");
+      uart_log ("Invalid arg supplied to watchdog_deregister_thread().");
       break;
   }
 }

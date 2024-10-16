@@ -39,8 +39,22 @@ typedef enum
   SET_TIME          = 2,
   SET_TIMESTAMP     = 3,
   GET_TIMESTAMP     = 4,
-  SET_ALARM         = 5
+  SET_ALARM         = 5,
+  CLEAR_FLAG        = 6
 } rtc_request_t;
+
+typedef enum
+{
+  MINUTE_SECOND_FLAG        = 0,
+  WATCHDOG_FLAG             = 1,
+  ALARM_FLAG                = 2,
+  BATTERY_SWITCHOVER_FLAG   = 3,
+  BATTERY_STATUS_FLAG       = 4,
+  TIMESTAMP1_FLAG           = 5,
+  TIMESTAMP2_FLAG           = 6,
+  TIMESTAMP3_FLAG           = 7,
+  TIMESTAMP4_FLAG           = 8
+} rtc_flag_t;
 
 // Event group flags for signalling completion
 typedef enum
@@ -81,6 +95,7 @@ typedef union
   rtc_get_time_t        get_set_time;
   rtc_get_timestamp_t   get_set_timestamp;
   rtc_alarm_struct      set_alarm;
+  uint32_t              clear_flag;
 } rtc_data_t;
 
 // Generic message request format
@@ -110,6 +125,7 @@ rtc_return_code rtc_server_set_time ( struct tm *input_time_struct, UINT complet
 rtc_return_code rtc_server_set_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag );
 rtc_return_code rtc_server_get_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag );
 rtc_return_code rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UINT complete_flag );
+rtc_return_code rtc_server_clear_flag (rtc_flag_t which_flag, UINT complete_flag );
 // Generic do-all function
 rtc_return_code rtc_server_process_request ( rtc_request_message *request );
 

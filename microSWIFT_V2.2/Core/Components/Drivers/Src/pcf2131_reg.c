@@ -668,6 +668,35 @@ int32_t pcf2131_clear_alarm_flag ( dev_ctx_t *dev_handle )
   return ret;
 }
 
+int32_t pcf2131_get_battery_status_flag ( dev_ctx_t *dev_handle, bool *return_flag )
+{
+  int32_t ret = PCF2131_OK;
+  pcf2131_ctrl3_reg_t ctrl3;
+
+  ret |= dev_handle->bus_read (NULL, 0, CTRL3_REG_ADDR, (uint8_t*) &ctrl3,
+                               sizeof(pcf2131_ctrl3_reg_t));
+
+  *return_flag = ctrl3.batt_stat_flag;
+
+  return ret;
+}
+
+int32_t pcf2131_clear_battery_status_flag ( dev_ctx_t *dev_handle )
+{
+  int32_t ret = PCF2131_OK;
+  pcf2131_ctrl3_reg_t ctrl3;
+
+  ret |= dev_handle->bus_read (NULL, 0, CTRL3_REG_ADDR, (uint8_t*) &ctrl3,
+                               sizeof(pcf2131_ctrl3_reg_t));
+
+  ctrl3.batt_stat_flag = 0b0;
+
+  ret |= dev_handle->bus_write (NULL, 0, CTRL3_REG_ADDR, (uint8_t*) &ctrl3,
+                                sizeof(pcf2131_ctrl3_reg_t));
+
+  return ret;
+}
+
 int32_t pcf2131_get_battery_switch_over_flag ( dev_ctx_t *dev_handle, bool *return_flag )
 {
   int32_t ret = PCF2131_OK;
@@ -711,11 +740,11 @@ bool *return_flag )
   return ret;
 }
 
-int32_t pcf2131_clear_timestamp_flag ( dev_ctx_t *dev_handle, uint8_t which_timestamp )
+int32_t pcf2131_clear_timestamp_flag ( dev_ctx_t *dev_handle, pcf2131_timestamp_t which_timestamp )
 {
   int32_t ret = PCF2131_OK;
   pcf2131_ctrl4_reg_t ctrl4;
-  uint8_t clear_bit = ~(1 << (8 - which_timestamp));
+  uint8_t clear_bit = ~(1 << (7 - which_timestamp));
 
   ret |= dev_handle->bus_read (NULL, 0, CTRL4_REG_ADDR, (uint8_t*) &ctrl4,
                                sizeof(pcf2131_ctrl4_reg_t));

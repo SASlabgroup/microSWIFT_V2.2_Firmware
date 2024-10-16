@@ -46,6 +46,6 @@ typedef struct
 
 void uart_logger_init ( uart_logger *logger, TX_BLOCK_POOL *block_pool, TX_QUEUE *msg_que,
                         UART_HandleTypeDef *uart_handle );
-void uart_logger_log_line ( const char *fmt, ... );
+void uart_log ( const char *fmt, ... );
 
 #endif /* COMPONENTS_INC_LOGGER_H_ */

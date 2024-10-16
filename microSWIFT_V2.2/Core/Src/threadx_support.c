@@ -168,7 +168,7 @@ void gnss_error_out ( GNSS *gnss, ULONG error_flag, TX_THREAD *gnss_thread, cons
 
   gnss->off ();
   gnss->stop_timer ();
-  uart_logger_log_line (fmt, args);
+  uart_log (fmt, args);
 
   if ( error_flag != NO_ERROR_FLAG )
   {
@@ -187,7 +187,7 @@ void ct_error_out ( CT *ct, ULONG error_flag, TX_THREAD *ct_thread, const char *
 
   ct->off ();
   ct->stop_timer ();
-  uart_logger_log_line (fmt, args);
+  uart_log (fmt, args);
 
   if ( error_flag != NO_ERROR_FLAG )
   {
@@ -207,7 +207,7 @@ void temperature_error_out ( Temperature *temperature, ULONG error_flag,
 
   temperature->off ();
   temperature->stop_timer ();
-  uart_logger_log_line (fmt, args);
+  uart_log (fmt, args);
 
   if ( error_flag != NO_ERROR_FLAG )
   {
@@ -228,7 +228,7 @@ void iridium_error_out ( Iridium *iridium, ULONG error_flag, TX_THREAD *iridium_
   iridium->sleep ();
   iridium->off ();
   iridium->stop_timer ();
-  uart_logger_log_line (fmt, args);
+  uart_log (fmt, args);
 
   if ( error_flag != NO_ERROR_FLAG )
   {

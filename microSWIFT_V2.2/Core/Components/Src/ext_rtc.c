@@ -24,6 +24,7 @@ static rtc_return_code _ext_rtc_set_timestamp ( pcf2131_timestamp_t which_timest
 static rtc_return_code _ext_rtc_get_timestamp ( pcf2131_timestamp_t which_timestamp,
                                                 time_t *return_timestamp );
 static rtc_return_code _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting );
+static rtc_return_code _ext_rtc_clear_flag ( rtc_flag_t which_flag );
 
 /* SPI driver functions */
 static int32_t _ext_rtc_spi_init ( void );
@@ -93,6 +94,7 @@ rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_b
   rtc_self->set_timestamp = _ext_rtc_set_timestamp;
   rtc_self->get_timestamp = _ext_rtc_get_timestamp;
   rtc_self->set_alarm = _ext_rtc_set_alarm;
+  rtc_self->clear_flag = _ext_rtc_clear_flag;
 
   // Register dev_ctx functions
   if ( pcf2131_register_io_functions (&rtc_self->dev_ctx, _ext_rtc_spi_init, _ext_rtc_spi_deinit,
@@ -413,6 +415,63 @@ static rtc_return_code _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting )
   }
 
   return ret;
+}
+
+/**
+ * @brief  Clear a flag in the RTC
+ * @param  which_flag:= Flag to be cleared
+ * @retval rtc_return_code
+ */
+static rtc_return_code _ext_rtc_clear_flag ( rtc_flag_t which_flag )
+{
+  rtc_return_code retval = PCF2131_OK;
+
+  switch ( which_flag )
+  {
+    case MINUTE_SECOND_FLAG:
+      retval |= pcf2131_clear_msf_flag (&rtc_self->dev_ctx);
+      break;
+
+    case WATCHDOG_FLAG:
+      retval |= pcf2131_clear_watchdog_flag (&rtc_self->dev_ctx);
+      break;
+
+    case ALARM_FLAG:
+      retval |= pcf2131_clear_alarm_flag (&rtc_self->dev_ctx);
+      break;
+
+    case BATTERY_SWITCHOVER_FLAG:
+      retval |= pcf2131_clear_battery_switch_over_flag (&rtc_self->dev_ctx);
+      break;
+
+    case BATTERY_STATUS_FLAG:
+      retval |= pcf2131_clear_battery_status_flag (&rtc_self->dev_ctx);
+      break;
+
+    case TIMESTAMP1_FLAG:
+      retval |= pcf2131_clear_timestamp_flag (&rtc_self->dev_ctx, TIMESTAMP_1);
+      break;
+
+    case TIMESTAMP2_FLAG:
+      retval |= pcf2131_clear_timestamp_flag (&rtc_self->dev_ctx, TIMESTAMP_2);
+      break;
+      break;
+
+    case TIMESTAMP3_FLAG:
+      retval |= pcf2131_clear_timestamp_flag (&rtc_self->dev_ctx, TIMESTAMP_3);
+      break;
+      break;
+
+    case TIMESTAMP4_FLAG:
+      retval |= pcf2131_clear_timestamp_flag (&rtc_self->dev_ctx, TIMESTAMP_4);
+      break;
+      break;
+
+    default:
+      return RTC_PARAMETERS_INVALID;
+  }
+
+  return retval;
 }
 
 /**

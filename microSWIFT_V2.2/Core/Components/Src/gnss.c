@@ -21,6 +21,7 @@
 #include "usart.h"
 #include "linked_list.h"
 #include "watchdog.h"
+#include "logger.h"
 
 static GNSS *gnss_self;
 
@@ -166,6 +167,16 @@ bool gnss_get_sample_window_complete ( void )
   return gnss_self->all_samples_processed;
 }
 
+/**
+ * Get the number of samples that have been processed.
+ *
+ * @return no. samples processed
+ */
+uint32_t gnss_get_samples_processed ( void )
+{
+  return (gnss_self->all_resolution_stages_complete) ?
+      gnss_self->total_samples : 0;
+}
 /**
  * Get the sampling frequency calculated at the end of sampling.
  *
@@ -634,6 +645,7 @@ static void _gnss_process_message ( void )
         (double) (((double) gnss_self->global_config->samples_per_window)
                   / (((double) (((double) gnss_self->sample_window_stop_time)
                                 - ((double) gnss_self->sample_window_start_time)))));
+    uart_log ("GNSS sample window complete.");
 
     return;
   }
@@ -682,6 +694,8 @@ static void _gnss_process_message ( void )
         buf_start = buf_end;
         continue;
       }
+
+      uart_log ("GNSS time fully resolved and RTC set.");
     }
 
     // We'll always retain the lat/lon and use a flag to indicate if it is any good
@@ -706,6 +720,8 @@ static void _gnss_process_message ( void )
     {
       gnss_self->all_resolution_stages_complete = true;
       gnss_self->sample_window_start_time = __get_timestamp ();
+
+      uart_log ("GNSS sample window started.");
     }
 
     // All velocity values are good to go

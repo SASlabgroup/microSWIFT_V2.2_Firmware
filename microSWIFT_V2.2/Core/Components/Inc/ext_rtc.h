@@ -40,6 +40,7 @@ typedef struct
   rtc_return_code (*set_timestamp) ( pcf2131_timestamp_t which_timestamp );
   rtc_return_code (*get_timestamp) ( pcf2131_timestamp_t which_timestamp, time_t *return_timestamp );
   rtc_return_code (*set_alarm) ( rtc_alarm_struct alarm_setting );
+  rtc_return_code (*clear_flag) ( rtc_flag_t which_flag );
 } Ext_RTC;
 
 rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus );

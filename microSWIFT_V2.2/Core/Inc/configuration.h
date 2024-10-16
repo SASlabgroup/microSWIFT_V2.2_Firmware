@@ -59,6 +59,12 @@
 // Determine whether or not the GNSS sensor should be set to high performance mode
 #define GNSS_HIGH_PERFORMANCE_MODE_ENABLED false
 
+// Buffer time in mins added to the GNSS sample window timer
+// Ex: If TOTAL_SAMPLES_PER_WINDOW = 4096 and GNSS_SAMPLING_RATE = 4, sample window will take 17 mins to complete.
+//     The value defined for GNSS_WINDOW_BUFFER_TIME is added to this, so if the GNSS sample window does not complete
+//     (17 + GNSS_WINDOW_BUFFER_TIME) mins after receiving first sample, then it times out.
+#define GNSS_WINDOW_BUFFER_TIME 2
+
 // If there is a CT sensor present
 #define CT_ENABLED false
 #define TOTAL_CT_SAMPLES 10
