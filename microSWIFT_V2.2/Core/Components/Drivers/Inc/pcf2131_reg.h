@@ -14,14 +14,10 @@
 #include <time.h>
 
 // @formatter:off
-/* Looku table for fast conversion from BCD to decimal */
 #define BCD_ERROR 0xFF
-
-extern uint8_t bcd_to_dec[256];
-extern uint8_t dec_to_bcd[100];
-
-#define BCD_TO_DEC(t,u)(bcd_to_dec[(t << 4) | u])
-#define DEC_TO_BCD(d)(dec_to_bcd[d])
+#define BCD_TO_DEC_SPLIT(t,u)(t*10+u)
+#define BCD_TO_DEC_SINGLE(b)(((((b) & 0xF0) >> 4U) * 10U) + ((b) & 0x0F))
+#define DEC_TO_BCD(d)(((d) / 10U) << 4U) | ((d) % 10U);
 // @formatter:on
 
 /**************************************************************************************************/
