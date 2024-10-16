@@ -46,7 +46,6 @@
 #define GNSS_MAX_ACQUISITION_WAIT_TIME 15
 
 // Are we doing 1 or two sample windows per hour
-// !! Must be a number such that SAMPLE_WINDOWS_PER_HOUR % 60 == 0
 #define SAMPLE_WINDOWS_PER_HOUR 1
 
 #define WATCHDOG_PERIOD 60000 // 1 min (in ms)

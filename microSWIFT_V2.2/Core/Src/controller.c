@@ -19,11 +19,12 @@ static bool     _control_startup_procedure( void );
 static void     _control_shutdown_procedure( void );
 static real16_T _control_get_battery_voltage( void );
 static void     _control_shut_down_all_peripherals ( void );
-static void     _control_enter_processor_shutdown_mode ( void );
+static void     _control_enter_processor_standby_mode ( void );
 static void     _control_manage_state ( void );
 static void     _control_monitor_and_handle_errors ( void );
 
 // Helper functions
+static void     __get_alarm_settings_from_time(struct tm* time, rtc_alarm_struct *alarm);
 static void     __handle_rtc_error( void );
 static void     __handle_gnss_error( ULONG error_flags );
 static void     __handle_ct_error( void );
@@ -59,9 +60,10 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
   controller_self->error_detected = false;
 
   controller_self->startup_procedure = _control_startup_procedure;
+  controller_self->shutdown_procedure = _control_shutdown_procedure;
   controller_self->get_battery_voltage = _control_get_battery_voltage;
   controller_self->shutdown_all_pheripherals = _control_shut_down_all_peripherals;
-  controller_self->enter_processor_shutdown_mode = _control_enter_processor_shutdown_mode;
+  controller_self->enter_processor_standby_mode = _control_enter_processor_standby_mode;
   controller_self->manage_state = _control_manage_state;
   controller_self->monitor_and_handle_errors = _control_monitor_and_handle_errors;
 
@@ -178,15 +180,20 @@ static void _control_shutdown_procedure ( void )
   }
 
   // Get the time so we can set the alarm
+  if ( rtc_server_get_time (&time_now, CONTROL_REQUEST_COMPLETE) != RTC_SUCCESS )
+  {
+    HAL_NVIC_SystemReset ();
+  }
 
   // Set the alarm
+  __get_alarm_settings_from_time (&time_now, &alarm_settings);
   if ( rtc_server_set_alarm (alarm_settings, CONTROL_REQUEST_COMPLETE) != RTC_SUCCESS )
   {
     HAL_NVIC_SystemReset ();
   }
 
   // Enter standby mode -- processor will be woken by RTC alarm
-
+  controller_self->enter_processor_standby_mode ();
 }
 
 static real16_T _control_get_battery_voltage ( void )
@@ -235,7 +242,7 @@ static void _control_shut_down_all_peripherals ( void )
 #warning "Make sure all peripherals are covered here."
 }
 
-static void _control_enter_processor_shutdown_mode ( void )
+static void _control_enter_processor_standby_mode ( void )
 {
   // Retain all SRAM2 contents
   HAL_PWREx_EnableSRAM2ContentStandbyRetention (PWR_SRAM2_FULL_STANDBY);
@@ -290,7 +297,7 @@ static void _control_manage_state ( void )
               accelerometer_complete = false,
               waves_complete = false,
               iridium_complete = false;
-      // @formatter:on
+            // @formatter:on
   bool iridium_ready = false;
 
   ct_complete = !controller_self->global_config->ct_enabled;
@@ -470,6 +477,29 @@ static void _control_monitor_and_handle_errors ( void )
     HAL_NVIC_SystemReset ();
   }
 
+}
+
+static void __get_alarm_settings_from_time ( struct tm *time, rtc_alarm_struct *alarm )
+{
+  alarm->day_alarm_en = false;
+  alarm->hour_alarm_en = true;
+  alarm->minute_alarm_en = true;
+  alarm->second_alarm_en = true;
+  alarm->weekday_alarm_en = false;
+  alarm->alarm_second = 0;
+
+  if ( controller_self->global_config->windows_per_hour == 0 )
+  {
+    alarm->alarm_hour = (time->tm_hour + 1) % 24;
+    alarm->alarm_minute = 0;
+  }
+  else
+  {
+    alarm->alarm_minute = (time->tm_min > 30) ?
+        0 : 30;
+    alarm->alarm_hour = (alarm->alarm_minute == 0) ?
+        (time->tm_hour + 1) % 24 : time->tm_hour;
+  }
 }
 
 static void __handle_rtc_error ( void )
