@@ -260,13 +260,13 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   //
   // Allocate stack for the gnss thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, L_STACK, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XL_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the gnss thread. MID priority, no preemption-threshold
-  ret = tx_thread_create(&gnss_thread, "gnss thread", gnss_thread_entry, 0, pointer, L_STACK,
+  ret = tx_thread_create(&gnss_thread, "gnss thread", gnss_thread_entry, 0, pointer, XL_STACK,
                          MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
@@ -770,7 +770,7 @@ static void rtc_thread_entry ( ULONG thread_input )
 
       if ( ret != RTC_SUCCESS )
       {
-        uart_log ("RTC error detected");
+        LOG("RTC error detected");
         (void) tx_event_flags_set (&error_flags, RTC_ERROR, TX_OR);
         (void) tx_thread_suspend (this_thread);
       }
@@ -964,6 +964,10 @@ static void gnss_thread_entry ( ULONG thread_input )
              &irq_flags, &error_flags, &gnss_timer, &(ubx_message_process_buf[0]),
              &(gnss_config_response_buf[0]), north, east, down);
 
+  LOG("Test without args.");
+  LOG("Test with 1 arg: %d", 25);
+  LOG("Test with 2 args: %s, %d", "This is a test string", -100);
+
   gnss.on ();
   // Run tests if needed
   if ( tests.gnss_thread_test != NULL )
@@ -979,7 +983,7 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   // Report init success
   (void) tx_event_flags_set (&initialization_flags, GNSS_INIT_SUCCESS, TX_OR);
-  uart_log ("GNSS initialization successful.");
+  LOG("GNSS initialization successful.");
 
   // This thread has successfully initialized, it should now be checking in with the watchdog
   watchdog_register_thread (GNSS_THREAD);
@@ -1011,9 +1015,9 @@ static void gnss_thread_entry ( ULONG thread_input )
   // Invalid acquisition time case
   if ( gnss_max_acq_time <= 1 )
   {
-    uart_log ("Invalid GNSS max acquisition time: %d. Check settings for number of samples "
-              "per window and windows per hour. Continuing with 5 min acq time.",
-              gnss_max_acq_time);
+    LOG("Invalid GNSS max acquisition time: %d. Check settings for number of samples "
+        "per window and windows per hour. Continuing with 5 min acq time.",
+        gnss_max_acq_time);
 
     gnss_max_acq_time = 5;
   }
@@ -1031,7 +1035,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   }
 
   // We are now running in DMA circular mode
-  uart_log ("GNSS successfully switched to circular DMA mode.");
+  LOG("GNSS successfully switched to circular DMA mode.");
 
   // Process messages until we have resolved time
   // **NOTE: RTC will be set when time is resolved
@@ -1058,7 +1062,8 @@ static void gnss_thread_entry ( ULONG thread_input )
   if ( gnss_get_timer_timeout_status () )
   {
     gnss_error_out (&gnss, GNSS_RESOLUTION_ERROR, this_thread,
-                    "GNSS failed to get a fix within alloted time of :%d.", gnss_max_acq_time);
+                    "GNSS failed to get a fix within alloted time of %d minutes.",
+                    gnss_max_acq_time);
   }
 
   // Start the sample window timer
@@ -1147,7 +1152,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   watchdog_check_in (GNSS_THREAD);
   watchdog_deregister_thread (GNSS_THREAD);
 
-  uart_log ("GNSS Thread complete, now terminating.");
+  LOG("GNSS Thread complete, now terminating.");
 
   (void) tx_event_flags_set (&complete_flags, GNSS_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
@@ -1207,8 +1212,8 @@ static void ct_thread_entry ( ULONG thread_input )
     ct_error_out (&ct, NO_ERROR_FLAG, this_thread, "CT self test failed.");
   }
 
-  uart_log ("CT initialization complete. Temp = %3f, Salinity = %3f", ct_readings.temp,
-            ct_readings.salinity);
+  LOG("CT initialization complete. Temp = %3f, Salinity = %3f", ct_readings.temp,
+      ct_readings.salinity);
   (void) tx_event_flags_set (&initialization_flags, CT_INIT_SUCCESS, TX_OR);
 
   // Control will resume when ready
@@ -1279,7 +1284,7 @@ static void ct_thread_entry ( ULONG thread_input )
   watchdog_check_in (CT_THREAD);
   watchdog_deregister_thread (CT_THREAD);
 
-  uart_log ("CT Thread complete, now terminating.");
+  LOG("CT Thread complete, now terminating.");
 
   (void) tx_event_flags_set (&complete_flags, CT_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
@@ -1333,7 +1338,7 @@ static void temperature_thread_entry ( ULONG thread_input )
                            "Temperature self test failed.");
   }
 
-  uart_log ("Temperature initialization complete. Temp =%3f", self_test_reading);
+  LOG("Temperature initialization complete. Temp =%3f", self_test_reading);
   (void) tx_event_flags_set (&initialization_flags, TEMPERATURE_INIT_SUCCESS, TX_OR);
 
   temperature.off ();
@@ -1382,7 +1387,7 @@ static void temperature_thread_entry ( ULONG thread_input )
   watchdog_check_in (TEMPERATURE_THREAD);
   watchdog_deregister_thread (TEMPERATURE_THREAD);
 
-  uart_log ("Temperature Thread complete, now terminating.");
+  LOG("Temperature Thread complete, now terminating.");
 
   (void) tx_event_flags_set (&complete_flags, TEMPERATURE_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
@@ -1425,7 +1430,7 @@ static void light_thread_entry ( ULONG thread_input )
   watchdog_check_in (LIGHT_THREAD);
   watchdog_deregister_thread (LIGHT_THREAD);
 
-  uart_log ("Light Thread complete, now terminating.");
+  LOG("Light Thread complete, now terminating.");
 
   (void) tx_event_flags_set (&complete_flags, LIGHT_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
@@ -1468,7 +1473,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
   watchdog_check_in (TURBIDITY_THREAD);
   watchdog_deregister_thread (TURBIDITY_THREAD);
 
-  uart_log ("Turbidity Thread complete, now terminating.");
+  LOG("Turbidity Thread complete, now terminating.");
 
   (void) tx_event_flags_set (&complete_flags, TURBIDITY_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
@@ -1509,7 +1514,7 @@ static void accelerometer_thread_entry ( ULONG thread_input )
   watchdog_check_in (ACCELEROMETER_THREAD);
   watchdog_deregister_thread (ACCELEROMETER_THREAD);
 
-  uart_log ("Accelerometer Thread complete, now terminating.");
+  LOG("Accelerometer Thread complete, now terminating.");
 
   (void) tx_event_flags_set (&complete_flags, ACCELEROMETER_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
@@ -1537,12 +1542,12 @@ static void waves_thread_entry ( ULONG thread_input )
   if ( !waves_memory_pool_init (&waves_mem, &configuration, &(waves_byte_pool_buffer[0]),
   WAVES_MEM_POOL_SIZE) )
   {
-    uart_log ("NED Waves memory pool failed to initialize.");
+    LOG("NED Waves memory pool failed to initialize.");
     tx_thread_suspend (this_thread);
   }
 
   (void) tx_event_flags_set (&initialization_flags, WAVES_THREAD_INIT_SUCCESS, TX_OR);
-  uart_log ("NED Waves initialization successful.");
+  LOG("NED Waves initialization successful.");
 
   tx_thread_suspend (this_thread);
 
@@ -1599,7 +1604,7 @@ static void waves_thread_entry ( ULONG thread_input )
   watchdog_check_in (WAVES_THREAD);
   watchdog_deregister_thread (WAVES_THREAD);
 
-  uart_log ("NEDWaves Thread complete, now terminating.");
+  LOG("NEDWaves Thread complete, now terminating.");
 
   (void) tx_event_flags_set (&complete_flags, WAVES_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
@@ -1657,7 +1662,7 @@ static void iridium_thread_entry ( ULONG thread_input )
     iridium_error_out (&iridium, NO_ERROR_FLAG, this_thread, "Iridium modem failed to initialize.");
   }
 
-  uart_log ("Iridium modem initialized successfully.");
+  LOG("Iridium modem initialized successfully.");
   (void) tx_event_flags_set (&initialization_flags, IRIDIUM_INIT_SUCCESS, TX_OR);
 
   iridium.charge_caps (IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
@@ -1745,7 +1750,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   watchdog_check_in (IRIDIUM_THREAD);
   watchdog_deregister_thread (IRIDIUM_THREAD);
 
-  uart_log ("Iridium Thread complete, now terminating.");
+  LOG("Iridium Thread complete, now terminating.");
 
   (void) tx_event_flags_set (&complete_flags, IRIDIUM_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);

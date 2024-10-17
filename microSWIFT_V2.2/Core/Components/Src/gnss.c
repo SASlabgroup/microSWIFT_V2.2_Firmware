@@ -645,7 +645,7 @@ static void _gnss_process_message ( void )
         (double) (((double) gnss_self->global_config->samples_per_window)
                   / (((double) (((double) gnss_self->sample_window_stop_time)
                                 - ((double) gnss_self->sample_window_start_time)))));
-    uart_log ("GNSS sample window complete.");
+    LOG ("GNSS sample window complete.");
 
     return;
   }
@@ -695,7 +695,7 @@ static void _gnss_process_message ( void )
         continue;
       }
 
-      uart_log ("GNSS time fully resolved and RTC set.");
+      LOG ("GNSS time fully resolved and RTC set.");
     }
 
     // We'll always retain the lat/lon and use a flag to indicate if it is any good
@@ -721,7 +721,7 @@ static void _gnss_process_message ( void )
       gnss_self->all_resolution_stages_complete = true;
       gnss_self->sample_window_start_time = __get_timestamp ();
 
-      uart_log ("GNSS sample window started.");
+      LOG ("GNSS sample window started.");
     }
 
     // All velocity values are good to go

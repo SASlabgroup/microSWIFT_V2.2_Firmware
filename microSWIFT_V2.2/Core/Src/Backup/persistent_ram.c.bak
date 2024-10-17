@@ -30,12 +30,12 @@ void persistent_ram_deinit ( void )
   persistent_self.magic_number = 0;
 }
 
-void persistent_storgage_increment_sample_window_counter ( void )
+void persistent_ram_increment_sample_window_counter ( void )
 {
   persistent_self.sample_window_counter++;
 }
 
-int32_t persistent_stotrage_get_sample_window_counter ( void )
+int32_t persistent_ram_get_sample_window_counter ( void )
 {
   return persistent_self.sample_window_counter;
 }

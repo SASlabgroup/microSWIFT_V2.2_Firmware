@@ -18,6 +18,8 @@
 
 #define LOG_QUEUE_LENGTH 16
 
+#define LOG(fmt, ...) (uart_log(fmt, ##__VA_ARGS__))
+
 typedef struct
 {
   char line_buf[256];

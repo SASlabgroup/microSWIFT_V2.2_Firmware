@@ -105,6 +105,10 @@ void HAL_UART_TxCpltCallback ( UART_HandleTypeDef *huart )
   {
     (void) tx_semaphore_put (&aux_uart_2_sema);
   }
+  else if ( huart->Instance == LOGGER_UART )
+  {
+    (void) tx_semaphore_put (&logger_sema);
+  }
 }
 
 /**

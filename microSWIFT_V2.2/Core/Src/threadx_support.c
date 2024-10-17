@@ -8,6 +8,7 @@
 #include "threadx_support.h"
 #include "stdbool.h"
 #include "stdarg.h"
+#include "stdio.h"
 #include "tx_api.h"
 #include "main.h"
 #include "gnss.h"
@@ -165,10 +166,13 @@ void gnss_error_out ( GNSS *gnss, ULONG error_flag, TX_THREAD *gnss_thread, cons
 {
   va_list args;
   va_start(args, fmt);
+  char tmp_fmt[256];
 
   gnss->off ();
   gnss->stop_timer ();
-  uart_log (fmt, args);
+  vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
+  va_end(args);
+  LOG(&(tmp_fmt[0]));
 
   if ( error_flag != NO_ERROR_FLAG )
   {
@@ -184,10 +188,13 @@ void ct_error_out ( CT *ct, ULONG error_flag, TX_THREAD *ct_thread, const char *
 {
   va_list args;
   va_start(args, fmt);
+  char tmp_fmt[256];
 
   ct->off ();
   ct->stop_timer ();
-  uart_log (fmt, args);
+  vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
+  va_end(args);
+  LOG(&(tmp_fmt[0]));
 
   if ( error_flag != NO_ERROR_FLAG )
   {
@@ -204,10 +211,13 @@ void temperature_error_out ( Temperature *temperature, ULONG error_flag,
 {
   va_list args;
   va_start(args, fmt);
+  char tmp_fmt[256];
 
   temperature->off ();
   temperature->stop_timer ();
-  uart_log (fmt, args);
+  vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
+  va_end(args);
+  LOG(&(tmp_fmt[0]));
 
   if ( error_flag != NO_ERROR_FLAG )
   {
@@ -224,11 +234,14 @@ void iridium_error_out ( Iridium *iridium, ULONG error_flag, TX_THREAD *iridium_
 {
   va_list args;
   va_start(args, fmt);
+  char tmp_fmt[256];
 
   iridium->sleep ();
   iridium->off ();
   iridium->stop_timer ();
-  uart_log (fmt, args);
+  vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
+  va_end(args);
+  LOG(&(tmp_fmt[0]));
 
   if ( error_flag != NO_ERROR_FLAG )
   {
@@ -242,7 +255,7 @@ void iridium_error_out ( Iridium *iridium, ULONG error_flag, TX_THREAD *iridium_
 
 bool is_first_sample_window ( void )
 {
-  return (persistent_stotrage_get_sample_window_counter () == 0);
+  return (persistent_ram_get_sample_window_counter () == 0);
 }
 
 ULONG get_current_flags ( TX_EVENT_FLAGS_GROUP *event_flags )

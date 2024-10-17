@@ -9,19 +9,22 @@
 #include "threadx_support.h"
 #include "logger.h"
 #include "persistent_ram.h"
+#include "ext_rtc_api.h"
 
 // @formatter:off
-static Control  *self;
+static Control  *controller_self;
 
 // Struct functions
 static bool     _control_startup_procedure( void );
-static bool     _control_all_threads_complete( void );
+static void     _control_shutdown_procedure( void );
 static real16_T _control_get_battery_voltage( void );
 static void     _control_shut_down_all_peripherals ( void );
-static void     _control_enter_processor_shutdown_mode ( void );
+static void     _control_enter_processor_standby_mode ( void );
+static void     _control_manage_state ( void );
 static void     _control_monitor_and_handle_errors ( void );
 
 // Helper functions
+static void     __get_alarm_settings_from_time(struct tm* time, rtc_alarm_struct *alarm);
 static void     __handle_rtc_error( void );
 static void     __handle_gnss_error( ULONG error_flags );
 static void     __handle_ct_error( void );
@@ -44,40 +47,35 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
                        ADC_HandleTypeDef *battery_adc_handle, sbd_message_type_52 *current_message )
 {
   // Init self
-  self = struct_ptr;
+  controller_self = struct_ptr;
 
-  self->global_config = global_config;
-  self->thread_handles = thread_handles;
-  self->error_flags = error_flags;
-  self->init_flags = init_flags;
-  self->irq_flags = irq_flags;
-  self->complete_flags = complete_flags;
-  self->timer = timer;
-  self->current_message = current_message;
+  controller_self->global_config = global_config;
+  controller_self->thread_handles = thread_handles;
+  controller_self->error_flags = error_flags;
+  controller_self->init_flags = init_flags;
+  controller_self->irq_flags = irq_flags;
+  controller_self->complete_flags = complete_flags;
+  controller_self->timer = timer;
+  controller_self->current_message = current_message;
+  controller_self->error_detected = false;
 
-  self->startup_procedure = _control_startup_procedure;
-  self->all_threads_complete = _control_all_threads_complete;
-  self->get_battery_voltage = _control_get_battery_voltage;
-  self->shutdown_all_pheripherals = _control_shut_down_all_peripherals;
-  self->enter_processor_shutdown_mode = _control_enter_processor_shutdown_mode;
-  self->monitor_and_handle_errors = _control_monitor_and_handle_errors;
+  controller_self->startup_procedure = _control_startup_procedure;
+  controller_self->shutdown_procedure = _control_shutdown_procedure;
+  controller_self->get_battery_voltage = _control_get_battery_voltage;
+  controller_self->shutdown_all_pheripherals = _control_shut_down_all_peripherals;
+  controller_self->enter_processor_standby_mode = _control_enter_processor_standby_mode;
+  controller_self->manage_state = _control_manage_state;
+  controller_self->monitor_and_handle_errors = _control_monitor_and_handle_errors;
 
   // Init battery
-  battery_init (&self->battery, battery_adc_handle, self->irq_flags);
+  battery_init (&controller_self->battery, battery_adc_handle, controller_self->irq_flags);
   // Init RF switch
-  rf_switch_init (&self->rf_switch);
+  rf_switch_init (&controller_self->rf_switch);
 }
 
 void control_timer_expired ( ULONG expiration_input )
 {
   (void) expiration_input;
-}
-
-void control_error_flag_set ( TX_EVENT_FLAGS_GROUP *error_flags_group )
-{
-  (void) error_flags_group;
-
-  self->monitor_and_handle_errors ();
 }
 
 static bool _control_startup_procedure ( void )
@@ -105,45 +103,46 @@ static bool _control_startup_procedure ( void )
     tx_event_flags_set (&error_flags, SOFTWARE_RESET, TX_OR);
   }
 
+  tx_thread_sleep (2);
+
   // Set the RF switch to GNSS port
-  self->rf_switch.power_on ();
-  self->rf_switch.set_gnss_port ();
+  controller_self->rf_switch.power_on ();
+  controller_self->rf_switch.set_gnss_port ();
 
   // Start core threads
-  (void) tx_thread_resume (self->thread_handles->rtc_thread);
-  (void) tx_thread_resume (self->thread_handles->waves_thread);
-  (void) tx_thread_resume (self->thread_handles->gnss_thread);
-  (void) tx_thread_resume (self->thread_handles->iridium_thread);
+  (void) tx_thread_resume (controller_self->thread_handles->waves_thread);
+  (void) tx_thread_resume (controller_self->thread_handles->gnss_thread);
+  (void) tx_thread_resume (controller_self->thread_handles->iridium_thread);
 
   // Start optional component threads if enabled
-  if ( self->global_config->ct_enabled )
+  if ( controller_self->global_config->ct_enabled )
   {
     init_success_flags |= CT_INIT_SUCCESS;
-    (void) tx_thread_resume (self->thread_handles->ct_thread);
+    (void) tx_thread_resume (controller_self->thread_handles->ct_thread);
   }
 
-  if ( self->global_config->temperature_enabled )
+  if ( controller_self->global_config->temperature_enabled )
   {
     init_success_flags |= TEMPERATURE_INIT_SUCCESS;
-    (void) tx_thread_resume (self->thread_handles->temperature_thread);
+    (void) tx_thread_resume (controller_self->thread_handles->temperature_thread);
   }
 
-  if ( self->global_config->light_enabled )
+  if ( controller_self->global_config->light_enabled )
   {
     init_success_flags |= LIGHT_INIT_SUCCESS;
-    (void) tx_thread_resume (self->thread_handles->light_thread);
+    (void) tx_thread_resume (controller_self->thread_handles->light_thread);
   }
 
-  if ( self->global_config->turbidity_enabled )
+  if ( controller_self->global_config->turbidity_enabled )
   {
     init_success_flags |= TURBIDITY_INIT_SUCCESS;
-    (void) tx_thread_resume (self->thread_handles->turbidity_thread);
+    (void) tx_thread_resume (controller_self->thread_handles->turbidity_thread);
   }
 
-  if ( self->global_config->accelerometer_enabled )
+  if ( controller_self->global_config->accelerometer_enabled )
   {
     init_success_flags |= ACCELEROMETER_INIT_SUCCESS;
-    (void) tx_thread_resume (self->thread_handles->accelerometer_thread);
+    (void) tx_thread_resume (controller_self->thread_handles->accelerometer_thread);
   }
 
   // Flash power up sequence (this will also give threads time to execute their init procedures)
@@ -152,46 +151,55 @@ static bool _control_startup_procedure ( void )
     led_sequence (INITIAL_LED_SEQUENCE);
   }
 
-  tx_return = tx_event_flags_get (self->init_flags, init_success_flags, TX_AND_CLEAR,
+  tx_return = tx_event_flags_get (controller_self->init_flags, init_success_flags, TX_AND_CLEAR,
                                   &current_flags, STARTUP_SEQUENCE_MAX_WAIT_TICKS);
 
   return (tx_return == TX_SUCCESS);
 }
 
-static bool _control_all_threads_complete ( void )
+static void _control_shutdown_procedure ( void )
 {
-//  // Start with the core thread flags
-//  ULONG complete_flags = (GNSS_THREAD_COMPLETE | WAVES_THREAD_COMPLETE | IRIDIUM_THREAD_COMPLETE);
-//  ULONG dummy;
-//
-//  if ( self->global_config->ct_enabled )
-//  {
-//    complete_flags |= CT_THREAD_COMPLETE;
-//  }
-//
-//  if ( self->global_config->temperature_enabled )
-//  {
-//    complete_flags |= TEMPERATURE_THREAD_COMPLETE;
-//  }
-//
-//  if ( self->global_config->turbidity_enabled )
-//  {
-//    complete_flags |= TURBIDITY_THREAD_COMPLETE;
-//  }
-//
-//  if ( self->global_config->light_enabled )
-//  {
-//    complete_flags |= LIGHT_THREAD_COMPLETE;
-//  }
-//
-//  if ( self->global_config->accelerometer_enabled )
-//  {
-//    complete_flags |= ACCELEROMETER_THREAD_COMPLETE;
-//  }
-//
-//  return (tx_event_flags_get (self->complete_flags, complete_flags, TX_AND_CLEAR, &dummy,
-//  TX_NO_WAIT)
-//          == TX_SUCCESS);
+  rtc_alarm_struct alarm_settings;
+  struct tm time_now;
+
+  // Make sure everything is shut down
+  controller_self->shutdown_all_pheripherals ();
+
+  // Make extra sure the alarm flag is cleared
+  if ( rtc_server_clear_flag (ALARM_FLAG, CONTROL_REQUEST_COMPLETE) != RTC_SUCCESS )
+  {
+    HAL_NVIC_SystemReset ();
+  }
+
+  tx_thread_sleep (1);
+
+  // And the alarm interrupt line on the RTC is high (off)
+  if ( HAL_GPIO_ReadPin (RTC_INT_B_GPIO_Port, RTC_INT_B_Pin) != GPIO_PIN_SET )
+  {
+    HAL_NVIC_SystemReset ();
+  }
+
+  // Get the time so we can set the alarm
+  if ( rtc_server_get_time (&time_now, CONTROL_REQUEST_COMPLETE) != RTC_SUCCESS )
+  {
+    HAL_NVIC_SystemReset ();
+  }
+
+  // Set the alarm
+  __get_alarm_settings_from_time (&time_now, &alarm_settings);
+  if ( rtc_server_set_alarm (alarm_settings, CONTROL_REQUEST_COMPLETE) != RTC_SUCCESS )
+  {
+    HAL_NVIC_SystemReset ();
+  }
+
+  LOG ("All threads complete. Entering processor standby mode. Alarm set for %d:%d:%d",
+            (int) alarm_settings.alarm_hour, (int) alarm_settings.alarm_minute,
+            (int) alarm_settings.alarm_second);
+
+  tx_thread_sleep (2);
+
+  // Enter standby mode -- processor will be woken by RTC alarm
+  controller_self->enter_processor_standby_mode ();
 }
 
 static real16_T _control_get_battery_voltage ( void )
@@ -200,21 +208,21 @@ static real16_T _control_get_battery_voltage ( void )
     { BATTERY_ERROR_VOLTAGE_VALUE };
   battery_return_code_t ret = BATTERY_SUCCESS;
 
-  ret = self->battery.get_voltage (&battery_voltage);
+  ret = controller_self->battery.get_voltage (&battery_voltage);
   if ( ret != BATTERY_SUCCESS )
   {
     switch ( ret )
     {
       case BATTERY_ADC_ERROR:
-        uart_logger_log_line ("Battery ADC error, unable to obtain battery voltage");
+        LOG ("Battery ADC error, unable to obtain battery voltage");
         break;
 
       case BATTERY_TIMEOUT_ERROR:
-        uart_logger_log_line ("Battery ADC timed out, unable to obtain battery voltage");
+        LOG ("Battery ADC timed out, unable to obtain battery voltage");
         break;
 
       default:
-        uart_logger_log_line ("Unknown battery error, unable to obtain battery voltage");
+        LOG ("Unknown battery error, unable to obtain battery voltage");
         break;
     }
   }
@@ -240,12 +248,11 @@ static void _control_shut_down_all_peripherals ( void )
 #warning "Make sure all peripherals are covered here."
 }
 
-static void _control_enter_processor_shutdown_mode ( void )
+static void _control_enter_processor_standby_mode ( void )
 {
   // Retain all SRAM2 contents
   HAL_PWREx_EnableSRAM2ContentStandbyRetention (PWR_SRAM2_FULL_STANDBY);
 
-#warning "Set an alarm in the RTC before entering shutdown mode!!!"
   // Ensure RTC is disabled
   CLEAR_BIT(RCC->BDCR, RCC_BDCR_RTCEN);
 
@@ -253,6 +260,7 @@ static void _control_enter_processor_shutdown_mode ( void )
   CLEAR_BIT(PWR->BDCR1, PWR_BDCR1_BREN);
 
   // Make sure the RTC INT_B pin is being pulled up (open drain on RTC)
+  HAL_PWREx_EnablePullUpPullDownConfig ();
   HAL_PWREx_EnableGPIOPullUp (PWR_GPIO_B, RTC_INT_B_Pin);
 
   // PWR_WAKEUP_PIN1_LOW_1 = PB2 --> RTC INT_B Low Polarity
@@ -283,13 +291,128 @@ static void _control_enter_processor_shutdown_mode ( void )
   }
 }
 
+static void _control_manage_state ( void )
+{
+  ULONG current_flags;
+  UINT ret = TX_SUCCESS;
+  // @formatter:off
+  static bool gnss_complete = false,
+              ct_complete = false,
+              temperature_complete = false,
+              light_complete = false,
+              turbidity_complete = false,
+              accelerometer_complete = false,
+              waves_complete = false,
+              iridium_complete = false;
+                          // @formatter:on
+  bool iridium_ready = false;
+
+  ct_complete = !controller_self->global_config->ct_enabled;
+  temperature_complete = !controller_self->global_config->temperature_enabled;
+  light_complete = !controller_self->global_config->light_enabled;
+  turbidity_complete = !controller_self->global_config->turbidity_enabled;
+  accelerometer_complete = !controller_self->global_config->accelerometer_enabled;
+
+  (void) tx_event_flags_get (controller_self->complete_flags, ALL_EVENT_FLAGS, TX_OR_CLEAR,
+                             &current_flags, TX_NO_WAIT);
+
+  // Exit early case
+  if ( current_flags == 0 )
+  {
+    return;
+  }
+
+  // When the GNSS sample window is close to being done, kick off CT or Temperature sensor sampling
+  // Either of these (or both) will complete in less than 2 mins
+  if ( current_flags & GNSS_TWO_MINS_OUT_FROM_COMPLETION )
+  {
+    if ( !ct_complete )
+    {
+      ret |= tx_thread_resume (controller_self->thread_handles->ct_thread);
+    }
+    else if ( !temperature_complete )
+    {
+      ret |= tx_thread_resume (controller_self->thread_handles->temperature_thread);
+    }
+  }
+
+  // When the GNSS thread is complete, we can run the Waves algo
+  if ( (current_flags & GNSS_THREAD_COMPLETED_SUCCESSFULLY)
+       | (current_flags & GNSS_THREAD_COMPLETED_WITH_ERRORS) )
+  {
+    gnss_complete = true;
+    ret |= tx_thread_resume (controller_self->thread_handles->waves_thread);
+  }
+
+  if ( (current_flags & CT_THREAD_COMPLETED_SUCCESSFULLY)
+       | (current_flags & CT_THREAD_COMPLETED_WITH_ERRORS) )
+  {
+    ct_complete = true;
+  }
+
+  if ( (current_flags & TEMPERATURE_THREAD_COMPLETED_SUCCESSFULLY)
+       | (current_flags & TEMPERATURE_THREAD_COMPLETED_WITH_ERRORS) )
+  {
+    temperature_complete = true;
+  }
+
+  if ( (current_flags & TURBIDITY_THREAD_COMPLETED_SUCCESSFULLY)
+       | (current_flags & TURBIDITY_THREAD_COMPLETED_WITH_ERRORS) )
+  {
+    temperature_complete = true;
+  }
+
+  if ( (current_flags & LIGHT_THREAD_COMPLETED_SUCCESSFULLY)
+       | (current_flags & LIGHT_THREAD_COMPLETED_WITH_ERRORS) )
+  {
+    light_complete = true;
+  }
+
+  if ( (current_flags & ACCELEROMETER_THREAD_COMPLETED_SUCCESSFULLY)
+       | (current_flags & ACCELEROMETER_THREAD_COMPLETED_WITH_ERRORS) )
+  {
+    accelerometer_complete = true;
+  }
+
+  if ( (current_flags & WAVES_THREAD_COMPLETED_SUCCESSFULLY)
+       | (current_flags & WAVES_THREAD_COMPLETED_WITH_ERRORS) )
+  {
+    waves_complete = true;
+  }
+
+  iridium_ready = gnss_complete && ct_complete && temperature_complete && light_complete
+                  && turbidity_complete && accelerometer_complete && waves_complete;
+
+  if ( iridium_ready )
+  {
+    ret |= tx_thread_resume (controller_self->thread_handles->iridium_thread);
+  }
+
+  iridium_complete = (current_flags & IRIDIUM_THREAD_COMPLETED_SUCCESSFULLY)
+                     | (current_flags & IRIDIUM_THREAD_COMPLETED_WITH_ERRORS);
+
+  if ( iridium_complete )
+  {
+    controller_self->shutdown_procedure ();
+  }
+
+  if ( ret != TX_SUCCESS )
+  {
+    controller_self->shutdown_all_pheripherals ();
+    persistent_ram_deinit ();
+    HAL_Delay (10);
+    HAL_NVIC_SystemReset ();
+  }
+}
+
 static void _control_monitor_and_handle_errors ( void )
 {
   ULONG current_flags;
   ULONG gnss_errors, iridium_errors;
 
   // Get the error flags
-  (void) tx_event_flags_get (self->error_flags, 0, TX_OR_CLEAR, &current_flags, TX_NO_WAIT);
+  (void) tx_event_flags_get (controller_self->error_flags, ALL_EVENT_FLAGS, TX_OR_CLEAR,
+                             &current_flags, TX_NO_WAIT);
 
   // Exit early case
   if ( current_flags == 0 )
@@ -355,12 +478,35 @@ static void _control_monitor_and_handle_errors ( void )
 
   if ( current_flags & MEMORY_CORRUPTION_ERROR )
   {
-    self->shutdown_all_pheripherals ();
+    controller_self->shutdown_all_pheripherals ();
     persistent_ram_deinit ();
     HAL_Delay (10);
     HAL_NVIC_SystemReset ();
   }
 
+}
+
+static void __get_alarm_settings_from_time ( struct tm *time, rtc_alarm_struct *alarm )
+{
+  alarm->day_alarm_en = false;
+  alarm->hour_alarm_en = true;
+  alarm->minute_alarm_en = true;
+  alarm->second_alarm_en = true;
+  alarm->weekday_alarm_en = false;
+  alarm->alarm_second = 0;
+
+  if ( controller_self->global_config->windows_per_hour == 0 )
+  {
+    alarm->alarm_hour = (time->tm_hour + 1) % 24;
+    alarm->alarm_minute = 0;
+  }
+  else
+  {
+    alarm->alarm_minute = (time->tm_min > 30) ?
+        0 : 30;
+    alarm->alarm_hour = (alarm->alarm_minute == 0) ?
+        (time->tm_hour + 1) % 24 : time->tm_hour;
+  }
 }
 
 static void __handle_rtc_error ( void )

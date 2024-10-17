@@ -55,9 +55,11 @@ void uart_log ( const char *fmt, ... )
   logger_message msg;
   size_t str_len = 0;
   size_t bytes_remaining = sizeof(log_line_buf);
-  struct tm time;
+  struct tm time =
+    { 0 };
   va_list args;
   va_start(args, fmt);
+
   UINT tx_ret;
 
   tx_ret = _logger_get_buffer (&log_buf);
@@ -68,24 +70,25 @@ void uart_log ( const char *fmt, ... )
     return;
   }
 
-  if ( rtc_server_get_time (&time, LOGGER_REQUEST_PROCESSED) == RTC_SUCCESS )
-  {
-    str_len = strftime (&(log_buf->line_buf[0]), bytes_remaining, "%D %T: ", &time);
-    bytes_remaining -= str_len;
-  }
-  else
-  {
-    str_len = strlen (rtc_err_str);
-    strncpy (&(log_buf->line_buf[0]), rtc_err_str, str_len);
-    bytes_remaining -= str_len;
-  }
+  memset (log_buf, 0, sizeof(log_line_buf));
 
-#error "The va_args are not being passed correctly or something. Check this out."
-  str_len = snprintf (&(log_buf->line_buf[sizeof(log_line_buf) - bytes_remaining]), strlen (fmt),
-                      fmt, args);
-  bytes_remaining -= str_len;
+//  if ( rtc_server_get_time (&time, LOGGER_REQUEST_PROCESSED) == RTC_SUCCESS )
+//  {
+//    str_len = strftime (&(log_buf->line_buf[0]), bytes_remaining, "%D %T: ", &time);
+//    bytes_remaining -= str_len;
+//  }
+//  else
+//  {
+//    str_len = strlen (rtc_err_str);
+//    strncpy (&(log_buf->line_buf[0]), rtc_err_str, str_len);
+//    bytes_remaining -= str_len;
+//  }
 
+  str_len = vsnprintf (&(log_buf->line_buf[sizeof(log_line_buf) - bytes_remaining]),
+                       bytes_remaining, fmt, args);
   va_end(args);
+
+  bytes_remaining -= str_len + 1;
 
   msg.str_buf = log_buf;
   msg.strlen = sizeof(log_line_buf) - bytes_remaining;

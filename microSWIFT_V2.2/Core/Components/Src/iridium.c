@@ -549,15 +549,14 @@ static iridium_return_code_t __internal_transmit_message ( uint8_t *payload, uin
 
     if ( SBDIX_response_code <= 4 )
     {
-#error "Messages are not coming through. See if this is a modem issue or if reactivation is required."
       // Success case
 #warning "May need to reimplement timeout as an inpout to __send_basic_command_message."
       __send_basic_command_message (clear_MO, SBDD_RESPONSE_SIZE);
-      uart_log ("Iridium transmission successful.");
+      LOG ("Iridium transmission successful.");
       return IRIDIUM_SUCCESS;
     }
 
-    uart_log ("Iridium transmission unsuccessful.");
+    LOG ("Iridium transmission unsuccessful.");
 
     // If message Tx failed, put the modem to sleep and delay for a total of 30 seconds
     iridium_self->sleep ();

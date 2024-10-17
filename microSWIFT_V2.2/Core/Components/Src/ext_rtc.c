@@ -530,7 +530,10 @@ static int32_t _ext_rtc_read_reg_spi_blocking ( void *unused_handle, uint16_t un
 
   write_buf[0] = (uint8_t) (reg_address | PCF2131_SPI_READ_BIT);
 
-  assert((data_length <= sizeof(write_buf)) && ((data_length + 1) <= sizeof(write_buf)));
+  if ( !((data_length <= sizeof(write_buf)) && ((data_length + 1) <= sizeof(write_buf))) )
+  {
+    return RTC_PARAMETERS_INVALID;
+  }
 
   HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
 
@@ -567,7 +570,10 @@ static int32_t _ext_rtc_write_reg_spi_blocking ( void *unused_handle, uint16_t u
   uint8_t write_buf[RTC_SPI_BUF_SIZE + 1] =
     { 0 };
 
-  assert(data_length <= sizeof(write_buf));
+  if ( !(data_length <= sizeof(write_buf)) )
+  {
+    return RTC_PARAMETERS_INVALID;
+  }
 
   write_buf[0] = (uint8_t) reg_address;
   memcpy (&(write_buf[1]), write_data, data_length);

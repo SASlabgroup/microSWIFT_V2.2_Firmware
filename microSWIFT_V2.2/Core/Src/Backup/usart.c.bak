@@ -23,11 +23,12 @@
 /* USER CODE BEGIN 0 */
 #include "stdbool.h"
 
-bool uart4_init_status = false;
-bool uart5_init_status = false;
-bool usart1_init_status = false;
-bool usart2_init_status = false;
-bool usart3_init_status = false;
+static bool uart4_init_status = false;
+static bool uart5_init_status = false;
+static bool usart1_init_status = false;
+static bool usart2_init_status = false;
+static bool usart3_init_status = false;
+static bool usart6_init_status = false;
 // Weird bug where CubeMX doesn't generate the handle for GPDMA channel 1
 DMA_HandleTypeDef handle_GPDMA1_Channel1;
 /* USER CODE END 0 */
@@ -1256,6 +1257,8 @@ int32_t uart5_init ( void )
     {
       return UART_ERR;
     }
+
+    uart5_init_status = true;
   }
 
   return UART_OK;
@@ -1291,6 +1294,8 @@ int32_t usart1_init ( void )
     {
       return UART_ERR;
     }
+
+    usart1_init_status = true;
   }
 
   return UART_OK;
@@ -1327,6 +1332,8 @@ int32_t usart2_init ( void )
     {
       return UART_ERR;
     }
+
+    usart2_init_status = true;
   }
 
   return UART_OK;
@@ -1363,6 +1370,46 @@ int32_t usart3_init ( void )
     {
       return UART_ERR;
     }
+
+    usart3_init_status = true;
+  }
+
+  return UART_OK;
+}
+
+int32_t usart6_init ( void )
+{
+  if ( !usart6_init_status )
+  {
+    huart6.Instance = USART6;
+    huart6.Init.BaudRate = 115200;
+    huart6.Init.WordLength = UART_WORDLENGTH_8B;
+    huart6.Init.StopBits = UART_STOPBITS_1;
+    huart6.Init.Parity = UART_PARITY_NONE;
+    huart6.Init.Mode = UART_MODE_TX_RX;
+    huart6.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    huart6.Init.OverSampling = UART_OVERSAMPLING_16;
+    huart6.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+    huart6.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+    huart6.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+    if ( HAL_UART_Init (&huart6) != HAL_OK )
+    {
+      return UART_ERR;
+    }
+    if ( HAL_UARTEx_SetTxFifoThreshold (&huart6, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK )
+    {
+      return UART_ERR;
+    }
+    if ( HAL_UARTEx_SetRxFifoThreshold (&huart6, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK )
+    {
+      return UART_ERR;
+    }
+    if ( HAL_UARTEx_DisableFifoMode (&huart6) != HAL_OK )
+    {
+      return UART_ERR;
+    }
+
+    usart6_init_status = true;
   }
 
   return UART_OK;
@@ -1453,6 +1500,24 @@ int32_t usart3_deinit ( void )
     }
 
     usart3_init_status = false;
+  }
+
+  return ret;
+}
+
+int32_t usart6_deinit ( void )
+{
+  int32_t ret = UART_OK;
+
+  if ( usart6_init_status )
+  {
+
+    if ( HAL_UART_DeInit (&huart6) != HAL_OK )
+    {
+      return UART_ERR;
+    }
+
+    usart6_init_status = false;
   }
 
   return ret;
