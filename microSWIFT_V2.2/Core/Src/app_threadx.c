@@ -964,10 +964,6 @@ static void gnss_thread_entry ( ULONG thread_input )
              &irq_flags, &error_flags, &gnss_timer, &(ubx_message_process_buf[0]),
              &(gnss_config_response_buf[0]), north, east, down);
 
-  LOG("Test without args.");
-  LOG("Test with 1 arg: %d", 25);
-  LOG("Test with 2 args: %s, %d", "This is a test string", -100);
-
   gnss.on ();
   // Run tests if needed
   if ( tests.gnss_thread_test != NULL )
