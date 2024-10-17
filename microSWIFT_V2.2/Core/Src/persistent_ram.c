@@ -78,7 +78,7 @@ void persistent_ram_save_iridium_message ( sbd_message_type_52 *msg )
                 sizeof(sbd_message_type_52));
         // Make the entry valid
         persistent_self.unsent_msg_storage.msg_queue[i].valid = true;
-        persistent_self.unsent_msg_storage.num_msgs_enqueued++;
+        persistent_self.unsent_msg_storage.num_telemetry_msgs_enqueued++;
         return;
       }
     }
@@ -168,6 +168,7 @@ sbd_message_type_99* persistent_ram_get_prioritized_unsent_error_message ( void 
 {
   time_t most_recent = 0, this_msg = 0;
   sbd_message_type_99 *ret_ptr = NULL;
+  int32_t msg_index = 0;
 
   // Corruption, lack of initialization check
   if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
@@ -212,6 +213,7 @@ void persistent_ram_delete_iridium_message_element ( sbd_message_type_52 *msg_pt
   if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
   {
     _persistent_ram_clear ();
+    return;
   }
 
   // Find the pointer
@@ -236,6 +238,7 @@ void persistent_ram_delete_error_message_element ( sbd_message_type_99 *msg_ptr 
   if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
   {
     _persistent_ram_clear ();
+    return;
   }
 
   // Find the pointer

@@ -166,7 +166,7 @@ void gnss_error_out ( GNSS *gnss, ULONG error_flag, TX_THREAD *gnss_thread, cons
 {
   va_list args;
   va_start(args, fmt);
-  char tmp_fmt[256];
+  char tmp_fmt[128];
 
   gnss->off ();
   gnss->stop_timer ();
@@ -188,7 +188,7 @@ void ct_error_out ( CT *ct, ULONG error_flag, TX_THREAD *ct_thread, const char *
 {
   va_list args;
   va_start(args, fmt);
-  char tmp_fmt[256];
+  char tmp_fmt[128];
 
   ct->off ();
   ct->stop_timer ();
@@ -211,7 +211,7 @@ void temperature_error_out ( Temperature *temperature, ULONG error_flag,
 {
   va_list args;
   va_start(args, fmt);
-  char tmp_fmt[256];
+  char tmp_fmt[128];
 
   temperature->off ();
   temperature->stop_timer ();
@@ -234,7 +234,7 @@ void iridium_error_out ( Iridium *iridium, ULONG error_flag, TX_THREAD *iridium_
 {
   va_list args;
   va_start(args, fmt);
-  char tmp_fmt[256];
+  char tmp_fmt[128];
 
   iridium->sleep ();
   iridium->off ();

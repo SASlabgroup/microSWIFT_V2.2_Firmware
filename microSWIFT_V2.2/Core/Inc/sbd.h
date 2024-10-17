@@ -8,6 +8,8 @@
 #ifndef INC_SBD_H_
 #define INC_SBD_H_
 
+#include "time.h"
+
 // @formatter:off
 typedef struct sbd_message_type_52
 {

@@ -1723,7 +1723,7 @@ static void iridium_thread_entry ( ULONG thread_input )
 
     if ( iridium.transmit_message (msg_ptr) == IRIDIUM_SUCCESS )
     {
-      persistent_ram_delete_message_element (msg_ptr);
+      persistent_ram_delete_iridium_message_element (msg_ptr);
     }
   }
 
