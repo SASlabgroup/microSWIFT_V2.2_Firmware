@@ -24,6 +24,7 @@
 #include "persistent_ram.h"
 #include "watchdog.h"
 #include "logger.h"
+#include "stdarg.h"
 
 // @formatter:off
 // Object pointer
@@ -35,6 +36,7 @@ static iridium_return_code_t _iridium_start_timer ( uint16_t timeout_in_minutes 
 static iridium_return_code_t _iridium_stop_timer ( void );
 static iridium_return_code_t _iridium_transmit_message ( sbd_message_type_52 *msg );
 static iridium_return_code_t _iridium_transmit_error_message ( char *error_message );
+static void                  _iridium_log_error_string (char* str, ...);
 static void                  _iridium_charge_caps ( uint32_t caps_charge_time_ticks );
 static void                  _iridium_sleep ( void );
 static void                  _iridium_wake ( void );
@@ -552,11 +554,11 @@ static iridium_return_code_t __internal_transmit_message ( uint8_t *payload, uin
       // Success case
 #warning "May need to reimplement timeout as an inpout to __send_basic_command_message."
       __send_basic_command_message (clear_MO, SBDD_RESPONSE_SIZE);
-      LOG ("Iridium transmission successful.");
+      LOG("Iridium transmission successful.");
       return IRIDIUM_SUCCESS;
     }
 
-    LOG ("Iridium transmission unsuccessful.");
+    LOG("Iridium transmission unsuccessful.");
 
     // If message Tx failed, put the modem to sleep and delay for a total of 30 seconds
     iridium_self->sleep ();
