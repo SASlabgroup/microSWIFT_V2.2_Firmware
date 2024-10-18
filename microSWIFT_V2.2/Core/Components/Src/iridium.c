@@ -199,7 +199,7 @@ static iridium_return_code_t _iridium_self_test ( void )
  */
 static iridium_return_code_t _iridium_start_timer ( uint16_t timeout_in_minutes )
 {
-  uint16_t timeout = TX_TIMER_TICKS_PER_SECOND * timeout_in_minutes;
+  uint16_t timeout = TX_TIMER_TICKS_PER_SECOND * 60 * timeout_in_minutes;
   iridium_return_code_t ret = IRIDIUM_SUCCESS;
 
   if ( tx_timer_change (iridium_self->timer, timeout, 0) != TX_SUCCESS )

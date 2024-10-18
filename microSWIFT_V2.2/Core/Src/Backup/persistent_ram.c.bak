@@ -49,7 +49,7 @@ void persistent_ram_save_iridium_message ( sbd_message_type_52 *msg )
   }
 
   // If the storage queue is full, see if we can replace an element
-  if ( persistent_self.unsent_msg_storage.num_msgs_enqueued == MAX_NUM_IRIDIUM_MSGS_STORED )
+  if ( persistent_self.unsent_msg_storage.num_telemetry_msgs_enqueued == MAX_NUM_IRIDIUM_MSGS_STORED )
   {
     for ( int i = 0; i < MAX_NUM_IRIDIUM_MSGS_STORED; i++ )
     {
@@ -78,7 +78,39 @@ void persistent_ram_save_iridium_message ( sbd_message_type_52 *msg )
                 sizeof(sbd_message_type_52));
         // Make the entry valid
         persistent_self.unsent_msg_storage.msg_queue[i].valid = true;
-        persistent_self.unsent_msg_storage.num_msgs_enqueued++;
+        persistent_self.unsent_msg_storage.num_telemetry_msgs_enqueued++;
+        return;
+      }
+    }
+  }
+}
+
+void persistent_ram_save_error_message ( sbd_message_type_99 *msg )
+{
+  // Corruption, lack of initialization check
+  if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
+  {
+    _persistent_ram_clear ();
+  }
+
+  // If the storage queue is full, just bail
+  if ( persistent_self.unsent_msg_storage.num_error_msgs_enqueued == MAX_NUM_ERROR_MSGS_STORED )
+  {
+    return;
+  }
+  else
+  {
+    // Queue is not full, just need to find an open slot
+    for ( int i = 0; i < MAX_NUM_ERROR_MSGS_STORED; i++ )
+    {
+      if ( !persistent_self.unsent_msg_storage.error_msg_queue[i].valid )
+      {
+        // copy the message over
+        memcpy (&(persistent_self.unsent_msg_storage.error_msg_queue[i].payload), msg,
+                sizeof(sbd_message_type_99));
+        // Make the entry valid
+        persistent_self.unsent_msg_storage.error_msg_queue[i].valid = true;
+        persistent_self.unsent_msg_storage.num_error_msgs_enqueued++;
         return;
       }
     }
@@ -102,7 +134,7 @@ sbd_message_type_52* persistent_ram_get_prioritized_unsent_iridium_message ( voi
   }
 
   // Empty queue check
-  if ( persistent_self.unsent_msg_storage.num_msgs_enqueued == 0 )
+  if ( persistent_self.unsent_msg_storage.num_telemetry_msgs_enqueued == 0 )
   {
     return ret_ptr;
   }
@@ -132,12 +164,56 @@ sbd_message_type_52* persistent_ram_get_prioritized_unsent_iridium_message ( voi
   return ret_ptr;
 }
 
-void persistent_ram_delete_message_element ( sbd_message_type_52 *msg_ptr )
+sbd_message_type_99* persistent_ram_get_prioritized_unsent_error_message ( void )
+{
+  time_t most_recent = 0, this_msg = 0;
+  sbd_message_type_99 *ret_ptr = NULL;
+  int32_t msg_index = 0;
+
+  // Corruption, lack of initialization check
+  if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
+  {
+    _persistent_ram_clear ();
+    return ret_ptr;
+  }
+
+  // Empty queue check
+  if ( persistent_self.unsent_msg_storage.num_error_msgs_enqueued == 0 )
+  {
+    return ret_ptr;
+  }
+
+  // Find the most recent message
+  for ( int i = 0; i < MAX_NUM_ERROR_MSGS_STORED; i++ )
+  {
+    if ( persistent_self.unsent_msg_storage.msg_queue[i].valid )
+    {
+      this_msg = persistent_self.unsent_msg_storage.error_msg_queue[i].payload.timetamp;
+
+      if ( this_msg > most_recent )
+      {
+        most_recent = this_msg;
+        msg_index = i;
+      }
+    }
+  }
+
+  // Make sure we don't go out of bounds
+  if ( (msg_index > 0) && (msg_index < (MAX_NUM_IRIDIUM_MSGS_STORED - 1)) )
+  {
+    ret_ptr = &persistent_self.unsent_msg_storage.msg_queue[msg_index].payload;
+  }
+
+  return ret_ptr;
+}
+
+void persistent_ram_delete_iridium_message_element ( sbd_message_type_52 *msg_ptr )
 {
   // Corruption, lack of initialization check
   if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
   {
     _persistent_ram_clear ();
+    return;
   }
 
   // Find the pointer
@@ -150,7 +226,32 @@ void persistent_ram_delete_message_element ( sbd_message_type_52 *msg_ptr )
               sizeof(sbd_message_type_52));
       // Make the entry valid
       persistent_self.unsent_msg_storage.msg_queue[i].valid = false;
-      persistent_self.unsent_msg_storage.num_msgs_enqueued--;
+      persistent_self.unsent_msg_storage.num_telemetry_msgs_enqueued--;
+      return;
+    }
+  }
+}
+
+void persistent_ram_delete_error_message_element ( sbd_message_type_99 *msg_ptr )
+{
+  // Corruption, lack of initialization check
+  if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
+  {
+    _persistent_ram_clear ();
+    return;
+  }
+
+  // Find the pointer
+  for ( int i = 0; i < MAX_NUM_ERROR_MSGS_STORED; i++ )
+  {
+    if ( &persistent_self.unsent_msg_storage.error_msg_queue[i].payload == msg_ptr )
+    {
+      // copy the message over
+      memset (&(persistent_self.unsent_msg_storage.error_msg_queue[i].payload), 0,
+              sizeof(sbd_message_type_52));
+      // Make the entry valid
+      persistent_self.unsent_msg_storage.error_msg_queue[i].valid = false;
+      persistent_self.unsent_msg_storage.num_error_msgs_enqueued--;
       return;
     }
   }

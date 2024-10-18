@@ -32,6 +32,8 @@ typedef struct
 
   uint8_t watchdog_refresh_time_val;
 
+  pcf2131_irq_config_struct irq_config;
+
   rtc_return_code (*setup_rtc) ( void );
   rtc_return_code (*config_watchdog) ( uint32_t period_ms );
   rtc_return_code (*refresh_watchdog) ( void );

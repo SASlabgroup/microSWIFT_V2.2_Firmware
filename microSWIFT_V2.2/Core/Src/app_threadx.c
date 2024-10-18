@@ -844,14 +844,28 @@ static void control_thread_entry ( ULONG thread_input )
     tests.control_test (NULL);
   }
 
+  // Let RTC and Logger thread init
+  tx_thread_sleep (10);
+
   controller_init (&control, &configuration, &thread_handles, &error_flags, &initialization_flags,
                    &irq_flags, &complete_flags, &control_timer, device_handles.battery_adc,
                    &sbd_message);
+
+  LOG("Boot.");
 
   if ( watchdog_init (&watchdog, &watchdog_check_in_flags) != WATCHDOG_OK )
   {
     HAL_NVIC_SystemReset ();
   }
+
+  //
+  //
+  // Testing
+  tx_thread_sleep (10);
+  control.shutdown_procedure ();
+  //
+  //
+  //
 
   // Run the self test
   if ( !control.startup_procedure () )

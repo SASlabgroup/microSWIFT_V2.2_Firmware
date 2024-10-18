@@ -113,8 +113,9 @@ void Error_Handler(void);
 #define RTC_TIMESTAMP_3_GPIO_Port GPIOB
 #define SPI2_CSn1_Pin GPIO_PIN_1
 #define SPI2_CSn1_GPIO_Port GPIOB
-#define SPI2_CSn2_Pin GPIO_PIN_2
-#define SPI2_CSn2_GPIO_Port GPIOB
+#define RTC_INT_B_Pin GPIO_PIN_2
+#define RTC_INT_B_GPIO_Port GPIOB
+#define RTC_INT_B_EXTI_IRQn EXTI2_IRQn
 #define SPI1_CSn1_Pin GPIO_PIN_11
 #define SPI1_CSn1_GPIO_Port GPIOF
 #define RTC_INT_A_Pin GPIO_PIN_12
@@ -156,9 +157,6 @@ void Error_Handler(void);
 #define EXT_LED_GREEN_GPIO_Port GPIOD
 #define RTC_SPI_CS_Pin GPIO_PIN_14
 #define RTC_SPI_CS_GPIO_Port GPIOD
-#define RTC_INT_B_Pin GPIO_PIN_15
-#define RTC_INT_B_GPIO_Port GPIOD
-#define RTC_INT_B_EXTI_IRQn EXTI15_IRQn
 #define LOGGER_UART_RX_Pin GPIO_PIN_8
 #define LOGGER_UART_RX_GPIO_Port GPIOC
 #define LOGGER_UART_TX_Pin GPIO_PIN_9

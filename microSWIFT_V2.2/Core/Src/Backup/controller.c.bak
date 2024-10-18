@@ -192,9 +192,9 @@ static void _control_shutdown_procedure ( void )
     HAL_NVIC_SystemReset ();
   }
 
-  LOG ("All threads complete. Entering processor standby mode. Alarm set for %d:%d:%d",
-            (int) alarm_settings.alarm_hour, (int) alarm_settings.alarm_minute,
-            (int) alarm_settings.alarm_second);
+  LOG("All threads complete. Entering processor standby mode. Alarm set for %2d:%2d:%2d",
+      (int ) alarm_settings.alarm_hour, (int ) alarm_settings.alarm_minute,
+      (int ) alarm_settings.alarm_second);
 
   tx_thread_sleep (2);
 
@@ -214,15 +214,15 @@ static real16_T _control_get_battery_voltage ( void )
     switch ( ret )
     {
       case BATTERY_ADC_ERROR:
-        LOG ("Battery ADC error, unable to obtain battery voltage");
+        LOG("Battery ADC error, unable to obtain battery voltage");
         break;
 
       case BATTERY_TIMEOUT_ERROR:
-        LOG ("Battery ADC timed out, unable to obtain battery voltage");
+        LOG("Battery ADC timed out, unable to obtain battery voltage");
         break;
 
       default:
-        LOG ("Unknown battery error, unable to obtain battery voltage");
+        LOG("Unknown battery error, unable to obtain battery voltage");
         break;
     }
   }
@@ -304,7 +304,7 @@ static void _control_manage_state ( void )
               accelerometer_complete = false,
               waves_complete = false,
               iridium_complete = false;
-                          // @formatter:on
+                                  // @formatter:on
   bool iridium_ready = false;
 
   ct_complete = !controller_self->global_config->ct_enabled;
@@ -330,18 +330,34 @@ static void _control_manage_state ( void )
     {
       ret |= tx_thread_resume (controller_self->thread_handles->ct_thread);
     }
-    else if ( !temperature_complete )
+
+    if ( !temperature_complete )
     {
       ret |= tx_thread_resume (controller_self->thread_handles->temperature_thread);
     }
   }
 
   // When the GNSS thread is complete, we can run the Waves algo
-  if ( (current_flags & GNSS_THREAD_COMPLETED_SUCCESSFULLY)
-       | (current_flags & GNSS_THREAD_COMPLETED_WITH_ERRORS) )
+  if ( current_flags & GNSS_THREAD_COMPLETED_SUCCESSFULLY )
   {
     gnss_complete = true;
     ret |= tx_thread_resume (controller_self->thread_handles->waves_thread);
+  }
+
+  // If GNSS thread errors out, do not run waves
+  if ( current_flags & GNSS_THREAD_COMPLETED_WITH_ERRORS )
+  {
+    gnss_complete = true;
+
+    if ( !ct_complete )
+    {
+      ret |= tx_thread_resume (controller_self->thread_handles->ct_thread);
+    }
+
+    if ( !temperature_complete )
+    {
+      ret |= tx_thread_resume (controller_self->thread_handles->temperature_thread);
+    }
   }
 
   if ( (current_flags & CT_THREAD_COMPLETED_SUCCESSFULLY)
@@ -502,8 +518,9 @@ static void __get_alarm_settings_from_time ( struct tm *time, rtc_alarm_struct *
   }
   else
   {
-    alarm->alarm_minute = (time->tm_min > 30) ?
-        0 : 30;
+//    alarm->alarm_minute = (time->tm_min > 30) ?
+//        0 : 30;
+    alarm->alarm_minute = (time->tm_min + 2) % 60;
     alarm->alarm_hour = (alarm->alarm_minute == 0) ?
         (time->tm_hour + 1) % 24 : time->tm_hour;
   }
@@ -521,15 +538,17 @@ static void __handle_rtc_error ( void )
 }
 static void __handle_gnss_error ( ULONG error_flags )
 {
-  /*
-   * TODO:
-   *    [ ] Shut down GNSS
-   *    [ ] Set all the fields of the SBD message to error values
-   *    [ ] Set the GNSS_THREAD_COMPLETED_WITH_ERRORS
-   *        [ ] Ensure the waves thread does not run
-   *    [ ] Terminate the GNSS thread
-   *    [ ] Continue application logic
-   */
+  // Set all the fields of the SBD message to error values
+  memset (controller_self->current_message, 0, sizeof(sbd_message_type_52));
+
+  // Set the GNSS_THREAD_COMPLETED_WITH_ERRORS and WAVES_THREAD_COMPLETED_WITH_ERRORS flags to prevent waves thread from running
+  (void) tx_event_flags_set (
+      controller_self->complete_flags,
+      (GNSS_THREAD_COMPLETED_WITH_ERRORS | WAVES_THREAD_COMPLETED_WITH_ERRORS), TX_OR);
+
+  // Terminate the GNSS thread
+  (void) tx_thread_suspend (controller_self->thread_handles->gnss_thread);
+  (void) tx_thread_terminate (controller_self->thread_handles->gnss_thread);
 }
 static void __handle_ct_error ( void )
 {

@@ -72,13 +72,13 @@ extern DMA_HandleTypeDef handle_GPDMA1_Channel11;
 #define LOGGER_UART USART6
 /* USER CODE END Private defines */
 
-void MX_LPUART1_UART_Init ( void );
-void MX_UART4_Init ( void );
-void MX_UART5_Init ( void );
-void MX_USART1_UART_Init ( void );
-void MX_USART2_UART_Init ( void );
-void MX_USART3_UART_Init ( void );
-void MX_USART6_UART_Init ( void );
+void MX_LPUART1_UART_Init(void);
+void MX_UART4_Init(void);
+void MX_UART5_Init(void);
+void MX_USART1_UART_Init(void);
+void MX_USART2_UART_Init(void);
+void MX_USART3_UART_Init(void);
+void MX_USART6_UART_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 int32_t uart4_init ( void );

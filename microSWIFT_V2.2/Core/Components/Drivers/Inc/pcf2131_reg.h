@@ -1605,6 +1605,11 @@ typedef struct
   bool timestamp_2_irq_en;
   bool timestamp_3_irq_en;
   bool timestamp_4_irq_en;
+
+  pcf2131_int_a_mask_1_reg_t int_a_mask_1;
+  pcf2131_int_a_mask_2_reg_t int_a_mask_2;
+  pcf2131_int_b_mask_1_reg_t int_b_mask_1;
+  pcf2131_int_b_mask_2_reg_t int_b_mask_2;
 } pcf2131_irq_config_struct;
 
 typedef struct
@@ -1639,11 +1644,11 @@ int32_t pcf2131_set_date_time ( dev_ctx_t *dev_handle, struct tm *input_date_tim
 int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_time );
 int32_t pcf2131_set_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *alarm_setting );
 int32_t pcf2131_get_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *return_alarm_setting );
-int32_t pcf2131_config_int_a ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config );
-int32_t pcf2131_config_int_b ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config );
+int32_t pcf2131_config_interrupts ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config );
 int32_t pcf2131_config_int_signal_behavior ( dev_ctx_t *dev_handle, int_signal_behavior_t behavior );
 int32_t pcf2131_set_timestamp_enable ( dev_ctx_t *dev_handle, pcf2131_timestamp_t which_timestamp,
 bool enable );
+int32_t pcf2131_por_config ( dev_ctx_t *dev_handle, bool en );
 int32_t pcf2131_set_timestamp_store_option ( dev_ctx_t *dev_handle,
                                              pcf2131_timestamp_t which_timestamp,
                                              timestamp_subsequent_event_t option );

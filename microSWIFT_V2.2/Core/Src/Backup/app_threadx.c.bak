@@ -199,11 +199,11 @@ static void accelerometer_thread_entry ( ULONG thread_input );
 /* USER CODE END PFP */
 
 /**
- * @brief  Application ThreadX Initialization.
- * @param memory_ptr: memory pointer
- * @retval int
- */
-UINT App_ThreadX_Init ( VOID *memory_ptr )
+  * @brief  Application ThreadX Initialization.
+  * @param memory_ptr: memory pointer
+  * @retval int
+  */
+UINT App_ThreadX_Init(VOID *memory_ptr)
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -245,14 +245,14 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   //
   // Allocate stack for the logger thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XL_STACK,
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK,
   TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the logger thread. Low priority priority level and no preemption possible
-  ret = tx_thread_create(&logger_thread, "logger thread", logger_thread_entry, 0, pointer, XL_STACK,
+  ret = tx_thread_create(&logger_thread, "logger thread", logger_thread_entry, 0, pointer, M_STACK,
                          LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
@@ -655,18 +655,18 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   return ret;
 }
 
-/**
- * @brief  Function that implements the kernel's initialization.
- * @param  None
- * @retval None
- */
-void MX_ThreadX_Init ( void )
+  /**
+  * @brief  Function that implements the kernel's initialization.
+  * @param  None
+  * @retval None
+  */
+void MX_ThreadX_Init(void)
 {
   /* USER CODE BEGIN  Before_Kernel_Start */
 
   /* USER CODE END  Before_Kernel_Start */
 
-  tx_kernel_enter ();
+  tx_kernel_enter();
 
   /* USER CODE BEGIN  Kernel_Start_Error */
 
@@ -964,9 +964,6 @@ static void gnss_thread_entry ( ULONG thread_input )
              &irq_flags, &error_flags, &gnss_timer, &(ubx_message_process_buf[0]),
              &(gnss_config_response_buf[0]), north, east, down);
 
-  gnss_error_out (&gnss, NO_ERROR_FLAG, this_thread, "No args test.");
-  gnss_error_out (&gnss, NO_ERROR_FLAG, this_thread, "With args test: %d, %s", -15, "String");
-
   gnss.on ();
   // Run tests if needed
   if ( tests.gnss_thread_test != NULL )
@@ -1061,7 +1058,8 @@ static void gnss_thread_entry ( ULONG thread_input )
   if ( gnss_get_timer_timeout_status () )
   {
     gnss_error_out (&gnss, GNSS_RESOLUTION_ERROR, this_thread,
-                    "GNSS failed to get a fix within alloted time of :%d.", gnss_max_acq_time);
+                    "GNSS failed to get a fix within alloted time of %d minutes.",
+                    gnss_max_acq_time);
   }
 
   // Start the sample window timer
@@ -1725,7 +1723,7 @@ static void iridium_thread_entry ( ULONG thread_input )
 
     if ( iridium.transmit_message (msg_ptr) == IRIDIUM_SUCCESS )
     {
-      persistent_ram_delete_message_element (msg_ptr);
+      persistent_ram_delete_iridium_message_element (msg_ptr);
     }
   }
 

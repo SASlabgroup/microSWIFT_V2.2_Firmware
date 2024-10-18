@@ -174,7 +174,7 @@ static void _control_shutdown_procedure ( void )
   tx_thread_sleep (1);
 
   // And the alarm interrupt line on the RTC is high (off)
-  if ( HAL_GPIO_ReadPin (RTC_INT_B_GPIO_Port, RTC_INT_B_Pin) != GPIO_PIN_SET )
+  if ( HAL_GPIO_ReadPin (RTC_INT_A_GPIO_Port, RTC_INT_A_Pin) != GPIO_PIN_SET )
   {
     HAL_NVIC_SystemReset ();
   }
@@ -192,7 +192,7 @@ static void _control_shutdown_procedure ( void )
     HAL_NVIC_SystemReset ();
   }
 
-  LOG("All threads complete. Entering processor standby mode. Alarm set for %d:%d:%d",
+  LOG("All threads complete. Entering processor standby mode. Alarm set for %02d:%02d:%02d UTC.",
       (int ) alarm_settings.alarm_hour, (int ) alarm_settings.alarm_minute,
       (int ) alarm_settings.alarm_second);
 
@@ -304,7 +304,7 @@ static void _control_manage_state ( void )
               accelerometer_complete = false,
               waves_complete = false,
               iridium_complete = false;
-                            // @formatter:on
+                                                      // @formatter:on
   bool iridium_ready = false;
 
   ct_complete = !controller_self->global_config->ct_enabled;
@@ -330,18 +330,34 @@ static void _control_manage_state ( void )
     {
       ret |= tx_thread_resume (controller_self->thread_handles->ct_thread);
     }
-    else if ( !temperature_complete )
+
+    if ( !temperature_complete )
     {
       ret |= tx_thread_resume (controller_self->thread_handles->temperature_thread);
     }
   }
 
   // When the GNSS thread is complete, we can run the Waves algo
-  if ( (current_flags & GNSS_THREAD_COMPLETED_SUCCESSFULLY)
-       | (current_flags & GNSS_THREAD_COMPLETED_WITH_ERRORS) )
+  if ( current_flags & GNSS_THREAD_COMPLETED_SUCCESSFULLY )
   {
     gnss_complete = true;
     ret |= tx_thread_resume (controller_self->thread_handles->waves_thread);
+  }
+
+  // If GNSS thread errors out, do not run waves
+  if ( current_flags & GNSS_THREAD_COMPLETED_WITH_ERRORS )
+  {
+    gnss_complete = true;
+
+    if ( !ct_complete )
+    {
+      ret |= tx_thread_resume (controller_self->thread_handles->ct_thread);
+    }
+
+    if ( !temperature_complete )
+    {
+      ret |= tx_thread_resume (controller_self->thread_handles->temperature_thread);
+    }
   }
 
   if ( (current_flags & CT_THREAD_COMPLETED_SUCCESSFULLY)
@@ -502,8 +518,11 @@ static void __get_alarm_settings_from_time ( struct tm *time, rtc_alarm_struct *
   }
   else
   {
-    alarm->alarm_minute = (time->tm_min > 30) ?
-        0 : 30;
+    alarm->alarm_second = (time->tm_sec + 20) % 60;
+    alarm->alarm_minute = (alarm->alarm_second < time->tm_sec) ?
+        time->tm_min + 1 : time->tm_min;
+//    alarm->alarm_minute = (time->tm_min > 30) ?
+//        0 : 30;
     alarm->alarm_hour = (alarm->alarm_minute == 0) ?
         (time->tm_hour + 1) % 24 : time->tm_hour;
   }

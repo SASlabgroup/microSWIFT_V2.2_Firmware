@@ -219,6 +219,9 @@ int32_t pcf2131_set_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *alarm_setti
                                   sizeof(pcf2131_weekday_alarm_reg_t));
   }
 
+  rtc_alarm_struct validate_alarm;
+  pcf2131_get_alarm (dev_handle, &validate_alarm);
+
   return ret;
 }
 
@@ -250,31 +253,29 @@ int32_t pcf2131_get_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *return_alar
   return_alarm_setting->alarm_weekday = weekday.weekday;
   return_alarm_setting->weekday_alarm_en = !weekday.alarm_disable;
 
-  return_alarm_setting->alarm_day = BCD_TO_DEC (day.tens_place, day.units_place);
+  return_alarm_setting->alarm_day = BCD_TO_DEC_SPLIT(day.tens_place, day.units_place);
   return_alarm_setting->day_alarm_en = !day.alarm_disable;
 
-  return_alarm_setting->alarm_hour = BCD_TO_DEC (hour.format_24hr.tens_place,
-                                                 hour.format_24hr.units_place);
+  return_alarm_setting->alarm_hour = BCD_TO_DEC_SPLIT(hour.format_24hr.tens_place,
+                                                      hour.format_24hr.units_place);
   return_alarm_setting->hour_alarm_en = !hour.format_24hr.alarm_disable;
 
-  return_alarm_setting->alarm_minute = BCD_TO_DEC (minute.tens_place, minute.units_place);
+  return_alarm_setting->alarm_minute = BCD_TO_DEC_SPLIT(minute.tens_place, minute.units_place);
   return_alarm_setting->minute_alarm_en = !minute.alarm_disable;
 
-  return_alarm_setting->alarm_second = BCD_TO_DEC (second.tens_place, second.units_place);
+  return_alarm_setting->alarm_second = BCD_TO_DEC_SPLIT(second.tens_place, second.units_place);
   return_alarm_setting->second_alarm_en = !second.alarm_disable;
 
   return ret;
 }
 
-int32_t pcf2131_config_int_a ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config )
+int32_t pcf2131_config_interrupts ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config )
 {
   int32_t ret = PCF2131_OK;
   pcf2131_ctrl5_reg_t ctrl5;
   pcf2131_ctrl3_reg_t ctrl3;
   pcf2131_ctrl2_reg_t ctrl2;
   pcf2131_ctrl1_reg_t ctrl1;
-  pcf2131_int_a_mask_1_reg_t int_a_mask1;
-  pcf2131_int_a_mask_2_reg_t int_a_mask2;
   pcf2131_watchdog_tim_ctrl_reg_t watchdog_reg;
 
   // Read current register contents
@@ -286,10 +287,6 @@ int32_t pcf2131_config_int_a ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct 
                                sizeof(pcf2131_ctrl2_reg_t));
   ret |= dev_handle->bus_read (NULL, 0, CTRL1_REG_ADDR, (uint8_t*) &ctrl1,
                                sizeof(pcf2131_ctrl1_reg_t));
-  ret |= dev_handle->bus_read (NULL, 0, INT_A_MASK_1_REG_ADDR, (uint8_t*) &int_a_mask1,
-                               sizeof(pcf2131_int_a_mask_1_reg_t));
-  ret |= dev_handle->bus_read (NULL, 0, INT_A_MASK_2_REG_ADDR, (uint8_t*) &int_a_mask2,
-                               sizeof(pcf2131_int_a_mask_2_reg_t));
   ret |= dev_handle->bus_read (NULL, 0, WATCHDOG_TIM_CTRL_REG_ADDR, (uint8_t*) &watchdog_reg,
                                sizeof(pcf2131_watchdog_tim_ctrl_reg_t));
 
@@ -298,32 +295,22 @@ int32_t pcf2131_config_int_a ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct 
   ctrl1.second_irq_en = irq_config->sec_irq_en;
   watchdog_reg.irq_signal_behavior = (irq_config->sec_min_pulsed_irq_en) ?
       PULSED_SIGNAL : LATCHED_SIGNAL;
-  int_a_mask1.min_irq_mask = irq_config->min_irq_en;
-  int_a_mask1.sec_irq_mask = irq_config->sec_irq_en;
 
   /* Watchdog Interrupt */
   watchdog_reg.interrupt_enable = irq_config->watchdog_irq_en;
-  int_a_mask1.watchdog_irq_mask = irq_config->watchdog_irq_en;
 
   /* Timestamp Interrupts */
   ctrl5.timestamp4_irq_en = irq_config->timestamp_4_irq_en;
   ctrl5.timestamp3_irq_en = irq_config->timestamp_3_irq_en;
   ctrl5.timestamp2_irq_en = irq_config->timestamp_2_irq_en;
   ctrl5.timestamp1_irq_en = irq_config->timestamp_1_irq_en;
-  int_a_mask2.timestamp_4_irq_mask = irq_config->timestamp_4_irq_en;
-  int_a_mask2.timestamp_3_irq_mask = irq_config->timestamp_3_irq_en;
-  int_a_mask2.timestamp_2_irq_mask = irq_config->timestamp_2_irq_en;
-  int_a_mask2.timestamp_1_irq_mask = irq_config->timestamp_1_irq_en;
 
   /* Battery Interrupts */
   ctrl3.batt_irq_en = irq_config->batt_flag_irq_en;
   ctrl3.batt_low_irq_en = irq_config->batt_low_irq_en;
-  int_a_mask1.low_battery_irq_mask = irq_config->batt_low_irq_en;
-  int_a_mask1.battery_flag_irq_mask = irq_config->batt_flag_irq_en;
 
   /* Alarm Interrupt */
   ctrl2.alarm_irq_en = irq_config->alarm_irq_en;
-  int_a_mask1.alarm_irq_mask = irq_config->alarm_irq_en;
 
   // Write back to the registers
   ret |= dev_handle->bus_write (NULL, 0, CTRL5_REG_ADDR, (uint8_t*) &ctrl5,
@@ -334,87 +321,17 @@ int32_t pcf2131_config_int_a ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct 
                                 sizeof(pcf2131_ctrl2_reg_t));
   ret |= dev_handle->bus_write (NULL, 0, CTRL1_REG_ADDR, (uint8_t*) &ctrl1,
                                 sizeof(pcf2131_ctrl1_reg_t));
-  ret |= dev_handle->bus_write (NULL, 0, INT_A_MASK_1_REG_ADDR, (uint8_t*) &int_a_mask1,
+  ret |= dev_handle->bus_write (NULL, 0, INT_A_MASK_1_REG_ADDR,
+                                (uint8_t*) &irq_config->int_a_mask_1,
                                 sizeof(pcf2131_int_a_mask_1_reg_t));
-  ret |= dev_handle->bus_write (NULL, 0, INT_A_MASK_2_REG_ADDR, (uint8_t*) &int_a_mask2,
+  ret |= dev_handle->bus_write (NULL, 0, INT_A_MASK_2_REG_ADDR,
+                                (uint8_t*) &irq_config->int_a_mask_2,
                                 sizeof(pcf2131_int_a_mask_2_reg_t));
-  ret |= dev_handle->bus_write (NULL, 0, WATCHDOG_TIM_CTRL_REG_ADDR, (uint8_t*) &watchdog_reg,
-                                sizeof(pcf2131_watchdog_tim_ctrl_reg_t));
-
-  return ret;
-}
-
-int32_t pcf2131_config_int_b ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config )
-{
-  int32_t ret = PCF2131_OK;
-  pcf2131_ctrl5_reg_t ctrl5;
-  pcf2131_ctrl3_reg_t ctrl3;
-  pcf2131_ctrl2_reg_t ctrl2;
-  pcf2131_ctrl1_reg_t ctrl1;
-  pcf2131_int_b_mask_1_reg_t int_b_mask1;
-  pcf2131_int_b_mask_2_reg_t int_b_mask2;
-  pcf2131_watchdog_tim_ctrl_reg_t watchdog_reg;
-
-  // Read current register contents
-  ret |= dev_handle->bus_read (NULL, 0, CTRL5_REG_ADDR, (uint8_t*) &ctrl5,
-                               sizeof(pcf2131_ctrl5_reg_t));
-  ret |= dev_handle->bus_read (NULL, 0, CTRL3_REG_ADDR, (uint8_t*) &ctrl3,
-                               sizeof(pcf2131_ctrl3_reg_t));
-  ret |= dev_handle->bus_read (NULL, 0, CTRL2_REG_ADDR, (uint8_t*) &ctrl2,
-                               sizeof(pcf2131_ctrl2_reg_t));
-  ret |= dev_handle->bus_read (NULL, 0, CTRL1_REG_ADDR, (uint8_t*) &ctrl1,
-                               sizeof(pcf2131_ctrl1_reg_t));
-  ret |= dev_handle->bus_read (NULL, 0, INT_B_MASK_1_REG_ADDR, (uint8_t*) &int_b_mask1,
-                               sizeof(pcf2131_int_b_mask_1_reg_t));
-  ret |= dev_handle->bus_read (NULL, 0, INT_B_MASK_2_REG_ADDR, (uint8_t*) &int_b_mask2,
-                               sizeof(pcf2131_int_b_mask_2_reg_t));
-  ret |= dev_handle->bus_read (NULL, 0, WATCHDOG_TIM_CTRL_REG_ADDR, (uint8_t*) &watchdog_reg,
-                               sizeof(pcf2131_watchdog_tim_ctrl_reg_t));
-
-  /* Minute/ Second Interrupts */
-  ctrl1.minute_irq_en = irq_config->min_irq_en;
-  ctrl1.second_irq_en = irq_config->sec_irq_en;
-  watchdog_reg.irq_signal_behavior = (irq_config->sec_min_pulsed_irq_en) ?
-      PULSED_SIGNAL : LATCHED_SIGNAL;
-  int_b_mask1.min_irq_mask = irq_config->min_irq_en;
-  int_b_mask1.sec_irq_mask = irq_config->sec_irq_en;
-
-  /* Watchdog Interrupt */
-  watchdog_reg.interrupt_enable = irq_config->watchdog_irq_en;
-  int_b_mask1.watchdog_irq_mask = irq_config->watchdog_irq_en;
-
-  /* Timestamp Interrupts */
-  ctrl5.timestamp4_irq_en = irq_config->timestamp_4_irq_en;
-  ctrl5.timestamp3_irq_en = irq_config->timestamp_3_irq_en;
-  ctrl5.timestamp2_irq_en = irq_config->timestamp_2_irq_en;
-  ctrl5.timestamp1_irq_en = irq_config->timestamp_1_irq_en;
-  int_b_mask2.timestamp_4_irq_mask = irq_config->timestamp_4_irq_en;
-  int_b_mask2.timestamp_3_irq_mask = irq_config->timestamp_3_irq_en;
-  int_b_mask2.timestamp_2_irq_mask = irq_config->timestamp_2_irq_en;
-  int_b_mask2.timestamp_1_irq_mask = irq_config->timestamp_1_irq_en;
-
-  /* Battery Interrupts */
-  ctrl3.batt_irq_en = irq_config->batt_flag_irq_en;
-  ctrl3.batt_low_irq_en = irq_config->batt_low_irq_en;
-  int_b_mask1.low_battery_irq_mask = irq_config->batt_low_irq_en;
-  int_b_mask1.battery_flag_irq_mask = irq_config->batt_flag_irq_en;
-
-  /* Alarm Interrupt */
-  ctrl2.alarm_irq_en = irq_config->alarm_irq_en;
-  int_b_mask1.alarm_irq_mask = irq_config->alarm_irq_en;
-
-  // Write back to the registers
-  ret |= dev_handle->bus_write (NULL, 0, CTRL5_REG_ADDR, (uint8_t*) &ctrl5,
-                                sizeof(pcf2131_ctrl5_reg_t));
-  ret |= dev_handle->bus_write (NULL, 0, CTRL3_REG_ADDR, (uint8_t*) &ctrl3,
-                                sizeof(pcf2131_ctrl3_reg_t));
-  ret |= dev_handle->bus_write (NULL, 0, CTRL2_REG_ADDR, (uint8_t*) &ctrl2,
-                                sizeof(pcf2131_ctrl2_reg_t));
-  ret |= dev_handle->bus_write (NULL, 0, CTRL1_REG_ADDR, (uint8_t*) &ctrl1,
-                                sizeof(pcf2131_ctrl1_reg_t));
-  ret |= dev_handle->bus_write (NULL, 0, INT_B_MASK_1_REG_ADDR, (uint8_t*) &int_b_mask1,
+  ret |= dev_handle->bus_write (NULL, 0, INT_B_MASK_1_REG_ADDR,
+                                (uint8_t*) &irq_config->int_b_mask_1,
                                 sizeof(pcf2131_int_b_mask_1_reg_t));
-  ret |= dev_handle->bus_write (NULL, 0, INT_B_MASK_2_REG_ADDR, (uint8_t*) &int_b_mask2,
+  ret |= dev_handle->bus_write (NULL, 0, INT_B_MASK_2_REG_ADDR,
+                                (uint8_t*) &irq_config->int_b_mask_2,
                                 sizeof(pcf2131_int_b_mask_2_reg_t));
   ret |= dev_handle->bus_write (NULL, 0, WATCHDOG_TIM_CTRL_REG_ADDR, (uint8_t*) &watchdog_reg,
                                 sizeof(pcf2131_watchdog_tim_ctrl_reg_t));
@@ -452,6 +369,22 @@ bool enable )
 
   ret |= dev_handle->bus_write (NULL, 0, reg_addr, (uint8_t*) &reg_bits,
                                 sizeof(pcf2131_timestamp_1_ctrl_reg_t));
+
+  return ret;
+}
+
+int32_t pcf2131_por_config ( dev_ctx_t *dev_handle, bool en )
+{
+  int32_t ret = PCF2131_OK;
+  pcf2131_ctrl1_reg_t ctrl1;
+
+  ret |= dev_handle->bus_read (NULL, 0, CTRL1_REG_ADDR, (uint8_t*) &ctrl1,
+                               sizeof(pcf2131_ctrl1_reg_t));
+
+  ctrl1.por_override = en;
+
+  ret |= dev_handle->bus_write (NULL, 0, CTRL1_REG_ADDR, (uint8_t*) &ctrl1,
+                                sizeof(pcf2131_ctrl1_reg_t));
 
   return ret;
 }
@@ -963,7 +896,7 @@ static bcd_struct_t __dec_to_bcd_struct ( uint8_t decimal_val )
   uint8_t bcd_full = DEC_TO_BCD(decimal_val)
   ;
   bcd_struct_t ret =
-    { bcd_full & 0xF0, bcd_full & 0x0F };
+    { ((bcd_full & 0xF0) >> 4), bcd_full & 0x0F };
   return ret;
 }
 

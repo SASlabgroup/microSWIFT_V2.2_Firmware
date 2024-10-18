@@ -130,8 +130,6 @@ rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_b
 static rtc_return_code _ext_rtc_setup_rtc ( void )
 {
   int32_t ret = RTC_SUCCESS;
-  pcf2131_irq_config_struct irq_config =
-    { 0 };
 
   // Clock output
   ret = pcf2131_set_clkout_freq (&(rtc_self->dev_ctx), FREQ_32768);
@@ -155,9 +153,8 @@ static rtc_return_code _ext_rtc_setup_rtc ( void )
     return RTC_SPI_ERROR;
   }
 
-  // Interrupts: Int A will be used for alarm, Int B for watchdog, but this is set in function _ext_rtc_config_watchdog()
-  irq_config.alarm_irq_en = true;
-  ret = pcf2131_config_int_a (&(rtc_self->dev_ctx), &irq_config);
+  // Interrupts: Int A will be used for alarm, Int B for watchdog
+  ret = pcf2131_config_interrupts (&(rtc_self->dev_ctx), &rtc_self->irq_config);
   if ( ret != PCF2131_OK )
   {
     return RTC_SPI_ERROR;
@@ -181,7 +178,14 @@ static rtc_return_code _ext_rtc_setup_rtc ( void )
   if ( is_first_sample_window () )
   {
     ret = pcf2131_perform_otp_refresh (&rtc_self->dev_ctx);
+    if ( ret != PCF2131_OK )
+    {
+      return RTC_SPI_ERROR;
+    }
   }
+
+  // Clear POR bit -- crystal should be plenty good by now
+  ret = pcf2131_por_config (&rtc_self->dev_ctx, false);
 
   return ret;
 }
