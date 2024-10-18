@@ -86,6 +86,32 @@ rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_b
 
   rtc_self->watchdog_refresh_time_val = 0;
 
+  // Interrupt configuration
+  rtc_self->irq_config.sec_irq_en = false;
+  rtc_self->irq_config.min_irq_en = false;
+  rtc_self->irq_config.sec_min_pulsed_irq_en = false;
+  rtc_self->irq_config.watchdog_irq_en = true;
+  rtc_self->irq_config.alarm_irq_en = true;
+  rtc_self->irq_config.batt_flag_irq_en = false;
+  rtc_self->irq_config.batt_low_irq_en = false;
+  rtc_self->irq_config.timestamp_1_irq_en = false;
+  rtc_self->irq_config.timestamp_2_irq_en = false;
+  rtc_self->irq_config.timestamp_3_irq_en = false;
+  rtc_self->irq_config.timestamp_4_irq_en = false;
+  // If a mask bit is set, the associated IRQ is masked and will not fire.
+  // Int A will be used for the Alarm
+  *((uint8_t*) &rtc_self->irq_config.int_a_mask_1) = 0xFF;
+  rtc_self->irq_config.int_a_mask_1.alarm_irq_mask = false;
+  rtc_self->irq_config.int_a_mask_1.dash_bit = 0b00;
+  *((uint8_t*) &rtc_self->irq_config.int_a_mask_2) = 0xFF;
+  rtc_self->irq_config.int_a_mask_2.dash_bit = 0b0000;
+  // Int B will be used for Watchdog
+  *((uint8_t*) &rtc_self->irq_config.int_b_mask_1) = 0xFF;
+  rtc_self->irq_config.int_b_mask_1.watchdog_irq_mask = false;
+  rtc_self->irq_config.int_b_mask_1.dash_bit = 0b00;
+  *((uint8_t*) &rtc_self->irq_config.int_b_mask_2) = 0xFF;
+  rtc_self->irq_config.int_b_mask_2.dash_bit = 0b0000;
+
   rtc_self->setup_rtc = _ext_rtc_setup_rtc;
   rtc_self->config_watchdog = _ext_rtc_config_watchdog;
   rtc_self->refresh_watchdog = _ext_rtc_refresh_watchdog;
@@ -241,10 +267,6 @@ static rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
   {
     return RTC_SPI_ERROR;
   }
-
-  // Enable the watchdog interrupt on Int B
-  irq_config.watchdog_irq_en = true;
-  ret = pcf2131_config_int_b (&rtc_self->dev_ctx, &irq_config);
 
   // Set the watchdog timer value -- watchdog will start at this point
   ret = pcf2131_set_watchdog_timer_value (&rtc_self->dev_ctx, rtc_self->watchdog_refresh_time_val);
