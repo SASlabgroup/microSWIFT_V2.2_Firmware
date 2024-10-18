@@ -48,6 +48,8 @@ static iridium_return_code_t __send_basic_command_message ( const char *command,
 static iridium_return_code_t __internal_transmit_message ( uint8_t *payload, uint16_t payload_size );
 static void                  __cycle_power ( void );
 static void                  __get_checksum ( uint8_t *payload, size_t payload_size );
+static int32_t               __uart_read ( void *driver_ptr, uint8_t *read_buf, uint16_t size );
+static int32_t               __uart_write ( void *driver_ptr, uint8_t *write_buf, uint16_t size );
 
 // AT commands
 static const char *ack                          = "AT\r";
@@ -102,7 +104,7 @@ void iridium_init ( Iridium *struct_ptr, microSWIFT_configuration *global_config
   iridium_self->off = _iridium_off;
 
   generic_uart_register_io_functions (&iridium_self->uart_driver, iridium_uart_handle, uart_sema,
-                                      uart4_init, uart4_deinit, NULL, NULL);
+                                      uart4_init, uart4_deinit, __uart_read, __uart_write);
   generic_uart_set_timeout_ticks (&iridium_self->uart_driver, IRIDIUM_MAX_UART_TX_TICKS,
   IRIDIUM_MAX_UART_RX_TICKS_NO_TX);
 }
@@ -528,8 +530,8 @@ static iridium_return_code_t __internal_transmit_message ( uint8_t *payload, uin
     IRIDIUM_MAX_UART_RX_TICKS_TX);
 
     // Tell the modem to send the message
-    if ( iridium_self->uart_driver.read (&iridium_self->uart_driver, (uint8_t*) &(send_sbd[0]),
-                                         strlen (send_sbd))
+    if ( iridium_self->uart_driver.write (&iridium_self->uart_driver, (uint8_t*) &(send_sbd[0]),
+                                          strlen (send_sbd))
          != UART_OK )
     {
       return IRIDIUM_UART_ERROR;
@@ -542,6 +544,10 @@ static iridium_return_code_t __internal_transmit_message ( uint8_t *payload, uin
     {
       return IRIDIUM_UART_ERROR;
     }
+
+    // Reset the UART Tx/Rx timeouts
+    generic_uart_set_timeout_ticks (&iridium_self->uart_driver, IRIDIUM_MAX_UART_TX_TICKS,
+    IRIDIUM_MAX_UART_RX_TICKS_NO_TX);
 
     watchdog_check_in (IRIDIUM_THREAD);
     // Grab the MO status
@@ -558,7 +564,7 @@ static iridium_return_code_t __internal_transmit_message ( uint8_t *payload, uin
       return IRIDIUM_SUCCESS;
     }
 
-    LOG("Iridium transmission unsuccessful.");
+    LOG("Iridium transmission unsuccessful. MO status: %d", SBDIX_response_code);
 
     // If message Tx failed, put the modem to sleep and delay for a total of 30 seconds
     iridium_self->sleep ();
@@ -608,5 +614,37 @@ static void __get_checksum ( uint8_t *payload, size_t payload_size )
   payload[payload_size + 1] = ((uint8_t) *checksum_ptr);
   checksum_ptr++;
   payload[payload_size] = ((uint8_t) *checksum_ptr);
+}
+
+static int32_t __uart_read ( void *driver_ptr, uint8_t *read_buf, uint16_t size )
+{
+  generic_uart_driver *driver_handle = (generic_uart_driver*) driver_ptr;
+
+  HAL_UART_Receive_DMA (driver_handle->uart_handle, read_buf, size);
+
+  if ( tx_semaphore_get (driver_handle->uart_sema, driver_handle->rx_timeout_ticks) != TX_SUCCESS )
+  {
+    HAL_UART_DMAStop (driver_handle->uart_handle);
+    HAL_UART_Abort (driver_handle->uart_handle);
+    return UART_ERR;
+  }
+
+  return UART_OK;
+}
+
+static int32_t __uart_write ( void *driver_ptr, uint8_t *write_buf, uint16_t size )
+{
+  generic_uart_driver *driver_handle = (generic_uart_driver*) driver_ptr;
+
+  HAL_UART_Transmit_DMA (driver_handle->uart_handle, write_buf, size);
+
+  if ( tx_semaphore_get (driver_handle->uart_sema, driver_handle->tx_timeout_ticks) != TX_SUCCESS )
+  {
+    HAL_UART_DMAStop (driver_handle->uart_handle);
+    HAL_UART_Abort (driver_handle->uart_handle);
+    return UART_ERR;
+  }
+
+  return UART_OK;
 }
 

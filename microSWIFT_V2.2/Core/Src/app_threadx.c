@@ -851,7 +851,7 @@ static void control_thread_entry ( ULONG thread_input )
                    &irq_flags, &complete_flags, &control_timer, device_handles.battery_adc,
                    &sbd_message);
 
-  LOG("Boot.");
+  LOG("\n\nBoot.");
 
   if ( watchdog_init (&watchdog, &watchdog_check_in_flags) != WATCHDOG_OK )
   {

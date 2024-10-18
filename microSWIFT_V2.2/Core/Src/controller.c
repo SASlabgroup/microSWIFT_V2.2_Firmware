@@ -304,7 +304,7 @@ static void _control_manage_state ( void )
               accelerometer_complete = false,
               waves_complete = false,
               iridium_complete = false;
-                                                      // @formatter:on
+                                                        // @formatter:on
   bool iridium_ready = false;
 
   ct_complete = !controller_self->global_config->ct_enabled;
@@ -401,6 +401,7 @@ static void _control_manage_state ( void )
 
   if ( iridium_ready )
   {
+    controller_self->rf_switch.set_iridium_port ();
     ret |= tx_thread_resume (controller_self->thread_handles->iridium_thread);
   }
 
