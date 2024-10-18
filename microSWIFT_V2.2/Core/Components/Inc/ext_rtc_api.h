@@ -53,7 +53,8 @@ typedef enum
   TIMESTAMP1_FLAG           = 5,
   TIMESTAMP2_FLAG           = 6,
   TIMESTAMP3_FLAG           = 7,
-  TIMESTAMP4_FLAG           = 8
+  TIMESTAMP4_FLAG           = 8,
+  ALL_RTC_FLAGS             = 9
 } rtc_flag_t;
 
 // Event group flags for signalling completion

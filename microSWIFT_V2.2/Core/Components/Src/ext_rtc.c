@@ -145,7 +145,9 @@ rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_b
     return RTC_SPI_ERROR;
   }
 
-  return RTC_SUCCESS;
+  ret = rtc_self->clear_flag (ALL_RTC_FLAGS);
+
+  return ret;
 }
 
 /**
@@ -486,11 +488,21 @@ static rtc_return_code _ext_rtc_clear_flag ( rtc_flag_t which_flag )
     case TIMESTAMP3_FLAG:
       retval |= pcf2131_clear_timestamp_flag (&rtc_self->dev_ctx, TIMESTAMP_3);
       break;
-      break;
 
     case TIMESTAMP4_FLAG:
       retval |= pcf2131_clear_timestamp_flag (&rtc_self->dev_ctx, TIMESTAMP_4);
       break;
+
+    case ALL_RTC_FLAGS:
+      retval |= pcf2131_clear_msf_flag (&rtc_self->dev_ctx);
+      retval |= pcf2131_clear_watchdog_flag (&rtc_self->dev_ctx);
+      retval |= pcf2131_clear_alarm_flag (&rtc_self->dev_ctx);
+      retval |= pcf2131_clear_battery_switch_over_flag (&rtc_self->dev_ctx);
+      retval |= pcf2131_clear_battery_status_flag (&rtc_self->dev_ctx);
+      retval |= pcf2131_clear_timestamp_flag (&rtc_self->dev_ctx, TIMESTAMP_1);
+      retval |= pcf2131_clear_timestamp_flag (&rtc_self->dev_ctx, TIMESTAMP_2);
+      retval |= pcf2131_clear_timestamp_flag (&rtc_self->dev_ctx, TIMESTAMP_3);
+      retval |= pcf2131_clear_timestamp_flag (&rtc_self->dev_ctx, TIMESTAMP_4);
       break;
 
     default:

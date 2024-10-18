@@ -858,15 +858,6 @@ static void control_thread_entry ( ULONG thread_input )
     HAL_NVIC_SystemReset ();
   }
 
-  //
-  //
-  // Testing
-  tx_thread_sleep (10);
-  control.shutdown_procedure ();
-  //
-  //
-  //
-
   // Run the self test
   if ( !control.startup_procedure () )
   {
