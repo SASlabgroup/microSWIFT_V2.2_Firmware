@@ -18,7 +18,7 @@ Busses
 - UART5:=	 	Core UART
 			 	-> CT
 			
-- USART1:=	 	Core UART
+- LPUART1:=	 	Core UART
 			 	-> GNSS
 			
 - USART6:=	 	Logger UART

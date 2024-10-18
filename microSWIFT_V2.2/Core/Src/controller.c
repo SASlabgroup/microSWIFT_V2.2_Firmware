@@ -250,8 +250,25 @@ static void _control_shut_down_all_peripherals ( void )
 
 static void _control_enter_processor_standby_mode ( void )
 {
+  __IO uint32_t dummy;
+
+  // Disable all non-relevant interrupts
+  for ( int i = 0; i < HSPI1_IRQn; i++ )
+  {
+    HAL_NVIC_DisableIRQ (i);
+    HAL_NVIC_ClearPendingIRQ (i);
+  }
+
+  HAL_NVIC_SetPriority (EXTI2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ (EXTI2_IRQn);
+  HAL_NVIC_SetPriority (PVD_PVM_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ (PVD_PVM_IRQn);
+
   // Retain all SRAM2 contents
   HAL_PWREx_EnableSRAM2ContentStandbyRetention (PWR_SRAM2_FULL_STANDBY);
+
+  // Enable power clock
+  __HAL_RCC_PWR_CLK_ENABLE();
 
   // Ensure RTC is disabled
   CLEAR_BIT(RCC->BDCR, RCC_BDCR_RTCEN);
@@ -261,16 +278,19 @@ static void _control_enter_processor_standby_mode ( void )
 
   // Make sure the RTC INT_B pin is being pulled up (open drain on RTC)
   HAL_PWREx_EnablePullUpPullDownConfig ();
-  HAL_PWREx_EnableGPIOPullUp (PWR_GPIO_B, RTC_INT_B_Pin);
+  HAL_PWREx_EnableGPIOPullUp (PWR_GPIO_B, (1 << 2));
 
   // PWR_WAKEUP_PIN1_LOW_1 = PB2 --> RTC INT_B Low Polarity
   HAL_PWR_EnableWakeUpPin (PWR_WAKEUP_PIN1_LOW_1);
 
   // Clear the stop mode and standby mode flags
-  SET_BIT(PWR->SR, PWR_SR_CSSF);
+  __HAL_PWR_CLEAR_FLAG(PWR_FLAG_SBF);
+  __HAL_PWR_CLEAR_FLAG(PWR_WAKEUP_FLAG1);
 
 #ifndef DEBUG
   DBGMCU->CR = 0; // Disable debug, trace and IWDG in low-power modes
+#else
+  HAL_EnableDBGStandbyMode ();
 #endif
 
   /* Select Standby mode */
@@ -280,8 +300,9 @@ static void _control_enter_processor_standby_mode ( void )
   SET_BIT(SCB->SCR, ((uint32_t)SCB_SCR_SLEEPDEEP_Msk));
 
   // Make sure register operations are complete
-  (void) PWR->CR1;
-  (void) SCB->SCR;
+  dummy = PWR->SR;
+  dummy = PWR->CR1;
+  dummy = SCB->SCR;
 
   // Enter low-power mode
   while ( 1 )
@@ -304,7 +325,7 @@ static void _control_manage_state ( void )
               accelerometer_complete = false,
               waves_complete = false,
               iridium_complete = false;
-                                                        // @formatter:on
+                                                                                // @formatter:on
   bool iridium_ready = false;
 
   ct_complete = !controller_self->global_config->ct_enabled;
@@ -512,18 +533,23 @@ static void __get_alarm_settings_from_time ( struct tm *time, rtc_alarm_struct *
   alarm->weekday_alarm_en = false;
   alarm->alarm_second = 0;
 
+  // Testing
+  alarm->alarm_second = (time->tm_sec + 20) % 60;
+  alarm->alarm_minute = (alarm->alarm_second < time->tm_sec) ?
+      (time->tm_min + 1) % 60 : time->tm_min;
+  alarm->alarm_hour = (alarm->alarm_minute == 0) ?
+      (time->tm_hour + 1) % 24 : time->tm_hour;
+  return;
+
   if ( controller_self->global_config->windows_per_hour == 0 )
   {
-    alarm->alarm_hour = (time->tm_hour + 1) % 24;
     alarm->alarm_minute = 0;
+    alarm->alarm_hour = (time->tm_hour + 1) % 24;
   }
   else
   {
-    alarm->alarm_second = (time->tm_sec + 20) % 60;
-    alarm->alarm_minute = (alarm->alarm_second < time->tm_sec) ?
-        time->tm_min + 1 : time->tm_min;
-//    alarm->alarm_minute = (time->tm_min > 30) ?
-//        0 : 30;
+    alarm->alarm_minute = (time->tm_min > 30) ?
+        0 : 30;
     alarm->alarm_hour = (alarm->alarm_minute == 0) ?
         (time->tm_hour + 1) % 24 : time->tm_hour;
   }

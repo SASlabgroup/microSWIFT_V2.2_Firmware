@@ -550,6 +550,7 @@ static iridium_return_code_t __internal_transmit_message ( uint8_t *payload, uin
     IRIDIUM_MAX_UART_RX_TICKS_NO_TX);
 
     watchdog_check_in (IRIDIUM_THREAD);
+
     // Grab the MO status
     needle = strstr ((char*) &(iridium_self->response_buffer[0]), sbdix_search_term);
     needle += strlen (sbdix_search_term);
