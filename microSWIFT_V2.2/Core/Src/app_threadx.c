@@ -720,7 +720,7 @@ static void rtc_thread_entry ( ULONG thread_input )
 
   if ( ret != RTC_SUCCESS )
   {
-    (void) tx_thread_suspend (this_thread);
+    rtc_error_out (this_thread, "RTC failed to initialize.");
   }
 
   (void) tx_event_flags_set (&initialization_flags, RTC_INIT_SUCCESS, TX_OR);
@@ -770,9 +770,8 @@ static void rtc_thread_entry ( ULONG thread_input )
 
       if ( ret != RTC_SUCCESS )
       {
-        LOG("RTC error detected");
-        (void) tx_event_flags_set (&error_flags, RTC_ERROR, TX_OR);
-        (void) tx_thread_suspend (this_thread);
+        rtc_error_out ("RTC failed to service request %d, returning code %d.", (int) req.request,
+                       (int) ret);
       }
 
       if ( req.return_code != NULL )
@@ -837,6 +836,7 @@ static void control_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   Control control;
   struct watchdog_t watchdog;
+  bool first_window = is_first_sample_window ();
 
   // Run tests if needed
   if ( tests.control_test != NULL )
@@ -861,25 +861,23 @@ static void control_thread_entry ( ULONG thread_input )
   // Run the self test
   if ( !control.startup_procedure () )
   {
-    shutdown_all_peripherals ();
-
-    if ( !is_first_sample_window () )
+    if ( first_window )
     {
+      control.shutdown_all_peripherals ();
       // Stay stuck here for a minute
       for ( int i = 0; i < 25; i++ )
       {
         watchdog_check_in (CONTROL_THREAD);
         led_sequence (TEST_FAILED_LED_SEQUENCE);
       }
-    }
 
-    tx_thread_sleep (100);
-    HAL_NVIC_SystemReset ();
+      HAL_NVIC_SystemReset ();
+    }
   }
 
   watchdog_check_in (CONTROL_THREAD);
 
-  if ( !is_first_sample_window () )
+  if ( first_window )
   {
     led_sequence (TEST_PASSED_LED_SEQUENCE);
   }
@@ -888,8 +886,8 @@ static void control_thread_entry ( ULONG thread_input )
   {
     watchdog_check_in (CONTROL_THREAD);
 
-    control.manage_state ();
     control.monitor_and_handle_errors ();
+    control.manage_state ();
 
     tx_thread_sleep (1);
 
@@ -901,9 +899,6 @@ static void control_thread_entry ( ULONG thread_input )
     //       window, just set the alarm and power down
     // TODO: When GNSS is complete, break
   }
-
-#warning "Make a utility that logs errors into a type 99 message as errors come in. \
-  Add timestamps to each error."
 
 }
 
@@ -949,7 +944,7 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   if ( usart1_init () != UART_OK )
   {
-    gnss_error_out (&gnss, NO_ERROR_FLAG, this_thread, "GNSS UART port failed to initialize.");
+    gnss_error_out (&gnss, GNSS_INIT_FAILED, this_thread, "GNSS UART port failed to initialize.");
   }
 
   // Make sure the waves thread has initialized properly before proceeding
@@ -979,7 +974,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   // Apply configuration through UBX_VALSET messages
   if ( !gnss_apply_config (&gnss) )
   {
-    gnss_error_out (&gnss, NO_ERROR_FLAG, this_thread, "GNSS failed to initialize.");
+    gnss_error_out (&gnss, GNSS_CONFIGURATION_FAILED, this_thread, "GNSS failed to initialize.");
   }
 
   // Report init success
@@ -1074,7 +1069,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   // Process messages until complete
   while ( !gnss_get_sample_window_complete () )
   {
-    if ( tx_time_get () % (TX_TIMER_TICKS_PER_SECOND * 30) == 0 )
+    if ( gnss_get_samples_processed () % (configuration.gnss_sampling_rate * 10) == 0 )
     {
       watchdog_check_in (GNSS_THREAD);
     }
@@ -1186,7 +1181,7 @@ static void ct_thread_entry ( ULONG thread_input )
 
   if ( uart5_init () != UART_OK )
   {
-    ct_error_out (&ct, NO_ERROR_FLAG, this_thread, "CT UART port failed to initialize.");
+    ct_error_out (&ct, CT_INIT_FAILED, this_thread, "CT UART port failed to initialize.");
   }
 
   // Set the mean salinity and temp values to error values in the event the sensor fails
@@ -1210,7 +1205,7 @@ static void ct_thread_entry ( ULONG thread_input )
 
   if ( !ct_self_test (&ct, false, &ct_readings) )
   {
-    ct_error_out (&ct, NO_ERROR_FLAG, this_thread, "CT self test failed.");
+    ct_error_out (&ct, CT_SELF_TEST_FAILED, this_thread, "CT self test failed.");
   }
 
   LOG("CT initialization complete. Temp = %3f, Salinity = %3f", ct_readings.temp,
@@ -1230,7 +1225,7 @@ static void ct_thread_entry ( ULONG thread_input )
   // Turn on the CT sensor, warm it up, and frame sync
   if ( !ct_self_test (&ct, true, &ct_readings) )
   {
-    ct_error_out (&ct, CT_ERROR, this_thread, "CT self test failed.");
+    ct_error_out (&ct, CT_SELF_TEST_FAILED, this_thread, "CT self test failed.");
   }
 
   // Take our samples
@@ -1248,7 +1243,7 @@ static void ct_thread_entry ( ULONG thread_input )
     if ( (ct_parsing_error_counter >= 10) || (ct_return_code == CT_UART_ERROR) )
     {
       // If there are too many parsing errors or a UART error occurs, stop trying
-      ct_error_out (&ct, CT_ERROR, this_thread,
+      ct_error_out (&ct, CT_SAMPLING_ERROR, this_thread,
                     "CT sensor too many parsing errors, shutting down.");
     }
 
@@ -1272,7 +1267,7 @@ static void ct_thread_entry ( ULONG thread_input )
   // Make sure something didn't go terribly wrong
   if ( ct_return_code == CT_NOT_ENOUGH_SAMPLES )
   {
-    ct_error_out (&ct, CT_ERROR, this_thread, "CT sensor did not collect enough samples.");
+    ct_error_out (&ct, CT_SAMPLING_ERROR, this_thread, "CT sensor did not collect enough samples.");
   }
 
   // Now set the mean salinity and temp values to the real ones
@@ -1364,7 +1359,7 @@ static void temperature_thread_entry ( ULONG thread_input )
 
     if ( temperature_get_timeout_status () )
     {
-      temperature_error_out (&temperature, TEMPERATURE_ERROR, this_thread,
+      temperature_error_out (&temperature, TEMPERATURE_SAMPLING_ERROR, this_thread,
                              "Temperature thread timed out.");
     }
 
@@ -1374,7 +1369,7 @@ static void temperature_thread_entry ( ULONG thread_input )
   if ( fail_counter == max_retries )
   {
     temperature_error_out (
-        &temperature, TEMPERATURE_ERROR, this_thread,
+        &temperature, TEMPERATURE_SAMPLING_ERROR, this_thread,
         "Unable to get readings from temperature sensor after %d failed attempts.", max_retries);
   }
 
@@ -1543,8 +1538,7 @@ static void waves_thread_entry ( ULONG thread_input )
   if ( !waves_memory_pool_init (&waves_mem, &configuration, &(waves_byte_pool_buffer[0]),
   WAVES_MEM_POOL_SIZE) )
   {
-    LOG("NED Waves memory pool failed to initialize.");
-    tx_thread_suspend (this_thread);
+    waves_error_out (WAVES_INIT_FAILED, this_thread, "NED Waves memory pool failed to initialize.");
   }
 
   (void) tx_event_flags_set (&initialization_flags, WAVES_THREAD_INIT_SUCCESS, TX_OR);

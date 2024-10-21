@@ -106,25 +106,36 @@ enum interrupt_flags
 
 typedef enum error_flags
 {
-//  INVALID_CONFIGURATION      = ((ULONG) 1 << 0),
-  RTC_ERROR                  = ((ULONG) 1 << 1),
-  GNSS_ERROR                 = ((ULONG) 1 << 2),
-  CT_ERROR                   = ((ULONG) 1 << 3),
-  TEMPERATURE_ERROR          = ((ULONG) 1 << 4),
-  LIGHT_ERROR                = ((ULONG) 1 << 5),
-  TURBIDITY_ERROR            = ((ULONG) 1 << 6),
-  ACCELEROMETER_ERROR        = ((ULONG) 1 << 7),
-  WAVES_THREAD_ERROR         = ((ULONG) 1 << 8),
-  IRIDIUM_ERROR              = ((ULONG) 1 << 9),
-  FILE_SYSTEM_ERROR          = ((ULONG) 1 << 10),
-  WATCHDOG_RESET             = ((ULONG) 1 << 11),
-  SOFTWARE_RESET             = ((ULONG) 1 << 12),
-  GNSS_RESOLUTION_ERROR      = ((ULONG) 1 << 13),
-  GNSS_TOO_MANY_PARTIAL_MSGS = ((ULONG) 1 << 14),
-  GNSS_SAMPLE_WINDOW_TIMEOUT = ((ULONG) 1 << 15),
-  GNSS_FRAME_SYNC_FAILED     = ((ULONG) 1 << 16),
-  GNSS_SAMPLE_WINDOW_ERROR   = ((ULONG) 1 << 17),
-  MEMORY_CORRUPTION_ERROR    = ((ULONG) 1 << 18)
+  // Thread/ sensor errors
+  GNSS_INIT_FAILED              = ((ULONG) 1 << 0),
+  GNSS_CONFIGURATION_FAILED     = ((ULONG) 1 << 1),
+  GNSS_RESOLUTION_ERROR         = ((ULONG) 1 << 2),
+  GNSS_TOO_MANY_PARTIAL_MSGS    = ((ULONG) 1 << 3),
+  GNSS_SAMPLE_WINDOW_TIMEOUT    = ((ULONG) 1 << 4),
+  GNSS_FRAME_SYNC_FAILED        = ((ULONG) 1 << 5),
+  GNSS_SAMPLE_WINDOW_ERROR      = ((ULONG) 1 << 6),
+  CT_INIT_FAILED                = ((ULONG) 1 << 7),
+  CT_SELF_TEST_FAILED           = ((ULONG) 1 << 8),
+  CT_SAMPLING_ERROR             = ((ULONG) 1 << 9),
+  TEMPERATURE_INIT_FAILED       = ((ULONG) 1 << 10),
+  TEMPERATURE_SELF_TEST_FAILED  = ((ULONG) 1 << 11),
+  TEMPERATURE_SAMPLING_ERROR    = ((ULONG) 1 << 12),
+  LIGHT_INIT_FAILED             = ((ULONG) 1 << 13),
+  LIGHT_SELF_TEST_FAILED        = ((ULONG) 1 << 14),
+  LIGHT_SAMPLING_ERROR          = ((ULONG) 1 << 15),
+  TURBIDITY_INIT_FAILED         = ((ULONG) 1 << 16),
+  TURBIDITY_SELF_TEST_FAILED    = ((ULONG) 1 << 17),
+  TURBIDITY_SAMPLING_ERROR      = ((ULONG) 1 << 18),
+  ACCELEROMETER_INIT_FAILED     = ((ULONG) 1 << 19),
+  ACCELEROMETER_SELF_TEST_FAILED= ((ULONG) 1 << 20),
+  ACCELEROMETER_SAMPLING_ERROR  = ((ULONG) 1 << 21),
+  FILE_SYSTEM_ERROR             = ((ULONG) 1 << 22),
+  RTC_ERROR                     = ((ULONG) 1 << 23),
+  WAVES_INIT_FAILED             = ((ULONG) 1 << 24),
+  // Misc errors
+  WATCHDOG_RESET                = ((ULONG) 1 << 29),
+  SOFTWARE_RESET                = ((ULONG) 1 << 30),
+  MEMORY_CORRUPTION_ERROR       = ((ULONG) 1 << 31)
 } error_flags_t;
 
 typedef struct

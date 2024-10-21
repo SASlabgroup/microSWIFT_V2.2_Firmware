@@ -10,6 +10,8 @@
 #include "logger.h"
 #include "persistent_ram.h"
 #include "ext_rtc_api.h"
+#include "NEDWaves/rtwhalf.h"
+#include "ct_sensor.h"
 
 // @formatter:off
 static Control  *controller_self;
@@ -18,7 +20,8 @@ static Control  *controller_self;
 static bool     _control_startup_procedure( void );
 static void     _control_shutdown_procedure( void );
 static real16_T _control_get_battery_voltage( void );
-static void     _control_shut_down_all_peripherals ( void );
+static void     _control_shutdown_all_peripherals ( void );
+static void     _control_shutdown_all_interfaces ( void );
 static void     _control_enter_processor_standby_mode ( void );
 static void     _control_manage_state ( void );
 static void     _control_monitor_and_handle_errors ( void );
@@ -26,15 +29,16 @@ static void     _control_monitor_and_handle_errors ( void );
 // Helper functions
 static void     __get_alarm_settings_from_time(struct tm* time, rtc_alarm_struct *alarm);
 static void     __handle_rtc_error( void );
-static void     __handle_gnss_error( ULONG error_flags );
-static void     __handle_ct_error( void );
-static void     __handle_temperature_error( void );
-static void     __handle_turbidity_error( void );
-static void     __handle_light_error( void );
-static void     __handle_accelerometer_error( void );
+static void     __handle_gnss_error( ULONG error_flag );
+static void     __handle_ct_error( ULONG error_flag );
+static void     __handle_temperature_error( ULONG error_flag );
+static void     __handle_turbidity_error( ULONG error_flag );
+static void     __handle_light_error( ULONG error_flag );
+static void     __handle_accelerometer_error( ULONG error_flag );
 static void     __handle_waves_error( void );
 static void     __handle_iridium_error( ULONG error_flags );
 static void     __handle_file_system_error( void );
+static void     __handle_misc_error ( ULONG error_flag  );
 
 // Static helper functions
 
@@ -62,7 +66,8 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
   controller_self->startup_procedure = _control_startup_procedure;
   controller_self->shutdown_procedure = _control_shutdown_procedure;
   controller_self->get_battery_voltage = _control_get_battery_voltage;
-  controller_self->shutdown_all_pheripherals = _control_shut_down_all_peripherals;
+  controller_self->shutdown_all_peripherals = _control_shutdown_all_peripherals;
+  controller_self->shutdown_all_interfaces = _control_shutdown_all_interfaces;
   controller_self->enter_processor_standby_mode = _control_enter_processor_standby_mode;
   controller_self->manage_state = _control_manage_state;
   controller_self->monitor_and_handle_errors = _control_monitor_and_handle_errors;
@@ -85,6 +90,8 @@ static bool _control_startup_procedure ( void )
                               | IRIDIUM_INIT_SUCCESS);
   ULONG current_flags;
   uint32_t reset_reason;
+  real16_T voltage =
+    { 0 };
 
 #warning "In subsequent sampling windows, if a non-critical sensor fails, set an error flag, shut\
          the component and thread down, and continue on."
@@ -151,6 +158,12 @@ static bool _control_startup_procedure ( void )
     led_sequence (INITIAL_LED_SEQUENCE);
   }
 
+  // Grab the battery voltage
+  voltage = controller_self->get_battery_voltage ();
+  memcpy (&controller_self->current_message->mean_voltage, &voltage, sizeof(real16_T));
+
+  battery_deinit ();
+
   tx_return = tx_event_flags_get (controller_self->init_flags, init_success_flags, TX_AND_CLEAR,
                                   &current_flags, STARTUP_SEQUENCE_MAX_WAIT_TICKS);
 
@@ -163,7 +176,7 @@ static void _control_shutdown_procedure ( void )
   struct tm time_now;
 
   // Make sure everything is shut down
-  shutdown_all_peripherals ();
+  controller_self->shutdown_all_peripherals ();
 
   // Make extra sure the alarm flag is cleared
   if ( rtc_server_clear_flag (ALARM_FLAG, CONTROL_REQUEST_COMPLETE) != RTC_SUCCESS )
@@ -199,7 +212,7 @@ static void _control_shutdown_procedure ( void )
   tx_thread_sleep (2);
 
   // Deinit all enabled peripherals
-  shutdown_all_interfaces ();
+  controller_self->shutdown_all_interfaces ();
 
   // Enter standby mode -- processor will be woken by RTC alarm
   controller_self->enter_processor_standby_mode ();
@@ -229,26 +242,46 @@ static real16_T _control_get_battery_voltage ( void )
         break;
     }
   }
+  else
+  {
+    LOG("Battery Voltage = %2.2f", halfToFloat (battery_voltage));
+  }
 
   return battery_voltage;
 }
 
-static void _control_shut_down_all_peripherals ( void )
+static void _control_shutdown_all_peripherals ( void )
 {
-// Shut down Iridium modem
-  HAL_GPIO_WritePin (GPIOD, IRIDIUM_OnOff_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin (GPIOD, IRIDIUM_FET_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin (GPIOF, BUS_5V_FET_Pin, GPIO_PIN_RESET);
-// Shut down GNSS
-  HAL_GPIO_WritePin (GPIOG, GNSS_FET_Pin, GPIO_PIN_RESET);
-// Reset RF switch GPIOs. This will set it to be ported to the modem (safe case)
-  HAL_GPIO_WritePin (GPIOD, RF_SWITCH_VCTL_Pin, GPIO_PIN_RESET);
-// Turn off power to the RF switch
-  HAL_GPIO_WritePin (GPIOD, RF_SWITCH_EN_Pin, GPIO_PIN_RESET);
-// Shut down CT sensor
-  HAL_GPIO_WritePin (GPIOG, CT_FET_Pin, GPIO_PIN_RESET);
+  // Shut down Iridium modem
+  HAL_GPIO_WritePin (IRIDIUM_OnOff_GPIO_Port, IRIDIUM_OnOff_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (IRIDIUM_FET_GPIO_Port, IRIDIUM_FET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (BUS_5V_FET_GPIO_Port, BUS_5V_FET_Pin, GPIO_PIN_RESET);
+  // Shut down GNSS
+  HAL_GPIO_WritePin (GNSS_FET_GPIO_Port, GNSS_FET_Pin, GPIO_PIN_RESET);
+  // Reset RF switch GPIOs. This will set it to be ported to the modem (safe case)
+  HAL_GPIO_WritePin (RF_SWITCH_VCTL_GPIO_Port, RF_SWITCH_VCTL_Pin, GPIO_PIN_RESET);
+  // Turn off power to the RF switch
+  HAL_GPIO_WritePin (RF_SWITCH_EN_GPIO_Port, RF_SWITCH_EN_Pin, GPIO_PIN_RESET);
+  // Shut down CT sensor
+  HAL_GPIO_WritePin (CT_FET_GPIO_Port, CT_FET_Pin, GPIO_PIN_RESET);
 
-#warning "Make sure all peripherals are covered here."
+#warning "Make sure all devices are covered here."
+}
+
+static void _control_shutdown_all_interfaces ( void )
+{
+  uart4_deinit ();
+  uart5_deinit ();
+  usart1_deinit ();
+  usart2_deinit ();
+  usart3_deinit ();
+  usart6_deinit ();
+
+  spi1_deinit ();
+  spi2_deinit ();
+  spi3_deinit ();
+
+  battery_deinit ();
 }
 
 static void _control_enter_processor_standby_mode ( void )
@@ -263,10 +296,10 @@ static void _control_enter_processor_standby_mode ( void )
   }
 
   // Make sure the IRQ is enabled for the wakeup pin
-//  HAL_NVIC_SetPriority (PVD_PVM_IRQn, 0, 0);
-//  HAL_NVIC_EnableIRQ (PVD_PVM_IRQn);
+  HAL_NVIC_SetPriority (PVD_PVM_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ (PVD_PVM_IRQn);
 
-// Retain all SRAM2 contents
+  // Retain all SRAM2 contents
   HAL_PWREx_EnableSRAM2ContentStandbyRetention (PWR_SRAM2_FULL_STANDBY);
 
   // Enable power clock
@@ -327,7 +360,7 @@ static void _control_manage_state ( void )
               accelerometer_complete = false,
               waves_complete = false,
               iridium_complete = false;
-                                                                                                          // @formatter:on
+                                                                                                                                              // @formatter:on
   bool iridium_ready = false;
 
   ct_complete = !controller_self->global_config->ct_enabled;
@@ -438,7 +471,7 @@ static void _control_manage_state ( void )
 
   if ( ret != TX_SUCCESS )
   {
-    controller_self->shutdown_all_pheripherals ();
+    controller_self->shutdown_all_peripherals ();
     persistent_ram_deinit ();
     HAL_Delay (10);
     HAL_NVIC_SystemReset ();
@@ -448,7 +481,9 @@ static void _control_manage_state ( void )
 static void _control_monitor_and_handle_errors ( void )
 {
   ULONG current_flags;
-  ULONG gnss_errors, iridium_errors;
+  ULONG gnss_errors, ct_errors, temperature_errors, light_errors, turbidity_errors,
+      accelerometer_errors, waves_errors, iridium_errors, file_system_errors, rtc_errors,
+      misc_errors;
 
   // Get the error flags
   (void) tx_event_flags_get (controller_self->error_flags, ALL_EVENT_FLAGS, TX_OR_CLEAR,
@@ -460,11 +495,26 @@ static void _control_monitor_and_handle_errors ( void )
     return;
   }
 
-  gnss_errors =
-      current_flags
-      & (GNSS_ERROR | GNSS_RESOLUTION_ERROR | GNSS_TOO_MANY_PARTIAL_MSGS
-         | GNSS_SAMPLE_WINDOW_TIMEOUT | GNSS_FRAME_SYNC_FAILED | GNSS_SAMPLE_WINDOW_ERROR);
-  iridium_errors = current_flags & (IRIDIUM_ERROR);
+  gnss_errors = current_flags
+                & (GNSS_INIT_FAILED | GNSS_CONFIGURATION_FAILED | GNSS_RESOLUTION_ERROR
+                   | GNSS_TOO_MANY_PARTIAL_MSGS | GNSS_SAMPLE_WINDOW_TIMEOUT
+                   | GNSS_FRAME_SYNC_FAILED | GNSS_SAMPLE_WINDOW_ERROR);
+  ct_errors = current_flags & (CT_INIT_FAILED | CT_SELF_TEST_FAILED | CT_SAMPLING_ERROR);
+  temperature_errors = current_flags
+                       & (TEMPERATURE_INIT_FAILED | TEMPERATURE_SELF_TEST_FAILED
+                          | TEMPERATURE_SAMPLING_ERROR);
+  light_errors = current_flags
+                 & (LIGHT_INIT_FAILED | LIGHT_SELF_TEST_FAILED | LIGHT_SAMPLING_ERROR);
+  turbidity_errors = current_flags
+                     & (TURBIDITY_INIT_FAILED | TURBIDITY_SELF_TEST_FAILED
+                        | TURBIDITY_SAMPLING_ERROR);
+  accelerometer_errors = current_flags
+                         & (ACCELEROMETER_INIT_FAILED | ACCELEROMETER_SELF_TEST_FAILED
+                            | ACCELEROMETER_SAMPLING_ERROR);
+  waves_errors = current_flags & (WAVES_INIT_FAILED);
+  file_system_errors = current_flags & (FILE_SYSTEM_ERROR);
+  rtc_errors = current_flags & (RTC_ERROR);
+  misc_errors = current_flags & (WATCHDOG_RESET | SOFTWARE_RESET | MEMORY_CORRUPTION_ERROR);
 
   if ( gnss_errors )
   {
@@ -476,52 +526,49 @@ static void _control_monitor_and_handle_errors ( void )
     __handle_iridium_error (iridium_errors);
   }
 
-  if ( current_flags & RTC_ERROR )
+  if ( rtc_errors )
   {
     __handle_rtc_error ();
   }
 
-  if ( current_flags & CT_ERROR )
+  if ( ct_errors )
   {
-    __handle_ct_error ();
+    __handle_ct_error (ct_errors);
   }
 
-  if ( current_flags & TEMPERATURE_ERROR )
+  if ( temperature_errors )
   {
-    __handle_temperature_error ();
+    __handle_temperature_error (temperature_errors);
   }
 
-  if ( current_flags & LIGHT_ERROR )
+  if ( light_errors )
   {
-    __handle_light_error ();
+    __handle_light_error (light_errors);
   }
 
-  if ( current_flags & TURBIDITY_ERROR )
+  if ( turbidity_errors )
   {
-    __handle_turbidity_error ();
+    __handle_turbidity_error (turbidity_errors);
   }
 
-  if ( current_flags & ACCELEROMETER_ERROR )
+  if ( accelerometer_errors )
   {
-    __handle_accelerometer_error ();
+    __handle_accelerometer_error (accelerometer_errors);
   }
 
-  if ( current_flags & WAVES_THREAD_ERROR )
+  if ( waves_errors )
   {
     __handle_waves_error ();
   }
 
-  if ( current_flags & FILE_SYSTEM_ERROR )
+  if ( file_system_errors )
   {
     __handle_file_system_error ();
   }
 
-  if ( current_flags & MEMORY_CORRUPTION_ERROR )
+  if ( misc_errors )
   {
-    controller_self->shutdown_all_pheripherals ();
-    persistent_ram_deinit ();
-    HAL_Delay (10);
-    HAL_NVIC_SystemReset ();
+    __handle_misc_error (misc_errors);
   }
 
 }
@@ -559,14 +606,16 @@ static void __get_alarm_settings_from_time ( struct tm *time, rtc_alarm_struct *
 
 static void __handle_rtc_error ( void )
 {
-  /*
-   * TODO:
-   *    [ ] Software reset the RTC
-   *    [ ] Write the error to the error message buffer
-   *    [ ] send the error message
-   *    [ ] software reset
-   */
+  char *error_str = "RTC error detected.";
+  persistent_ram_log_error_string (error_str);
+
+  controller_self->shutdown_all_peripherals ();
+  controller_self->shutdown_all_interfaces ();
+
+  tx_thread_sleep (10);
+  HAL_NVIC_SystemReset ();
 }
+
 static void __handle_gnss_error ( ULONG error_flags )
 {
   // Set all the fields of the SBD message to error values
@@ -581,19 +630,26 @@ static void __handle_gnss_error ( ULONG error_flags )
   (void) tx_thread_suspend (controller_self->thread_handles->gnss_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->gnss_thread);
 }
-static void __handle_ct_error ( void )
+
+static void __handle_ct_error ( ULONG error_flag )
 {
-  /*
-   * TODO:
-   *    [ ] Shut down the CT sensor
-   *    [ ] Set the temperature and salinity fields to error values
-   *    [ ] Log the error in the error message buffer
-   *    [ ] Set the CT_THREAD_SOMPLETED_WITH_ERRORS flag
-   *    [ ] Terminate CT thread
-   *    [ ] Continue application logic
-   */
+  // Shut down CT sensor
+  HAL_GPIO_WritePin (CT_FET_GPIO_Port, CT_FET_Pin, GPIO_PIN_RESET);
+
+  memset (&controller_self->current_message->mean_temp, CT_VALUES_ERROR_CODE, sizeof(real16_T));
+  memset (&controller_self->current_message->mean_salinity, CT_VALUES_ERROR_CODE, sizeof(real16_T));
+
+  persistent_ram_log_error_string ("CT error.");
+
+  // Set the CT_COMPLETED_WITH_ERRORS flag
+  (void) tx_event_flags_set (controller_self->complete_flags, CT_THREAD_COMPLETED_WITH_ERRORS,
+  TX_OR);
+
+  (void) tx_thread_suspend (controller_self->thread_handles->ct_thread);
+  (void) tx_thread_terminate (controller_self->thread_handles->ct_thread);
+
 }
-static void __handle_temperature_error ( void )
+static void __handle_temperature_error ( ULONG error_flag )
 {
   /*
    * TODO:
@@ -604,8 +660,22 @@ static void __handle_temperature_error ( void )
    *    [ ] Terminate the Temperature thread
    *    [ ] Continue application logic
    */
+#warning" Shut down Temperature sensor here "
+//  HAL_GPIO_WritePin (TEMP_FET_GPIO_Port, TEMP_FET_Pin, GPIO_PIN_RESET);
+
+  memset (&controller_self->current_message->mean_temp, CT_VALUES_ERROR_CODE, sizeof(real16_T));
+
+  persistent_ram_log_error_string ("Temperature error.");
+
+  // Set the TEMPERATURE_COMPLETED_WITH_ERRORS flag
+  (void) tx_event_flags_set (controller_self->complete_flags,
+                             TEMPERATURE_THREAD_COMPLETED_WITH_ERRORS, TX_OR);
+
+  (void) tx_thread_suspend (controller_self->thread_handles->temperature_thread);
+  (void) tx_thread_terminate (controller_self->thread_handles->temperature_thread);
+
 }
-static void __handle_turbidity_error ( void )
+static void __handle_turbidity_error ( ULONG error_flag )
 {
   /*
    * TODO:
@@ -617,7 +687,7 @@ static void __handle_turbidity_error ( void )
    *    [ ] Continue application logic
    */
 }
-static void __handle_light_error ( void )
+static void __handle_light_error ( ULONG error_flag )
 {
   /*
    * TODO:
@@ -629,7 +699,7 @@ static void __handle_light_error ( void )
    *    [ ] Continue application logic
    */
 }
-static void __handle_accelerometer_error ( void )
+static void __handle_accelerometer_error ( ULONG error_flag )
 {
   /*
    * TODO:
@@ -643,24 +713,32 @@ static void __handle_accelerometer_error ( void )
 }
 static void __handle_waves_error ( void )
 {
-  /*
-   * TODO:
-   *    [ ] First, ensure the error flag is set in the Waves thread somewhere...
-   *    [ ] Set all SBD fields to error values
-   *    [ ] Terminate waves thread
-   *    [ ] Continue application logic
-   */
+  // Set all the fields of the SBD message to error values
+  memset (controller_self->current_message, 0, sizeof(sbd_message_type_52));
+
+  persistent_ram_log_error_string ("Waves memory pool failed to initialize.");
+
+  (void) tx_event_flags_set (controller_self->complete_flags, WAVES_THREAD_COMPLETED_WITH_ERRORS,
+  TX_OR);
+
+  (void) tx_thread_suspend (controller_self->thread_handles->waves_thread);
+  (void) tx_thread_terminate (controller_self->thread_handles->waves_thread);
+
 }
-static void __handle_iridium_error ( ULONG error_flags )
+static void __handle_iridium_error ( ULONG error_flag )
 {
-  /*
-   * TODO:
-   *    [ ] Power cycle modem
-   *    [ ] Think about switching the on/off pin mode in case the wrong setting was input?
-   *    [ ] Log the error in the error message buffer
-   *    [ ] Controlled shut down
-   *    [ ] System reset
-   */
+  // Shut down the modem
+  HAL_GPIO_WritePin (IRIDIUM_OnOff_GPIO_Port, IRIDIUM_OnOff_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (IRIDIUM_FET_GPIO_Port, IRIDIUM_FET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (BUS_5V_FET_GPIO_Port, BUS_5V_FET_Pin, GPIO_PIN_RESET);
+
+  persistent_ram_log_error_string ("MOdem error detected.");
+
+  (void) tx_event_flags_set (controller_self->complete_flags, IRIDIUM_THREAD_COMPLETED_WITH_ERRORS,
+  TX_OR);
+
+  (void) tx_thread_suspend (controller_self->thread_handles->iridium_thread);
+  (void) tx_thread_terminate (controller_self->thread_handles->iridium_thread);
 }
 static void __handle_file_system_error ( void )
 {
@@ -668,4 +746,37 @@ static void __handle_file_system_error ( void )
    * TODO:
    *    [ ] Unknown
    */
+}
+static void __handle_misc_error ( ULONG error_flag )
+{
+  char *error_str;
+
+  if ( error_flag & WATCHDOG_RESET )
+  {
+    error_str = "Watchdog reset occured.";
+    LOG(error_str);
+    persistent_ram_log_error_string (error_str);
+    return;
+  }
+
+  if ( error_flag & SOFTWARE_RESET )
+  {
+    error_str = "Software reset occured.";
+    LOG(error_str);
+    persistent_ram_log_error_string (error_str);
+    return;
+  }
+
+  if ( error_flag & MEMORY_CORRUPTION_ERROR )
+  {
+    error_str = "Memory corruption detected.";
+    LOG(error_str);
+
+    controller_self->shutdown_all_peripherals ();
+    controller_self->shutdown_all_interfaces ();
+    // Clear out persistent ram if memory cannot be trusted
+    persistent_ram_deinit ();
+    tx_thread_sleep (10);
+    HAL_NVIC_SystemReset ();
+  }
 }

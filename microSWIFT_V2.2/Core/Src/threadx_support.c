@@ -25,7 +25,7 @@
 
 bool gnss_apply_config ( GNSS *gnss )
 {
-  int fail_counter = 0, max_retries = 100;
+  int fail_counter = 0, max_retries = 20;
   gnss_return_code_t gnss_return_code = GNSS_SUCCESS;
 
   while ( fail_counter < max_retries )
@@ -174,10 +174,7 @@ void gnss_error_out ( GNSS *gnss, ULONG error_flag, TX_THREAD *gnss_thread, cons
   va_end(args);
   LOG(&(tmp_fmt[0]));
 
-  if ( error_flag != NO_ERROR_FLAG )
-  {
-    (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
-  }
+  (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
 
   watchdog_deregister_thread (GNSS_THREAD);
 
@@ -196,10 +193,7 @@ void ct_error_out ( CT *ct, ULONG error_flag, TX_THREAD *ct_thread, const char *
   va_end(args);
   LOG(&(tmp_fmt[0]));
 
-  if ( error_flag != NO_ERROR_FLAG )
-  {
-    (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
-  }
+  (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
 
   watchdog_deregister_thread (CT_THREAD);
 
@@ -219,14 +213,28 @@ void temperature_error_out ( Temperature *temperature, ULONG error_flag,
   va_end(args);
   LOG(&(tmp_fmt[0]));
 
-  if ( error_flag != NO_ERROR_FLAG )
-  {
-    (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
-  }
+  (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
 
   watchdog_deregister_thread (TEMPERATURE_THREAD);
 
   tx_thread_suspend (temperature_thread);
+}
+
+void waves_error_out ( ULONG error_flag, TX_THREAD *waves_thread, const char *fmt, ... )
+{
+  va_list args;
+  va_start(args, fmt);
+  char tmp_fmt[128];
+
+  vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
+  va_end(args);
+  LOG(&(tmp_fmt[0]));
+
+  (void) tx_event_flags_set (&error_flags, WAVES_INIT_FAILED, TX_OR);
+
+  watchdog_deregister_thread (WAVES_THREAD);
+
+  tx_thread_suspend (waves_thread);
 }
 
 void iridium_error_out ( Iridium *iridium, ULONG error_flag, TX_THREAD *iridium_thread,
@@ -243,14 +251,26 @@ void iridium_error_out ( Iridium *iridium, ULONG error_flag, TX_THREAD *iridium_
   va_end(args);
   LOG(&(tmp_fmt[0]));
 
-  if ( error_flag != NO_ERROR_FLAG )
-  {
-    (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
-  }
+  (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
 
   watchdog_deregister_thread (IRIDIUM_THREAD);
 
   tx_thread_suspend (iridium_thread);
+}
+
+void rtc_error_out ( TX_THREAD *rtc_thread, const char *fmt, ... )
+{
+  va_list args;
+  va_start(args, fmt);
+  char tmp_fmt[128];
+
+  vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
+  va_end(args);
+  LOG(&(tmp_fmt[0]));
+
+  (void) tx_event_flags_set (&error_flags, RTC_ERROR, TX_OR);
+
+  tx_thread_suspend (rtc_thread);
 }
 
 bool is_first_sample_window ( void )
@@ -519,49 +539,3 @@ void send_error_message ( Iridium *iridium, ULONG error_flags )
 //  }
 }
 
-/**
- * @brief  Deinitialize all peripheral interfaces and clear all interrupts.
- *
- * @param  void
- *
- * @retval void
- */
-void shutdown_all_interfaces ( void )
-{
-  uart4_deinit ();
-  uart5_deinit ();
-  usart1_deinit ();
-  usart2_deinit ();
-  usart3_deinit ();
-  usart6_deinit ();
-  spi1_deinit ();
-  spi2_deinit ();
-  spi3_deinit ();
-
-#error "Add battery ADC here, anything else that is needed."
-}
-
-/**
- * @brief  Power down all peripheral FETs and set RF switch to GNSS input
- *
- * @param  void
- *
- * @retval void
- */
-void shutdown_all_peripherals ( void )
-{
-// Shut down Iridium modem
-  HAL_GPIO_WritePin (GPIOD, IRIDIUM_OnOff_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin (GPIOD, IRIDIUM_FET_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin (GPIOF, BUS_5V_FET_Pin, GPIO_PIN_RESET);
-// Shut down GNSS
-  HAL_GPIO_WritePin (GPIOG, GNSS_FET_Pin, GPIO_PIN_RESET);
-// Reset RF switch GPIOs. This will set it to be ported to the modem (safe case)
-  HAL_GPIO_WritePin (GPIOD, RF_SWITCH_VCTL_Pin, GPIO_PIN_RESET);
-// Turn off power to the RF switch
-  HAL_GPIO_WritePin (GPIOD, RF_SWITCH_EN_Pin, GPIO_PIN_RESET);
-// Shut down CT sensor
-  HAL_GPIO_WritePin (GPIOG, CT_FET_Pin, GPIO_PIN_RESET);
-
-#warning "Make sure all devices are covered here."
-}
