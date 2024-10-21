@@ -47,20 +47,23 @@ bool waves_memory_pool_delete ()
 
 bool waves_memory_get_raw_data_pointers ( float **north, float **east, float **down )
 {
-  if ( waves_mem->init_success )
+  if ( waves_mem != NULL )
   {
-    *north = waves_mem->north->data;
-    *east = waves_mem->east->data;
-    *down = waves_mem->down->data;
-  }
-  else
-  {
-    *north = NULL;
-    *east = NULL;
-    *down = NULL;
+    if ( waves_mem->init_success )
+    {
+      *north = waves_mem->north->data;
+      *east = waves_mem->east->data;
+      *down = waves_mem->down->data;
+
+      return true;
+    }
   }
 
-  return waves_mem->init_success;
+  *north = NULL;
+  *east = NULL;
+  *down = NULL;
+
+  return false;
 }
 
 void* malloc_replacement ( size_t size )

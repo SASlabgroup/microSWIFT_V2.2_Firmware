@@ -114,7 +114,7 @@ static bool _control_startup_procedure ( void )
   (void) tx_thread_resume (controller_self->thread_handles->gnss_thread);
   (void) tx_thread_resume (controller_self->thread_handles->iridium_thread);
 
-  // Start optional component threads if enabled
+// Start optional component threads if enabled
   if ( controller_self->global_config->ct_enabled )
   {
     init_success_flags |= CT_INIT_SUCCESS;
@@ -197,6 +197,16 @@ static void _control_shutdown_procedure ( void )
       (int ) alarm_settings.alarm_second);
 
   tx_thread_sleep (2);
+
+  uart4_deinit ();
+  uart5_deinit ();
+  usart1_deinit ();
+  usart2_deinit ();
+  usart3_deinit ();
+  usart6_deinit ();
+  spi1_deinit ();
+  spi2_deinit ();
+  spi3_deinit ();
 
   // Enter standby mode -- processor will be woken by RTC alarm
   controller_self->enter_processor_standby_mode ();
@@ -325,7 +335,7 @@ static void _control_manage_state ( void )
               accelerometer_complete = false,
               waves_complete = false,
               iridium_complete = false;
-                                                                                // @formatter:on
+                                                                                                      // @formatter:on
   bool iridium_ready = false;
 
   ct_complete = !controller_self->global_config->ct_enabled;
