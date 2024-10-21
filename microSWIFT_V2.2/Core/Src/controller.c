@@ -102,11 +102,13 @@ static bool _control_startup_procedure ( void )
 
   if ( reset_reason & RCC_RESET_FLAG_PIN )
   {
+    LOG("Watchdog reset occured.");
     tx_event_flags_set (&error_flags, WATCHDOG_RESET, TX_OR);
   }
 
   if ( reset_reason & RCC_RESET_FLAG_SW )
   {
+    LOG("Software reset occured.");
     tx_event_flags_set (&error_flags, SOFTWARE_RESET, TX_OR);
   }
 
@@ -360,7 +362,7 @@ static void _control_manage_state ( void )
               accelerometer_complete = false,
               waves_complete = false,
               iridium_complete = false;
-                                                                                                                                              // @formatter:on
+                                                                                                                                                // @formatter:on
   bool iridium_ready = false;
 
   ct_complete = !controller_self->global_config->ct_enabled;
@@ -754,7 +756,6 @@ static void __handle_misc_error ( ULONG error_flag )
   if ( error_flag & WATCHDOG_RESET )
   {
     error_str = "Watchdog reset occured.";
-    LOG(error_str);
     persistent_ram_log_error_string (error_str);
     return;
   }
@@ -762,7 +763,6 @@ static void __handle_misc_error ( ULONG error_flag )
   if ( error_flag & SOFTWARE_RESET )
   {
     error_str = "Software reset occured.";
-    LOG(error_str);
     persistent_ram_log_error_string (error_str);
     return;
   }
