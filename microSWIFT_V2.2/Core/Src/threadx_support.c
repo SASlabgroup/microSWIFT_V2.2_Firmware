@@ -520,13 +520,35 @@ void send_error_message ( Iridium *iridium, ULONG error_flags )
 }
 
 /**
+ * @brief  Deinitialize all peripheral interfaces and clear all interrupts.
+ *
+ * @param  void
+ *
+ * @retval void
+ */
+void shutdown_all_interfaces ( void )
+{
+  uart4_deinit ();
+  uart5_deinit ();
+  usart1_deinit ();
+  usart2_deinit ();
+  usart3_deinit ();
+  usart6_deinit ();
+  spi1_deinit ();
+  spi2_deinit ();
+  spi3_deinit ();
+
+#error "Add battery ADC here, anything else that is needed."
+}
+
+/**
  * @brief  Power down all peripheral FETs and set RF switch to GNSS input
  *
  * @param  void
  *
  * @retval void
  */
-void shut_down_all_peripherals ( void )
+void shutdown_all_peripherals ( void )
 {
 // Shut down Iridium modem
   HAL_GPIO_WritePin (GPIOD, IRIDIUM_OnOff_Pin, GPIO_PIN_RESET);
@@ -540,4 +562,6 @@ void shut_down_all_peripherals ( void )
   HAL_GPIO_WritePin (GPIOD, RF_SWITCH_EN_Pin, GPIO_PIN_RESET);
 // Shut down CT sensor
   HAL_GPIO_WritePin (GPIOG, CT_FET_Pin, GPIO_PIN_RESET);
+
+#warning "Make sure all devices are covered here."
 }

@@ -54,10 +54,8 @@ void        clear_event_flags ( TX_EVENT_FLAGS_GROUP *event_flags );
 uint32_t    ticks_from_milliseconds ( uint32_t milliseconds );
 
 void        led_sequence ( led_sequence_t sequence );
-void        jump_to_end_of_window ( ULONG error_bits_to_set );
-void        jump_to_waves ( void );
-void        send_error_message ( Iridium *iridium, ULONG error_flags );
-void        shut_down_all_peripherals ( void );
+void        shutdown_all_interfaces ( void );
+void        shutdown_all_peripherals ( void );
 
 // @formatter:on
 #endif /* INC_THREADX_SUPPORT_H_ */

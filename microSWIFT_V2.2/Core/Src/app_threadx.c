@@ -861,7 +861,7 @@ static void control_thread_entry ( ULONG thread_input )
   // Run the self test
   if ( !control.startup_procedure () )
   {
-    shut_down_all_peripherals ();
+    shutdown_all_peripherals ();
 
     if ( !is_first_sample_window () )
     {
@@ -873,7 +873,7 @@ static void control_thread_entry ( ULONG thread_input )
       }
     }
 
-    tx_thread_sleep (1);
+    tx_thread_sleep (100);
     HAL_NVIC_SystemReset ();
   }
 

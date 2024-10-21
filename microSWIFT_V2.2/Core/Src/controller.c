@@ -163,7 +163,7 @@ static void _control_shutdown_procedure ( void )
   struct tm time_now;
 
   // Make sure everything is shut down
-  controller_self->shutdown_all_pheripherals ();
+  shutdown_all_peripherals ();
 
   // Make extra sure the alarm flag is cleared
   if ( rtc_server_clear_flag (ALARM_FLAG, CONTROL_REQUEST_COMPLETE) != RTC_SUCCESS )
@@ -198,15 +198,8 @@ static void _control_shutdown_procedure ( void )
 
   tx_thread_sleep (2);
 
-  uart4_deinit ();
-  uart5_deinit ();
-  usart1_deinit ();
-  usart2_deinit ();
-  usart3_deinit ();
-  usart6_deinit ();
-  spi1_deinit ();
-  spi2_deinit ();
-  spi3_deinit ();
+  // Deinit all enabled peripherals
+  shutdown_all_interfaces ();
 
   // Enter standby mode -- processor will be woken by RTC alarm
   controller_self->enter_processor_standby_mode ();
@@ -269,12 +262,11 @@ static void _control_enter_processor_standby_mode ( void )
     HAL_NVIC_ClearPendingIRQ (i);
   }
 
-  HAL_NVIC_SetPriority (EXTI2_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ (EXTI2_IRQn);
-  HAL_NVIC_SetPriority (PVD_PVM_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ (PVD_PVM_IRQn);
+  // Make sure the IRQ is enabled for the wakeup pin
+//  HAL_NVIC_SetPriority (PVD_PVM_IRQn, 0, 0);
+//  HAL_NVIC_EnableIRQ (PVD_PVM_IRQn);
 
-  // Retain all SRAM2 contents
+// Retain all SRAM2 contents
   HAL_PWREx_EnableSRAM2ContentStandbyRetention (PWR_SRAM2_FULL_STANDBY);
 
   // Enable power clock
@@ -335,7 +327,7 @@ static void _control_manage_state ( void )
               accelerometer_complete = false,
               waves_complete = false,
               iridium_complete = false;
-                                                                                                      // @formatter:on
+                                                                                                          // @formatter:on
   bool iridium_ready = false;
 
   ct_complete = !controller_self->global_config->ct_enabled;
