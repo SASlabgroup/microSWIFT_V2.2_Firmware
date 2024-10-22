@@ -1637,7 +1637,7 @@ static void iridium_thread_entry ( ULONG thread_input )
 
   if ( uart4_init () != UART_OK )
   {
-    iridium_error_out (&iridium, NO_ERROR_FLAG, this_thread,
+    iridium_error_out (&iridium, IRIDIUM_INIT_ERROR, this_thread,
                        "Iridium UART port failed to initialize.");
   }
 
@@ -1652,9 +1652,8 @@ static void iridium_thread_entry ( ULONG thread_input )
 
   if ( !iridium_apply_config (&iridium) )
   {
-    // Need to save the message
-    persistent_ram_save_iridium_message (&sbd_message);
-    iridium_error_out (&iridium, NO_ERROR_FLAG, this_thread, "Iridium modem failed to initialize.");
+    iridium_error_out (&iridium, IRIDIUM_INIT_ERROR, this_thread,
+                       "Iridium modem failed to initialize.");
   }
 
   LOG("Iridium modem initialized successfully.");
@@ -1694,7 +1693,8 @@ static void iridium_thread_entry ( ULONG thread_input )
   {
     // Need to save the message
     persistent_ram_save_iridium_message (&sbd_message);
-    iridium_error_out (&iridium, NO_ERROR_FLAG, this_thread, "Iridium modem failed to initialize.");
+    iridium_error_out (&iridium, IRIDIUM_UART_ERROR, this_thread,
+                       "Iridium modem UART communication error.");
   }
 
   // Send the current message followed by asny cached messages, until time runs out
