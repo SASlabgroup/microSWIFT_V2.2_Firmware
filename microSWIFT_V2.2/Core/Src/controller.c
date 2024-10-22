@@ -362,7 +362,7 @@ static void _control_manage_state ( void )
               accelerometer_complete = false,
               waves_complete = false,
               iridium_complete = false;
-                                                                                                                                                  // @formatter:on
+                                                                                                                                                    // @formatter:on
   bool iridium_ready = false;
 
   ct_complete = !controller_self->global_config->ct_enabled;
@@ -513,7 +513,7 @@ static void _control_monitor_and_handle_errors ( void )
   accelerometer_errors = current_flags
                          & (ACCELEROMETER_INIT_FAILED | ACCELEROMETER_SELF_TEST_FAILED
                             | ACCELEROMETER_SAMPLING_ERROR);
-  iridium_errors = current_flags & (IRIDIUM_INIT_ERROR | IRIDIUM_UART_ERROR);
+  iridium_errors = current_flags & (IRIDIUM_INIT_ERROR | IRIDIUM_UART_COMMS_ERROR);
   waves_errors = current_flags & (WAVES_INIT_FAILED);
   file_system_errors = current_flags & (FILE_SYSTEM_ERROR);
   rtc_errors = current_flags & (RTC_ERROR);

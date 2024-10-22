@@ -130,7 +130,7 @@ typedef enum error_flags
   ACCELEROMETER_SELF_TEST_FAILED= ((ULONG) 1 << 20),
   ACCELEROMETER_SAMPLING_ERROR  = ((ULONG) 1 << 21),
   IRIDIUM_INIT_ERROR            = ((ULONG) 1 << 22),
-  IRIDIUM_UART_ERROR            = ((ULONG) 1 << 23),
+  IRIDIUM_UART_COMMS_ERROR      = ((ULONG) 1 << 23),
   FILE_SYSTEM_ERROR             = ((ULONG) 1 << 24),
   RTC_ERROR                     = ((ULONG) 1 << 25),
   WAVES_INIT_FAILED             = ((ULONG) 1 << 26),

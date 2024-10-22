@@ -1693,7 +1693,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   {
     // Need to save the message
     persistent_ram_save_iridium_message (&sbd_message);
-    iridium_error_out (&iridium, IRIDIUM_UART_ERROR, this_thread,
+    iridium_error_out (&iridium, IRIDIUM_UART_COMMS_ERROR, this_thread,
                        "Iridium modem UART communication error.");
   }
 
