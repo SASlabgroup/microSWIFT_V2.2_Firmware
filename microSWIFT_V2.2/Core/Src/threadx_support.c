@@ -37,10 +37,10 @@ bool gnss_apply_config ( GNSS *gnss )
       break;
     }
 
-    gnss->off ();
-    tx_thread_sleep (1);
-    gnss->on ();
-    tx_thread_sleep (1);
+//    gnss->off ();
+//    tx_thread_sleep (50);
+//    gnss->on ();
+    tx_thread_sleep (10);
 
     fail_counter++;
   }
@@ -130,9 +130,9 @@ bool iridium_apply_config ( Iridium *iridium )
     }
 
     iridium->off ();
-    tx_thread_sleep (1);
+    tx_thread_sleep (25);
     iridium->on ();
-    tx_thread_sleep (1);
+    tx_thread_sleep (25);
     fail_counter++;
   }
 

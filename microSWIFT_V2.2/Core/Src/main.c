@@ -88,7 +88,7 @@ int main ( void )
   SystemPower_Config ();
 
   /* USER CODE BEGIN SysInit */
-
+//#error"major changes have been made to pinout, verify all connections."
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -133,15 +133,16 @@ void SystemClock_Config ( void )
 
   /** Configure the main internal regulator output voltage
    */
-  if ( HAL_PWREx_ControlVoltageScaling (PWR_REGULATOR_VOLTAGE_SCALE4) != HAL_OK )
+  if ( HAL_PWREx_ControlVoltageScaling (PWR_REGULATOR_VOLTAGE_SCALE3) != HAL_OK )
   {
     Error_Handler ();
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
    */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48 | RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if ( HAL_RCC_OscConfig (&RCC_OscInitStruct) != HAL_OK )
@@ -159,7 +160,7 @@ void SystemClock_Config ( void )
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB3CLKDivider = RCC_HCLK_DIV1;
 
-  if ( HAL_RCC_ClockConfig (&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK )
+  if ( HAL_RCC_ClockConfig (&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK )
   {
     Error_Handler ();
   }

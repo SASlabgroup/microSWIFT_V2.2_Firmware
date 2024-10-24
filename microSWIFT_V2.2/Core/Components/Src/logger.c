@@ -72,18 +72,6 @@ void uart_log ( const char *fmt, ... )
 
   memset (log_buf, 0, sizeof(log_line_buf));
 
-//  if ( rtc_server_get_time (&time, LOGGER_REQUEST_PROCESSED) == RTC_SUCCESS )
-//  {
-//    str_len = strftime (&(log_buf->line_buf[0]), bytes_remaining, "%D %T: ", &time);
-//    bytes_remaining -= str_len;
-//  }
-//  else
-//  {
-//    str_len = strlen (rtc_err_str);
-//    strncpy (&(log_buf->line_buf[0]), rtc_err_str, str_len);
-//    bytes_remaining -= str_len;
-//  }
-
   str_len = vsnprintf (&(log_buf->line_buf[sizeof(log_line_buf) - bytes_remaining]),
                        bytes_remaining, fmt, args);
   va_end(args);

@@ -36,7 +36,6 @@ static iridium_return_code_t _iridium_start_timer ( uint16_t timeout_in_minutes 
 static iridium_return_code_t _iridium_stop_timer ( void );
 static iridium_return_code_t _iridium_transmit_message ( sbd_message_type_52 *msg );
 static iridium_return_code_t _iridium_transmit_error_message ( char *error_message );
-static void                  _iridium_log_error_string (char* str, ...);
 static void                  _iridium_charge_caps ( uint32_t caps_charge_time_ticks );
 static void                  _iridium_sleep ( void );
 static void                  _iridium_wake ( void );
@@ -317,6 +316,7 @@ static iridium_return_code_t _iridium_transmit_error_message ( char *error_messa
 //
   return return_code;
 }
+
 /**
  *
  * @return void

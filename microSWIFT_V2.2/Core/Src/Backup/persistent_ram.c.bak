@@ -117,6 +117,11 @@ void persistent_ram_save_error_message ( sbd_message_type_99 *msg )
   }
 }
 
+void persistent_ram_log_error_string ( char *error_str )
+{
+#warning "add utility here to capture error strings and put them into a type 99 message"
+}
+
 sbd_message_type_52* persistent_ram_get_prioritized_unsent_iridium_message ( void )
 {
   float most_significant_wave_height = 0.0;

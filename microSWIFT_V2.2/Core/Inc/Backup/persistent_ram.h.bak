@@ -53,6 +53,7 @@ void                    persistent_ram_increment_sample_window_counter ( void );
 int32_t                 persistent_ram_get_sample_window_counter ( void );
 void                    persistent_ram_save_iridium_message ( sbd_message_type_52* msg );
 void                    persistent_ram_save_error_message (sbd_message_type_99* msg);
+void                    persistent_ram_log_error_string ( char* error_str );
 sbd_message_type_52*    persistent_ram_get_prioritized_unsent_iridium_message ( void );
 sbd_message_type_99*    persistent_ram_get_prioritized_unsent_error_message ( void );
 void                    persistent_ram_delete_iridium_message_element ( sbd_message_type_52 *msg_ptr );

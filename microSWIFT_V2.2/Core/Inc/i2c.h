@@ -38,6 +38,8 @@ extern I2C_HandleTypeDef hi2c2;
 
 extern I2C_HandleTypeDef hi2c3;
 
+extern I2C_HandleTypeDef hi2c4;
+
 /* USER CODE BEGIN Private defines */
 #define I2C_OK 0
 #define I2C_ERROR -1
@@ -46,6 +48,7 @@ extern I2C_HandleTypeDef hi2c3;
 void MX_I2C1_Init(void);
 void MX_I2C2_Init(void);
 void MX_I2C3_Init(void);
+void MX_I2C4_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 int32_t i2c1_init ( void );

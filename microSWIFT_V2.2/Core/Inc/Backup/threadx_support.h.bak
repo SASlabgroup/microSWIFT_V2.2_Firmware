@@ -44,7 +44,12 @@ bool        iridium_apply_config ( Iridium *iridium );
 void        gnss_error_out(GNSS *gnss, ULONG error_flag, TX_THREAD *gnss_thread, const char *fmt, ...);
 void        ct_error_out(CT* ct, ULONG error_flag, TX_THREAD *ct_thread, const char *fmt, ...);
 void        temperature_error_out(Temperature* temperature, ULONG error_flag, TX_THREAD *temperature_thread, const char *fmt, ...);
+//void        light_error_out (Light* light, ULONG error_flag, TX_THREAD* light_thread, const char *fmt, ...);
+//void        turbidity_error_out(Turbidity* turbidity, ULONG error_flag, TX_THREAD *turbidity_thread, const char *fmt, ...);
+//void        accelerometer_error_out(Accelerometer* accel, ULONG error_flag, TX_THREAD *accelerometer_thread, const char *fmt, ...);
+void        waves_error_out(ULONG error_flag, TX_THREAD *waves_thread, const char *fmt, ...);
 void        iridium_error_out(Iridium* iridium, ULONG error_flag, TX_THREAD *iridium_thread, const char *fmt, ...);
+void        rtc_error_out(TX_THREAD *rtc_thread, const char *fmt, ...);
 
 bool        is_first_sample_window ( void );
 
@@ -54,10 +59,6 @@ void        clear_event_flags ( TX_EVENT_FLAGS_GROUP *event_flags );
 uint32_t    ticks_from_milliseconds ( uint32_t milliseconds );
 
 void        led_sequence ( led_sequence_t sequence );
-void        jump_to_end_of_window ( ULONG error_bits_to_set );
-void        jump_to_waves ( void );
-void        send_error_message ( Iridium *iridium, ULONG error_flags );
-void        shut_down_all_peripherals ( void );
 
 // @formatter:on
 #endif /* INC_THREADX_SUPPORT_H_ */

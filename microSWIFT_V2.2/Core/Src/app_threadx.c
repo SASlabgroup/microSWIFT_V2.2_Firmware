@@ -942,7 +942,7 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   tx_thread_sleep (1);
 
-  if ( usart1_init () != UART_OK )
+  if ( lpuart1_init () != UART_OK )
   {
     gnss_error_out (&gnss, GNSS_INIT_FAILED, this_thread, "GNSS UART port failed to initialize.");
   }
@@ -1697,7 +1697,7 @@ static void iridium_thread_entry ( ULONG thread_input )
                        "Iridium modem UART communication error.");
   }
 
-  // Send the current message followed by asny cached messages, until time runs out
+  // Send the current message followed by any cached messages, until time runs out
   while ( !iridium_get_timeout_status () )
   {
 

@@ -40,7 +40,8 @@ typedef struct
   bool                      (*startup_procedure)( void );
   void                      (*shutdown_procedure)( void );
   real16_T                  (*get_battery_voltage) ( void );
-  void                      (*shutdown_all_pheripherals) ( void );
+  void                      (*shutdown_all_peripherals) ( void );
+  void                      (*shutdown_all_interfaces) ( void );
   void                      (*enter_processor_standby_mode) ( void );
   void                      (*manage_state) ( void );
   void                      (*monitor_and_handle_errors) ( void );

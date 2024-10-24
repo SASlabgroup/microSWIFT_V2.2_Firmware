@@ -25,6 +25,9 @@
 
 static GNSS *gnss_self;
 
+extern DMA_NodeTypeDef gnss_dma_linked_list_node;
+extern DMA_QListTypeDef gnss_dma_linked_list;
+
 // @formatter:off
 
 // The configuration message, type UBX_CFG_VALSET. Default is set to 5Hz.
@@ -755,7 +758,7 @@ static void _gnss_process_message ( void )
  */
 static void _gnss_on ( void )
 {
-  HAL_GPIO_WritePin (GNSS_FET_GPIO_Port, GNSS_FET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (GNSS_FET_GPIO_Port, GNSS_FET_Pin, GPIO_PIN_SET);
 }
 
 /**
@@ -767,7 +770,7 @@ static void _gnss_on ( void )
  */
 static void _gnss_off ( void )
 {
-  HAL_GPIO_WritePin (GNSS_FET_GPIO_Port, GNSS_FET_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin (GNSS_FET_GPIO_Port, GNSS_FET_Pin, GPIO_PIN_RESET);
 }
 
 /**
