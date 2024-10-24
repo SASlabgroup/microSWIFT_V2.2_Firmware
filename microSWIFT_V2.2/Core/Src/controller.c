@@ -211,6 +211,8 @@ static void _control_shutdown_procedure ( void )
       (int ) alarm_settings.alarm_hour, (int ) alarm_settings.alarm_minute,
       (int ) alarm_settings.alarm_second);
 
+  persistent_ram_increment_sample_window_counter ();
+
   tx_thread_sleep (2);
 
   // Deinit all enabled peripherals
@@ -362,7 +364,7 @@ static void _control_manage_state ( void )
               accelerometer_complete = false,
               waves_complete = false,
               iridium_complete = false;
-                                                                                                                                                        // @formatter:on
+                                                                                                                                                          // @formatter:on
   bool iridium_ready = false;
 
   ct_complete = !controller_self->global_config->ct_enabled;

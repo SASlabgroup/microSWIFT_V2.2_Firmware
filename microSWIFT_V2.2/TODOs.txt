@@ -67,6 +67,9 @@ Control
 	[ ] Ensure all modes result in soft-shutdown
 [x] End of cycle now becomes setting an alarm, soft shutting down everything, and entering
     shutdown mode
+[ ] Figure out how to keep the modem off during standby mode.
+	[ ] Will need to configure pull resistors in standby like we do with the RTC Int
+	[ ] Make sure this works with both v3.D and v3.F modems
 
 ****************************************************************************************************
 GNSS
