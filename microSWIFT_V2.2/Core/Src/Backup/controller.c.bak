@@ -161,7 +161,7 @@ static bool _control_startup_procedure ( void )
   }
 
   // Grab the battery voltage
-//  voltage = controller_self->get_battery_voltage ();
+  voltage = controller_self->get_battery_voltage ();
   memcpy (&controller_self->current_message->mean_voltage, &voltage, sizeof(real16_T));
 
   battery_deinit ();
@@ -362,7 +362,7 @@ static void _control_manage_state ( void )
               accelerometer_complete = false,
               waves_complete = false,
               iridium_complete = false;
-                                                                                                                                                      // @formatter:on
+                                                                                                                                                        // @formatter:on
   bool iridium_ready = false;
 
   ct_complete = !controller_self->global_config->ct_enabled;

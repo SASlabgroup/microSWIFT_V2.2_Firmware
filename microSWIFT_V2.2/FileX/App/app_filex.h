@@ -1,22 +1,22 @@
 
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file    app_filex.h
-  * @author  MCD Application Team
-  * @brief   FileX applicative header file
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2024 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file    app_filex.h
+ * @author  MCD Application Team
+ * @brief   FileX applicative header file
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2024 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __APP_FILEX_H__
@@ -28,8 +28,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "fx_api.h"
-#include "fx_stm32_levelx_nand_driver.h"
-#include "lx_stm32_nand_custom_driver.h"
+#include "fx_stm32_sd_driver.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -42,7 +41,7 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-
+extern TX_THREAD fx_app_thread;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -76,6 +75,20 @@ UINT MX_FileX_Init(VOID *memory_ptr);
 /* Main thread preemption threshold */
 #ifndef FX_APP_PREEMPTION_THRESHOLD
   #define FX_APP_PREEMPTION_THRESHOLD FX_APP_THREAD_PRIO
+#endif
+
+/* fx sd volume name */
+#ifndef FX_SD_VOLUME_NAME
+  #define FX_SD_VOLUME_NAME "STM32_SDIO_DISK"
+#endif
+/* fx sd number of FATs */
+#ifndef FX_SD_NUMBER_OF_FATS
+  #define FX_SD_NUMBER_OF_FATS                1
+#endif
+
+/* fx sd Hidden sectors */
+#ifndef FX_SD_HIDDEN_SECTORS
+  #define FX_SD_HIDDEN_SECTORS               0
 #endif
 
 /* USER CODE BEGIN PD */

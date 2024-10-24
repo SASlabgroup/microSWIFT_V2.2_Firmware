@@ -37,11 +37,16 @@ bool gnss_apply_config ( GNSS *gnss )
       break;
     }
 
-//    gnss->off ();
-//    tx_thread_sleep (50);
-//    gnss->on ();
-    tx_thread_sleep (10);
+    // After 5 failures, power cycle the GNSS
+    if ( fail_counter % 5 == 0 )
+    {
+      gnss->off ();
+      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 2);
+      gnss->on ();
+      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+    }
 
+    tx_thread_sleep (rand () % 25);
     fail_counter++;
   }
 
@@ -271,6 +276,21 @@ void rtc_error_out ( TX_THREAD *rtc_thread, const char *fmt, ... )
   (void) tx_event_flags_set (&error_flags, RTC_ERROR, TX_OR);
 
   tx_thread_suspend (rtc_thread);
+}
+
+void filex_error_out ( TX_THREAD *filex_thread, const char *fmt, ... )
+{
+  va_list args;
+  va_start(args, fmt);
+  char tmp_fmt[128];
+
+  vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
+  va_end(args);
+  LOG(&(tmp_fmt[0]));
+
+  (void) tx_event_flags_set (&error_flags, FILE_SYSTEM_ERROR, TX_OR);
+
+  tx_thread_suspend (filex_thread);
 }
 
 bool is_first_sample_window ( void )

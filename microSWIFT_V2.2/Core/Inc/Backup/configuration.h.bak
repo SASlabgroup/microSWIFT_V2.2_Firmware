@@ -48,7 +48,11 @@
 // Are we doing 1 or two sample windows per hour
 #define SAMPLE_WINDOWS_PER_HOUR 2
 
+#ifdef DEBUG
+#define WATCHDOG_PERIOD 600000 // 1 min (in ms)
+#else
 #define WATCHDOG_PERIOD 60000 // 1 min (in ms)
+#endif
 #endif // DEBUGGING_FAST_CYCLE
 
 // Sampling rate in Hz for the GNSS sensor

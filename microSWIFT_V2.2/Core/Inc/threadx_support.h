@@ -50,6 +50,7 @@ void        temperature_error_out(Temperature* temperature, ULONG error_flag, TX
 void        waves_error_out(ULONG error_flag, TX_THREAD *waves_thread, const char *fmt, ...);
 void        iridium_error_out(Iridium* iridium, ULONG error_flag, TX_THREAD *iridium_thread, const char *fmt, ...);
 void        rtc_error_out(TX_THREAD *rtc_thread, const char *fmt, ...);
+void        filex_error_out (TX_THREAD *filex_thread, const char *fmt, ...);
 
 bool        is_first_sample_window ( void );
 

@@ -25,6 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "app_filex.h"
 #include "main.h"
 #include "stddef.h"
 #include <math.h>
@@ -130,6 +131,7 @@ Thread_Handles thread_handles =
     &accelerometer_thread,
     &waves_thread,
     &iridium_thread,
+    &fx_app_thread
   };
 // @formatter:on
 // Used to track initialization status of threads and components
@@ -770,8 +772,8 @@ static void rtc_thread_entry ( ULONG thread_input )
 
       if ( ret != RTC_SUCCESS )
       {
-        rtc_error_out ("RTC failed to service request %d, returning code %d.", (int) req.request,
-                       (int) ret);
+        rtc_error_out (this_thread, "RTC failed to service request %d, returning code %d.",
+                       (int) req.request, (int) ret);
       }
 
       if ( req.return_code != NULL )

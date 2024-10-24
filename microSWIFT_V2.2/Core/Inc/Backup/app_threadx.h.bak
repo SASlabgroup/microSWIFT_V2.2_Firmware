@@ -39,7 +39,7 @@
 #include "i2c.h"
 #include "usart.h"
 #include "octospi.h"
-
+#include "threadx_support.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -187,6 +187,7 @@ typedef struct
   TX_THREAD *accelerometer_thread;
   TX_THREAD *waves_thread;
   TX_THREAD *iridium_thread;
+  TX_THREAD *filex_thread;
 } Thread_Handles;
 
 extern Thread_Handles thread_handles;

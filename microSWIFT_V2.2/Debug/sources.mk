@@ -31,10 +31,9 @@ Core/Startup \
 Core/ThreadSafe \
 Drivers/STM32U5xx_HAL_Driver \
 FileX/App \
-LevelX/Target \
+FileX/Target \
 Middlewares/FileX/Core \
-Middlewares/FileX/LevelX\ NAND\ interface \
-Middlewares/LevelX/NAND\ Flash\ Support \
+Middlewares/FileX/SD\ interface \
 Middlewares/ThreadX/Core \
 Middlewares/ThreadX/Low_Power_Support \
 Middlewares/ThreadX/TraceX_Support \
