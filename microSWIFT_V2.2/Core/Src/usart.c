@@ -129,11 +129,11 @@ void MX_UART4_Init ( void )
   {
     Error_Handler ();
   }
-  if ( HAL_UARTEx_SetRxFifoThreshold (&huart4, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK )
+  if ( HAL_UARTEx_SetRxFifoThreshold (&huart4, UART_RXFIFO_THRESHOLD_1_2) != HAL_OK )
   {
     Error_Handler ();
   }
-  if ( HAL_UARTEx_DisableFifoMode (&huart4) != HAL_OK )
+  if ( HAL_UARTEx_EnableFifoMode (&huart4) != HAL_OK )
   {
     Error_Handler ();
   }
@@ -493,6 +493,9 @@ void HAL_UART_MspInit ( UART_HandleTypeDef *uartHandle )
       Error_Handler ();
     }
 
+    /* LPUART1 interrupt Init */
+    HAL_NVIC_SetPriority (LPUART1_IRQn, 14, 0);
+    HAL_NVIC_EnableIRQ (LPUART1_IRQn);
     /* USER CODE BEGIN LPUART1_MspInit 1 */
 
     /* USER CODE END LPUART1_MspInit 1 */
@@ -585,7 +588,7 @@ void HAL_UART_MspInit ( UART_HandleTypeDef *uartHandle )
     }
 
     /* UART4 interrupt Init */
-    HAL_NVIC_SetPriority (UART4_IRQn, 15, 0);
+    HAL_NVIC_SetPriority (UART4_IRQn, 14, 0);
     HAL_NVIC_EnableIRQ (UART4_IRQn);
     /* USER CODE BEGIN UART4_MspInit 1 */
 
@@ -1044,6 +1047,9 @@ void HAL_UART_MspDeInit ( UART_HandleTypeDef *uartHandle )
     /* LPUART1 DMA DeInit */
     HAL_DMA_DeInit (uartHandle->hdmatx);
     HAL_DMA_DeInit (uartHandle->hdmarx);
+
+    /* LPUART1 interrupt Deinit */
+    HAL_NVIC_DisableIRQ (LPUART1_IRQn);
     /* USER CODE BEGIN LPUART1_MspDeInit 1 */
 
     /* USER CODE END LPUART1_MspDeInit 1 */
@@ -1194,6 +1200,8 @@ void HAL_UART_MspDeInit ( UART_HandleTypeDef *uartHandle )
   }
 }
 
+/* USER CODE BEGIN 1 */
+
 int32_t lpuart1_init ( void )
 {
   if ( !lpuart1_init_status )
@@ -1208,7 +1216,6 @@ int32_t lpuart1_init ( void )
     hlpuart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
     hlpuart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
     hlpuart1.FifoMode = UART_FIFOMODE_DISABLE;
-
     if ( HAL_UART_Init (&hlpuart1) != HAL_OK )
     {
       return UART_ERR;
@@ -1225,15 +1232,11 @@ int32_t lpuart1_init ( void )
     {
       return UART_ERR;
     }
-
-    lpuart1_init_status = true;
-
   }
 
   return UART_OK;
 }
 
-/* USER CODE BEGIN 1 */
 int32_t uart4_init ( void )
 {
   if ( !uart4_init_status )
@@ -1257,11 +1260,11 @@ int32_t uart4_init ( void )
     {
       return UART_ERR;
     }
-    if ( HAL_UARTEx_SetRxFifoThreshold (&huart4, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK )
+    if ( HAL_UARTEx_SetRxFifoThreshold (&huart4, UART_RXFIFO_THRESHOLD_1_2) != HAL_OK )
     {
       return UART_ERR;
     }
-    if ( HAL_UARTEx_DisableFifoMode (&huart4) != HAL_OK )
+    if ( HAL_UARTEx_EnableFifoMode (&huart4) != HAL_OK )
     {
       return UART_ERR;
     }

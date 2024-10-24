@@ -72,6 +72,7 @@ void USART2_IRQHandler(void);
 void USART3_IRQHandler(void);
 void UART4_IRQHandler(void);
 void UART5_IRQHandler(void);
+void LPUART1_IRQHandler(void);
 void SDMMC1_IRQHandler(void);
 void GPDMA1_Channel8_IRQHandler(void);
 void GPDMA1_Channel9_IRQHandler(void);

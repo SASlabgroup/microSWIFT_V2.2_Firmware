@@ -7,12 +7,15 @@
 
 #include "battery.h"
 #include "adc.h"
+#include "stdbool.h"
 // Object intance pointer
 static Battery *self;
 
 static battery_return_code_t battery_start_conversion ( void );
 static battery_return_code_t battery_get_voltage ( real16_T *voltage );
 static void battery_shutdown_adc ( void );
+
+static bool adc_init_status = false;
 
 void battery_init ( Battery *struct_ptr, ADC_HandleTypeDef *adc_handle,
                     TX_EVENT_FLAGS_GROUP *irq_flags )
@@ -27,23 +30,33 @@ void battery_init ( Battery *struct_ptr, ADC_HandleTypeDef *adc_handle,
 
 void battery_deinit ( void )
 {
-  (void) HAL_ADC_Stop_IT (self->adc_handle);
-  (void) HAL_ADC_DeInit (self->adc_handle);
+  if ( adc_init_status )
+  {
+    (void) HAL_ADC_Stop_IT (self->adc_handle);
+    (void) HAL_ADC_DeInit (self->adc_handle);
 
-  (void) HAL_SYSCFG_DisableVREFBUF ();
+    (void) HAL_SYSCFG_DisableVREFBUF ();
 
-  (void) __HAL_RCC_VREF_CLK_DISABLE();
+    (void) __HAL_RCC_VREF_CLK_DISABLE();
 
-  (void) HAL_PWREx_DisableVddA ();
+    (void) HAL_PWREx_DisableVddA ();
+
+    adc_init_status = false;
+  }
 }
 
 static battery_return_code_t battery_start_conversion ( void )
 {
   battery_return_code_t return_code;
 
-  if ( !adc1_init () )
+  if ( !adc_init_status )
   {
-    return BATTERY_ADC_ERROR;
+    if ( !adc1_init () )
+    {
+      return BATTERY_ADC_ERROR;
+    }
+
+    adc_init_status = true;
   }
 
   /** Enable the VREF clock
