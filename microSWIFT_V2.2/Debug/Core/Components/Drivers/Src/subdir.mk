@@ -5,18 +5,21 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../Core/Components/Drivers/Src/as7341_reg.c \
 ../Core/Components/Drivers/Src/generic_i2c_driver.c \
 ../Core/Components/Drivers/Src/generic_uart_driver.c \
 ../Core/Components/Drivers/Src/pcf2131_reg.c \
 ../Core/Components/Drivers/Src/u_ubx_protocol.c 
 
 OBJS += \
+./Core/Components/Drivers/Src/as7341_reg.o \
 ./Core/Components/Drivers/Src/generic_i2c_driver.o \
 ./Core/Components/Drivers/Src/generic_uart_driver.o \
 ./Core/Components/Drivers/Src/pcf2131_reg.o \
 ./Core/Components/Drivers/Src/u_ubx_protocol.o 
 
 C_DEPS += \
+./Core/Components/Drivers/Src/as7341_reg.d \
 ./Core/Components/Drivers/Src/generic_i2c_driver.d \
 ./Core/Components/Drivers/Src/generic_uart_driver.d \
 ./Core/Components/Drivers/Src/pcf2131_reg.d \
@@ -30,7 +33,7 @@ Core/Components/Drivers/Src/%.o Core/Components/Drivers/Src/%.su Core/Components
 clean: clean-Core-2f-Components-2f-Drivers-2f-Src
 
 clean-Core-2f-Components-2f-Drivers-2f-Src:
-	-$(RM) ./Core/Components/Drivers/Src/generic_i2c_driver.cyclo ./Core/Components/Drivers/Src/generic_i2c_driver.d ./Core/Components/Drivers/Src/generic_i2c_driver.o ./Core/Components/Drivers/Src/generic_i2c_driver.su ./Core/Components/Drivers/Src/generic_uart_driver.cyclo ./Core/Components/Drivers/Src/generic_uart_driver.d ./Core/Components/Drivers/Src/generic_uart_driver.o ./Core/Components/Drivers/Src/generic_uart_driver.su ./Core/Components/Drivers/Src/pcf2131_reg.cyclo ./Core/Components/Drivers/Src/pcf2131_reg.d ./Core/Components/Drivers/Src/pcf2131_reg.o ./Core/Components/Drivers/Src/pcf2131_reg.su ./Core/Components/Drivers/Src/u_ubx_protocol.cyclo ./Core/Components/Drivers/Src/u_ubx_protocol.d ./Core/Components/Drivers/Src/u_ubx_protocol.o ./Core/Components/Drivers/Src/u_ubx_protocol.su
+	-$(RM) ./Core/Components/Drivers/Src/as7341_reg.cyclo ./Core/Components/Drivers/Src/as7341_reg.d ./Core/Components/Drivers/Src/as7341_reg.o ./Core/Components/Drivers/Src/as7341_reg.su ./Core/Components/Drivers/Src/generic_i2c_driver.cyclo ./Core/Components/Drivers/Src/generic_i2c_driver.d ./Core/Components/Drivers/Src/generic_i2c_driver.o ./Core/Components/Drivers/Src/generic_i2c_driver.su ./Core/Components/Drivers/Src/generic_uart_driver.cyclo ./Core/Components/Drivers/Src/generic_uart_driver.d ./Core/Components/Drivers/Src/generic_uart_driver.o ./Core/Components/Drivers/Src/generic_uart_driver.su ./Core/Components/Drivers/Src/pcf2131_reg.cyclo ./Core/Components/Drivers/Src/pcf2131_reg.d ./Core/Components/Drivers/Src/pcf2131_reg.o ./Core/Components/Drivers/Src/pcf2131_reg.su ./Core/Components/Drivers/Src/u_ubx_protocol.cyclo ./Core/Components/Drivers/Src/u_ubx_protocol.d ./Core/Components/Drivers/Src/u_ubx_protocol.o ./Core/Components/Drivers/Src/u_ubx_protocol.su
 
 .PHONY: clean-Core-2f-Components-2f-Drivers-2f-Src
 

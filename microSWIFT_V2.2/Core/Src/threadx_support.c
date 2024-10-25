@@ -25,7 +25,7 @@
 
 bool gnss_apply_config ( GNSS *gnss )
 {
-  int fail_counter = 0, max_retries = 20;
+  int fail_counter = 0, max_retries = 27;
   gnss_return_code_t gnss_return_code = GNSS_SUCCESS;
 
   while ( fail_counter < max_retries )
@@ -41,12 +41,14 @@ bool gnss_apply_config ( GNSS *gnss )
     if ( fail_counter % 5 == 0 )
     {
       gnss->off ();
-      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 2);
+      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
       gnss->on ();
       tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+      fail_counter++;
+      continue;
     }
 
-    tx_thread_sleep (rand () % 25);
+    tx_thread_sleep (10);
     fail_counter++;
   }
 
