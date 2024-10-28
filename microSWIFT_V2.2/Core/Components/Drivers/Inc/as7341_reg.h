@@ -611,9 +611,74 @@ typedef struct
   uint8_t                   reserved1   :2;
   as7341_fifo_threshold_t   fifo_th     :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-
+  as7341_fifo_threshold_t   fifo_th     :2;
+  uint8_t                   reserved1   :2;
+  uint8_t                   fd_agc      :1;
+  uint8_t                   sp_agc      :1;
+  uint8_t                   reserved0   :2;
 #endif /* DRV_BYTE_ORDER */
 } as7341_cfg8_reg_t;
+
+/**************************************************************************************************/
+/*************************************  CFG9 Register *********************************************/
+/**************************************************************************************************/
+#define CFG9_REG_ADDR (0XB2)
+#define CFG9_REG_RESET_VAL (0b00000000)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t   reserved0   :4;
+  uint8_t   sien_smux   :1;
+  uint8_t   reserved1   :1;
+  uint8_t   sien_fd     :1;
+  uint8_t   reserved2   :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t   reserved2   :1;
+  uint8_t   sien_fd     :1;
+  uint8_t   reserved1   :1;
+  uint8_t   sien_smux   :1;
+  uint8_t   reserved0   :4;
+#endif /* DRV_BYTE_ORDER */
+} as7341_cfg9_reg_t;
+
+/**************************************************************************************************/
+/*************************************  CFG10 Register ********************************************/
+/**************************************************************************************************/
+#define CFG10_REG_ADDR (0XB3)
+#define CFG10_REG_RESET_VAL (0b11110010)
+
+typedef enum
+{
+  PERCENT_50    = 0,
+  PERCENT_62_5  = 1,
+  PERCENT_75    = 2,
+  PERCENT_82_5  = 3
+} as7341_agc_high_threshold_t;
+
+typedef enum
+{
+  PERCENT_12_5  = 0,
+  PERCENT_25    = 1,
+  PERCENT_37_5  = 2,
+  PERCENT_50    = 3
+} as7341_agc_low_threshold_t;
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  as7341_agc_high_threshold_t   agc_h   :2;
+  as7341_agc_low_threshold_t    agc_l   :2;
+  uint8_t                       reserved:1;
+  uint8_t                       fd_pers :3;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t                       fd_pers :3;
+  uint8_t                       reserved:1;
+  as7341_agc_low_threshold_t    agc_l   :2;
+  as7341_agc_high_threshold_t   agc_h   :2;
+#endif /* DRV_BYTE_ORDER */
+} as7341_cfg10_reg_t;
+
 
 // @formatter:on
 #endif /* COMPONENTS_DRIVERS_INC_AS7341_REG_H_ */
