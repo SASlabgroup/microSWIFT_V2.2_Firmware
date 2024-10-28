@@ -679,6 +679,93 @@ typedef struct
 #endif /* DRV_BYTE_ORDER */
 } as7341_cfg10_reg_t;
 
+/**************************************************************************************************/
+/*************************************  CFG12 Register ********************************************/
+/**************************************************************************************************/
+#define CFG12_REG_ADDR (0XB5)
+#define CFG12_REG_RESET_VAL (0b00000000)
+
+typedef enum
+{
+  SPECTRAL_CH0  = 0,
+  SPECTRAL_CH1  = 1,
+  SPECTRAL_CH2  = 2,
+  SPECTRAL_CH3  = 3,
+  SPECTRAL_CH4  = 4
+} as7341_spectral_channel_t;
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  as7341_spectral_channel_t sp_th_ch    :2;
+  uint8_t                   reserved    :6;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t                   reserved    :6;
+  as7341_spectral_channel_t sp_th_ch    :2;
+#endif /* DRV_BYTE_ORDER */
+} as7341_cfg12_reg_t;
+
+
+/**************************************************************************************************/
+/************************************* ASTEP Register *********************************************/
+/**************************************************************************************************/
+#define ASTEP_LOWER_REG_ADDR (0XCA)
+#define ASTEP_UPPER_REG_ADDR (0XCB)
+#define ASTEP_LOWER_REG_RESET_VAL (0b11100111)
+#define ASTEP_UPPER_REG_RESET_VAL (0b00000011)
+
+typedef struct
+{
+  uint8_t   astep_lower;
+  uint8_t   astep_upper;
+} as7341_sp_th_struct;
+
+typedef union
+{
+  as7341_sp_th_struct   astep_struct;
+  uint16_t              astep;
+} as7341_astep_t;
+
+/**************************************************************************************************/
+/********************************** AGC_GAIN_MAX Register *****************************************/
+/**************************************************************************************************/
+#define AGC_GAIN_MAX_REG_ADDR (0XCF)
+#define AGC_GAIN_MAX_REG_RESET_VAL (0b01010101)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  as7341_again_t    agc_again_max   :4;
+  as7341_again_t    agc_fd_gain_max :4;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  as7341_again_t    agc_fd_gain_max :4;
+  as7341_again_t    agc_again_max   :4;
+#endif /* DRV_BYTE_ORDER */
+} as7341_agc_gain_max_reg_t;
+
+/**************************************************************************************************/
+/************************************ AZ_CONFIG Register ******************************************/
+/**************************************************************************************************/
+#define AZ_CONFIG_REG_ADDR (0XD6)
+#define AZ_CONFIG_REG_RESET_VAL (0b11111111)
+
+typedef enum
+{
+  AUTO_ZERO_NEVER       = 0,
+  AUTO_ZERO_ONLY_FIRST  = 255
+} as7341_az_special_val_t;
+
+typedef union
+{
+  as7341_az_special_val_t   special_val;
+  uint8_t                   nth_iteration;
+} as7341_az_iter_t;
+
+typedef struct
+{
+  as7341_az_iter_t   az_nth_iteration   :8;
+} as7341_agc_gain_max_reg_t;
+
 
 // @formatter:on
 #endif /* COMPONENTS_DRIVERS_INC_AS7341_REG_H_ */
