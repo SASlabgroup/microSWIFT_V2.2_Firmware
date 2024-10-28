@@ -8,6 +8,6 @@
 #ifndef COMPONENTS_INC_LIGHT_SENSOR_H_
 #define COMPONENTS_INC_LIGHT_SENSOR_H_
 
-
+#include "as7341_reg.h"
 
 #endif /* COMPONENTS_INC_LIGHT_SENSOR_H_ */
