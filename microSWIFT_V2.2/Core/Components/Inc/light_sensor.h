@@ -11,13 +11,37 @@
 #include "as7341_reg.h"
 
 // @formatter:off
+typedef enum
+{
+
+} light_return_code_t;
+
 typedef struct
 {
   I2C_HandleTypeDef         *i2c_handle;
+
+  TX_SEMAPHORE              *int_pin_sema;
+
   as7341_smux_assignment    smux_assignment_low_channels;
   as7341_smux_assignment    smux_assignment_high_channels;
+
   as7341_gpio_handle        gpio_handle;
+
+  uint16_t                  channel_data[10];
+
+  as7341_reg_bank_t         current_bank;
+
+  as7341_again_t            sensor_gain;
+
+  light_return_code_t       (*setup_sensor) (void);
+  light_return_code_t       (*read_all_channels) (void);
+  light_return_code_t       (*get_measurements) (uint16_t *buffer);
+  light_return_code_t       (*on) (void);
+  light_return_code_t       (*off) (void);
+
 } Light_Sensor;
+
+light_return_code_t light_sensor_init ()
 
 // @formatter:on
 #endif /* COMPONENTS_INC_LIGHT_SENSOR_H_ */

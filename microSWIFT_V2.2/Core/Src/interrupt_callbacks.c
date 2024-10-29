@@ -274,4 +274,9 @@ void HAL_GPIO_EXTI_Callback ( uint16_t GPIO_Pin )
     __asm__("BKPT");
 #endif
   }
+
+  if ( GPIO_Pin == AS7341_INT_Pin )
+  {
+    (void) tx_semaphore_put (&light_sensor_int_pin_sema);
+  }
 }
