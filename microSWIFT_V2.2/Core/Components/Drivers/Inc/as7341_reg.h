@@ -1043,15 +1043,13 @@ typedef struct
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 typedef struct
 {
-  GPIO_TypeDef  *gpio_pin_port;
-  uint16_t      gpio_pin;
-  GPIO_TypeDef  *int_pin_port;
-  uint16_t      int_pin;
+  gpio_pin_struct   gpio_pin;
+  gpio_pin_struct   int_pin;
 
-  GPIO_PinState (*get_int_pin_state) ( void );
-  GPIO_PinState (*get_gpio_pin_state) ( void );
-  void          (*set_int_pin_state) (GPIO_PinState state);
-  void          (*set_gpio_pin_state) (GPIO_PinState state);
+  GPIO_PinState     (*get_int_pin_state) ( void );
+  GPIO_PinState     (*get_gpio_pin_state) ( void );
+  void              (*set_int_pin_state) (GPIO_PinState state);
+  void              (*set_gpio_pin_state) (GPIO_PinState state);
 } as7341_gpio_int_struct;
 
 typedef as7341_gpio_int_struct* as7341_gpio_handle;
@@ -1064,7 +1062,7 @@ int32_t as7341_register_io_functions    ( dev_ctx_t *dev_handle, dev_init_ptr in
                                           dev_deinit_ptr deinit_fn, dev_write_ptr bus_write_fn,
                                           dev_read_ptr bus_read_fn, dev_ms_delay_ptr delay,
                                           as7341_gpio_handle gpio_handle );
-int32_t as7341_set_register_bank ( dev_ctx_t *dev_handle, as7341_reg_bank_t bank );
+int32_t as7341_set_register_bank        (dev_ctx_t *dev_handle, as7341_reg_bank_t bank);
 int32_t as7341_get_id                   (dev_ctx_t *dev_handle, uint8_t *id);
 int32_t as7341_set_integration_mode     (dev_ctx_t *dev_handle, as7341_int_mode_t mode);
 int32_t as7341_config_smux              (dev_ctx_t *dev_handle, as7341_smux_assignment *smux_assignment);
