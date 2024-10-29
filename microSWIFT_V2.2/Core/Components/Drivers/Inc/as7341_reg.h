@@ -34,6 +34,12 @@ typedef enum
   GAIN_512X     = 0B1010
 } as7341_again_t;
 
+typedef enum
+{
+  REG_BANK_80_PLUS  = 0,
+  REG_BANK_60_74    = 1
+} as7341_reg_bank_t;
+
 typedef struct
 {
   uint8_t   ch_lower_byte;
@@ -45,6 +51,8 @@ typedef union
   as7341_channel_data_struct    channel_struct;
   uint16_t                      raw_counts;
 } as7341_channel_data_t;
+
+
 
 /**************************************************************************************************/
 /**************************************** Return Codes ********************************************/
@@ -59,21 +67,6 @@ typedef union
 /* Registers are listed in order of their address, not the order in the datasheet or logical order
  * as AMS has scattered functionality across registers in a non-sensical manner.
  */
-
-/**************************************************************************************************/
-/**************************************  Register *********************************************/
-/**************************************************************************************************/
-#define _REG_ADDR (0X)
-#define _REG_RESET_VAL (0b00000000)
-
-typedef struct
-{
-#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-
-#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-
-#endif /* DRV_BYTE_ORDER */
-} as7341__reg_t;
 
 /**************************************************************************************************/
 /*********************************** Control Register 1 *******************************************/
@@ -650,18 +643,18 @@ typedef struct
 
 typedef enum
 {
-  PERCENT_50    = 0,
-  PERCENT_62_5  = 1,
-  PERCENT_75    = 2,
-  PERCENT_82_5  = 3
+  PERCENT_50_H    = 0,
+  PERCENT_62_5_H  = 1,
+  PERCENT_75_H    = 2,
+  PERCENT_82_5_H  = 3
 } as7341_agc_high_threshold_t;
 
 typedef enum
 {
-  PERCENT_12_5  = 0,
-  PERCENT_25    = 1,
-  PERCENT_37_5  = 2,
-  PERCENT_50    = 3
+  PERCENT_12_5_L  = 0,
+  PERCENT_25_L    = 1,
+  PERCENT_37_5_L  = 2,
+  PERCENT_50_L    = 3
 } as7341_agc_low_threshold_t;
 
 typedef struct
@@ -697,11 +690,11 @@ typedef enum
 typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-  as7341_spectral_channel_t sp_th_ch    :2;
-  uint8_t                   reserved    :6;
+  as7341_spectral_channel_t sp_th_ch    :3;
+  uint8_t                   reserved    :5;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t                   reserved    :6;
-  as7341_spectral_channel_t sp_th_ch    :2;
+  uint8_t                   reserved    :5;
+  as7341_spectral_channel_t sp_th_ch    :3;
 #endif /* DRV_BYTE_ORDER */
 } as7341_cfg12_reg_t;
 
@@ -718,11 +711,11 @@ typedef struct
 {
   uint8_t   astep_lower;
   uint8_t   astep_upper;
-} as7341_sp_th_struct;
+} as7341_astep_struct;
 
 typedef union
 {
-  as7341_sp_th_struct   astep_struct;
+  as7341_astep_struct   astep_struct;
   uint16_t              astep;
 } as7341_astep_t;
 
@@ -752,19 +745,447 @@ typedef struct
 typedef enum
 {
   AUTO_ZERO_NEVER       = 0,
-  AUTO_ZERO_ONLY_FIRST  = 255
+  AUTO_ZERO_ONLY_ONCE   = 255
 } as7341_az_special_val_t;
 
 typedef union
 {
-  as7341_az_special_val_t   special_val;
-  uint8_t                   nth_iteration;
+  as7341_az_special_val_t   special_val     :8;
+  uint8_t                   nth_iteration   :8;
 } as7341_az_iter_t;
 
 typedef struct
 {
-  as7341_az_iter_t   az_nth_iteration   :8;
-} as7341_agc_gain_max_reg_t;
+  as7341_az_iter_t   az_nth_iteration;
+} as7341_az_config_reg_t;
+
+/**************************************************************************************************/
+/************************************ FIFO_CFG0 Register ******************************************/
+/**************************************************************************************************/
+#define FIFO_CFG0_REG_ADDR (0XD7)
+#define FIFO_CFG0_REG_RESET_VAL (0b00100001)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t   reserved        : 7;
+  uint8_t   fifo_write_fd   : 1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t   fifo_write_fd   : 1;
+  uint8_t   reserved        : 7;
+#endif /* DRV_BYTE_ORDER */
+} as7341_fifo_cfg0_reg_t;
+
+
+/**************************************************************************************************/
+/************************************* FD_TIME Register *******************************************/
+/**************************************************************************************************/
+#define FD_TIME_1_REG_ADDR (0XD8)
+#define FD_TIME_2_REG_ADDR (0XDA)
+#define FD_TIME_1_REG_RESET_VAL (0b00000000)
+#define FD_TIME_2_REG_RESET_VAL (0b01001000)
+
+typedef struct
+{
+  uint8_t   fd_time_lsb     :8;
+} as7341_fd_time_1_reg_t;
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t           fd_time_msb     :3;
+  as7341_again_t    fd_gain         :5;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  as7341_again_t    fd_gain         :5;
+  uint8_t           fd_time_msb     :3;
+#endif /* DRV_BYTE_ORDER */
+} as7341_fd_time_2_reg_t;
+
+/**************************************************************************************************/
+/*********************************** FD_STATUS Register *******************************************/
+/**************************************************************************************************/
+#define FD_STATUS_REG_ADDR (0XDB)
+#define FD_STATUS_REG_RESET_VAL (0b00000000)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t   fd_100hz_flicker        :1;
+  uint8_t   fd_120hz_flicker        :1;
+  uint8_t   fd_100hz_flicker_valid  :1;
+  uint8_t   fd_120hz_flicker_valid  :1;
+  uint8_t   fd_saturation_detected  :1;
+  uint8_t   fd_measurement_valid    :1;
+  uint8_t   reserved                :2;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t   reserved                :2;
+  uint8_t   fd_measurement_valid    :1;
+  uint8_t   fd_saturation_detected  :1;
+  uint8_t   fd_120hz_flicker_valid  :1;
+  uint8_t   fd_100hz_flicker_valid  :1;
+  uint8_t   fd_120hz_flicker        :1;
+  uint8_t   fd_100hz_flicker        :1;
+#endif /* DRV_BYTE_ORDER */
+} as7341_fd_status_reg_t;
+
+/**************************************************************************************************/
+/************************************** INTENAB Register *********************************************/
+/**************************************************************************************************/
+#define INTENAB_REG_ADDR (0XF9)
+#define INTENAB_REG_RESET_VAL (0b00000000)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t   sien        :1;
+  uint8_t   reserved0   :1;
+  uint8_t   f_ien       :1;
+  uint8_t   sp_ien      :1;
+  uint8_t   reserved1   :3;
+  uint8_t   asien       :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t   asien       :1;
+  uint8_t   reserved1   :3;
+  uint8_t   sp_ien      :1;
+  uint8_t   f_ien       :1;
+  uint8_t   reserved0   :1;
+  uint8_t   sien        :1;
+#endif /* DRV_BYTE_ORDER */
+} as7341_intenab_reg_t;
+
+/**************************************************************************************************/
+/************************************ CONTROL Register ********************************************/
+/**************************************************************************************************/
+#define CONTROL_REG_ADDR (0XFA)
+#define CONTROL_REG_RESET_VAL (0b00000000)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t   clear_sai_act   :1;
+  uint8_t   fifo_clr        :1;
+  uint8_t   sp_man_az       :1;
+  uint8_t   reserved        :5;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t   reserved        :5;
+  uint8_t   sp_man_az       :1;
+  uint8_t   fifo_clr        :1;
+  uint8_t   clear_sai_act   :1;
+#endif /* DRV_BYTE_ORDER */
+} as7341_control_reg_t;
+
+/**************************************************************************************************/
+/************************************ FIFO_MAP Register *******************************************/
+/**************************************************************************************************/
+#define FIFO_MAP_REG_ADDR (0XFC)
+#define FIFO_MAP_REG_RESET_VAL (0b00000000)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t   fifo_write_status   :1;
+  uint8_t   fifo_write_ch0_data :1;
+  uint8_t   fifo_write_ch1_data :1;
+  uint8_t   fifo_write_ch2_data :1;
+  uint8_t   fifo_write_ch3_data :1;
+  uint8_t   fifo_write_ch4_data :1;
+  uint8_t   fifo_write_ch5_data :1;
+  uint8_t   reserved            :1;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t   reserved            :1;
+  uint8_t   fifo_write_ch5_data :1;
+  uint8_t   fifo_write_ch4_data :1;
+  uint8_t   fifo_write_ch3_data :1;
+  uint8_t   fifo_write_ch2_data :1;
+  uint8_t   fifo_write_ch1_data :1;
+  uint8_t   fifo_write_ch0_data :1;
+  uint8_t   fifo_write_status   :1;
+#endif /* DRV_BYTE_ORDER */
+} as7341_fifo_map_reg_t;
+
+/**************************************************************************************************/
+/************************************** FIFO_LVL Register *********************************************/
+/**************************************************************************************************/
+#define FIFO_LVL_REG_ADDR (0XFD)
+#define FIFO_LVL_REG_RESET_VAL (0b00000000)
+
+typedef struct
+{
+  uint8_t   fifo_lvl    :8;
+} as7341_fifo_lvl_reg_t;
+
+/**************************************************************************************************/
+/************************************ FDATA Register **********************************************/
+/**************************************************************************************************/
+#define FDATA_LOWER_REG_ADDR (0xFE)
+#define FDATA_UPPER_REG_ADDR (0XFF)
+#define FDATA_LOWER_REG_RESET_VAL (0b00000000)
+#define FDATA_UPPER_REG_RESET_VAL (0b00000000)
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*##################################### SMUX Definitions #########################################*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#define SMUX_MEMORY_ADDR_LOW (0x00)
+#define SMUX_MEMORY_ADDR_HIGH (0x13)
+
+typedef enum
+{
+  SMUX_ASSIGNMENT_DISABLE   = 0,
+  SMUX_ASSIGN_PIXEL_TO_ADC0 = 1,
+  SMUX_ASSIGN_PIXEL_TO_ADC1 = 1,
+  SMUX_ASSIGN_PIXEL_TO_ADC2 = 1,
+  SMUX_ASSIGN_PIXEL_TO_ADC3 = 1,
+  SMUX_ASSIGN_PIXEL_TO_ADC4 = 1,
+  SMUX_ASSIGN_PIXEL_TO_ADC5 = 1,
+} as7341_smux_assignment_t;
+
+typedef struct
+{
+  struct smux_addr_0x00
+  {
+    uint8_t                     unused0:4;
+    as7341_smux_assignment_t    f3_left:3;
+    uint8_t                     unused1:1;
+  } addr_0x00;
+
+  struct smux_addr_0x01
+  {
+    as7341_smux_assignment_t    f1_left:3;
+    uint8_t                     unused:5;
+  } addr_0x01;
+
+  struct smux_addr_0x02
+  {
+    uint8_t                       unused:8;
+  } addr_0x02;
+
+  struct smux_addr_0x03
+  {
+    uint8_t                     unused0:4;
+    as7341_smux_assignment_t    f8_left:3;
+    uint8_t                     unused1:1;
+  } addr_0x03;
+
+  struct smux_addr_0x04
+  {
+    as7341_smux_assignment_t    f6_left:3;
+    uint8_t                     unused:5;
+  } addr_0x04;
+
+  struct smux_addr_0x05
+  {
+    as7341_smux_assignment_t    f2_left:3;
+    uint8_t                     unuse0:1;
+    as7341_smux_assignment_t    f4_left:3;
+    uint8_t                     unuse1:1;
+  } addr_0x05;
+
+  struct smux_addr_0x06
+  {
+    uint8_t                     unused0:4;
+    as7341_smux_assignment_t    f5_left:3;
+    uint8_t                     unused1:1;
+  } addr_0x06;
+
+  struct smux_addr_0x07
+  {
+    as7341_smux_assignment_t    f7_left:3;
+    uint8_t                     unused:5;
+  } addr_0x07;
+
+  struct smux_addr_0x08
+  {
+    uint8_t                     unused0:4;
+    as7341_smux_assignment_t    clear_left:3;
+    uint8_t                     unused1:1;
+  } addr_0x08;
+
+  struct smux_addr_0x09
+  {
+    uint8_t                     unused0:4;
+    as7341_smux_assignment_t    f5_right:3;
+    uint8_t                     unused1:1;
+  } addr_0x09;
+
+  struct smux_addr_0x0A
+  {
+    as7341_smux_assignment_t    f7_right:3;
+    uint8_t                     unused:5;
+  } addr_0x0a;
+
+  struct smux_addr_0x0B
+  {
+    uint8_t                       unused:8;
+  } addr_0x0b;
+
+  struct smux_addr_0x0C
+  {
+    uint8_t                     unused0:4;
+    as7341_smux_assignment_t    f2_right:3;
+    uint8_t                     unused1:1;
+  } addr_0x0c;
+
+  struct smux_addr_0x0D
+  {
+    as7341_smux_assignment_t    f4_right:3;
+    uint8_t                     unused:5;
+  } addr_0x0d;
+
+  struct smux_addr_0x0E
+  {
+    as7341_smux_assignment_t    f8_left:3;
+    uint8_t                     unuse0:1;
+    as7341_smux_assignment_t    f6_left:3;
+    uint8_t                     unuse1:1;
+  } addr_0x0e;
+
+  struct smux_addr_0x0F
+  {
+    uint8_t                     unused0:4;
+    as7341_smux_assignment_t    f3_right:3;
+    uint8_t                     unused1:1;
+  } addr_0x0f;
+
+  struct smux_addr_0x10
+  {
+    as7341_smux_assignment_t    f1_right:3;
+    uint8_t                     unuse0:1;
+    as7341_smux_assignment_t    ext_gpio:3;
+    uint8_t                     unuse1:1;
+  } addr_0x10;
+
+  struct smux_addr_0x11
+  {
+    as7341_smux_assignment_t    ext_int:3;
+    uint8_t                     unuse0:1;
+    as7341_smux_assignment_t    clear_right:3;
+    uint8_t                     unuse1:1;
+  } addr_0x11;
+
+  struct smux_addr_0x12
+  {
+    uint8_t                     unused0:4;
+    as7341_smux_assignment_t    dark:3;
+    uint8_t                     unused1:1;
+  } addr_0x12;
+
+  struct smux_addr_0x13
+  {
+    as7341_smux_assignment_t    nir:3;
+    uint8_t                     unuse0:1;
+    as7341_smux_assignment_t    flicker:3;
+    uint8_t                     unuse1:1;
+  } addr_0x13;
+
+} as7341_smux_memory;
+
+//typedef struct
+//{
+//  as7341_smux_assignment_t  pixel_assignment    :3;
+//  uint8_t                   unsed               :1;
+//} as7341_smux_nibble_t;
+//
+//typedef struct
+//{
+//#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+//  as7341_smux_assignment_t  pixel_assignment    :3;
+//  uint8_t                   reserved            :5;
+//#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+//  uint8_t                   reserved            :5;
+//  as7341_smux_assignment_t  pixel_assignment    :3;
+//#endif /* DRV_BYTE_ORDER */
+//} as7341_smux_low_t;
+//
+//typedef struct
+//{
+//#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+//  uint8_t                   reserved0           :4;
+//  as7341_smux_assignment_t  pixel_assignment    :3;
+//  uint8_t                   reserved1           :1;
+//#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+//  uint8_t                   reserved1           :1;
+//  as7341_smux_assignment_t  pixel_assignment    :3;
+//  uint8_t                   reserved0           :4;
+//#endif /* DRV_BYTE_ORDER */
+//} as7341_smux_high_t;
+//
+//typedef struct
+//{
+//#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+//  as7341_smux_assignment_t  pixel_assignment_low    :3;
+//  uint8_t                   reserved0               :1;
+//  as7341_smux_assignment_t  pixel_assignment_high   :3;
+//  uint8_t                   reserved1               :1;
+//#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+//  uint8_t                   reserved1               :1;
+//  as7341_smux_assignment_t  pixel_assignment_high   :3;
+//  uint8_t                   reserved0               :1;
+//  as7341_smux_assignment_t  pixel_assignment_low    :3;
+//#endif /* DRV_BYTE_ORDER */
+//} as7341_smux_both_t;
+//
+//typedef struct
+//{
+//#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+//  as7341_smux_high_t    f3_left;        // 0x00
+//  as7341_smux_low_t     f1_left;        // 0x01
+//  uint8_t               unused0;        // 0x02
+//  as7341_smux_high_t    f8_left;        // 0x03
+//  as7341_smux_low_t     f6_left;        // 0x04
+//  as7341_smux_both_t    f2_f4_left;     // 0x05
+//  as7341_smux_high_t    f5_left;        // 0x06
+//  as7341_smux_low_t     f7_left;        // 0x07
+//  as7341_smux_high_t    clear_left;     // 0x08
+//  as7341_smux_high_t    f5_right;       // 0x09
+//  as7341_smux_low_t     f7_right;       // 0x0A
+//  uint8_t               unused1;        // 0x0B
+//  as7341_smux_high_t    f2_right;       // 0x0C
+//  as7341_smux_low_t     f4_right;       // 0x0D
+//  as7341_smux_both_t    f8_f6_right;    // 0x0E
+//  as7341_smux_high_t    f3_right;       // 0x0F
+//  as7341_smux_both_t    f1_right_gpio;  // 0x10
+//  as7341_smux_both_t    int_clear_right;// 0x11
+//  as7341_smux_high_t    dark;           // 0x12
+//  as7341_smux_both_t    nir_flicker;    // 0x13
+//#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+//  as7341_smux_both_t    nir_flicker;    // 0x13
+//  as7341_smux_high_t    dark;           // 0x12
+//  as7341_smux_both_t    int_clear_right;// 0x11
+//  as7341_smux_both_t    f1_right_gpio;  // 0x10
+//  as7341_smux_high_t    f3_right;       // 0x0F
+//  as7341_smux_both_t    f8_f6_right;    // 0x0E
+//  as7341_smux_low_t     f4_right;       // 0x0D
+//  as7341_smux_high_t    f2_right;       // 0x0C
+//  uint8_t               unused1;        // 0x0B
+//  as7341_smux_low_t     f7_right;       // 0x0A
+//  as7341_smux_high_t    f5_right;       // 0x09
+//  as7341_smux_high_t    clear_left;     // 0x08
+//  as7341_smux_low_t     f7_left;        // 0x07
+//  as7341_smux_high_t    f5_left;        // 0x06
+//  as7341_smux_both_t    f2_f4_left;     // 0x05
+//  as7341_smux_low_t     f6_left;        // 0x04
+//  as7341_smux_high_t    f8_left;        // 0x03
+//  uint8_t               unused0;        // 0x02
+//  as7341_smux_low_t     f1_left;        // 0x01
+//  as7341_smux_high_t    f3_left;        // 0x00
+//#endif /* DRV_BYTE_ORDER */
+//} as7341_smux_memory;
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*################################## Function Declarations #######################################*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+int32_t as7341_register_io_functions    ( dev_ctx_t *dev_handle, dev_init_ptr init_fn,
+                                          dev_deinit_ptr deinit_fn, dev_write_ptr bus_write_fn,
+                                          dev_read_ptr bus_read_fn, dev_ms_delay_ptr delay,
+                                          void *optional_handle );
+int32_t as7341_set_integration_mode     (dev_ctx_t *dev_handle, as7341_int_mode_t mode); // TODO: do we need to set bit INT_SEL in CONFIG reg?
+int32_t as7341_config_smux              (dev_ctx_t *dev_handle, as7341_smux_memory *smux_memory_setup);
+int32_t as7341_power                    (dev_ctx_t *dev_handle, bool on);
+int32_t as7341_smux_config              (dev_ctx_t *dev_handle, bool enable);
+int32_t as7341_wait_config              (dev_ctx_t *dev_handle, bool enable);
+int32_t as7341_spectral_meas_config     (dev_ctx_t *dev_handle, bool enable);
+
 
 
 // @formatter:on
