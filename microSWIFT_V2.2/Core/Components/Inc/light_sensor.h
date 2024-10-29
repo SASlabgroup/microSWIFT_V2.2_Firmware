@@ -9,6 +9,7 @@
 #define COMPONENTS_INC_LIGHT_SENSOR_H_
 
 #include "as7341_reg.h"
+#include "tx_api.h"
 
 // @formatter:off
 typedef enum

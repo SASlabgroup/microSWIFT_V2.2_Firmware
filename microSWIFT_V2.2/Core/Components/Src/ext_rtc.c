@@ -640,9 +640,16 @@ static int32_t _ext_rtc_write_reg_spi_blocking ( void *unused_handle, uint16_t u
 static void _ext_rtc_ms_delay ( uint32_t delay )
 {
   UINT delay_ticks = (delay == 0) ?
-      0 : delay / (1000 / TX_TIMER_TICKS_PER_SECOND);
+      0 : delay / TX_TIMER_TICKS_PER_SECOND;
 
-  tx_thread_sleep (delay_ticks);
+  if ( delay == 0 )
+  {
+    tx_thread_relinquish ();
+  }
+  else
+  {
+    tx_thread_sleep (delay_ticks);
+  }
 }
 
 static uint8_t __weekday_from_date ( int y, int m, int d )

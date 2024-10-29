@@ -31,7 +31,7 @@ static int32_t          _light_sensor_i2c_deinit ( void );
 static int32_t          _light_sensor_i2c_read_blocking ( void *unused_handle, uint16_t unused_bus_address,
                                                           uint16_t reg_address, uint8_t *read_data,
                                                           uint16_t data_length );
-static int32_t          _light_sensor_i2c_wriet_blocking ( void *unused_handle, uint16_t unused_bus_address,
+static int32_t          _light_sensor_i2c_write_blocking ( void *unused_handle, uint16_t unused_bus_address,
                                                            uint16_t reg_address, uint8_t *write_data,
                                                            uint16_t data_length );
 static void             _light_sensor_ms_delay ( uint32_t delay );
@@ -83,6 +83,15 @@ light_return_code_t light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleType
   light_self->get_measurements = _light_sensor_get_measurements;
   light_self->on = _light_sensor_on;
   light_self->off = _light_sensor_off;
+
+  // Initialize the I/O interface
+  if ( !as7341_register_io_functions (&light_self->dev_ctx, _light_sensor_i2c_init,
+                                      _light_sensor_i2c_deinit, _light_sensor_i2c_write_blocking,
+                                      _light_sensor_i2c_read_blocking, _light_sensor_ms_delay,
+                                      light_self->gpio_handle) )
+  {
+    return LIGHT_I2C_ERROR;
+  }
 
   // Get the register bank to a known state
   ret |= as7341_set_register_bank (&light_self->dev_ctx, REG_BANK_80_PLUS);
@@ -152,7 +161,22 @@ static int32_t _light_sensor_i2c_deinit ( void );
 static int32_t _light_sensor_i2c_read_blocking ( void *unused_handle, uint16_t unused_bus_address,
                                                  uint16_t reg_address, uint8_t *read_data,
                                                  uint16_t data_length );
-static int32_t _light_sensor_i2c_wriet_blocking ( void *unused_handle, uint16_t unused_bus_address,
+static int32_t _light_sensor_i2c_write_blocking ( void *unused_handle, uint16_t unused_bus_address,
                                                   uint16_t reg_address, uint8_t *write_data,
                                                   uint16_t data_length );
-static void _light_sensor_ms_delay ( uint32_t delay );
+
+static void _light_sensor_ms_delay ( uint32_t delay )
+
+{
+  UINT delay_ticks = (delay == 0) ?
+      0 : delay / TX_TIMER_TICKS_PER_SECOND;
+
+  if ( delay == 0 )
+  {
+    tx_thread_relinquish ();
+  }
+  else
+  {
+    tx_thread_sleep (delay_ticks);
+  }
+}
