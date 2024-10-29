@@ -12,6 +12,7 @@
 #include "stdbool.h"
 #include "reg_driver_def.h"
 #include "math.h"
+#include "gpio.h"
 
 // @formatter:off
 
@@ -584,13 +585,13 @@ typedef enum
 typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-  uint8_t   reserved0           :3;
-  uint8_t   as7341_smux_cmd_t   :2;
-  uint8_t   reserved1           :3;
+  uint8_t               reserved0   :3;
+  as7341_smux_cmd_t     smux_cmd    :2;
+  uint8_t               reserved1   :3;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t   reserved1           :3;
-  uint8_t   as7341_smux_cmd_t   :2;
-  uint8_t   reserved0           :3;
+  uint8_t               reserved0   :3;
+  as7341_smux_cmd_t     smux_cmd    :2;
+  uint8_t               reserved0   :3;
 #endif /* DRV_BYTE_ORDER */
 } as7341_cfg6_reg_t;
 
@@ -1034,107 +1035,26 @@ typedef enum
 
 typedef struct
 {
-//  as7341_smux_channels_t    adc_0_assignment;
-//  as7341_smux_channels_t    adc_1_assignment;
-//  as7341_smux_channels_t    adc_2_assignment;
-//  as7341_smux_channels_t    adc_3_assignment;
-//  as7341_smux_channels_t    adc_4_assignment;
-//  as7341_smux_channels_t    adc_5_assignment;
   as7341_smux_channels_t adc_assignments[AS7341_NUM_ADCS];
 } as7341_smux_assignment;
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*################################## GPIO/ INT Definitions #######################################*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+typedef struct
+{
+  GPIO_TypeDef  *gpio_pin_port;
+  uint16_t      gpio_pin;
+  GPIO_TypeDef  *int_pin_port;
+  uint16_t      int_pin;
 
-//typedef struct
-//{
-//  as7341_smux_assignment_t  pixel_assignment    :3;
-//  uint8_t                   unsed               :1;
-//} as7341_smux_nibble_t;
-//
-//typedef struct
-//{
-//#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-//  as7341_smux_assignment_t  pixel_assignment    :3;
-//  uint8_t                   reserved            :5;
-//#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-//  uint8_t                   reserved            :5;
-//  as7341_smux_assignment_t  pixel_assignment    :3;
-//#endif /* DRV_BYTE_ORDER */
-//} as7341_smux_low_t;
-//
-//typedef struct
-//{
-//#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-//  uint8_t                   reserved0           :4;
-//  as7341_smux_assignment_t  pixel_assignment    :3;
-//  uint8_t                   reserved1           :1;
-//#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-//  uint8_t                   reserved1           :1;
-//  as7341_smux_assignment_t  pixel_assignment    :3;
-//  uint8_t                   reserved0           :4;
-//#endif /* DRV_BYTE_ORDER */
-//} as7341_smux_high_t;
-//
-//typedef struct
-//{
-//#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-//  as7341_smux_assignment_t  pixel_assignment_low    :3;
-//  uint8_t                   reserved0               :1;
-//  as7341_smux_assignment_t  pixel_assignment_high   :3;
-//  uint8_t                   reserved1               :1;
-//#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-//  uint8_t                   reserved1               :1;
-//  as7341_smux_assignment_t  pixel_assignment_high   :3;
-//  uint8_t                   reserved0               :1;
-//  as7341_smux_assignment_t  pixel_assignment_low    :3;
-//#endif /* DRV_BYTE_ORDER */
-//} as7341_smux_both_t;
-//
-//typedef struct
-//{
-//#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-//  as7341_smux_high_t    f3_left;        // 0x00
-//  as7341_smux_low_t     f1_left;        // 0x01
-//  uint8_t               unused0;        // 0x02
-//  as7341_smux_high_t    f8_left;        // 0x03
-//  as7341_smux_low_t     f6_left;        // 0x04
-//  as7341_smux_both_t    f2_f4_left;     // 0x05
-//  as7341_smux_high_t    f5_left;        // 0x06
-//  as7341_smux_low_t     f7_left;        // 0x07
-//  as7341_smux_high_t    clear_left;     // 0x08
-//  as7341_smux_high_t    f5_right;       // 0x09
-//  as7341_smux_low_t     f7_right;       // 0x0A
-//  uint8_t               unused1;        // 0x0B
-//  as7341_smux_high_t    f2_right;       // 0x0C
-//  as7341_smux_low_t     f4_right;       // 0x0D
-//  as7341_smux_both_t    f8_f6_right;    // 0x0E
-//  as7341_smux_high_t    f3_right;       // 0x0F
-//  as7341_smux_both_t    f1_right_gpio;  // 0x10
-//  as7341_smux_both_t    int_clear_right;// 0x11
-//  as7341_smux_high_t    dark;           // 0x12
-//  as7341_smux_both_t    nir_flicker;    // 0x13
-//#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-//  as7341_smux_both_t    nir_flicker;    // 0x13
-//  as7341_smux_high_t    dark;           // 0x12
-//  as7341_smux_both_t    int_clear_right;// 0x11
-//  as7341_smux_both_t    f1_right_gpio;  // 0x10
-//  as7341_smux_high_t    f3_right;       // 0x0F
-//  as7341_smux_both_t    f8_f6_right;    // 0x0E
-//  as7341_smux_low_t     f4_right;       // 0x0D
-//  as7341_smux_high_t    f2_right;       // 0x0C
-//  uint8_t               unused1;        // 0x0B
-//  as7341_smux_low_t     f7_right;       // 0x0A
-//  as7341_smux_high_t    f5_right;       // 0x09
-//  as7341_smux_high_t    clear_left;     // 0x08
-//  as7341_smux_low_t     f7_left;        // 0x07
-//  as7341_smux_high_t    f5_left;        // 0x06
-//  as7341_smux_both_t    f2_f4_left;     // 0x05
-//  as7341_smux_low_t     f6_left;        // 0x04
-//  as7341_smux_high_t    f8_left;        // 0x03
-//  uint8_t               unused0;        // 0x02
-//  as7341_smux_low_t     f1_left;        // 0x01
-//  as7341_smux_high_t    f3_left;        // 0x00
-//#endif /* DRV_BYTE_ORDER */
-//} as7341_smux_memory;
+  GPIO_PinState (*get_int_pin_state) ( void );
+  GPIO_PinState (*get_gpio_pin_state) ( void );
+  void          (*set_int_pin_state) (GPIO_PinState state);
+  void          (*set_gpio_pin_state) (GPIO_PinState state);
+} as7341_gpio_int_struct;
+
+typedef as7341_gpio_int_struct* as7341_gpio_handle;
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*################################## Function Declarations #######################################*/
@@ -1143,13 +1063,14 @@ typedef struct
 int32_t as7341_register_io_functions    ( dev_ctx_t *dev_handle, dev_init_ptr init_fn,
                                           dev_deinit_ptr deinit_fn, dev_write_ptr bus_write_fn,
                                           dev_read_ptr bus_read_fn, dev_ms_delay_ptr delay,
-                                          void *optional_handle );
+                                          as7341_gpio_handle gpio_handle );
 int32_t as7341_set_register_bank ( dev_ctx_t *dev_handle, as7341_reg_bank_t bank );
 int32_t as7341_get_id                   (dev_ctx_t *dev_handle, uint8_t *id);
 int32_t as7341_set_integration_mode     (dev_ctx_t *dev_handle, as7341_int_mode_t mode);
 int32_t as7341_config_smux              (dev_ctx_t *dev_handle, as7341_smux_assignment *smux_assignment);
 int32_t as7341_power                    (dev_ctx_t *dev_handle, bool on);
 int32_t as7341_smux_enable              (dev_ctx_t *dev_handle);
+int32_t as7341_send_smux_command        (dev_ctx_t *dev_handle, as7341_smux_cmd_t cmd);
 int32_t as7341_config_smux_interrupt    (dev_ctx_t *dev_handle, bool enable);
 int32_t as7341_config_sys_interrupts    (dev_ctx_t *dev_handle, bool enable);
 int32_t as7341_wait_config              (dev_ctx_t *dev_handle, bool enable);

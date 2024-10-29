@@ -152,13 +152,13 @@ typedef struct
 int32_t as7341_register_io_functions ( dev_ctx_t *dev_handle, dev_init_ptr init_fn,
                                        dev_deinit_ptr deinit_fn, dev_write_ptr bus_write_fn,
                                        dev_read_ptr bus_read_fn, dev_ms_delay_ptr delay,
-                                       void *optional_handle )
+                                       as7341_gpio_handle gpio_handle )
 {
   dev_handle->init = init_fn;
   dev_handle->deinit = deinit_fn;
   dev_handle->bus_read = bus_read_fn;
   dev_handle->bus_write = bus_write_fn;
-  dev_handle->handle = optional_handle;
+  dev_handle->handle = (void*) gpio_handle;
   dev_handle->delay = delay;
 
   return dev_handle->init ();
@@ -284,8 +284,21 @@ int32_t as7341_config_smux ( dev_ctx_t *dev_handle, as7341_smux_assignment *smux
   // Enable system interrupts so the SMUX int will actually fire
   ret |= as7341_config_sys_interrupts (dev_handle, true);
 
+  // Send SMUX command to write to SMUX memory
+  ret |= as7341_send_smux_command (dev_handle, SMUX_WRITE_CONFIG_FROM_RAM);
+
+  // Write to SMUX RAM
   ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, SMUX_MEMORY_ADDR_LOW,
                                 (uint8_t*) &smux_memory, SMUX_MEMORY_SIZE);
+
+  // Enable the SMUX
+  ret |= as7341_smux_enable (dev_handle);
+
+  // Wait until the interrupt fires to let us know the SMUX has completed (INT pin is active low)
+  while ( ((as7341_gpio_handle) dev_handle->handle)->get_int_pin_state != GPIO_PIN_RESET )
+  {
+    dev_handle->delay (1);
+  }
 
   return ret;
 }
@@ -314,6 +327,20 @@ int32_t as7341_smux_enable ( dev_ctx_t *dev_handle )
   enable_reg.smuxen = PROPERTY_ENABLE;
 
   ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, ENABLE_REG_ADDR, (uint8_t*) &enable_reg, 1);
+
+  return ret;
+}
+
+int32_t as7341_send_smux_command ( dev_ctx_t *dev_handle, as7341_smux_cmd_t cmd )
+{
+  int32_t ret = AS7341_OK;
+  as7341_cfg6_reg_t cfg6;
+
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, CFG6_REG_ADDR, (uint8_t*) &cfg6, 1);
+
+  cfg6.smux_cmd = cmd;
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, CFG6_REG_ADDR, (uint8_t*) &cfg6, 1);
 
   return ret;
 }
