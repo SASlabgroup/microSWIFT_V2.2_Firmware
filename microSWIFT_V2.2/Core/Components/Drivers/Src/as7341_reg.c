@@ -176,6 +176,13 @@ int32_t as7341_get_id ( dev_ctx_t *dev_handle, uint8_t *id )
 int32_t as7341_set_integration_mode ( dev_ctx_t *dev_handle, as7341_int_mode_t mode )
 {
   int32_t ret = AS7341_OK;
+  as7341_config_reg_t config_reg;
+
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, CONFIG_REG_ADDR, (uint8_t*) &config_reg, 1);
+
+  config_reg.int_mode = mode;
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, CONFIG_REG_ADDR, (uint8_t*) &config_reg, 1);
 
   return ret;
 }
@@ -190,13 +197,27 @@ int32_t as7341_config_smux ( dev_ctx_t *dev_handle, as7341_smux_assignment *smux
 int32_t as7341_power ( dev_ctx_t *dev_handle, bool on )
 {
   int32_t ret = AS7341_OK;
+  as7341_enable_reg_t enable_reg;
+
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, ENABLE_REG_ADDR, (uint8_t*) &enable_reg, 1);
+
+  enable_reg.pon = on;
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, ENABLE_REG_ADDR, (uint8_t*) &enable_reg, 1);
 
   return ret;
 }
 
-int32_t as7341_smux_config ( dev_ctx_t *dev_handle, bool enable )
+int32_t as7341_smux_enable ( dev_ctx_t *dev_handle )
 {
   int32_t ret = AS7341_OK;
+  as7341_enable_reg_t enable_reg;
+
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, ENABLE_REG_ADDR, (uint8_t*) &enable_reg, 1);
+
+  enable_reg.smuxen = PROPERTY_ENABLE;
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, ENABLE_REG_ADDR, (uint8_t*) &enable_reg, 1);
 
   return ret;
 }
@@ -204,6 +225,13 @@ int32_t as7341_smux_config ( dev_ctx_t *dev_handle, bool enable )
 int32_t as7341_wait_config ( dev_ctx_t *dev_handle, bool enable )
 {
   int32_t ret = AS7341_OK;
+  as7341_enable_reg_t enable_reg;
+
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, ENABLE_REG_ADDR, (uint8_t*) &enable_reg, 1);
+
+  enable_reg.wen = enable;
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, ENABLE_REG_ADDR, (uint8_t*) &enable_reg, 1);
 
   return ret;
 }

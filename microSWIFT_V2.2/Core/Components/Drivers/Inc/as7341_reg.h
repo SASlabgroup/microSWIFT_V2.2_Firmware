@@ -1146,7 +1146,7 @@ int32_t as7341_get_id                   (dev_ctx_t *dev_handle, uint8_t *id);
 int32_t as7341_set_integration_mode     (dev_ctx_t *dev_handle, as7341_int_mode_t mode);
 int32_t as7341_config_smux              (dev_ctx_t *dev_handle, as7341_smux_assignment *smux_assignment);
 int32_t as7341_power                    (dev_ctx_t *dev_handle, bool on);
-int32_t as7341_smux_config              (dev_ctx_t *dev_handle, bool enable);
+int32_t as7341_smux_enable              (dev_ctx_t *dev_handle);
 int32_t as7341_wait_config              (dev_ctx_t *dev_handle, bool enable);
 int32_t as7341_spectral_meas_config     (dev_ctx_t *dev_handle, bool enable);
 int32_t as7341_set_wait_time            (dev_ctx_t *dev_handle, float wait_time_ms);
