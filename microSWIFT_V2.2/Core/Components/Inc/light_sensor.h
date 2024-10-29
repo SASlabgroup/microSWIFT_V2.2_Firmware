@@ -13,7 +13,10 @@
 // @formatter:off
 typedef enum
 {
-
+  LIGHT_SUCCESS             = 0,
+  LIGHT_I2C_ERROR           = -1,
+  LIGHT_PARAMETERS_INVALID  = -2,
+  LIGHT_TIMEOUT             = -3
 } light_return_code_t;
 
 typedef struct
@@ -21,6 +24,8 @@ typedef struct
   I2C_HandleTypeDef         *i2c_handle;
 
   TX_SEMAPHORE              *int_pin_sema;
+
+  dev_ctx_t                 dev_ctx;
 
   as7341_smux_assignment    smux_assignment_low_channels;
   as7341_smux_assignment    smux_assignment_high_channels;

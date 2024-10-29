@@ -39,7 +39,8 @@ typedef enum
 typedef enum
 {
   REG_BANK_80_PLUS  = 0,
-  REG_BANK_60_74    = 1
+  REG_BANK_60_74    = 1,
+  REG_BANK_UNKNOWN  = 2
 } as7341_reg_bank_t;
 
 typedef struct
@@ -1043,9 +1044,10 @@ typedef struct
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 typedef struct
 {
-  gpio_pin_struct   gpio_pin;
   gpio_pin_struct   int_pin;
+  gpio_pin_struct   gpio_pin;
 
+  bool              (*wait_on_int) (uint32_t timeout_ms);
   GPIO_PinState     (*get_int_pin_state) ( void );
   GPIO_PinState     (*get_gpio_pin_state) ( void );
   void              (*set_int_pin_state) (GPIO_PinState state);

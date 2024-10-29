@@ -167,8 +167,11 @@ int32_t as7341_register_io_functions ( dev_ctx_t *dev_handle, dev_init_ptr init_
 int32_t as7341_get_id ( dev_ctx_t *dev_handle, uint8_t *id )
 {
   int32_t ret = AS7341_OK;
+  as7341_id_reg_t id_reg = 0;
 
-  ret = dev_handle->bus_read (NULL, AS7341_I2C_ADDR, ID_REG_ADDR, id, 1);
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, ID_REG_ADDR, &id_reg, 1);
+
+  *id = id_reg.id;
 
   return ret;
 }
@@ -295,9 +298,9 @@ int32_t as7341_config_smux ( dev_ctx_t *dev_handle, as7341_smux_assignment *smux
   ret |= as7341_smux_enable (dev_handle);
 
   // Wait until the interrupt fires to let us know the SMUX has completed (INT pin is active low)
-  while ( ((as7341_gpio_handle) dev_handle->handle)->get_int_pin_state != GPIO_PIN_RESET )
+  if ( !((as7341_gpio_handle) dev_handle->handle)->wait_on_int () )
   {
-    dev_handle->delay (1);
+    ret = AS7341_ERROR;
   }
 
   return ret;
