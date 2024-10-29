@@ -103,9 +103,9 @@ typedef struct
 
   struct smux_addr_0x0E
   {
-    as7341_smux_assignment_t f8_left :3;
+    as7341_smux_assignment_t f8_right :3;
     uint8_t unuse0 :1;
-    as7341_smux_assignment_t f6_left :3;
+    as7341_smux_assignment_t f6_right :3;
     uint8_t unuse1 :1;
   } addr_0x0e;
 
@@ -190,6 +190,102 @@ int32_t as7341_set_integration_mode ( dev_ctx_t *dev_handle, as7341_int_mode_t m
 int32_t as7341_config_smux ( dev_ctx_t *dev_handle, as7341_smux_assignment *smux_assignment )
 {
   int32_t ret = AS7341_OK;
+  as7341_smux_memory smux_memory =
+    { SMUX_ASSIGNMENT_DISABLE };
+  as7341_smux_channels_t adc_assignment;
+  as7341_smux_assignment_t which_adc;
+
+  for ( int i = 0; i < AS7341_NUM_ADCS; i++ )
+  {
+    adc_assignment = i + 1;
+    adc_assignment = smux_assignment->adc_assignments[i];
+
+    switch ( adc_assignment )
+    {
+      case ADC_DISABLE:
+        break;
+
+      case F1:
+        smux_memory.addr_0x01.f1_left = adc_assignment;
+        smux_memory.addr_0x10.f1_right = adc_assignment;
+        break;
+
+      case F2:
+        smux_memory.addr_0x05.f2_left = adc_assignment;
+        smux_memory.addr_0x0c.f2_right = adc_assignment;
+        break;
+
+      case F3:
+        smux_memory.addr_0x00.f3_left = adc_assignment;
+        smux_memory.addr_0x0f.f3_right = adc_assignment;
+        break;
+
+      case F4:
+        smux_memory.addr_0x05.f4_left = adc_assignment;
+        smux_memory.addr_0x0d.f4_right = adc_assignment;
+        break;
+
+      case F5:
+        smux_memory.addr_0x06.f5_left = adc_assignment;
+        smux_memory.addr_0x09.f5_right = adc_assignment;
+        break;
+
+      case F6:
+        smux_memory.addr_0x04.f6_left = adc_assignment;
+        smux_memory.addr_0x0e.f6_right = adc_assignment;
+        break;
+
+      case F7:
+        smux_memory.addr_0x07.f7_left = adc_assignment;
+        smux_memory.addr_0x0a.f7_right = adc_assignment;
+        break;
+
+      case F8:
+        smux_memory.addr_0x03.f8_left = adc_assignment;
+        smux_memory.addr_0x0e.f8_right = adc_assignment;
+        break;
+
+      case CLEAR:
+        smux_memory.addr_0x08.clear_left = adc_assignment;
+        smux_memory.addr_0x11.clear_right = adc_assignment;
+        break;
+
+      case NIR:
+        smux_memory.addr_0x13.nir = adc_assignment;
+        break;
+
+      case FLICKER:
+        smux_memory.addr_0x13.flicker = adc_assignment;
+        break;
+
+      case GPIO:
+        smux_memory.addr_0x10.ext_gpio = adc_assignment;
+        break;
+
+      case EXT_INT:
+        smux_memory.addr_0x11.ext_int = adc_assignment;
+        break;
+
+      case DARK:
+        smux_memory.addr_0x12.dark = adc_assignment;
+        break;
+
+      default:
+        return AS7341_ERROR;
+    }
+  }
+
+  // Power on
+  ret |= as7341_power (dev_handle, true);
+
+  // Enable spectral interrupt so we can check when the smux command has completed
+  ret |= as7341_config_smux_interrupt (dev_handle, true);
+
+  // Enable system interrupts so the SMUX int will actually fire
+  ret |= as7341_config_sys_interrupts (dev_handle, true);
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, SMUX_MEMORY_ADDR_LOW,
+                                (uint8_t*) &smux_memory, SMUX_MEMORY_SIZE);
 
   return ret;
 }
@@ -218,6 +314,34 @@ int32_t as7341_smux_enable ( dev_ctx_t *dev_handle )
   enable_reg.smuxen = PROPERTY_ENABLE;
 
   ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, ENABLE_REG_ADDR, (uint8_t*) &enable_reg, 1);
+
+  return ret;
+}
+
+int32_t as7341_config_smux_interrupt ( dev_ctx_t *dev_handle, bool enable )
+{
+  int32_t ret = AS7341_OK;
+  as7341_cfg9_reg_t cfg9;
+
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, CFG9_REG_ADDR, (uint8_t*) &cfg9, 1);
+
+  cfg9.sien_smux = enable;
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, CFG9_REG_ADDR, (uint8_t*) &cfg9, 1);
+
+  return ret;
+}
+
+int32_t as7341_config_sys_interrupts ( dev_ctx_t *dev_handle, bool enable )
+{
+  int32_t ret = AS7341_OK;
+  as7341_intenab_reg_t inten;
+
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, INTENAB_REG_ADDR, (uint8_t*) &inten, 1);
+
+  inten.sien = enable;
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, INTENAB_REG_ADDR, (uint8_t*) &inten, 1);
 
   return ret;
 }
@@ -318,6 +442,9 @@ int32_t as7341_get_all_channel_data ( dev_ctx_t *dev_handle,
                                       as7341_all_channel_data_struct *channel_data )
 {
   int32_t ret = AS7341_OK;
+
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, CH0_LOWER_REG_ADDR, (uint8_t*) &channel_data,
+                               sizeof(as7341_all_channel_data_struct));
 
   return ret;
 }
