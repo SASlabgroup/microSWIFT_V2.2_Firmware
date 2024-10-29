@@ -110,10 +110,12 @@ typedef struct
 /* Note these are generic to either I2C or SPI */
 typedef int32_t (*dev_init_ptr) ( void );
 typedef int32_t (*dev_deinit_ptr) ( void );
-//(dev_ctx->handle, i2c addr, reg_addr, reg_data, data_size)
-typedef int32_t (*dev_write_ptr) ( void*, uint16_t, uint16_t, uint8_t*, uint16_t );
-//(dev_ctx->handle, i2c_addr, reg_addr, reg_data, data_size)
-typedef int32_t (*dev_read_ptr) ( void*, uint16_t, uint16_t, uint8_t*, uint16_t );
+// Note the i2c_addr can be NULL if running SPI
+typedef int32_t (*dev_write_ptr) ( void *dev_ctx_handle, uint16_t i2c_addr, uint16_t reg_addr,
+                                   uint8_t *write_buf, uint16_t buf_size );
+// Note the i2c_addr can be NULL if running SPI
+typedef int32_t (*dev_read_ptr) ( void *dev_ctx_handle, uint16_t i2c_addr, uint16_t reg_addr,
+                                  uint8_t *read_buf, uint16_t buf_size );
 typedef void (*dev_ms_delay_ptr) ( uint32_t delay );
 
 /**************************************************************************************************/

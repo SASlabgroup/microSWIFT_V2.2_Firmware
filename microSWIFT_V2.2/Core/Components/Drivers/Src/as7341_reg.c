@@ -6,6 +6,8 @@
  */
 
 #include "as7341_reg.h"
+#include "stdint.h"
+#include "stdbool.h"
 
 static typedef struct
 {
@@ -147,4 +149,112 @@ static typedef struct
 
 } as7341_smux_memory;
 
-static int32_t as7341_set_register_bank ( dev_ctx_t *dev_handle, as7341_reg_bank_t bank );
+int32_t as7341_register_io_functions ( dev_ctx_t *dev_handle, dev_init_ptr init_fn,
+                                       dev_deinit_ptr deinit_fn, dev_write_ptr bus_write_fn,
+                                       dev_read_ptr bus_read_fn, dev_ms_delay_ptr delay,
+                                       void *optional_handle )
+{
+  dev_handle->init = init_fn;
+  dev_handle->deinit = deinit_fn;
+  dev_handle->bus_read = bus_read_fn;
+  dev_handle->bus_write = bus_write_fn;
+  dev_handle->handle = optional_handle;
+  dev_handle->delay = delay;
+
+  return dev_handle->init ();
+}
+
+int32_t as7341_get_id ( dev_ctx_t *dev_handle, uint8_t *id )
+{
+  int32_t ret = AS7341_OK;
+
+  ret = dev_handle->bus_read (NULL, AS7341_I2C_ADDR, ID_REG_ADDR, id, 1);
+
+  return ret;
+}
+
+int32_t as7341_set_integration_mode ( dev_ctx_t *dev_handle, as7341_int_mode_t mode )
+{
+  int32_t ret = AS7341_OK;
+
+  return ret;
+}
+
+int32_t as7341_config_smux ( dev_ctx_t *dev_handle, as7341_smux_assignment *smux_assignment )
+{
+  int32_t ret = AS7341_OK;
+
+  return ret;
+}
+
+int32_t as7341_power ( dev_ctx_t *dev_handle, bool on )
+{
+  int32_t ret = AS7341_OK;
+
+  return ret;
+}
+
+int32_t as7341_smux_config ( dev_ctx_t *dev_handle, bool enable )
+{
+  int32_t ret = AS7341_OK;
+
+  return ret;
+}
+
+int32_t as7341_wait_config ( dev_ctx_t *dev_handle, bool enable )
+{
+  int32_t ret = AS7341_OK;
+
+  return ret;
+}
+
+int32_t as7341_spectral_meas_config ( dev_ctx_t *dev_handle, bool enable )
+{
+  int32_t ret = AS7341_OK;
+
+  return ret;
+}
+
+int32_t as7341_set_wait_time ( dev_ctx_t *dev_handle, float wait_time_ms )
+{
+  int32_t ret = AS7341_OK;
+
+  return ret;
+}
+
+int32_t as7341_set_atime ( dev_ctx_t *dev_handle, uint8_t atime )
+{
+  int32_t ret = AS7341_OK;
+
+  return ret;
+}
+
+int32_t as7341_set_astep ( dev_ctx_t *dev_handle, uint16_t astep )
+{
+  int32_t ret = AS7341_OK;
+
+  return ret;
+}
+
+int32_t as7341_set_again ( dev_ctx_t *dev_handle, as7341_again_t gain_setting )
+{
+  int32_t ret = AS7341_OK;
+
+  return ret;
+}
+
+int32_t as7341_get_all_channel_data ( dev_ctx_t *dev_handle,
+                                      as7341_all_channel_data_struct *channel_data )
+{
+  int32_t ret = AS7341_OK;
+
+  return ret;
+}
+
+int32_t as7341_set_register_bank ( dev_ctx_t *dev_handle, as7341_reg_bank_t bank )
+{
+  int32_t ret = AS7341_OK;
+
+  return ret;
+}
+

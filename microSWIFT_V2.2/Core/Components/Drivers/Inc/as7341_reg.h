@@ -11,6 +11,7 @@
 #include "stdint.h"
 #include "stdbool.h"
 #include "reg_driver_def.h"
+#include "math.h"
 
 // @formatter:off
 
@@ -52,6 +53,15 @@ typedef union
   uint16_t                      raw_counts;
 } as7341_channel_data_t;
 
+typedef struct
+{
+  uint16_t  channel0_data;
+  uint16_t  channel1_data;
+  uint16_t  channel2_data;
+  uint16_t  channel3_data;
+  uint16_t  channel4_data;
+  uint16_t  channel5_data;
+} as7341_all_channel_data_struct;
 
 
 /**************************************************************************************************/
@@ -88,14 +98,6 @@ typedef struct
 } as7341_astatus_reg_t;
 
 /**************************************************************************************************/
-/******************************** Channel 0 data Register *****************************************/
-/**************************************************************************************************/
-#define CH0_LOWER_REG_ADDR (0x61)
-#define CH0_UPPER_REG_ADDR (0X62)
-#define CH0_LOWER_REG_RESET_VAL (0b00000000)
-#define CH0_UPPER_REG_RESET_VAL (0b00000000)
-
-/**************************************************************************************************/
 /************************************* ITime Register *********************************************/
 /**************************************************************************************************/
 #define ITIME_L_REG_ADDR (0X63)
@@ -104,46 +106,6 @@ typedef struct
 #define ITIME_L_REG_RESET_VAL (0b00000000)
 #define ITIME_M_REG_RESET_VAL (0b00000000)
 #define ITIME_H_REG_RESET_VAL (0b00000000)
-
-/**************************************************************************************************/
-/******************************** Channel 1 data Register *****************************************/
-/**************************************************************************************************/
-#define CH1_LOWER_REG_ADDR (0x66)
-#define CH1_UPPER_REG_ADDR (0X67)
-#define CH1_LOWER_REG_RESET_VAL (0b00000000)
-#define CH1_UPPER_REG_RESET_VAL (0b00000000)
-
-/**************************************************************************************************/
-/******************************** Channel 2 data Register *****************************************/
-/**************************************************************************************************/
-#define CH2_LOWER_REG_ADDR (0x68)
-#define CH2_UPPER_REG_ADDR (0X69)
-#define CH2_LOWER_REG_RESET_VAL (0b00000000)
-#define CH2_UPPER_REG_RESET_VAL (0b00000000)
-
-/**************************************************************************************************/
-/******************************** Channel 3 data Register *****************************************/
-/**************************************************************************************************/
-#define CH3_LOWER_REG_ADDR (0x6A)
-#define CH3_UPPER_REG_ADDR (0X6B)
-#define CH3_LOWER_REG_RESET_VAL (0b00000000)
-#define CH3_UPPER_REG_RESET_VAL (0b00000000)
-
-/**************************************************************************************************/
-/******************************** Channel 4 data Register *****************************************/
-/**************************************************************************************************/
-#define CH4_LOWER_REG_ADDR (0x6C)
-#define CH4_UPPER_REG_ADDR (0X6D)
-#define CH4_LOWER_REG_RESET_VAL (0b00000000)
-#define CH4_UPPER_REG_RESET_VAL (0b00000000)
-
-/**************************************************************************************************/
-/******************************** Channel 5 data Register *****************************************/
-/**************************************************************************************************/
-#define CH5_LOWER_REG_ADDR (0x6E)
-#define CH5_UPPER_REG_ADDR (0X6F)
-#define CH5_LOWER_REG_RESET_VAL (0b00000000)
-#define CH5_UPPER_REG_RESET_VAL (0b00000000)
 
 /**************************************************************************************************/
 /************************************ CONFIG Register *********************************************/
@@ -284,6 +246,9 @@ typedef struct
 /**************************************************************************************************/
 #define WTIME_REG_ADDR (0X83)
 #define WTIME_REG_RESET_VAL (0b00000000)
+#define WTIME_MIN_VAL (2.78f)
+#define WTIME_MAX_VAL (711.0f)
+#define WTIME_FROM_MS (x) do {(floor((x / 2.78f) - 1))} while (0);
 
 typedef struct
 {
@@ -392,6 +357,54 @@ typedef struct
   uint8_t   sint        :1;
 #endif /* DRV_BYTE_ORDER */
 } as7341_status_reg_t;
+
+/**************************************************************************************************/
+/******************************** Channel 0 data Register *****************************************/
+/**************************************************************************************************/
+#define CH0_LOWER_REG_ADDR (0x95)
+#define CH0_UPPER_REG_ADDR (0X96)
+#define CH0_LOWER_REG_RESET_VAL (0b00000000)
+#define CH0_UPPER_REG_RESET_VAL (0b00000000)
+
+/**************************************************************************************************/
+/******************************** Channel 1 data Register *****************************************/
+/**************************************************************************************************/
+#define CH1_LOWER_REG_ADDR (0x97)
+#define CH1_UPPER_REG_ADDR (0X98)
+#define CH1_LOWER_REG_RESET_VAL (0b00000000)
+#define CH1_UPPER_REG_RESET_VAL (0b00000000)
+
+/**************************************************************************************************/
+/******************************** Channel 2 data Register *****************************************/
+/**************************************************************************************************/
+#define CH2_LOWER_REG_ADDR (0x99)
+#define CH2_UPPER_REG_ADDR (0X9A)
+#define CH2_LOWER_REG_RESET_VAL (0b00000000)
+#define CH2_UPPER_REG_RESET_VAL (0b00000000)
+
+/**************************************************************************************************/
+/******************************** Channel 3 data Register *****************************************/
+/**************************************************************************************************/
+#define CH3_LOWER_REG_ADDR (0x9B)
+#define CH3_UPPER_REG_ADDR (0X9C)
+#define CH3_LOWER_REG_RESET_VAL (0b00000000)
+#define CH3_UPPER_REG_RESET_VAL (0b00000000)
+
+/**************************************************************************************************/
+/******************************** Channel 4 data Register *****************************************/
+/**************************************************************************************************/
+#define CH4_LOWER_REG_ADDR (0x9D)
+#define CH4_UPPER_REG_ADDR (0X9E)
+#define CH4_LOWER_REG_RESET_VAL (0b00000000)
+#define CH4_UPPER_REG_RESET_VAL (0b00000000)
+
+/**************************************************************************************************/
+/******************************** Channel 5 data Register *****************************************/
+/**************************************************************************************************/
+#define CH5_LOWER_REG_ADDR (0x9F)
+#define CH5_UPPER_REG_ADDR (0XA0)
+#define CH5_LOWER_REG_RESET_VAL (0b00000000)
+#define CH5_UPPER_REG_RESET_VAL (0b00000000)
 
 /**************************************************************************************************/
 /************************************ STATUS 2 Register *******************************************/
@@ -1128,13 +1141,19 @@ int32_t as7341_register_io_functions    ( dev_ctx_t *dev_handle, dev_init_ptr in
                                           dev_deinit_ptr deinit_fn, dev_write_ptr bus_write_fn,
                                           dev_read_ptr bus_read_fn, dev_ms_delay_ptr delay,
                                           void *optional_handle );
+int32_t as7341_set_register_bank ( dev_ctx_t *dev_handle, as7341_reg_bank_t bank );
+int32_t as7341_get_id                   (dev_ctx_t *dev_handle, uint8_t *id);
 int32_t as7341_set_integration_mode     (dev_ctx_t *dev_handle, as7341_int_mode_t mode);
 int32_t as7341_config_smux              (dev_ctx_t *dev_handle, as7341_smux_assignment *smux_assignment);
 int32_t as7341_power                    (dev_ctx_t *dev_handle, bool on);
 int32_t as7341_smux_config              (dev_ctx_t *dev_handle, bool enable);
 int32_t as7341_wait_config              (dev_ctx_t *dev_handle, bool enable);
 int32_t as7341_spectral_meas_config     (dev_ctx_t *dev_handle, bool enable);
-
+int32_t as7341_set_wait_time            (dev_ctx_t *dev_handle, float wait_time_ms);
+int32_t as7341_set_atime                (dev_ctx_t *dev_handle, uint8_t atime);
+int32_t as7341_set_astep                (dev_ctx_t *dev_handle, uint16_t astep);
+int32_t as7341_set_again                (dev_ctx_t *dev_handle, as7341_again_t gain_setting);
+int32_t as7341_get_all_channel_data     (dev_ctx_t *dev_handle, as7341_all_channel_data_struct *channel_data);
 
 
 // @formatter:on
