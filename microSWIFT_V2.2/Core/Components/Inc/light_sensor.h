@@ -53,13 +53,13 @@ typedef struct
 
   as7341_gpio_handle        gpio_handle;
 
-  uint16_t                  channel_data[AS7341_NUM_CHANNELS];
+  uint16_t                  channel_data[NUM_LIGHT_CHANNELS];
 
   as7341_reg_bank_t         current_bank;
 
   as7341_again_t            sensor_gain;
 
-  light_return_code_t       (*self_test) (void);
+  light_return_code_t       (*self_test) (uint16_t *clear_channel_reading);
   light_return_code_t       (*setup_sensor) (void);
   light_return_code_t       (*read_all_channels) (void);
   light_return_code_t       (*get_measurements) (uint16_t *buffer);

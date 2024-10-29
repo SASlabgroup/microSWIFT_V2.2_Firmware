@@ -37,7 +37,7 @@ bool        gnss_apply_config ( GNSS *gnss );
 bool        ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings );
 bool        temperature_self_test ( Temperature *temperature, float *self_test_temp );
 bool        turbidity_self_test ( void );
-bool        light_self_test ( void );
+bool        light_self_test ( Light_Sensor *light, uint16_t *clear_channel_reading );
 bool        accelerometer_self_test ( void );
 bool        iridium_apply_config ( Iridium *iridium );
 

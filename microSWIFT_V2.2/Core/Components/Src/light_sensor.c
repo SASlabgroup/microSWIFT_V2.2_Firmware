@@ -14,7 +14,7 @@
 static Light_Sensor *light_self;
 
 // Struct functions
-static light_return_code_t  _light_sensor_self_test (void);
+static light_return_code_t  _light_sensor_self_test (uint16_t *clear_channel_reading);
 static light_return_code_t  _light_sensor_setup_sensor (void);
 static light_return_code_t  _light_sensor_read_all_channels (void);
 static light_return_code_t  _light_sensor_get_measurements (uint16_t *buffer);
@@ -126,7 +126,7 @@ static light_return_code_t _light_sensor_self_test ( uint16_t *clear_channel_rea
 
   // Read all the channels
   ret |= light_self->read_all_channels ();
-  ret |= light_self->get_single_measurement (clear_channel_reading);
+  ret |= light_self->get_single_measurement (clear_channel_reading, CLEAR_CHANNEL);
 
   return ret;
 }
