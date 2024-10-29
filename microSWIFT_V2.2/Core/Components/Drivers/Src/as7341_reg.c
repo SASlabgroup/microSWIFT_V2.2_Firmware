@@ -325,6 +325,13 @@ int32_t as7341_get_all_channel_data ( dev_ctx_t *dev_handle,
 int32_t as7341_set_register_bank ( dev_ctx_t *dev_handle, as7341_reg_bank_t bank )
 {
   int32_t ret = AS7341_OK;
+  as7341_cfg0_reg_t cfg0;
+
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, CFG0_REG_ADDR, (uint8_t*) &cfg0, 1);
+
+  cfg0.reg_bank = bank;
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, CFG0_REG_ADDR, (uint8_t*) &cfg0, 1);
 
   return ret;
 }
