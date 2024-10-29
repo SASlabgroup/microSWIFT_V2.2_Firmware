@@ -9,7 +9,7 @@
 #include "stdint.h"
 #include "stdbool.h"
 
-static typedef struct
+typedef struct
 {
   struct smux_addr_0x00
   {
@@ -239,6 +239,13 @@ int32_t as7341_wait_config ( dev_ctx_t *dev_handle, bool enable )
 int32_t as7341_spectral_meas_config ( dev_ctx_t *dev_handle, bool enable )
 {
   int32_t ret = AS7341_OK;
+  as7341_enable_reg_t enable_reg;
+
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, ENABLE_REG_ADDR, (uint8_t*) &enable_reg, 1);
+
+  enable_reg.sp_en = enable;
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, ENABLE_REG_ADDR, (uint8_t*) &enable_reg, 1);
 
   return ret;
 }
@@ -246,6 +253,22 @@ int32_t as7341_spectral_meas_config ( dev_ctx_t *dev_handle, bool enable )
 int32_t as7341_set_wait_time ( dev_ctx_t *dev_handle, float wait_time_ms )
 {
   int32_t ret = AS7341_OK;
+  as7341_wtime_reg_t wait_time;
+
+  if ( wait_time_ms < WTIME_MIN_VAL )
+  {
+    wait_time.wtime = 0;
+  }
+  else if ( wait_time_ms > WTIME_MAX_VAL )
+  {
+    wait_time.wtime = 255;
+  }
+  else
+  {
+    wait_time.wtime = WTIME_FROM_MS(wait_time_ms);
+  }
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, WTIME_REG_ADDR, (uint8_t*) &wait_time, 1);
 
   return ret;
 }

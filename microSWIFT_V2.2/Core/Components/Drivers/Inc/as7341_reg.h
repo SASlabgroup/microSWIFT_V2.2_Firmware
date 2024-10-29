@@ -110,7 +110,7 @@ typedef struct
 /**************************************************************************************************/
 /************************************ CONFIG Register *********************************************/
 /**************************************************************************************************/
-#define CONFIG_REG_ADDR (OX70)
+#define CONFIG_REG_ADDR (0X70)
 #define CONFIG_REG_RESET_VAL (0b00000000)
 
 typedef enum
@@ -248,7 +248,7 @@ typedef struct
 #define WTIME_REG_RESET_VAL (0b00000000)
 #define WTIME_MIN_VAL (2.78f)
 #define WTIME_MAX_VAL (711.0f)
-#define WTIME_FROM_MS (x) do {(floor((x / 2.78f) - 1))} while (0);
+#define WTIME_FROM_MS(x) (floor(((x) / 2.78f) - 1))
 
 typedef struct
 {
@@ -1013,7 +1013,7 @@ typedef enum
 
 typedef enum
 {
-  DISABLE,
+  ADC_DISABLE,
   F1,
   F2,
   F3,
