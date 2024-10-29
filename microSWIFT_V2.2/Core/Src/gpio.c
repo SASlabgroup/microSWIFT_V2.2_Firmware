@@ -71,7 +71,7 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOB, RTC_TIMESTAMP_3_Pin|SPI2_CSn1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOF, SPI1_CSn1_Pin|GPIO_PIN_13|SPI1_CSn3_Pin|SPI2_CSn3_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOF, SPI1_CSn1_Pin|AS7341_GPIO_Pin|SPI1_CSn3_Pin|SPI2_CSn3_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, EXT_LED_RED_Pin|EXT_LED_GREEN_Pin|IRIDIUM_OnOff_Pin|BUS_5V_FET_Pin, GPIO_PIN_RESET);
@@ -131,8 +131,8 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(RTC_INT_B_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PFPin PF13 PFPin PFPin */
-  GPIO_InitStruct.Pin = SPI1_CSn1_Pin|GPIO_PIN_13|SPI1_CSn3_Pin|SPI2_CSn3_Pin;
+  /*Configure GPIO pins : PFPin PFPin PFPin PFPin */
+  GPIO_InitStruct.Pin = SPI1_CSn1_Pin|AS7341_GPIO_Pin|SPI1_CSn3_Pin|SPI2_CSn3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -144,13 +144,19 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(RTC_INT_A_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PG0 PG1 PG2 PG3
-                           PG5 PG6 PG7 PG12 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
-                          |GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_12;
+  /*Configure GPIO pins : PG0 PG2 PG3 PG5
+                           PG6 PG7 PG12 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_5
+                          |GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_12;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PtPin */
+  GPIO_InitStruct.Pin = AS7341_INT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(AS7341_INT_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PDPin PDPin PDPin PDPin */
   GPIO_InitStruct.Pin = EXT_LED_RED_Pin|EXT_LED_GREEN_Pin|RTC_SPI_CS_Pin|BUS_5V_FET_Pin;

@@ -26,6 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "testing_hooks.h"
+#include "octospi.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/

@@ -698,6 +698,65 @@ typedef struct
 #endif /* DRV_BYTE_ORDER */
 } as7341_cfg12_reg_t;
 
+/**************************************************************************************************/
+/**************************************  PERS Register ********************************************/
+/**************************************************************************************************/
+#define PERS_REG_ADDR (0XBD)
+#define PERS_REG_RESET_VAL (0b00000000)
+
+typedef enum
+{
+  EVERY_SPECTRAL_CYCLE  = 0,
+  _1_OCCURANCE          = 1,
+  _2_OCCURANCES         = 2,
+  _3_OCCURANCES         = 3,
+  _4_OCCURANCES         = 4,
+  _5_OCCURANCES         = 5,
+  _15_OCCURANCES        = 6,
+  _20_OCCURANCES        = 7,
+  _25_OCCURANCES        = 8,
+  _30_OCCURNACES        = 9,
+  _35_OCCURNACES        = 10,
+  _40_OCCURANCES        = 11,
+  _45_OCCURANCES        = 12,
+  _50_OCCURNACES        = 13,
+  _55_OCCURNACES        = 14,
+  _60_OCCURNACES        = 15
+} as7341_spectral_interrupt_persistence_t;
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  as7341_spectral_interrupt_persistence_t   apers   :4;
+  uint8_t                                   reserved:4;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t                                   reserved:4;
+  as7341_spectral_interrupt_persistence_t   apers   :4;
+#endif /* DRV_BYTE_ORDER */
+} as7341_pers_reg_t;
+
+/**************************************************************************************************/
+/************************************* GPIO_2 Register ********************************************/
+/**************************************************************************************************/
+#define GPIO_2_REG_ADDR (0XBE)
+#define GPIO_2_REG_RESET_VAL (0b00000010)
+
+typedef struct
+{
+#if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
+  uint8_t   gpio_in     :1;
+  uint8_t   gpio_out    :1;
+  uint8_t   gpio_in_en  :1;
+  uint8_t   gpio_inv    :1;
+  uint8_t   reserved    :4;
+#elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
+  uint8_t   reserved    :4;
+  uint8_t   gpio_inv    :1;
+  uint8_t   gpio_in_en  :1;
+  uint8_t   gpio_out    :1;
+  uint8_t   gpio_in     :1;
+#endif /* DRV_BYTE_ORDER */
+} as7341_gpio_2_reg_t;
 
 /**************************************************************************************************/
 /************************************* ASTEP Register *********************************************/
@@ -932,152 +991,42 @@ typedef enum
 {
   SMUX_ASSIGNMENT_DISABLE   = 0,
   SMUX_ASSIGN_PIXEL_TO_ADC0 = 1,
-  SMUX_ASSIGN_PIXEL_TO_ADC1 = 1,
-  SMUX_ASSIGN_PIXEL_TO_ADC2 = 1,
-  SMUX_ASSIGN_PIXEL_TO_ADC3 = 1,
-  SMUX_ASSIGN_PIXEL_TO_ADC4 = 1,
-  SMUX_ASSIGN_PIXEL_TO_ADC5 = 1,
+  SMUX_ASSIGN_PIXEL_TO_ADC1 = 2,
+  SMUX_ASSIGN_PIXEL_TO_ADC2 = 3,
+  SMUX_ASSIGN_PIXEL_TO_ADC3 = 4,
+  SMUX_ASSIGN_PIXEL_TO_ADC4 = 5,
+  SMUX_ASSIGN_PIXEL_TO_ADC5 = 6,
 } as7341_smux_assignment_t;
+
+typedef enum
+{
+  DISABLE,
+  F1,
+  F2,
+  F3,
+  F4,
+  F5,
+  F6,
+  F7,
+  F8,
+  CLEAR,
+  NIR,
+  FLICKER,
+  GPIO,
+  EXT_INT,
+  DARK
+} as7341_smux_channels_t;
 
 typedef struct
 {
-  struct smux_addr_0x00
-  {
-    uint8_t                     unused0:4;
-    as7341_smux_assignment_t    f3_left:3;
-    uint8_t                     unused1:1;
-  } addr_0x00;
+  as7341_smux_channels_t    adc_0_assignment;
+  as7341_smux_channels_t    adc_1_assignment;
+  as7341_smux_channels_t    adc_2_assignment;
+  as7341_smux_channels_t    adc_3_assignment;
+  as7341_smux_channels_t    adc_4_assignment;
+  as7341_smux_channels_t    adc_5_assignment;
+} as7341_smux_assignment;
 
-  struct smux_addr_0x01
-  {
-    as7341_smux_assignment_t    f1_left:3;
-    uint8_t                     unused:5;
-  } addr_0x01;
-
-  struct smux_addr_0x02
-  {
-    uint8_t                       unused:8;
-  } addr_0x02;
-
-  struct smux_addr_0x03
-  {
-    uint8_t                     unused0:4;
-    as7341_smux_assignment_t    f8_left:3;
-    uint8_t                     unused1:1;
-  } addr_0x03;
-
-  struct smux_addr_0x04
-  {
-    as7341_smux_assignment_t    f6_left:3;
-    uint8_t                     unused:5;
-  } addr_0x04;
-
-  struct smux_addr_0x05
-  {
-    as7341_smux_assignment_t    f2_left:3;
-    uint8_t                     unuse0:1;
-    as7341_smux_assignment_t    f4_left:3;
-    uint8_t                     unuse1:1;
-  } addr_0x05;
-
-  struct smux_addr_0x06
-  {
-    uint8_t                     unused0:4;
-    as7341_smux_assignment_t    f5_left:3;
-    uint8_t                     unused1:1;
-  } addr_0x06;
-
-  struct smux_addr_0x07
-  {
-    as7341_smux_assignment_t    f7_left:3;
-    uint8_t                     unused:5;
-  } addr_0x07;
-
-  struct smux_addr_0x08
-  {
-    uint8_t                     unused0:4;
-    as7341_smux_assignment_t    clear_left:3;
-    uint8_t                     unused1:1;
-  } addr_0x08;
-
-  struct smux_addr_0x09
-  {
-    uint8_t                     unused0:4;
-    as7341_smux_assignment_t    f5_right:3;
-    uint8_t                     unused1:1;
-  } addr_0x09;
-
-  struct smux_addr_0x0A
-  {
-    as7341_smux_assignment_t    f7_right:3;
-    uint8_t                     unused:5;
-  } addr_0x0a;
-
-  struct smux_addr_0x0B
-  {
-    uint8_t                       unused:8;
-  } addr_0x0b;
-
-  struct smux_addr_0x0C
-  {
-    uint8_t                     unused0:4;
-    as7341_smux_assignment_t    f2_right:3;
-    uint8_t                     unused1:1;
-  } addr_0x0c;
-
-  struct smux_addr_0x0D
-  {
-    as7341_smux_assignment_t    f4_right:3;
-    uint8_t                     unused:5;
-  } addr_0x0d;
-
-  struct smux_addr_0x0E
-  {
-    as7341_smux_assignment_t    f8_left:3;
-    uint8_t                     unuse0:1;
-    as7341_smux_assignment_t    f6_left:3;
-    uint8_t                     unuse1:1;
-  } addr_0x0e;
-
-  struct smux_addr_0x0F
-  {
-    uint8_t                     unused0:4;
-    as7341_smux_assignment_t    f3_right:3;
-    uint8_t                     unused1:1;
-  } addr_0x0f;
-
-  struct smux_addr_0x10
-  {
-    as7341_smux_assignment_t    f1_right:3;
-    uint8_t                     unuse0:1;
-    as7341_smux_assignment_t    ext_gpio:3;
-    uint8_t                     unuse1:1;
-  } addr_0x10;
-
-  struct smux_addr_0x11
-  {
-    as7341_smux_assignment_t    ext_int:3;
-    uint8_t                     unuse0:1;
-    as7341_smux_assignment_t    clear_right:3;
-    uint8_t                     unuse1:1;
-  } addr_0x11;
-
-  struct smux_addr_0x12
-  {
-    uint8_t                     unused0:4;
-    as7341_smux_assignment_t    dark:3;
-    uint8_t                     unused1:1;
-  } addr_0x12;
-
-  struct smux_addr_0x13
-  {
-    as7341_smux_assignment_t    nir:3;
-    uint8_t                     unuse0:1;
-    as7341_smux_assignment_t    flicker:3;
-    uint8_t                     unuse1:1;
-  } addr_0x13;
-
-} as7341_smux_memory;
 
 //typedef struct
 //{
@@ -1179,8 +1128,8 @@ int32_t as7341_register_io_functions    ( dev_ctx_t *dev_handle, dev_init_ptr in
                                           dev_deinit_ptr deinit_fn, dev_write_ptr bus_write_fn,
                                           dev_read_ptr bus_read_fn, dev_ms_delay_ptr delay,
                                           void *optional_handle );
-int32_t as7341_set_integration_mode     (dev_ctx_t *dev_handle, as7341_int_mode_t mode); // TODO: do we need to set bit INT_SEL in CONFIG reg?
-int32_t as7341_config_smux              (dev_ctx_t *dev_handle, as7341_smux_memory *smux_memory_setup);
+int32_t as7341_set_integration_mode     (dev_ctx_t *dev_handle, as7341_int_mode_t mode);
+int32_t as7341_config_smux              (dev_ctx_t *dev_handle, as7341_smux_assignment *smux_assignment);
 int32_t as7341_power                    (dev_ctx_t *dev_handle, bool on);
 int32_t as7341_smux_config              (dev_ctx_t *dev_handle, bool enable);
 int32_t as7341_wait_config              (dev_ctx_t *dev_handle, bool enable);
