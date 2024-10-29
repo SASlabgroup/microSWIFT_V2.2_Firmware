@@ -8,14 +8,17 @@
 #include "light_sensor.h"
 #include "gpio.h"
 #include "tx_api.h"
+#include "i2c.h"
 
 // @formatter:off
 static Light_Sensor *light_self;
 
 // Struct functions
+static light_return_code_t  _light_sensor_self_test (void);
 static light_return_code_t  _light_sensor_setup_sensor (void);
 static light_return_code_t  _light_sensor_read_all_channels (void);
 static light_return_code_t  _light_sensor_get_measurements (uint16_t *buffer);
+static light_return_code_t  _light_sensor_get_single_measurement (uint16_t *measurement, light_channel_index_t which_channel);
 static light_return_code_t  _light_sensor_on (void);
 static light_return_code_t  _light_sensor_off (void);
 
@@ -28,21 +31,18 @@ static void             __set_as7341_gpio_pin_state ( GPIO_PinState state );
 // I/O functions for the sensor
 static int32_t          _light_sensor_i2c_init ( void );
 static int32_t          _light_sensor_i2c_deinit ( void );
-static int32_t          _light_sensor_i2c_read_blocking ( void *unused_handle, uint16_t unused_bus_address,
+static int32_t          _light_sensor_i2c_read_blocking ( void *unused_handle, uint16_t bus_address,
                                                           uint16_t reg_address, uint8_t *read_data,
                                                           uint16_t data_length );
-static int32_t          _light_sensor_i2c_write_blocking ( void *unused_handle, uint16_t unused_bus_address,
+static int32_t          _light_sensor_i2c_write_blocking ( void *unused_handle, uint16_t bus_address,
                                                            uint16_t reg_address, uint8_t *write_data,
                                                            uint16_t data_length );
 static void             _light_sensor_ms_delay ( uint32_t delay );
 
 // @formatter:on
-light_return_code_t light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle,
-                                        TX_SEMAPHORE *int_pin_sema )
+void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle,
+                         TX_SEMAPHORE *int_pin_sema )
 {
-  light_return_code_t ret = LIGHT_SUCCESS;
-  uint8_t id;
-
   light_self = struct_ptr;
 
   light_self->i2c_handle = i2c_handle;
@@ -78,45 +78,64 @@ light_return_code_t light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleType
 
   light_self->sensor_gain = GAIN_64X;
 
+  light_self->self_test = _light_sensor_self_test;
   light_self->setup_sensor = _light_sensor_setup_sensor;
   light_self->read_all_channels = _light_sensor_read_all_channels;
   light_self->get_measurements = _light_sensor_get_measurements;
+  light_self->get_single_measurement = _light_sensor_get_single_measurement;
   light_self->on = _light_sensor_on;
   light_self->off = _light_sensor_off;
+}
+
+static light_return_code_t _light_sensor_self_test ( uint16_t *clear_channel_reading )
+{
+  light_return_code_t ret = LIGHT_SUCCESS;
+  ;
+  uint8_t id;
 
   // Initialize the I/O interface
-  if ( !as7341_register_io_functions (&light_self->dev_ctx, _light_sensor_i2c_init,
-                                      _light_sensor_i2c_deinit, _light_sensor_i2c_write_blocking,
-                                      _light_sensor_i2c_read_blocking, _light_sensor_ms_delay,
-                                      light_self->gpio_handle) )
+  if ( as7341_register_io_functions (&light_self->dev_ctx, _light_sensor_i2c_init,
+                                     _light_sensor_i2c_deinit, _light_sensor_i2c_write_blocking,
+                                     _light_sensor_i2c_read_blocking, _light_sensor_ms_delay,
+                                     light_self->gpio_handle)
+       != AS7341_OK )
   {
     return LIGHT_I2C_ERROR;
   }
 
   // Get the register bank to a known state
-  ret |= as7341_set_register_bank (&light_self->dev_ctx, REG_BANK_80_PLUS);
-
-  if ( ret == AS7341_OK )
+  if ( as7341_set_register_bank (&light_self->dev_ctx, REG_BANK_80_PLUS) != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
+  else
   {
     light_self->current_bank = REG_BANK_80_PLUS;
   }
-  else
+
+  // Check the chip ID
+  if ( as7341_get_id (&light_self->dev_ctx, &id) != AS7341_OK )
   {
     return LIGHT_I2C_ERROR;
   }
 
-  // Check the chip ID
-  ret |= as7341_get_id (&light_self->dev_ctx, &id);
-
   if ( id != AS7341_ID )
   {
-    ret = LIGHT_I2C_ERROR;
+    return LIGHT_I2C_ERROR;
   }
+
+  // Read all the channels
+  ret |= light_self->read_all_channels ();
+  ret |= light_self->get_single_measurement (clear_channel_reading);
+
+  return ret;
 }
 
 static light_return_code_t _light_sensor_setup_sensor ( void );
 static light_return_code_t _light_sensor_read_all_channels ( void );
 static light_return_code_t _light_sensor_get_measurements ( uint16_t *buffer );
+static light_return_code_t _light_sensor_get_single_measurement (
+    uint16_t *measurement, light_channel_index_t which_channel );
 static light_return_code_t _light_sensor_on ( void );
 static light_return_code_t _light_sensor_off ( void );
 
@@ -156,14 +175,123 @@ void __set_as7341_gpio_pin_state ( GPIO_PinState state )
                      state);
 }
 
-static int32_t _light_sensor_i2c_init ( void );
-static int32_t _light_sensor_i2c_deinit ( void );
-static int32_t _light_sensor_i2c_read_blocking ( void *unused_handle, uint16_t unused_bus_address,
+static int32_t _light_sensor_i2c_init ( void )
+{
+  return i2c1_init ();
+}
+
+static int32_t _light_sensor_i2c_deinit ( void )
+{
+  return i2c1_deinit ();
+}
+
+static int32_t _light_sensor_i2c_read_blocking ( void *unused_handle, uint16_t bus_address,
                                                  uint16_t reg_address, uint8_t *read_data,
-                                                 uint16_t data_length );
-static int32_t _light_sensor_i2c_write_blocking ( void *unused_handle, uint16_t unused_bus_address,
+                                                 uint16_t data_length )
+{
+  (void) unused_handle;
+  int32_t ret = AS7341_OK;
+  uint8_t read_buf[LIGHT_I2C_BUF_SIZE + 1] =
+    { 0 };
+
+  if ( !(data_length <= sizeof(read_buf)) )
+  {
+    return LIGHT_PARAMETERS_INVALID;
+  }
+
+// Why could they possibly need to put a bit in there for different register banks? This
+// could so easily be handled in the asic
+  if ( (reg_address < 0x80)
+       && (reg_address != CFG0_REG_ADDR)
+       && ((light_self->current_bank == REG_BANK_80_PLUS)
+           || (light_self->current_bank == REG_BANK_UNKNOWN)) )
+  {
+    if ( as7341_set_register_bank (&light_self->dev_ctx, REG_BANK_60_74) != AS7341_OK )
+    {
+      light_self->current_bank = REG_BANK_UNKNOWN;
+      return AS7341_ERROR;
+    }
+  }
+  else if ( (reg_address >= 0x80)
+            && (reg_address != CFG0_REG_ADDR)
+            && ((light_self->current_bank == REG_BANK_60_74)
+                || (light_self->current_bank == REG_BANK_UNKNOWN)) )
+  {
+    if ( as7341_set_register_bank (&light_self->dev_ctx, REG_BANK_80_PLUS) != AS7341_OK )
+    {
+      light_self->current_bank = REG_BANK_UNKNOWN;
+      return AS7341_ERROR;
+    }
+  }
+
+  read_buf[0] = (uint8_t) reg_address;
+  memcpy (&(read_buf[1]), read_data, data_length);
+
+  if ( HAL_I2C_Master_Transmit (light_self->i2c_handle, bus_address, &(read_buf[0]),
+                                data_length + 1,
+                                LIGHT_I2C_TIMEOUT)
+       != HAL_OK )
+  {
+    ret = AS7341_ERROR;
+  }
+
+  memcpy (read_data, &read_buf[1], data_length);
+
+  return ret;
+}
+
+static int32_t _light_sensor_i2c_write_blocking ( void *unused_handle, uint16_t bus_address,
                                                   uint16_t reg_address, uint8_t *write_data,
-                                                  uint16_t data_length );
+                                                  uint16_t data_length )
+{
+  (void) unused_handle;
+  int32_t ret = AS7341_OK;
+  uint8_t write_buf[LIGHT_I2C_BUF_SIZE + 1] =
+    { 0 };
+
+  if ( !(data_length <= sizeof(write_buf)) )
+  {
+    return LIGHT_PARAMETERS_INVALID;
+  }
+
+// Why could they possibly need to put a bit in there for different register banks? This
+// could so easily be handled in the asic
+  if ( (reg_address < 0x80)
+       && (reg_address != CFG0_REG_ADDR)
+       && ((light_self->current_bank == REG_BANK_80_PLUS)
+           || (light_self->current_bank == REG_BANK_UNKNOWN)) )
+  {
+    if ( as7341_set_register_bank (&light_self->dev_ctx, REG_BANK_60_74) != AS7341_OK )
+    {
+      light_self->current_bank = REG_BANK_UNKNOWN;
+      return AS7341_ERROR;
+    }
+  }
+  else if ( (reg_address >= 0x80)
+            && (reg_address != CFG0_REG_ADDR)
+            && ((light_self->current_bank == REG_BANK_60_74)
+                || (light_self->current_bank == REG_BANK_UNKNOWN)) )
+  {
+    if ( as7341_set_register_bank (&light_self->dev_ctx, REG_BANK_80_PLUS) != AS7341_OK )
+    {
+      light_self->current_bank = REG_BANK_UNKNOWN;
+      return AS7341_ERROR;
+    }
+  }
+
+  write_buf[0] = (uint8_t) reg_address;
+  memcpy (&(write_buf[1]), write_data, data_length);
+
+  if ( HAL_I2C_Master_Transmit (light_self->i2c_handle, bus_address, &(write_buf[0]),
+                                data_length + 1,
+                                LIGHT_I2C_TIMEOUT)
+       != HAL_OK )
+  {
+    ret = AS7341_ERROR;
+  }
+
+  return ret;
+}
 
 static void _light_sensor_ms_delay ( uint32_t delay )
 

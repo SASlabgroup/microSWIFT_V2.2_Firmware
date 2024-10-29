@@ -518,19 +518,19 @@ typedef struct
 typedef struct
 {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
-  uint8_t   reserved0   :2;
-  uint8_t   wlong       :1;
-  uint8_t   reserved1   :1;
-  uint8_t   reg_bank    :1;
-  uint8_t   low_power   :1;
-  uint8_t   reserved2   :2;
+  uint8_t           reserved0   :2;
+  uint8_t           wlong       :1;
+  uint8_t           reserved1   :1;
+  as7341_reg_bank_t reg_bank    :1;
+  uint8_t           low_power   :1;
+  uint8_t           reserved2   :2;
 #elif DRV_BYTE_ORDER == DRV_BIG_ENDIAN
-  uint8_t   reserved2   :2;
-  uint8_t   low_power   :1;
-  uint8_t   reg_bank    :1;
-  uint8_t   reserved1   :1;
-  uint8_t   wlong       :1;
-  uint8_t   reserved0   :2;
+  uint8_t           reserved2   :2;
+  uint8_t           low_power   :1;
+  as7341_reg_bank_t reg_bank    :1;
+  uint8_t           reserved1   :1;
+  uint8_t           wlong       :1;
+  uint8_t           reserved0   :2;
 #endif /* DRV_BYTE_ORDER */
 } as7341_cfg0_reg_t;
 
@@ -1017,21 +1017,21 @@ typedef enum
 
 typedef enum
 {
-  ADC_DISABLE,
-  F1,
-  F2,
-  F3,
-  F4,
-  F5,
-  F6,
-  F7,
-  F8,
-  CLEAR,
-  NIR,
-  FLICKER,
-  GPIO,
-  EXT_INT,
-  DARK
+  F1                    = 0,
+  F2                    = 1,
+  F3                    = 2,
+  F4                    = 3,
+  F5                    = 4,
+  F6                    = 5,
+  F7                    = 6,
+  F8                    = 7,
+  NIR                   = 8,
+  CLEAR                 = 9,
+  DARK                  = 10,
+  FLICKER               = 11,
+  GPIO                  = 12,
+  EXT_INT               = 13,
+  ADC_DISABLE           = 14
 } as7341_smux_channels_t;
 
 typedef struct

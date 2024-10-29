@@ -112,9 +112,31 @@ bool turbidity_self_test ( void )
   return true;
 }
 
-bool light_self_test ( void )
+bool light_self_test ( Light_Sensor *light, uint16_t *clear_channel_reading )
 {
-  return true;
+  int32_t fail_counter = 0, max_retries = 10;
+  light_return_code_t light_return_code;
+
+  while ( fail_counter < max_retries )
+  {
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+
+    light_return_code = light->self_test (clear_channel_reading);
+
+    if ( light_return_code == LIGHT_SUCCESS )
+    {
+      break;
+    }
+
+    light->off ();
+    tx_thread_sleep (1);
+    light->on ();
+    tx_thread_sleep (1);
+
+    fail_counter++;
+  }
+
+  return (light_return_code == LIGHT_SUCCESS);
 }
 
 bool accelerometer_self_test ( void )
