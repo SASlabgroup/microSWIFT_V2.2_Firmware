@@ -276,6 +276,11 @@ int32_t as7341_set_wait_time ( dev_ctx_t *dev_handle, float wait_time_ms )
 int32_t as7341_set_atime ( dev_ctx_t *dev_handle, uint8_t atime )
 {
   int32_t ret = AS7341_OK;
+  as7341_atime_reg_t time;
+
+  time.atime = atime;
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, ATIME_REG_ADDR, (uint8_t*) &time, 1);
 
   return ret;
 }
@@ -283,6 +288,14 @@ int32_t as7341_set_atime ( dev_ctx_t *dev_handle, uint8_t atime )
 int32_t as7341_set_astep ( dev_ctx_t *dev_handle, uint16_t astep )
 {
   int32_t ret = AS7341_OK;
+  as7341_astep_t step;
+
+  step.astep = astep;
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, ASTEP_LOWER_REG_ADDR,
+                                (uint8_t*) &step.astep_struct.astep_lower, 1);
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, ASTEP_UPPER_REG_ADDR,
+                                (uint8_t*) &step.astep_struct.astep_upper, 1);
 
   return ret;
 }
@@ -290,6 +303,13 @@ int32_t as7341_set_astep ( dev_ctx_t *dev_handle, uint16_t astep )
 int32_t as7341_set_again ( dev_ctx_t *dev_handle, as7341_again_t gain_setting )
 {
   int32_t ret = AS7341_OK;
+  as7341_cfg1_reg_t cfg1;
+
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, CFG1_REG_ADDR, (uint8_t*) &cfg1, 1);
+
+  cfg1.again = gain_setting;
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, CFG1_REG_ADDR, (uint8_t*) &cfg1, 1);
 
   return ret;
 }
