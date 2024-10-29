@@ -89,10 +89,14 @@ void Error_Handler(void);
 #define RTC_INT_A_Pin GPIO_PIN_12
 #define RTC_INT_A_GPIO_Port GPIOF
 #define RTC_INT_A_EXTI_IRQn EXTI12_IRQn
+#define AS7341_GPIO_Pin GPIO_PIN_13
+#define AS7341_GPIO_GPIO_Port GPIOF
 #define SPI1_CSn3_Pin GPIO_PIN_14
 #define SPI1_CSn3_GPIO_Port GPIOF
 #define SPI2_CSn3_Pin GPIO_PIN_15
 #define SPI2_CSn3_GPIO_Port GPIOF
+#define AS7341_INT_Pin GPIO_PIN_1
+#define AS7341_INT_GPIO_Port GPIOG
 #define SPARE_GPIO2_Pin GPIO_PIN_7
 #define SPARE_GPIO2_GPIO_Port GPIOE
 #define SPARE_GPIO3_Pin GPIO_PIN_8

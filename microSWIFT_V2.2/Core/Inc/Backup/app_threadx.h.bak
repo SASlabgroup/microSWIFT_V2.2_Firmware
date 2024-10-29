@@ -203,6 +203,7 @@ extern TX_SEMAPHORE ct_uart_sema;
 extern TX_SEMAPHORE aux_uart_1_sema;
 extern TX_SEMAPHORE aux_uart_2_sema;
 extern TX_SEMAPHORE logger_sema;
+extern TX_SEMAPHORE light_sensor_int_pin_sema;
 
 extern TX_EVENT_FLAGS_GROUP initialization_flags;
 extern TX_EVENT_FLAGS_GROUP irq_flags;

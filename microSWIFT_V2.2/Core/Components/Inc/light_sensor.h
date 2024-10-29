@@ -41,7 +41,8 @@ typedef struct
 
 } Light_Sensor;
 
-light_return_code_t light_sensor_init ()
+light_return_code_t light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle,
+                                        TX_SEMAPHORE *int_pin_sema );
 
 // @formatter:on
 #endif /* COMPONENTS_INC_LIGHT_SENSOR_H_ */
