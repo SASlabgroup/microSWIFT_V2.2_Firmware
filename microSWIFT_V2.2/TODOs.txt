@@ -121,6 +121,13 @@ Termperature
 [ ] Rework I2C driver
 
 ****************************************************************************************************
+Light
+****
+
+[ ] Rework I2C and figure out how to share bus
+	[ ] generic_i2c_driver is a start... The core I2C bus might well be shared between several sensors
+
+****************************************************************************************************
 ThreadX
 ****
 

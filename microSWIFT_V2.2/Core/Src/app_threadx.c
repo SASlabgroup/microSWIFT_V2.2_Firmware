@@ -465,12 +465,12 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
-//  ret = tx_timer_create(&light_timer, "Light thread timer", light_timer_expired, 0, 1, 1,
-//                        TX_NO_ACTIVATE);
-//  if ( ret != TX_SUCCESS )
-//  {
-//    return ret;
-//  }
+  ret = tx_timer_create(&light_timer, "Light thread timer", light_timer_expired, 0, 1, 1,
+                        TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
 //
 //  ret = tx_timer_create(&turbidity_timer, "Turbidity thread timer", turbidity_timer_expired, 0, 1,
 //                        1, TX_NO_ACTIVATE);
@@ -1310,7 +1310,7 @@ static void temperature_thread_entry ( ULONG thread_input )
   float self_test_reading = 0.0f, sampling_reading = 0.0f;
   real16_T half_temp =
     { 0 };
-  int32_t temperature_thread_timeout = TX_TIMER_TICKS_PER_SECOND * 30;
+  int32_t temperature_thread_timeout = 1; // minute
   int32_t fail_counter = 0, max_retries = 10;
 
   tx_thread_sleep (1);
@@ -1410,6 +1410,7 @@ static void light_thread_entry ( ULONG thread_input )
   TX_THREAD *this_thread = tx_thread_identify ();
   Light_Sensor light;
   uint16_t self_test_clear_channel_reading = 0;
+  int32_t light_thread_timeout = 15; // minutes
 
   tx_thread_sleep (1);
 
@@ -1436,6 +1437,9 @@ static void light_thread_entry ( ULONG thread_input )
   light.off ();
   tx_thread_suspend (this_thread);
 
+  /******************************* Control thread resumes this thread *****************************/
+  light->on ();
+  light.start_timer (light_thread_timeout);
   watchdog_register_thread (LIGHT_THREAD);
   watchdog_check_in (LIGHT_THREAD);
 

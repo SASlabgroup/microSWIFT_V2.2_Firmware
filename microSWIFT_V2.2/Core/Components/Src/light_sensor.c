@@ -18,6 +18,8 @@ static as7341_gpio_int_struct gpio_struct;
 static light_return_code_t  _light_sensor_self_test (uint16_t *clear_channel_reading);
 static light_return_code_t  _light_sensor_setup_sensor (void);
 static light_return_code_t  _light_sensor_read_all_channels (void);
+static light_return_code_t  _light_sensor_start_timer ( uint16_t timeout_in_minutes );
+static light_return_code_t  _light_sensor_stop_timer ( void );
 static void                 _light_sensor_get_measurements (uint16_t *buffer);
 static void                 _light_sensor_get_single_measurement (uint16_t *measurement, light_channel_index_t which_channel);
 static void                 _light_sensor_on (void);
@@ -91,6 +93,14 @@ void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle
   light_self->on = _light_sensor_on;
   light_self->off = _light_sensor_off;
 }
+
+void light_deinit ( void )
+{
+
+}
+
+void light_timer_expired ( ULONG expiration_input );
+bool light_get_timeout_status ( void );
 
 static light_return_code_t _light_sensor_self_test ( uint16_t *clear_channel_reading )
 {
@@ -228,6 +238,16 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
   }
 
   return LIGHT_SUCCESS;
+}
+
+static light_return_code_t _light_sensor_start_timer ( uint16_t timeout_in_minutes )
+{
+
+}
+
+static light_return_code_t _light_sensor_stop_timer ( void )
+{
+
 }
 
 static void _light_sensor_get_measurements ( uint16_t *buffer )

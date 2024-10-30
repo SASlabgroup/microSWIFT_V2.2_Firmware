@@ -47,6 +47,8 @@ typedef struct
 
   TX_SEMAPHORE              *int_pin_sema;
 
+  TX_TIMER                  *timer;
+
   dev_ctx_t                 dev_ctx;
 
   as7341_smux_assignment    smux_assignment_low_channels;
@@ -62,9 +64,13 @@ typedef struct
 
   as7341_again_t            sensor_gain;
 
+  bool                      timer_timeout;
+
   light_return_code_t       (*self_test) (uint16_t *clear_channel_reading);
   light_return_code_t       (*setup_sensor) (void);
   light_return_code_t       (*read_all_channels) (void);
+  light_return_code_t       (*start_timer) ( uint16_t timeout_in_minutes );
+  light_return_code_t       (*stop_timer) ( void );
   void                      (*get_measurements) (uint16_t *buffer);
   void                      (*get_single_measurement) (uint16_t *measurement, light_channel_index_t which_channel);
   void                      (*on) (void);
@@ -74,6 +80,9 @@ typedef struct
 
 void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle,
                           TX_SEMAPHORE *int_pin_sema );
+void light_deinit ( void );
+void light_timer_expired ( ULONG expiration_input );
+bool light_get_timeout_status ( void );
 
 // @formatter:on
 #endif /* COMPONENTS_INC_LIGHT_SENSOR_H_ */

@@ -199,6 +199,8 @@ void gnss_error_out ( GNSS *gnss, ULONG error_flag, TX_THREAD *gnss_thread, cons
 
   gnss->off ();
   gnss->stop_timer ();
+  gnss_deinit ();
+
   vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
   va_end(args);
   LOG(&(tmp_fmt[0]));
@@ -218,6 +220,8 @@ void ct_error_out ( CT *ct, ULONG error_flag, TX_THREAD *ct_thread, const char *
 
   ct->off ();
   ct->stop_timer ();
+  ct_deinit ();
+
   vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
   va_end(args);
   LOG(&(tmp_fmt[0]));
@@ -238,6 +242,8 @@ void temperature_error_out ( Temperature *temperature, ULONG error_flag,
 
   temperature->off ();
   temperature->stop_timer ();
+  temperature_deinit ();
+
   vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
   va_end(args);
   LOG(&(tmp_fmt[0]));
@@ -247,6 +253,28 @@ void temperature_error_out ( Temperature *temperature, ULONG error_flag,
   watchdog_deregister_thread (TEMPERATURE_THREAD);
 
   tx_thread_suspend (temperature_thread);
+}
+
+void light_error_out ( Light_Sensor *light, ULONG error_flag, TX_THREAD *light_thread,
+                       const char *fmt, ... )
+{
+  va_list args;
+  va_start(args, fmt);
+  char tmp_fmt[128];
+
+  light->off ();
+  light->stop_timer ();
+  light_deinit ();
+
+  vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
+  va_end(args);
+  LOG(&(tmp_fmt[0]));
+
+  (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
+
+  watchdog_deregister_thread (LIGHT_THREAD);
+
+  tx_thread_suspend (light_thread);
 }
 
 void waves_error_out ( ULONG error_flag, TX_THREAD *waves_thread, const char *fmt, ... )
@@ -276,6 +304,8 @@ void iridium_error_out ( Iridium *iridium, ULONG error_flag, TX_THREAD *iridium_
   iridium->sleep ();
   iridium->off ();
   iridium->stop_timer ();
+  iridium_deinit ();
+
   vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
   va_end(args);
   LOG(&(tmp_fmt[0]));
