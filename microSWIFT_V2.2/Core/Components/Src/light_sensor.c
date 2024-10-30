@@ -123,6 +123,7 @@ static light_return_code_t _light_sensor_self_test ( uint16_t *clear_channel_rea
   as7341_auxid_reg_t aux_id;
   as7341_revid_reg_t rev_id;
   uint8_t id;
+  bool asic_initialized = false;
 
   // Initialize the I/O interface
   if ( as7341_register_io_functions (&light_self->dev_ctx, _light_sensor_i2c_init,
@@ -142,7 +143,11 @@ static light_return_code_t _light_sensor_self_test ( uint16_t *clear_channel_rea
 
   as7341_power (&light_self->dev_ctx, true);
 
-  tx_thread_sleep (2);
+  // Wait for the asic to boot
+  while ( !asic_initialized )
+  {
+    as7341_get_initialization_status (&light_self->dev_ctx, &asic_initialized);
+  }
 
   // Get the register bank to a known state
   if ( as7341_set_register_bank (&light_self->dev_ctx, REG_BANK_80_PLUS) != AS7341_OK )
@@ -216,6 +221,15 @@ static light_return_code_t _light_sensor_setup_sensor ( void )
   {
     return ret;
   }
+
+  // Set the GPIO pin to input and set the WAIT_SYNC bit so we can use this pin to trigger sampling
+  ret = as7341_set_gpio_behaviour (&light_self->dev_ctx, GPIO_INPUT);
+  ret |= as7341_wait_sync_config (&light_self->dev_ctx, true);
+  if ( ret != LIGHT_SUCCESS )
+  {
+    return ret;
+  }
+
 }
 
 static light_return_code_t _light_sensor_read_all_channels ( void )

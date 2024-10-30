@@ -39,9 +39,10 @@ typedef enum
 typedef enum
 {
   REG_BANK_80_PLUS  = 0,
-  REG_BANK_60_74    = 1,
-  REG_BANK_UNKNOWN  = 2
+  REG_BANK_60_74    = 1
 } as7341_reg_bank_t;
+
+#define REG_BANK_UNKNOWN -1
 
 typedef struct
 {
@@ -1196,6 +1197,13 @@ typedef struct
 
 typedef as7341_gpio_int_struct* as7341_gpio_handle;
 
+typedef enum
+{
+  GPIO_INPUT            = 0,
+  GPIO_OUTPUT_NORMAL    = 1,
+  GPIO_OUTPUT_INVERTED  = 2
+} as7341_gpio_behavior_t;
+
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*################################## Function Declarations #######################################*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
@@ -1214,12 +1222,15 @@ int32_t as7341_send_smux_command        (dev_ctx_t *dev_handle, as7341_smux_cmd_
 int32_t as7341_config_smux_interrupt    (dev_ctx_t *dev_handle, bool enable);
 int32_t as7341_config_sys_interrupts    (dev_ctx_t *dev_handle, bool enable);
 int32_t as7341_wait_config              (dev_ctx_t *dev_handle, bool enable);
+int32_t as7341_wait_sync_config         (dev_ctx_t *dev_handle, bool enable);
 int32_t as7341_spectral_meas_config     (dev_ctx_t *dev_handle, bool enable);
 int32_t as7341_set_wait_time            (dev_ctx_t *dev_handle, float wait_time_ms);
 int32_t as7341_set_atime                (dev_ctx_t *dev_handle, uint8_t atime);
 int32_t as7341_set_astep                (dev_ctx_t *dev_handle, uint16_t astep);
 int32_t as7341_set_again                (dev_ctx_t *dev_handle, as7341_again_t gain_setting);
 int32_t as7341_get_all_channel_data     (dev_ctx_t *dev_handle, as7341_all_channel_data_struct *channel_data);
+int32_t as7341_set_gpio_behaviour       (dev_ctx_t *dev_handle, as7341_gpio_behavior_t behavior);
+int32_t as7341_get_initialization_status(dev_ctx_t *dev_handle, bool *device_is_initialized);
 
 
 // @formatter:on

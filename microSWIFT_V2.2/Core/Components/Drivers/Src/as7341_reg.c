@@ -24,6 +24,20 @@ int32_t as7341_register_io_functions ( dev_ctx_t *dev_handle, dev_init_ptr init_
   return dev_handle->init ();
 }
 
+int32_t as7341_set_register_bank ( dev_ctx_t *dev_handle, as7341_reg_bank_t bank )
+{
+  int32_t ret = AS7341_OK;
+  as7341_cfg0_reg_t cfg0;
+
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, CFG0_REG_ADDR, (uint8_t*) &cfg0, 1);
+
+  cfg0.reg_bank = bank;
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, CFG0_REG_ADDR, (uint8_t*) &cfg0, 1);
+
+  return ret;
+}
+
 int32_t as7341_get_id ( dev_ctx_t *dev_handle, uint8_t *id )
 {
   int32_t ret = AS7341_OK;
@@ -260,6 +274,20 @@ int32_t as7341_wait_config ( dev_ctx_t *dev_handle, bool enable )
   return ret;
 }
 
+int32_t as7341_wait_sync_config ( dev_ctx_t *dev_handle, bool enable )
+{
+  int32_t ret = AS7341_OK;
+  as7341_stat_reg_t stat_reg;
+
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, STAT_REG_ADDR, (uint8_t*) &stat_reg, 1);
+
+  stat_reg.wait_sync = enable;
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, STAT_REG_ADDR, (uint8_t*) &stat_reg, 1);
+
+  return ret;
+}
+
 int32_t as7341_spectral_meas_config ( dev_ctx_t *dev_handle, bool enable )
 {
   int32_t ret = AS7341_OK;
@@ -349,16 +377,41 @@ int32_t as7341_get_all_channel_data ( dev_ctx_t *dev_handle,
   return ret;
 }
 
-int32_t as7341_set_register_bank ( dev_ctx_t *dev_handle, as7341_reg_bank_t bank )
+int32_t as7341_set_gpio_behaviour ( dev_ctx_t *dev_handle, as7341_gpio_behavior_t behavior )
+{
+  as7341_gpio_2_reg_t gpio_2 =
+    { 0 };
+
+  switch ( behavior )
+  {
+    case GPIO_INPUT:
+      gpio_2.gpio_in = 0b1;
+      break;
+
+    case GPIO_OUTPUT_NORMAL:
+      gpio_2.gpio_out = 0b1;
+      break;
+
+    case GPIO_OUTPUT_INVERTED:
+      gpio_2.gpio_out = 0b1;
+      gpio_2.gpio_inv = 0b1;
+      break;
+
+    default:
+      return AS7341_ERROR;
+  }
+
+  return dev_handle->bus_write (NULL, AS7341_I2C_ADDR, GPIO_2_REG_ADDR, (uint8_t*) &gpio_2, 1);
+}
+
+int32_t as7341_get_initialization_status ( dev_ctx_t *dev_handle, bool *device_is_initialized )
 {
   int32_t ret = AS7341_OK;
-  as7341_cfg0_reg_t cfg0;
+  as7341_status_6_reg_t status_6;
 
-  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, CFG0_REG_ADDR, (uint8_t*) &cfg0, 1);
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, STATUS_6_REG_ADDR, (uint8_t*) &status_6, 1);
 
-  cfg0.reg_bank = bank;
-
-  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, CFG0_REG_ADDR, (uint8_t*) &cfg0, 1);
+  *device_is_initialized = status_6.int_busy;
 
   return ret;
 }

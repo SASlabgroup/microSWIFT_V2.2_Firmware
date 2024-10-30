@@ -61,7 +61,7 @@ typedef struct
 
   uint16_t                  channel_data[NUM_LIGHT_CHANNELS + 1];
 
-  as7341_reg_bank_t         current_bank;
+  int32_t                   current_bank;
 
   as7341_again_t            sensor_gain;
 
