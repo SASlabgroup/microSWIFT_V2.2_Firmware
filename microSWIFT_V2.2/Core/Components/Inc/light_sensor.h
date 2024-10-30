@@ -15,6 +15,7 @@
 #define LIGHT_I2C_BUF_SIZE 32
 #define LIGHT_I2C_TIMEOUT 25
 #define NUM_LIGHT_CHANNELS 11
+#define INTEGRATION_TIME_MS 50
 
 // @formatter:off
 typedef enum
@@ -53,7 +54,9 @@ typedef struct
 
   as7341_gpio_handle        gpio_handle;
 
-  uint16_t                  channel_data[NUM_LIGHT_CHANNELS];
+  gpio_pin_struct           fet;
+
+  uint16_t                  channel_data[NUM_LIGHT_CHANNELS + 1];
 
   as7341_reg_bank_t         current_bank;
 
@@ -62,10 +65,10 @@ typedef struct
   light_return_code_t       (*self_test) (uint16_t *clear_channel_reading);
   light_return_code_t       (*setup_sensor) (void);
   light_return_code_t       (*read_all_channels) (void);
-  light_return_code_t       (*get_measurements) (uint16_t *buffer);
-  light_return_code_t       (*get_single_measurement) (uint16_t *measurement, light_channel_index_t which_channel);
-  light_return_code_t       (*on) (void);
-  light_return_code_t       (*off) (void);
+  void                      (*get_measurements) (uint16_t *buffer);
+  void                      (*get_single_measurement) (uint16_t *measurement, light_channel_index_t which_channel);
+  void                      (*on) (void);
+  void                      (*off) (void);
 
 } Light_Sensor;
 

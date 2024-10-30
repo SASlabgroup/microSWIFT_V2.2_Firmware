@@ -12,15 +12,16 @@
 
 // @formatter:off
 static Light_Sensor *light_self;
+static as7341_gpio_int_struct gpio_struct;
 
 // Struct functions
 static light_return_code_t  _light_sensor_self_test (uint16_t *clear_channel_reading);
 static light_return_code_t  _light_sensor_setup_sensor (void);
 static light_return_code_t  _light_sensor_read_all_channels (void);
-static light_return_code_t  _light_sensor_get_measurements (uint16_t *buffer);
-static light_return_code_t  _light_sensor_get_single_measurement (uint16_t *measurement, light_channel_index_t which_channel);
-static light_return_code_t  _light_sensor_on (void);
-static light_return_code_t  _light_sensor_off (void);
+static void                 _light_sensor_get_measurements (uint16_t *buffer);
+static void                 _light_sensor_get_single_measurement (uint16_t *measurement, light_channel_index_t which_channel);
+static void                 _light_sensor_on (void);
+static void                 _light_sensor_off (void);
 
 // Functions neccessary for the AS7341 pins
 static bool             __as7341_wait_on_int (uint32_t timeout_ms);
@@ -44,6 +45,7 @@ void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle
                          TX_SEMAPHORE *int_pin_sema )
 {
   light_self = struct_ptr;
+  light_self->gpio_handle = &gpio_struct;
 
   light_self->i2c_handle = i2c_handle;
   light_self->int_pin_sema = int_pin_sema;
@@ -71,6 +73,9 @@ void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle
   light_self->gpio_handle->get_gpio_pin_state = __get_as7341_gpio_pin_state;
   light_self->gpio_handle->set_int_pin_state = __set_as7341_int_pin_state;
   light_self->gpio_handle->set_gpio_pin_state = __set_as7341_gpio_pin_state;
+
+  light_self->fet.port = LIGHT_FET_GPIO_Port;
+  light_self->fet.pin = LIGHT_FET_Pin;
 
   memset (&(light_self->channel_data[0]), 0, sizeof(light_self->channel_data));
 
@@ -132,12 +137,125 @@ static light_return_code_t _light_sensor_self_test ( uint16_t *clear_channel_rea
 }
 
 static light_return_code_t _light_sensor_setup_sensor ( void );
-static light_return_code_t _light_sensor_read_all_channels ( void );
-static light_return_code_t _light_sensor_get_measurements ( uint16_t *buffer );
-static light_return_code_t _light_sensor_get_single_measurement (
-    uint16_t *measurement, light_channel_index_t which_channel );
-static light_return_code_t _light_sensor_on ( void );
-static light_return_code_t _light_sensor_off ( void );
+
+static light_return_code_t _light_sensor_read_all_channels ( void )
+{
+  UINT tx_ret;
+  int32_t as7341_ret;
+
+  // Power sensor on
+  as7341_ret = as7341_power (&light_self->dev_ctx, true);
+  if ( as7341_ret != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
+
+  // Set SYNS mode
+  as7341_ret = as7341_set_integration_mode (&light_self->dev_ctx, SYNS_MODE);
+  if ( as7341_ret != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
+
+  // Start by setting the SMUX to the lower channels
+  as7341_ret = as7341_config_smux (&light_self->dev_ctx, &light_self->smux_assignment_low_channels);
+  if ( as7341_ret != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
+
+  // Enable spectral measurement
+  as7341_ret = as7341_spectral_meas_config (&light_self->dev_ctx, true);
+
+  // Pulse the GPIO pin to kick off sampling in SYNS mode
+  light_self->gpio_handle->set_gpio_pin_state (GPIO_PIN_SET);
+  tx_thread_relinquish ();
+  light_self->gpio_handle->set_gpio_pin_state (GPIO_PIN_RESET);
+
+  // Wait until we get the interrupt telling us data is ready
+  tx_ret = tx_semaphore_get (light_self->int_pin_sema,
+                             ((INTEGRATION_TIME_MS / TX_TIMER_TICKS_PER_SECOND) + 1));
+  if ( tx_ret != TX_SUCCESS )
+  {
+    return LIGHT_TIMEOUT;
+  }
+
+  // Read out the data
+  as7341_ret = as7341_get_all_channel_data (
+      &light_self->dev_ctx, (as7341_all_channel_data_struct*) &light_self->channel_data[0]);
+  if ( as7341_ret != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
+
+  // Switch SMUX to upper channels
+  as7341_ret = as7341_config_smux (&light_self->dev_ctx,
+                                   &light_self->smux_assignment_high_channels);
+  if ( as7341_ret != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
+
+  // Enable spectral measurement
+  as7341_ret = as7341_spectral_meas_config (&light_self->dev_ctx, true);
+
+  // Pulse the GPIO pin to kick off sampling in SYNS mode
+  light_self->gpio_handle->set_gpio_pin_state (GPIO_PIN_SET);
+  tx_thread_relinquish ();
+  light_self->gpio_handle->set_gpio_pin_state (GPIO_PIN_RESET);
+
+  // Wait until we get the interrupt telling us data is ready
+  tx_ret = tx_semaphore_get (light_self->int_pin_sema,
+                             ((INTEGRATION_TIME_MS / TX_TIMER_TICKS_PER_SECOND) + 1));
+  if ( tx_ret != TX_SUCCESS )
+  {
+    return LIGHT_TIMEOUT;
+  }
+
+  // Read out the data
+  as7341_ret = as7341_get_all_channel_data (
+      &light_self->dev_ctx, (as7341_all_channel_data_struct*) &light_self->channel_data[6]);
+  if ( as7341_ret != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
+
+  // Power sensor off
+  as7341_ret = as7341_power (&light_self->dev_ctx, true);
+  if ( as7341_ret != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
+
+  return LIGHT_SUCCESS;
+}
+
+static void _light_sensor_get_measurements ( uint16_t *buffer )
+{
+  memcpy (buffer, &(light_self->channel_data[0]), sizeof(light_self->channel_data));
+}
+
+static void _light_sensor_get_single_measurement ( uint16_t *measurement,
+                                                   light_channel_index_t which_channel )
+{
+  if ( (which_channel < 0) || (which_channel > DARK_CHANNEL) )
+  {
+    *measurement = 0;
+    return;
+  }
+
+  *measurement = light_self->channel_data[which_channel];
+}
+
+static void _light_sensor_on ( void )
+{
+  HAL_GPIO_WritePin (light_self->fet.port, light_self->fet.pin, GPIO_PIN_SET);
+}
+
+static void _light_sensor_off ( void )
+{
+  HAL_GPIO_WritePin (light_self->fet.port, light_self->fet.pin, GPIO_PIN_RESET);
+}
 
 static bool __as7341_wait_on_int ( uint32_t timeout_ms )
 {
