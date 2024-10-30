@@ -23,7 +23,8 @@ typedef enum
   LIGHT_SUCCESS             = 0,
   LIGHT_I2C_ERROR           = -1,
   LIGHT_PARAMETERS_INVALID  = -2,
-  LIGHT_TIMEOUT             = -3
+  LIGHT_TIMEOUT             = -3,
+  LIGHT_TIMER_ERROR         = -4
 } light_return_code_t;
 
 typedef enum

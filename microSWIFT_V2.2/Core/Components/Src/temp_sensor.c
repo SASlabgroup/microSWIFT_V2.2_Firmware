@@ -65,7 +65,7 @@ void temperature_init ( Temperature *struct_ptr, microSWIFT_configuration *globa
 
 void temperature_deinit ( void )
 {
-  temperature_self->i2c_driver->deinit ();
+  temperature_self->i2c_driver.deinit ();
 }
 
 void temperature_timer_expired ( ULONG expiration_input )

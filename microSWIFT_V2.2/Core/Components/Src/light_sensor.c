@@ -90,6 +90,8 @@ void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle
   light_self->self_test = _light_sensor_self_test;
   light_self->setup_sensor = _light_sensor_setup_sensor;
   light_self->read_all_channels = _light_sensor_read_all_channels;
+  light_self->start_timer = _light_sensor_start_timer;
+  light_self->stop_timer = _light_sensor_stop_timer;
   light_self->get_measurements = _light_sensor_get_measurements;
   light_self->get_single_measurement = _light_sensor_get_single_measurement;
   light_self->on = _light_sensor_on;
@@ -158,7 +160,10 @@ static light_return_code_t _light_sensor_self_test ( uint16_t *clear_channel_rea
   return ret;
 }
 
-static light_return_code_t _light_sensor_setup_sensor ( void );
+static light_return_code_t _light_sensor_setup_sensor ( void )
+{
+  return LIGHT_SUCCESS;
+}
 
 static light_return_code_t _light_sensor_read_all_channels ( void )
 {
@@ -255,17 +260,17 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
 static light_return_code_t _light_sensor_start_timer ( uint16_t timeout_in_minutes )
 {
   uint16_t timeout = TX_TIMER_TICKS_PER_SECOND * 60 * timeout_in_minutes;
-  temperature_return_code_t ret = TEMPERATURE_SUCCESS;
+  light_return_code_t ret = LIGHT_SUCCESS;
 
-  if ( tx_timer_change (temperature_self->timer, timeout, 0) != TX_SUCCESS )
+  if ( tx_timer_change (light_self->timer, timeout, 0) != TX_SUCCESS )
   {
-    ret = TEMPERATURE_TIMER_ERROR;
+    ret = LIGHT_TIMER_ERROR;
     return ret;
   }
 
-  if ( tx_timer_activate (temperature_self->timer) != TX_SUCCESS )
+  if ( tx_timer_activate (light_self->timer) != TX_SUCCESS )
   {
-    ret = TEMPERATURE_TIMER_ERROR;
+    ret = LIGHT_TIMER_ERROR;
   }
 
   return ret;
@@ -273,7 +278,8 @@ static light_return_code_t _light_sensor_start_timer ( uint16_t timeout_in_minut
 
 static light_return_code_t _light_sensor_stop_timer ( void )
 {
-
+  return (tx_timer_deactivate (light_self->timer) == TX_SUCCESS) ?
+      LIGHT_SUCCESS : LIGHT_TIMER_ERROR;
 }
 
 static void _light_sensor_get_measurements ( uint16_t *buffer )

@@ -1179,7 +1179,7 @@ static void ct_thread_entry ( ULONG thread_input )
   ct_return_code_t ct_return_code;
   uint32_t ct_parsing_error_counter = 0;
   real16_T half_salinity, half_temp;
-  int32_t ct_thread_timeout = TX_TIMER_TICKS_PER_SECOND * 90;
+  int32_t ct_thread_timeout = 3; // mins
 
   tx_thread_sleep (1);
 
@@ -1310,7 +1310,7 @@ static void temperature_thread_entry ( ULONG thread_input )
   float self_test_reading = 0.0f, sampling_reading = 0.0f;
   real16_T half_temp =
     { 0 };
-  int32_t temperature_thread_timeout = 1; // minute
+  int32_t temperature_thread_timeout = 2; // minutes
   int32_t fail_counter = 0, max_retries = 10;
 
   tx_thread_sleep (1);
@@ -1334,7 +1334,7 @@ static void temperature_thread_entry ( ULONG thread_input )
 
   if ( !temperature_self_test (&temperature, &self_test_reading) )
   {
-    temperature_error_out (&temperature, NO_ERROR_FLAG, this_thread,
+    temperature_error_out (&temperature, TEMPERATURE_SELF_TEST_FAILED, this_thread,
                            "Temperature self test failed.");
   }
 
@@ -1414,9 +1414,9 @@ static void light_thread_entry ( ULONG thread_input )
 
   tx_thread_sleep (1);
 
-  light_sensor_init (&light, device_handles->core_i2c_handle, &light_sensor_int_pin_sema);
+  light_sensor_init (&light, device_handles.core_i2c_handle, &light_sensor_int_pin_sema);
 
-  light->on ();
+  light.on ();
 
   //
   // Run tests if needed
@@ -1425,9 +1425,9 @@ static void light_thread_entry ( ULONG thread_input )
     tests.light_thread_test (NULL);
   }
 
-  if ( !light_self_test (&temperature, &self_test_clear_channel_reading) )
+  if ( !light_self_test (&light, &self_test_clear_channel_reading) )
   {
-    light_error_out (&temperature, NO_ERROR_FLAG, this_thread, "Light sensor self test failed.");
+    light_error_out (&light, LIGHT_SELF_TEST_FAILED, this_thread, "Light sensor self test failed.");
   }
 
   LOG("Light sensor initialization complete. Clear channel reading =%hu",
@@ -1438,7 +1438,7 @@ static void light_thread_entry ( ULONG thread_input )
   tx_thread_suspend (this_thread);
 
   /******************************* Control thread resumes this thread *****************************/
-  light->on ();
+  light.on ();
   light.start_timer (light_thread_timeout);
   watchdog_register_thread (LIGHT_THREAD);
   watchdog_check_in (LIGHT_THREAD);
