@@ -136,7 +136,6 @@ static light_return_code_t _light_sensor_self_test ( uint16_t *clear_channel_rea
   }
 
   as7341_spectral_meas_config (&light_self->dev_ctx, false);
-  as7341_wait_config (&light_self->dev_ctx, false);
   as7341_power (&light_self->dev_ctx, false);
 
   tx_thread_sleep (2);
@@ -191,13 +190,6 @@ static light_return_code_t _light_sensor_setup_sensor ( void )
 {
   light_return_code_t ret = LIGHT_SUCCESS;
 
-  // Integration mode SYNS --> GPIO pin triggers samples to start
-  ret = as7341_set_integration_mode (&light_self->dev_ctx, SYNS_MODE);
-  if ( ret != LIGHT_SUCCESS )
-  {
-    return ret;
-  }
-
   // Set ASTEP and ATIME to obtain the integration time from the following formula: 𝑡𝑖𝑛𝑡 = (𝐴𝑇𝐼𝑀𝐸 + 1) × (𝐴𝑆𝑇𝐸𝑃 + 1) × 2.78μ𝑠
   // We want an integration time of 182ms, so we'll set ATIME = 0, ASTEP = 65534
   ret = as7341_set_astep (&light_self->dev_ctx, 65534);
@@ -230,10 +222,15 @@ static light_return_code_t _light_sensor_setup_sensor ( void )
     return ret;
   }
 
+  // Integration mode SYNS --> GPIO pin triggers samples to start
+  ret = as7341_set_integration_mode (&light_self->dev_ctx, SYNS_MODE);
+
+  return ret;
 }
 
 static light_return_code_t _light_sensor_read_all_channels ( void )
 {
+  light_return_code_t ret = LIGHT_SUCCESS;
 
   return LIGHT_SUCCESS;
 }
