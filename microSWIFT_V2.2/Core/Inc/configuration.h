@@ -77,7 +77,7 @@
 #define TOTAL_TEMPERATURE_SAMPLES 10
 
 // If there is a light sensor present
-#define LIGHT_SENSOR_ENABLED false
+#define LIGHT_SENSOR_ENABLED true
 #define TOTAL_LIGHT_SAMPLES 10
 
 // If there is a turbidity sensor present

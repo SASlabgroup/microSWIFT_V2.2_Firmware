@@ -1304,7 +1304,7 @@ static void ct_thread_entry ( ULONG thread_input )
 static void temperature_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
-  TX_THREAD *this_thread = &temperature_thread;
+  TX_THREAD *this_thread = tx_thread_identify ();
   Temperature temperature;
   temperature_return_code_t temp_return_code = TEMPERATURE_SUCCESS;
   float self_test_reading = 0.0f, sampling_reading = 0.0f;
@@ -1407,12 +1407,15 @@ static void temperature_thread_entry ( ULONG thread_input )
 static void light_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
-  TX_THREAD *this_thread = &light_thread;
+  TX_THREAD *this_thread = tx_thread_identify ();
   Light_Sensor light;
+  uint16_t self_test_clear_channel_reading = 0;
 
   tx_thread_sleep (1);
 
-  // TODO: init and self test
+  light_sensor_init (&light, device_handles->core_i2c_handle, &light_sensor_int_pin_sema);
+
+  light->on ();
 
   //
   // Run tests if needed
@@ -1421,6 +1424,16 @@ static void light_thread_entry ( ULONG thread_input )
     tests.light_thread_test (NULL);
   }
 
+  if ( !light_self_test (&temperature, &self_test_clear_channel_reading) )
+  {
+    light_error_out (&temperature, NO_ERROR_FLAG, this_thread, "Light sensor self test failed.");
+  }
+
+  LOG("Light sensor initialization complete. Clear channel reading =%hu",
+      self_test_clear_channel_reading);
+  (void) tx_event_flags_set (&initialization_flags, TEMPERATURE_INIT_SUCCESS, TX_OR);
+
+  light.off ();
   tx_thread_suspend (this_thread);
 
   watchdog_register_thread (LIGHT_THREAD);
@@ -1451,7 +1464,7 @@ static void light_thread_entry ( ULONG thread_input )
 static void turbidity_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
-  TX_THREAD *this_thread = &turbidity_thread;
+  TX_THREAD *this_thread = tx_thread_identify ();
 
   tx_thread_sleep (1);
 
@@ -1494,7 +1507,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
 static void accelerometer_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
-  TX_THREAD *this_thread = &accelerometer_thread;
+  TX_THREAD *this_thread = tx_thread_identify ();
 
   // TODO: init and self test
 
