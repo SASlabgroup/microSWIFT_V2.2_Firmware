@@ -79,7 +79,7 @@ typedef struct
 
 } Light_Sensor;
 
-void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle,
+void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle, TX_TIMER *timer,
                           TX_SEMAPHORE *int_pin_sema );
 void light_deinit ( void );
 void light_timer_expired ( ULONG expiration_input );

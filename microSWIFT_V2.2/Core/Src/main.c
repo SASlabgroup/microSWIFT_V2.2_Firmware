@@ -51,8 +51,8 @@
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
-void SystemClock_Config(void);
-static void SystemPower_Config(void);
+void SystemClock_Config ( void );
+static void SystemPower_Config ( void );
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -63,10 +63,10 @@ static void SystemPower_Config(void);
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
-int main(void)
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main ( void )
 {
 
   /* USER CODE BEGIN 1 */
@@ -76,25 +76,25 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+  HAL_Init ();
 
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
 
   /* Configure the system clock */
-  SystemClock_Config();
+  SystemClock_Config ();
 
   /* Configure the System Power */
-  SystemPower_Config();
+  SystemPower_Config ();
 
   /* USER CODE BEGIN SysInit */
 //#error"major changes have been made to pinout, verify all connections."
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_GPDMA1_Init();
+  MX_GPIO_Init ();
+  MX_GPDMA1_Init ();
   /* USER CODE BEGIN 2 */
 
   tests_init ();
@@ -106,7 +106,7 @@ int main(void)
 
   /* USER CODE END 2 */
 
-  MX_ThreadX_Init();
+  MX_ThreadX_Init ();
 
   /* We should never get here as control is now taken by the scheduler */
 
@@ -122,30 +122,32 @@ int main(void)
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
-void SystemClock_Config(void)
+ * @brief System Clock Configuration
+ * @retval None
+ */
+void SystemClock_Config ( void )
 {
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_OscInitTypeDef RCC_OscInitStruct =
+    { 0 };
+  RCC_ClkInitTypeDef RCC_ClkInitStruct =
+    { 0 };
 
   /** Configure the main internal regulator output voltage
-  */
-  if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE4) != HAL_OK)
+   */
+  if ( HAL_PWREx_ControlVoltageScaling (PWR_REGULATOR_VOLTAGE_SCALE4) != HAL_OK )
   {
-    Error_Handler();
+    Error_Handler ();
   }
 
   /** Configure LSE Drive Capability
-  */
-  HAL_PWR_EnableBkUpAccess();
+   */
+  HAL_PWR_EnableBkUpAccess ();
   __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
 
   /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSE
-                              |RCC_OSCILLATORTYPE_MSIK;
+   */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI | RCC_OSCILLATORTYPE_LSE
+                                     | RCC_OSCILLATORTYPE_MSIK;
   RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
@@ -153,105 +155,68 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.MSIKClockRange = RCC_MSIKRANGE_2;
   RCC_OscInitStruct.MSIKState = RCC_MSIK_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  if ( HAL_RCC_OscConfig (&RCC_OscInitStruct) != HAL_OK )
   {
-    Error_Handler();
+    Error_Handler ();
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
-                              |RCC_CLOCKTYPE_PCLK3;
+   */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1
+                                | RCC_CLOCKTYPE_PCLK2 | RCC_CLOCKTYPE_PCLK3;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB3CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  if ( HAL_RCC_ClockConfig (&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK )
   {
-    Error_Handler();
+    Error_Handler ();
   }
 
   /** Enable MSI Auto calibration
-  */
-  HAL_RCCEx_EnableMSIPLLModeSelection(RCC_MSIKPLL_MODE_SEL);
-  HAL_RCCEx_EnableMSIPLLMode();
+   */
+  HAL_RCCEx_EnableMSIPLLModeSelection (RCC_MSIKPLL_MODE_SEL);
+  HAL_RCCEx_EnableMSIPLLMode ();
 
   /** Enable the force of HSI in stop mode
-  */
+   */
   __HAL_RCC_HSISTOP_ENABLE();
 }
 
 /**
-  * @brief Power Configuration
-  * @retval None
-  */
-static void SystemPower_Config(void)
+ * @brief Power Configuration
+ * @retval None
+ */
+static void SystemPower_Config ( void )
 {
-  HAL_PWREx_EnableVddIO2();
+  HAL_PWREx_EnableVddIO2 ();
 
   /*
    * Switch to SMPS regulator instead of LDO
    */
-  if (HAL_PWREx_ConfigSupply(PWR_SMPS_SUPPLY) != HAL_OK)
+  if ( HAL_PWREx_ConfigSupply (PWR_SMPS_SUPPLY) != HAL_OK )
   {
-    Error_Handler();
+    Error_Handler ();
   }
-/* USER CODE BEGIN PWR */
-/* USER CODE END PWR */
+  /* USER CODE BEGIN PWR */
+  /* USER CODE END PWR */
 }
 
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
 
-/**
-  * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM6 interrupt took place, inside
-  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
-  * a global variable "uwTick" used as application time base.
-  * @param  htim : TIM handle
-  * @retval None
-  */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-  /* USER CODE BEGIN Callback 0 */
-
-  /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM6) {
-    HAL_IncTick();
-  }
-  /* USER CODE BEGIN Callback 1 */
-
-  /* USER CODE END Callback 1 */
-}
-
-/**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
-void Error_Handler(void)
-{
-  /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
-  /* USER CODE END Error_Handler_Debug */
-}
-
 #ifdef  USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
-void assert_failed(uint8_t *file, uint32_t line)
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
+void assert_failed ( uint8_t *file, uint32_t line )
 {
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,

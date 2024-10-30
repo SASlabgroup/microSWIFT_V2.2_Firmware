@@ -9,146 +9,6 @@
 #include "stdint.h"
 #include "stdbool.h"
 
-typedef struct
-{
-  struct smux_addr_0x00
-  {
-    uint8_t unused0 :4;
-    as7341_smux_assignment_t f3_left :3;
-    uint8_t unused1 :1;
-  } addr_0x00;
-
-  struct smux_addr_0x01
-  {
-    as7341_smux_assignment_t f1_left :3;
-    uint8_t unused :5;
-  } addr_0x01;
-
-  struct smux_addr_0x02
-  {
-    uint8_t unused :8;
-  } addr_0x02;
-
-  struct smux_addr_0x03
-  {
-    uint8_t unused0 :4;
-    as7341_smux_assignment_t f8_left :3;
-    uint8_t unused1 :1;
-  } addr_0x03;
-
-  struct smux_addr_0x04
-  {
-    as7341_smux_assignment_t f6_left :3;
-    uint8_t unused :5;
-  } addr_0x04;
-
-  struct smux_addr_0x05
-  {
-    as7341_smux_assignment_t f2_left :3;
-    uint8_t unuse0 :1;
-    as7341_smux_assignment_t f4_left :3;
-    uint8_t unuse1 :1;
-  } addr_0x05;
-
-  struct smux_addr_0x06
-  {
-    uint8_t unused0 :4;
-    as7341_smux_assignment_t f5_left :3;
-    uint8_t unused1 :1;
-  } addr_0x06;
-
-  struct smux_addr_0x07
-  {
-    as7341_smux_assignment_t f7_left :3;
-    uint8_t unused :5;
-  } addr_0x07;
-
-  struct smux_addr_0x08
-  {
-    uint8_t unused0 :4;
-    as7341_smux_assignment_t clear_left :3;
-    uint8_t unused1 :1;
-  } addr_0x08;
-
-  struct smux_addr_0x09
-  {
-    uint8_t unused0 :4;
-    as7341_smux_assignment_t f5_right :3;
-    uint8_t unused1 :1;
-  } addr_0x09;
-
-  struct smux_addr_0x0A
-  {
-    as7341_smux_assignment_t f7_right :3;
-    uint8_t unused :5;
-  } addr_0x0a;
-
-  struct smux_addr_0x0B
-  {
-    uint8_t unused :8;
-  } addr_0x0b;
-
-  struct smux_addr_0x0C
-  {
-    uint8_t unused0 :4;
-    as7341_smux_assignment_t f2_right :3;
-    uint8_t unused1 :1;
-  } addr_0x0c;
-
-  struct smux_addr_0x0D
-  {
-    as7341_smux_assignment_t f4_right :3;
-    uint8_t unused :5;
-  } addr_0x0d;
-
-  struct smux_addr_0x0E
-  {
-    as7341_smux_assignment_t f8_right :3;
-    uint8_t unuse0 :1;
-    as7341_smux_assignment_t f6_right :3;
-    uint8_t unuse1 :1;
-  } addr_0x0e;
-
-  struct smux_addr_0x0F
-  {
-    uint8_t unused0 :4;
-    as7341_smux_assignment_t f3_right :3;
-    uint8_t unused1 :1;
-  } addr_0x0f;
-
-  struct smux_addr_0x10
-  {
-    as7341_smux_assignment_t f1_right :3;
-    uint8_t unuse0 :1;
-    as7341_smux_assignment_t ext_gpio :3;
-    uint8_t unuse1 :1;
-  } addr_0x10;
-
-  struct smux_addr_0x11
-  {
-    as7341_smux_assignment_t ext_int :3;
-    uint8_t unuse0 :1;
-    as7341_smux_assignment_t clear_right :3;
-    uint8_t unuse1 :1;
-  } addr_0x11;
-
-  struct smux_addr_0x12
-  {
-    uint8_t unused0 :4;
-    as7341_smux_assignment_t dark :3;
-    uint8_t unused1 :1;
-  } addr_0x12;
-
-  struct smux_addr_0x13
-  {
-    as7341_smux_assignment_t nir :3;
-    uint8_t unuse0 :1;
-    as7341_smux_assignment_t flicker :3;
-    uint8_t unuse1 :1;
-  } addr_0x13;
-
-} as7341_smux_memory;
-
 int32_t as7341_register_io_functions ( dev_ctx_t *dev_handle, dev_init_ptr init_fn,
                                        dev_deinit_ptr deinit_fn, dev_write_ptr bus_write_fn,
                                        dev_read_ptr bus_read_fn, dev_ms_delay_ptr delay,
@@ -196,15 +56,15 @@ int32_t as7341_config_smux ( dev_ctx_t *dev_handle, as7341_smux_assignment *smux
   int32_t ret = AS7341_OK;
   as7341_smux_memory smux_memory =
     { SMUX_ASSIGNMENT_DISABLE };
-  as7341_smux_channels_t adc_assignment;
-  as7341_smux_assignment_t which_adc;
+  as7341_smux_assignment_t adc_assignment;
+  as7341_smux_channels_t channel_assignment;
 
   for ( int i = 0; i < AS7341_NUM_ADCS; i++ )
   {
     adc_assignment = i + 1;
-    adc_assignment = smux_assignment->adc_assignments[i];
+    channel_assignment = smux_assignment->adc_assignments[i];
 
-    switch ( adc_assignment )
+    switch ( channel_assignment )
     {
       case ADC_DISABLE:
         break;
@@ -279,9 +139,6 @@ int32_t as7341_config_smux ( dev_ctx_t *dev_handle, as7341_smux_assignment *smux
     }
   }
 
-  // Power on
-  ret |= as7341_power (dev_handle, true);
-
   // Enable spectral interrupt so we can check when the smux command has completed
   ret |= as7341_config_smux_interrupt (dev_handle, true);
 
@@ -292,8 +149,14 @@ int32_t as7341_config_smux ( dev_ctx_t *dev_handle, as7341_smux_assignment *smux
   ret |= as7341_send_smux_command (dev_handle, SMUX_WRITE_CONFIG_FROM_RAM);
 
   // Write to SMUX RAM
-  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, SMUX_MEMORY_ADDR_LOW,
-                                (uint8_t*) &smux_memory, SMUX_MEMORY_SIZE);
+//  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, SMUX_MEMORY_ADDR_LOW,
+//                                (uint8_t*) &smux_memory, SMUX_MEMORY_SIZE);
+  uint8_t *mem_ptr = (uint8_t*) &smux_memory;
+  for ( int i = 0; i < 20; i++ )
+  {
+    dev_handle->bus_write (NULL, AS7341_I2C_ADDR, i, mem_ptr, SMUX_MEMORY_SIZE);
+    mem_ptr++;
+  }
 
   // Enable the SMUX
   ret |= as7341_smux_enable (dev_handle);
@@ -301,11 +164,14 @@ int32_t as7341_config_smux ( dev_ctx_t *dev_handle, as7341_smux_assignment *smux
   // Wait until the interrupt fires to let us know the SMUX has completed (INT pin is active low)
   if ( !((as7341_gpio_handle) dev_handle->handle)->wait_on_int (100) )
   {
-    ret = AS7341_ERROR;
+    ret |= AS7341_ERROR;
   }
 
   // Clear SMUX interrupt
   ret |= as7341_config_smux_interrupt (dev_handle, false);
+
+  // Clear system interrupts
+//  ret |= as7341_config_sys_interrupts (dev_handle, false);
 
   return ret;
 }

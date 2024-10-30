@@ -43,7 +43,7 @@ static int32_t              _light_sensor_i2c_write_blocking ( void *unused_hand
 static void                 _light_sensor_ms_delay ( uint32_t delay );
 
 // @formatter:on
-void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle,
+void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle, TX_TIMER *timer,
                          TX_SEMAPHORE *int_pin_sema )
 {
   light_self = struct_ptr;
@@ -51,6 +51,7 @@ void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle
 
   light_self->i2c_handle = i2c_handle;
   light_self->int_pin_sema = int_pin_sema;
+  light_self->timer = timer;
 
   light_self->smux_assignment_low_channels.adc_assignments[0] = F1;
   light_self->smux_assignment_low_channels.adc_assignments[1] = F2;
@@ -119,7 +120,8 @@ bool light_get_timeout_status ( void )
 static light_return_code_t _light_sensor_self_test ( uint16_t *clear_channel_reading )
 {
   light_return_code_t ret = LIGHT_SUCCESS;
-  ;
+  as7341_auxid_reg_t aux_id;
+  as7341_revid_reg_t rev_id;
   uint8_t id;
 
   // Initialize the I/O interface
@@ -132,6 +134,16 @@ static light_return_code_t _light_sensor_self_test ( uint16_t *clear_channel_rea
     return LIGHT_I2C_ERROR;
   }
 
+  as7341_spectral_meas_config (&light_self->dev_ctx, false);
+  as7341_wait_config (&light_self->dev_ctx, false);
+  as7341_power (&light_self->dev_ctx, false);
+
+  tx_thread_sleep (2);
+
+  as7341_power (&light_self->dev_ctx, true);
+
+  tx_thread_sleep (2);
+
   // Get the register bank to a known state
   if ( as7341_set_register_bank (&light_self->dev_ctx, REG_BANK_80_PLUS) != AS7341_OK )
   {
@@ -142,19 +154,29 @@ static light_return_code_t _light_sensor_self_test ( uint16_t *clear_channel_rea
     light_self->current_bank = REG_BANK_80_PLUS;
   }
 
+  light_self->dev_ctx.bus_read (NULL, AS7341_I2C_ADDR, AUXID_REG_ADDR, (uint8_t*) &aux_id, 1);
+  light_self->dev_ctx.bus_read (NULL, AS7341_I2C_ADDR, REVID_REG_ADDR, (uint8_t*) &rev_id, 1);
+
   // Check the chip ID
   if ( as7341_get_id (&light_self->dev_ctx, &id) != AS7341_OK )
   {
     return LIGHT_I2C_ERROR;
   }
 
-  if ( id != AS7341_ID )
+  if ( (id != AS7341_ID) || (aux_id.auxid != AS7341_AUXID) || (rev_id.rev_id != AS7341_REVID) )
   {
     return LIGHT_I2C_ERROR;
   }
 
+  ret = light_self->setup_sensor ();
+  if ( ret != LIGHT_SUCCESS )
+  {
+    return ret;
+  }
+
   // Read all the channels
-  ret |= light_self->read_all_channels ();
+  ret = light_self->read_all_channels ();
+
   light_self->get_single_measurement (clear_channel_reading, CLEAR_CHANNEL);
 
   return ret;
@@ -162,97 +184,42 @@ static light_return_code_t _light_sensor_self_test ( uint16_t *clear_channel_rea
 
 static light_return_code_t _light_sensor_setup_sensor ( void )
 {
-  return LIGHT_SUCCESS;
+  light_return_code_t ret = LIGHT_SUCCESS;
+
+  // Integration mode SYNS --> GPIO pin triggers samples to start
+  ret = as7341_set_integration_mode (&light_self->dev_ctx, SYNS_MODE);
+  if ( ret != LIGHT_SUCCESS )
+  {
+    return ret;
+  }
+
+  // Set ASTEP and ATIME to obtain the integration time from the following formula: 𝑡𝑖𝑛𝑡 = (𝐴𝑇𝐼𝑀𝐸 + 1) × (𝐴𝑆𝑇𝐸𝑃 + 1) × 2.78μ𝑠
+  // We want an integration time of 182ms, so we'll set ATIME = 0, ASTEP = 65534
+  ret = as7341_set_astep (&light_self->dev_ctx, 65534);
+  ret |= as7341_set_atime (&light_self->dev_ctx, 0);
+  if ( ret != LIGHT_SUCCESS )
+  {
+    return ret;
+  }
+
+  // Disable wait time, though we still need WTIME to be longer than integration time
+  ret = as7341_set_wait_time (&light_self->dev_ctx, 250);
+  ret |= as7341_wait_config (&light_self->dev_ctx, false);
+  if ( ret != LIGHT_SUCCESS )
+  {
+    return ret;
+  }
+
+  // Set the gain
+  ret = as7341_set_again (&light_self->dev_ctx, GAIN_1X);
+  if ( ret != LIGHT_SUCCESS )
+  {
+    return ret;
+  }
 }
 
 static light_return_code_t _light_sensor_read_all_channels ( void )
 {
-  UINT tx_ret;
-  int32_t as7341_ret;
-
-  // Power sensor on
-  as7341_ret = as7341_power (&light_self->dev_ctx, true);
-  if ( as7341_ret != AS7341_OK )
-  {
-    return LIGHT_I2C_ERROR;
-  }
-
-  // Set SYNS mode
-  as7341_ret = as7341_set_integration_mode (&light_self->dev_ctx, SYNS_MODE);
-  if ( as7341_ret != AS7341_OK )
-  {
-    return LIGHT_I2C_ERROR;
-  }
-
-  // Start by setting the SMUX to the lower channels
-  as7341_ret = as7341_config_smux (&light_self->dev_ctx, &light_self->smux_assignment_low_channels);
-  if ( as7341_ret != AS7341_OK )
-  {
-    return LIGHT_I2C_ERROR;
-  }
-
-  // Enable spectral measurement
-  as7341_ret = as7341_spectral_meas_config (&light_self->dev_ctx, true);
-
-  // Pulse the GPIO pin to kick off sampling in SYNS mode
-  light_self->gpio_handle->set_gpio_pin_state (GPIO_PIN_SET);
-  tx_thread_relinquish ();
-  light_self->gpio_handle->set_gpio_pin_state (GPIO_PIN_RESET);
-
-  // Wait until we get the interrupt telling us data is ready
-  tx_ret = tx_semaphore_get (light_self->int_pin_sema,
-                             ((INTEGRATION_TIME_MS / TX_TIMER_TICKS_PER_SECOND) + 1));
-  if ( tx_ret != TX_SUCCESS )
-  {
-    return LIGHT_TIMEOUT;
-  }
-
-  // Read out the data
-  as7341_ret = as7341_get_all_channel_data (
-      &light_self->dev_ctx, (as7341_all_channel_data_struct*) &light_self->channel_data[0]);
-  if ( as7341_ret != AS7341_OK )
-  {
-    return LIGHT_I2C_ERROR;
-  }
-
-  // Switch SMUX to upper channels
-  as7341_ret = as7341_config_smux (&light_self->dev_ctx,
-                                   &light_self->smux_assignment_high_channels);
-  if ( as7341_ret != AS7341_OK )
-  {
-    return LIGHT_I2C_ERROR;
-  }
-
-  // Enable spectral measurement
-  as7341_ret = as7341_spectral_meas_config (&light_self->dev_ctx, true);
-
-  // Pulse the GPIO pin to kick off sampling in SYNS mode
-  light_self->gpio_handle->set_gpio_pin_state (GPIO_PIN_SET);
-  tx_thread_relinquish ();
-  light_self->gpio_handle->set_gpio_pin_state (GPIO_PIN_RESET);
-
-  // Wait until we get the interrupt telling us data is ready
-  tx_ret = tx_semaphore_get (light_self->int_pin_sema,
-                             ((INTEGRATION_TIME_MS / TX_TIMER_TICKS_PER_SECOND) + 1));
-  if ( tx_ret != TX_SUCCESS )
-  {
-    return LIGHT_TIMEOUT;
-  }
-
-  // Read out the data
-  as7341_ret = as7341_get_all_channel_data (
-      &light_self->dev_ctx, (as7341_all_channel_data_struct*) &light_self->channel_data[6]);
-  if ( as7341_ret != AS7341_OK )
-  {
-    return LIGHT_I2C_ERROR;
-  }
-
-  // Power sensor off
-  as7341_ret = as7341_power (&light_self->dev_ctx, true);
-  if ( as7341_ret != AS7341_OK )
-  {
-    return LIGHT_I2C_ERROR;
-  }
 
   return LIGHT_SUCCESS;
 }
@@ -364,7 +331,7 @@ static int32_t _light_sensor_i2c_read_blocking ( void *unused_handle, uint16_t b
 
 // Why could they possibly need to put a bit in there for different register banks? This
 // could so easily be handled in the asic
-  if ( (reg_address < 0x80)
+  if ( ((reg_address < 0x80) && (reg_address >= 0x64))
        && (reg_address != CFG0_REG_ADDR)
        && ((light_self->current_bank == REG_BANK_80_PLUS)
            || (light_self->current_bank == REG_BANK_UNKNOWN)) )
@@ -406,7 +373,7 @@ static int32_t _light_sensor_i2c_write_blocking ( void *unused_handle, uint16_t 
 
 // Why could they possibly need to put a bit in there for different register banks? This
 // could so easily be handled in the asic
-  if ( (reg_address < 0x80)
+  if ( ((reg_address < 0x80) && (reg_address >= 0x64))
        && (reg_address != CFG0_REG_ADDR)
        && ((light_self->current_bank == REG_BANK_80_PLUS)
            || (light_self->current_bank == REG_BANK_UNKNOWN)) )

@@ -202,11 +202,11 @@ static void accelerometer_thread_entry ( ULONG thread_input );
 /* USER CODE END PFP */
 
 /**
-  * @brief  Application ThreadX Initialization.
-  * @param memory_ptr: memory pointer
-  * @retval int
-  */
-UINT App_ThreadX_Init(VOID *memory_ptr)
+ * @brief  Application ThreadX Initialization.
+ * @param memory_ptr: memory pointer
+ * @retval int
+ */
+UINT App_ThreadX_Init ( VOID *memory_ptr )
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -306,13 +306,13 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   }
   //
   // Allocate stack for the light thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XS_STACK, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XL_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the light thread. MID priority, no preemption-threshold
-  ret = tx_thread_create(&light_thread, "light thread", light_thread_entry, 0, pointer, XS_STACK,
+  ret = tx_thread_create(&light_thread, "light thread", light_thread_entry, 0, pointer, XL_STACK,
                          MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
@@ -552,6 +552,12 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
     return ret;
   }
 
+  ret = tx_semaphore_create(&light_sensor_int_pin_sema, "AS7341 Int pin sema", 0);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
   /************************************************************************************************
    **************************************** Mutexes ***********************************************
    ************************************************************************************************/
@@ -658,18 +664,18 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   return ret;
 }
 
-  /**
-  * @brief  Function that implements the kernel's initialization.
-  * @param  None
-  * @retval None
-  */
-void MX_ThreadX_Init(void)
+/**
+ * @brief  Function that implements the kernel's initialization.
+ * @param  None
+ * @retval None
+ */
+void MX_ThreadX_Init ( void )
 {
   /* USER CODE BEGIN  Before_Kernel_Start */
 
   /* USER CODE END  Before_Kernel_Start */
 
-  tx_kernel_enter();
+  tx_kernel_enter ();
 
   /* USER CODE BEGIN  Kernel_Start_Error */
 
@@ -1414,7 +1420,8 @@ static void light_thread_entry ( ULONG thread_input )
 
   tx_thread_sleep (1);
 
-  light_sensor_init (&light, device_handles.core_i2c_handle, &light_sensor_int_pin_sema);
+  light_sensor_init (&light, device_handles.core_i2c_handle, &light_timer,
+                     &light_sensor_int_pin_sema);
 
   light.on ();
 
