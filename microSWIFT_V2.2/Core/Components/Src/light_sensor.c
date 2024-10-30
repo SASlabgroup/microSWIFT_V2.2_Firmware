@@ -85,6 +85,8 @@ void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle
 
   light_self->sensor_gain = GAIN_64X;
 
+  light_self->timer_timeout = false;
+
   light_self->self_test = _light_sensor_self_test;
   light_self->setup_sensor = _light_sensor_setup_sensor;
   light_self->read_all_channels = _light_sensor_read_all_channels;
@@ -96,11 +98,21 @@ void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle
 
 void light_deinit ( void )
 {
-
+  if ( light_self->dev_ctx.deinit != NULL )
+  {
+    light_self->dev_ctx.deinit ();
+  }
 }
 
-void light_timer_expired ( ULONG expiration_input );
-bool light_get_timeout_status ( void );
+void light_timer_expired ( ULONG expiration_input )
+{
+  light_self->timer_timeout = true;
+}
+
+bool light_get_timeout_status ( void )
+{
+  return light_self->timer_timeout;
+}
 
 static light_return_code_t _light_sensor_self_test ( uint16_t *clear_channel_reading )
 {
@@ -242,7 +254,21 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
 
 static light_return_code_t _light_sensor_start_timer ( uint16_t timeout_in_minutes )
 {
+  uint16_t timeout = TX_TIMER_TICKS_PER_SECOND * 60 * timeout_in_minutes;
+  temperature_return_code_t ret = TEMPERATURE_SUCCESS;
 
+  if ( tx_timer_change (temperature_self->timer, timeout, 0) != TX_SUCCESS )
+  {
+    ret = TEMPERATURE_TIMER_ERROR;
+    return ret;
+  }
+
+  if ( tx_timer_activate (temperature_self->timer) != TX_SUCCESS )
+  {
+    ret = TEMPERATURE_TIMER_ERROR;
+  }
+
+  return ret;
 }
 
 static light_return_code_t _light_sensor_stop_timer ( void )

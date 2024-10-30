@@ -75,7 +75,7 @@ void ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
   generic_uart_register_io_functions (&self->uart_driver, ct_uart_handle, uart_sema, uart5_init,
                                       uart5_deinit, NULL, NULL);
   generic_uart_set_timeout_ticks (&self->uart_driver, CT_UART_TX_TIMEOUT_TICKS,
-                                  CT_UART_RX_TIMEOUT_TICKS);
+  CT_UART_RX_TIMEOUT_TICKS);
 }
 
 /**
@@ -316,7 +316,7 @@ static ct_return_code_t _ct_reset_uart ( void )
  */
 static ct_return_code_t _ct_start_timer ( uint16_t timeout_in_minutes )
 {
-  uint16_t timeout = TX_TIMER_TICKS_PER_SECOND * timeout_in_minutes;
+  uint16_t timeout = TX_TIMER_TICKS_PER_SECOND * 60 * timeout_in_minutes;
   ct_return_code_t ret = CT_SUCCESS;
 
   if ( tx_timer_change (self->timer, timeout, 0) != TX_SUCCESS )

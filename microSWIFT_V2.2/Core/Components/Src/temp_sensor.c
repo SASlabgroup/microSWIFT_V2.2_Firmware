@@ -18,7 +18,7 @@
 
 // @formatter:off
 // Object instance pointer
-static Temperature *temperature_Self;
+static Temperature *temperature_self;
 
 // Struct functions
 static temperature_return_code_t _temperature_self_test ( float *optional_reading );
@@ -65,7 +65,7 @@ void temperature_init ( Temperature *struct_ptr, microSWIFT_configuration *globa
 
 void temperature_deinit ( void )
 {
-
+  temperature_self->i2c_driver->deinit ();
 }
 
 void temperature_timer_expired ( ULONG expiration_input )
@@ -151,7 +151,7 @@ static temperature_return_code_t _temperature_get_readings ( bool get_single_rea
 
 static temperature_return_code_t _temperature_start_timer ( uint16_t timeout_in_minutes )
 {
-  uint16_t timeout = TX_TIMER_TICKS_PER_SECOND * timeout_in_minutes;
+  uint16_t timeout = TX_TIMER_TICKS_PER_SECOND * 60 * timeout_in_minutes;
   temperature_return_code_t ret = TEMPERATURE_SUCCESS;
 
   if ( tx_timer_change (temperature_self->timer, timeout, 0) != TX_SUCCESS )
