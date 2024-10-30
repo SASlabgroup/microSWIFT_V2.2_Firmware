@@ -361,13 +361,6 @@ static int32_t _light_sensor_i2c_read_blocking ( void *unused_handle, uint16_t b
 {
   (void) unused_handle;
   int32_t ret = AS7341_OK;
-  uint8_t read_buf[LIGHT_I2C_BUF_SIZE + 1] =
-    { 0 };
-
-  if ( !(data_length <= sizeof(read_buf)) )
-  {
-    return LIGHT_PARAMETERS_INVALID;
-  }
 
 // Why could they possibly need to put a bit in there for different register banks? This
 // could so easily be handled in the asic
@@ -394,18 +387,12 @@ static int32_t _light_sensor_i2c_read_blocking ( void *unused_handle, uint16_t b
     }
   }
 
-  read_buf[0] = (uint8_t) reg_address;
-  memcpy (&(read_buf[1]), read_data, data_length);
-
-  if ( HAL_I2C_Master_Transmit (light_self->i2c_handle, bus_address, &(read_buf[0]),
-                                data_length + 1,
-                                LIGHT_I2C_TIMEOUT)
+  if ( HAL_I2C_Mem_Read (light_self->i2c_handle, bus_address, reg_address, 1, read_data,
+                         data_length, LIGHT_I2C_TIMEOUT)
        != HAL_OK )
   {
     ret = AS7341_ERROR;
   }
-
-  memcpy (read_data, &read_buf[1], data_length);
 
   return ret;
 }
@@ -416,13 +403,6 @@ static int32_t _light_sensor_i2c_write_blocking ( void *unused_handle, uint16_t 
 {
   (void) unused_handle;
   int32_t ret = AS7341_OK;
-  uint8_t write_buf[LIGHT_I2C_BUF_SIZE + 1] =
-    { 0 };
-
-  if ( !(data_length <= sizeof(write_buf)) )
-  {
-    return LIGHT_PARAMETERS_INVALID;
-  }
 
 // Why could they possibly need to put a bit in there for different register banks? This
 // could so easily be handled in the asic
@@ -449,12 +429,8 @@ static int32_t _light_sensor_i2c_write_blocking ( void *unused_handle, uint16_t 
     }
   }
 
-  write_buf[0] = (uint8_t) reg_address;
-  memcpy (&(write_buf[1]), write_data, data_length);
-
-  if ( HAL_I2C_Master_Transmit (light_self->i2c_handle, bus_address, &(write_buf[0]),
-                                data_length + 1,
-                                LIGHT_I2C_TIMEOUT)
+  if ( HAL_I2C_Mem_Write (light_self->i2c_handle, bus_address, reg_address, 1, write_data,
+                          data_length, LIGHT_I2C_TIMEOUT)
        != HAL_OK )
   {
     ret = AS7341_ERROR;
