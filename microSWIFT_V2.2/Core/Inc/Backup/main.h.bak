@@ -97,6 +97,7 @@ void Error_Handler(void);
 #define SPI2_CSn3_GPIO_Port GPIOF
 #define AS7341_INT_Pin GPIO_PIN_1
 #define AS7341_INT_GPIO_Port GPIOG
+#define AS7341_INT_EXTI_IRQn EXTI1_IRQn
 #define SPARE_GPIO2_Pin GPIO_PIN_7
 #define SPARE_GPIO2_GPIO_Port GPIOE
 #define SPARE_GPIO3_Pin GPIO_PIN_8

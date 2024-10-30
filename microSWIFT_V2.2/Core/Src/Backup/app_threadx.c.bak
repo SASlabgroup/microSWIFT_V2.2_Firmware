@@ -465,12 +465,12 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
-//  ret = tx_timer_create(&light_timer, "Light thread timer", light_timer_expired, 0, 1, 1,
-//                        TX_NO_ACTIVATE);
-//  if ( ret != TX_SUCCESS )
-//  {
-//    return ret;
-//  }
+  ret = tx_timer_create(&light_timer, "Light thread timer", light_timer_expired, 0, 1, 1,
+                        TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
 //
 //  ret = tx_timer_create(&turbidity_timer, "Turbidity thread timer", turbidity_timer_expired, 0, 1,
 //                        1, TX_NO_ACTIVATE);
@@ -1179,7 +1179,7 @@ static void ct_thread_entry ( ULONG thread_input )
   ct_return_code_t ct_return_code;
   uint32_t ct_parsing_error_counter = 0;
   real16_T half_salinity, half_temp;
-  int32_t ct_thread_timeout = TX_TIMER_TICKS_PER_SECOND * 90;
+  int32_t ct_thread_timeout = 3; // mins
 
   tx_thread_sleep (1);
 
@@ -1304,13 +1304,13 @@ static void ct_thread_entry ( ULONG thread_input )
 static void temperature_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
-  TX_THREAD *this_thread = &temperature_thread;
+  TX_THREAD *this_thread = tx_thread_identify ();
   Temperature temperature;
   temperature_return_code_t temp_return_code = TEMPERATURE_SUCCESS;
   float self_test_reading = 0.0f, sampling_reading = 0.0f;
   real16_T half_temp =
     { 0 };
-  int32_t temperature_thread_timeout = TX_TIMER_TICKS_PER_SECOND * 30;
+  int32_t temperature_thread_timeout = 2; // minutes
   int32_t fail_counter = 0, max_retries = 10;
 
   tx_thread_sleep (1);
@@ -1334,7 +1334,7 @@ static void temperature_thread_entry ( ULONG thread_input )
 
   if ( !temperature_self_test (&temperature, &self_test_reading) )
   {
-    temperature_error_out (&temperature, NO_ERROR_FLAG, this_thread,
+    temperature_error_out (&temperature, TEMPERATURE_SELF_TEST_FAILED, this_thread,
                            "Temperature self test failed.");
   }
 
@@ -1407,11 +1407,16 @@ static void temperature_thread_entry ( ULONG thread_input )
 static void light_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
-  TX_THREAD *this_thread = &light_thread;
+  TX_THREAD *this_thread = tx_thread_identify ();
+  Light_Sensor light;
+  uint16_t self_test_clear_channel_reading = 0;
+  int32_t light_thread_timeout = 15; // minutes
 
   tx_thread_sleep (1);
 
-  // TODO: init and self test
+  light_sensor_init (&light, device_handles.core_i2c_handle, &light_sensor_int_pin_sema);
+
+  light.on ();
 
   //
   // Run tests if needed
@@ -1420,8 +1425,21 @@ static void light_thread_entry ( ULONG thread_input )
     tests.light_thread_test (NULL);
   }
 
+  if ( !light_self_test (&light, &self_test_clear_channel_reading) )
+  {
+    light_error_out (&light, LIGHT_SELF_TEST_FAILED, this_thread, "Light sensor self test failed.");
+  }
+
+  LOG("Light sensor initialization complete. Clear channel reading =%hu",
+      self_test_clear_channel_reading);
+  (void) tx_event_flags_set (&initialization_flags, TEMPERATURE_INIT_SUCCESS, TX_OR);
+
+  light.off ();
   tx_thread_suspend (this_thread);
 
+  /******************************* Control thread resumes this thread *****************************/
+  light.on ();
+  light.start_timer (light_thread_timeout);
   watchdog_register_thread (LIGHT_THREAD);
   watchdog_check_in (LIGHT_THREAD);
 
@@ -1450,7 +1468,7 @@ static void light_thread_entry ( ULONG thread_input )
 static void turbidity_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
-  TX_THREAD *this_thread = &turbidity_thread;
+  TX_THREAD *this_thread = tx_thread_identify ();
 
   tx_thread_sleep (1);
 
@@ -1493,7 +1511,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
 static void accelerometer_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
-  TX_THREAD *this_thread = &accelerometer_thread;
+  TX_THREAD *this_thread = tx_thread_identify ();
 
   // TODO: init and self test
 

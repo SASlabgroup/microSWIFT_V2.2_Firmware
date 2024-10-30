@@ -304,6 +304,9 @@ int32_t as7341_config_smux ( dev_ctx_t *dev_handle, as7341_smux_assignment *smux
     ret = AS7341_ERROR;
   }
 
+  // Clear SMUX interrupt
+  ret |= as7341_config_smux_interrupt (dev_handle, false);
+
   return ret;
 }
 
