@@ -438,3 +438,30 @@ int32_t as7341_int_sync_config ( dev_ctx_t *dev_handle, bool enable )
   return ret;
 }
 
+int32_t as7341_get_data_ready ( dev_ctx_t *dev_handle, bool *ready )
+{
+  int32_t ret = AS7341_OK;
+  as7341_status_2_reg_t status_2;
+
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, STATUS_2_REG_ADDR, (uint8_t*) &status_2, 1);
+
+  *ready = status_2.avalid;
+
+  return ret;
+}
+
+int32_t as7341_auto_zero_config ( dev_ctx_t *dev_handle, as7341_az_iter_t az_periodicity )
+{
+  int32_t ret = AS7341_OK;
+  as7341_az_config_reg_t auto_zero;
+
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, AZ_CONFIG_REG_ADDR, (uint8_t*) &auto_zero, 1);
+
+  auto_zero.az_nth_iteration.nth_iteration = az_periodicity.nth_iteration;
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, AZ_CONFIG_REG_ADDR, (uint8_t*) &auto_zero,
+                                1);
+
+  return ret;
+}
+

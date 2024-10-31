@@ -1233,6 +1233,8 @@ int32_t as7341_set_gpio_behaviour       (dev_ctx_t *dev_handle, as7341_gpio_beha
 int32_t as7341_get_initialization_status(dev_ctx_t *dev_handle, bool *device_is_initialized);
 int32_t as7341_sleep_after_int_config   (dev_ctx_t *dev_handle, bool enable);
 int32_t as7341_int_sync_config          (dev_ctx_t *dev_handle, bool enable);
+int32_t as7341_get_data_ready           (dev_ctx_t *dev_handle, bool *ready);
+int32_t as7341_auto_zero_config         (dev_ctx_t *dev_handle, as7341_az_iter_t az_periodicity);
 
 
 // @formatter:on

@@ -191,6 +191,7 @@ static light_return_code_t _light_sensor_setup_sensor ( void )
   light_return_code_t ret = LIGHT_SUCCESS;
   as7341_all_channel_data_struct dummy_data =
     { 0 };
+  as7341_az_config_reg_t az_config;
 
   // Make sure we're starting with SP_EN bit cleared
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
@@ -232,33 +233,17 @@ static light_return_code_t _light_sensor_setup_sensor ( void )
   {
     return ret;
   }
-//
-//  // Enable the INT pin as signal that data is ready
-//  ret = as7341_int_sync_config (&light_self->dev_ctx, true);
-//  if ( ret != LIGHT_SUCCESS )
-//  {
-//    return ret;
-//  }
 
-  // Read and throw away channel data
-  if ( as7341_get_all_channel_data (&light_self->dev_ctx, &dummy_data) != AS7341_OK )
-  {
-    return LIGHT_I2C_ERROR;
-  }
-
-  as7341_control_reg_t control_reg =
-    { 0 };
-  as7341_status_6_reg_t status_6 =
-    { 0 };
-  light_self->dev_ctx.bus_read (NULL, AS7341_I2C_ADDR, CONTROL_REG_ADDR, (uint8_t*) &control_reg,
-                                1);
-  light_self->dev_ctx.bus_read (NULL, AS7341_I2C_ADDR, STATUS_6_REG_ADDR, (uint8_t*) &status_6, 1);
+  // Setup auto-zero to occur every cycle
+  az_config.az_nth_iteration.nth_iteration = 1;
+  ret = as7341_auto_zero_config (&light_self->dev_ctx, az_config);
 
   return ret;
 }
 
 static light_return_code_t _light_sensor_read_all_channels ( void )
 {
+  bool data_ready = false;
 
   // Make sure we're starting with SP_EN bit cleared
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
@@ -284,10 +269,17 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
   tx_thread_relinquish ();
   light_self->gpio_handle->set_gpio_pin_state (GPIO_PIN_RESET);
 
-  if ( !light_self->gpio_handle->wait_on_int (200) )
+  while ( !data_ready )
   {
-    return LIGHT_TIMEOUT;
+    if ( as7341_get_data_ready (&light_self->dev_ctx, &data_ready) != AS7341_OK )
+    {
+      return LIGHT_I2C_ERROR;
+    }
+
+    tx_thread_sleep (1);
   }
+
+  data_ready = false;
 
   // Disable spectral measurements
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
@@ -320,9 +312,14 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
   tx_thread_relinquish ();
   light_self->gpio_handle->set_gpio_pin_state (GPIO_PIN_RESET);
 
-  if ( !light_self->gpio_handle->wait_on_int (200) )
+  while ( !data_ready )
   {
-    return LIGHT_TIMEOUT;
+    if ( as7341_get_data_ready (&light_self->dev_ctx, &data_ready) != AS7341_OK )
+    {
+      return LIGHT_I2C_ERROR;
+    }
+
+    tx_thread_sleep (1);
   }
 
   // Disable spectral measurements
