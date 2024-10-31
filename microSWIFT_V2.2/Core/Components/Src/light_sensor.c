@@ -189,6 +189,17 @@ static light_return_code_t _light_sensor_self_test ( uint16_t *clear_channel_rea
 static light_return_code_t _light_sensor_setup_sensor ( void )
 {
   light_return_code_t ret = LIGHT_SUCCESS;
+  as7341_all_channel_data_struct dummy_data =
+    { 0 };
+
+  // Make sure we're starting with SP_EN bit cleared
+  if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
+
+  // Integration mode SYNS --> GPIO pin triggers samples to start
+  ret = as7341_set_integration_mode (&light_self->dev_ctx, SPM_MODE);
 
   // Set ASTEP and ATIME to obtain the integration time from the following formula: 𝑡𝑖𝑛𝑡 = (𝐴𝑇𝐼𝑀𝐸 + 1) × (𝐴𝑆𝑇𝐸𝑃 + 1) × 2.78μ𝑠
   // We want an integration time of 182ms, so we'll set ATIME = 0, ASTEP = 65534
@@ -221,16 +232,112 @@ static light_return_code_t _light_sensor_setup_sensor ( void )
   {
     return ret;
   }
+//
+//  // Enable the INT pin as signal that data is ready
+//  ret = as7341_int_sync_config (&light_self->dev_ctx, true);
+//  if ( ret != LIGHT_SUCCESS )
+//  {
+//    return ret;
+//  }
 
-  // Integration mode SYNS --> GPIO pin triggers samples to start
-  ret = as7341_set_integration_mode (&light_self->dev_ctx, SYNS_MODE);
+  // Read and throw away channel data
+  if ( as7341_get_all_channel_data (&light_self->dev_ctx, &dummy_data) != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
+
+  as7341_control_reg_t control_reg =
+    { 0 };
+  as7341_status_6_reg_t status_6 =
+    { 0 };
+  light_self->dev_ctx.bus_read (NULL, AS7341_I2C_ADDR, CONTROL_REG_ADDR, (uint8_t*) &control_reg,
+                                1);
+  light_self->dev_ctx.bus_read (NULL, AS7341_I2C_ADDR, STATUS_6_REG_ADDR, (uint8_t*) &status_6, 1);
 
   return ret;
 }
 
 static light_return_code_t _light_sensor_read_all_channels ( void )
 {
-  light_return_code_t ret = LIGHT_SUCCESS;
+
+  // Make sure we're starting with SP_EN bit cleared
+  if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
+
+  // Set the SMUX to the lower channels
+  if ( as7341_config_smux (&light_self->dev_ctx,
+                           &(light_self->smux_assignment_low_channels)) != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
+
+  // Enable spectral measurements
+  if ( as7341_spectral_meas_config (&light_self->dev_ctx, true) != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
+
+  // We're triggering sampling via GPIO pin, so we'll do that here
+  light_self->gpio_handle->set_gpio_pin_state (GPIO_PIN_SET);
+  tx_thread_relinquish ();
+  light_self->gpio_handle->set_gpio_pin_state (GPIO_PIN_RESET);
+
+  if ( !light_self->gpio_handle->wait_on_int (200) )
+  {
+    return LIGHT_TIMEOUT;
+  }
+
+  // Disable spectral measurements
+  if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
+
+  if ( as7341_get_all_channel_data (
+      &light_self->dev_ctx, ((as7341_all_channel_data_struct*) &light_self->channel_data[0]))
+       != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
+
+  // Set the SMUX to the upper channels and repeat process
+  if ( as7341_config_smux (&light_self->dev_ctx,
+                           &(light_self->smux_assignment_high_channels)) != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
+
+  // Enable spectral measurements
+  if ( as7341_spectral_meas_config (&light_self->dev_ctx, true) != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
+
+  // We're triggering sampling via GPIO pin, so we'll do that here
+  light_self->gpio_handle->set_gpio_pin_state (GPIO_PIN_SET);
+  tx_thread_relinquish ();
+  light_self->gpio_handle->set_gpio_pin_state (GPIO_PIN_RESET);
+
+  if ( !light_self->gpio_handle->wait_on_int (200) )
+  {
+    return LIGHT_TIMEOUT;
+  }
+
+  // Disable spectral measurements
+  if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
+
+  // Read out upper channels
+  if ( as7341_get_all_channel_data (
+      &light_self->dev_ctx, ((as7341_all_channel_data_struct*) &light_self->channel_data[6]))
+       != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
 
   return LIGHT_SUCCESS;
 }
@@ -289,7 +396,7 @@ static void _light_sensor_off ( void )
 
 static bool __as7341_wait_on_int ( uint32_t timeout_ms )
 {
-  ULONG timeout = (timeout_ms / TX_TIMER_TICKS_PER_SECOND) + 1;
+  ULONG timeout = (timeout_ms / (1000 / TX_TIMER_TICKS_PER_SECOND)) + 1;
 
   if ( tx_semaphore_get (light_self->int_pin_sema, timeout) != TX_SUCCESS )
   {

@@ -1231,6 +1231,8 @@ int32_t as7341_set_again                (dev_ctx_t *dev_handle, as7341_again_t g
 int32_t as7341_get_all_channel_data     (dev_ctx_t *dev_handle, as7341_all_channel_data_struct *channel_data);
 int32_t as7341_set_gpio_behaviour       (dev_ctx_t *dev_handle, as7341_gpio_behavior_t behavior);
 int32_t as7341_get_initialization_status(dev_ctx_t *dev_handle, bool *device_is_initialized);
+int32_t as7341_sleep_after_int_config   (dev_ctx_t *dev_handle, bool enable);
+int32_t as7341_int_sync_config          (dev_ctx_t *dev_handle, bool enable);
 
 
 // @formatter:on

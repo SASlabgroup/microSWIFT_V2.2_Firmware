@@ -163,14 +163,8 @@ int32_t as7341_config_smux ( dev_ctx_t *dev_handle, as7341_smux_assignment *smux
   ret |= as7341_send_smux_command (dev_handle, SMUX_WRITE_CONFIG_FROM_RAM);
 
   // Write to SMUX RAM
-//  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, SMUX_MEMORY_ADDR_LOW,
-//                                (uint8_t*) &smux_memory, SMUX_MEMORY_SIZE);
-  uint8_t *mem_ptr = (uint8_t*) &smux_memory;
-  for ( int i = 0; i < 20; i++ )
-  {
-    dev_handle->bus_write (NULL, AS7341_I2C_ADDR, i, mem_ptr, SMUX_MEMORY_SIZE);
-    mem_ptr++;
-  }
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, SMUX_MEMORY_ADDR_LOW,
+                                (uint8_t*) &smux_memory, SMUX_MEMORY_SIZE);
 
   // Enable the SMUX
   ret |= as7341_smux_enable (dev_handle);
@@ -185,7 +179,7 @@ int32_t as7341_config_smux ( dev_ctx_t *dev_handle, as7341_smux_assignment *smux
   ret |= as7341_config_smux_interrupt (dev_handle, false);
 
   // Clear system interrupts
-//  ret |= as7341_config_sys_interrupts (dev_handle, false);
+  ret |= as7341_config_sys_interrupts (dev_handle, false);
 
   return ret;
 }
@@ -411,7 +405,35 @@ int32_t as7341_get_initialization_status ( dev_ctx_t *dev_handle, bool *device_i
 
   ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, STATUS_6_REG_ADDR, (uint8_t*) &status_6, 1);
 
-  *device_is_initialized = status_6.int_busy;
+  *device_is_initialized = !status_6.int_busy;
+
+  return ret;
+}
+
+int32_t as7341_sleep_after_int_config ( dev_ctx_t *dev_handle, bool enable )
+{
+  int32_t ret = AS7341_OK;
+  as7341_status_6_reg_t status_6;
+
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, STATUS_6_REG_ADDR, (uint8_t*) &status_6, 1);
+
+  status_6.sai_active = enable;
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, STATUS_6_REG_ADDR, (uint8_t*) &status_6, 1);
+
+  return ret;
+}
+
+int32_t as7341_int_sync_config ( dev_ctx_t *dev_handle, bool enable )
+{
+  int32_t ret = AS7341_OK;
+  as7341_config_reg_t config;
+
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, CONFIG_REG_ADDR, (uint8_t*) &config, 1);
+
+  config.int_sel = enable;
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, CONFIG_REG_ADDR, (uint8_t*) &config, 1);
 
   return ret;
 }
