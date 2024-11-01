@@ -743,7 +743,7 @@ static void rtc_thread_entry ( ULONG thread_input )
 
   (void) tx_event_flags_set (&initialization_flags, RTC_INIT_SUCCESS, TX_OR);
 
-  tx_thread_sleep (5);
+  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
   LOG("RTC Initialization successful.");
 
   while ( 1 )
@@ -1450,8 +1450,12 @@ static void light_thread_entry ( ULONG thread_input )
 
   LOG("Light sensor initialization complete. F1 = %hu, F2 = %hu, F3 = %hu, F4 = %hu, F5 = %hu, F6 = %hu, "
       "F7 = %hu, F8 = %hu, NIR = %hu, Clear = %hu, Dark = %hu",
-      self_test_clear_channel_reading);
-  (void) tx_event_flags_set (&initialization_flags, TEMPERATURE_INIT_SUCCESS, TX_OR);
+      light.channel_data[F1], light.channel_data[F2], light.channel_data[F3],
+      light.channel_data[F4], light.channel_data[F1], light.channel_data[F6],
+      light.channel_data[F7], light.channel_data[F8], light.channel_data[NIR],
+      light.channel_data[CLEAR], light.channel_data[DARK]);
+
+  (void) tx_event_flags_set (&initialization_flags, LIGHT_INIT_SUCCESS, TX_OR);
 
   light.off ();
   tx_thread_suspend (this_thread);

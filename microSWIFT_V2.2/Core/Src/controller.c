@@ -92,24 +92,28 @@ static bool _control_startup_procedure ( void )
   uint32_t reset_reason;
   real16_T voltage =
     { 0 };
+  bool initial_powerup = is_first_sample_window ();
 
 #warning "In subsequent sampling windows, if a non-critical sensor fails, set an error flag, shut\
          the component and thread down, and continue on."
 #warning "Add filex thread to the list (core) when the interface is completed"
 
-  // Set the watchdog reset or software reset flags
-  reset_reason = HAL_RCC_GetResetSource ();
-
-  if ( reset_reason & RCC_RESET_FLAG_PIN )
+  if ( !initial_powerup )
   {
-    LOG("Watchdog reset occured.");
-    tx_event_flags_set (&error_flags, WATCHDOG_RESET, TX_OR);
-  }
+    // Set the watchdog reset or software reset flags
+    reset_reason = HAL_RCC_GetResetSource ();
 
-  if ( reset_reason & RCC_RESET_FLAG_SW )
-  {
-    LOG("Software reset occured.");
-    tx_event_flags_set (&error_flags, SOFTWARE_RESET, TX_OR);
+    if ( reset_reason & RCC_RESET_FLAG_PIN )
+    {
+      LOG("Watchdog reset occured.");
+      tx_event_flags_set (&error_flags, WATCHDOG_RESET, TX_OR);
+    }
+
+    if ( reset_reason & RCC_RESET_FLAG_SW )
+    {
+      LOG("Software reset occured.");
+      tx_event_flags_set (&error_flags, SOFTWARE_RESET, TX_OR);
+    }
   }
 
   tx_thread_sleep (2);
@@ -155,7 +159,7 @@ static bool _control_startup_procedure ( void )
   }
 
   // Flash power up sequence (this will also give threads time to execute their init procedures)
-  if ( is_first_sample_window () )
+  if ( initial_powerup )
   {
     led_sequence (INITIAL_LED_SEQUENCE);
   }
@@ -363,7 +367,7 @@ static void _control_manage_state ( void )
               accelerometer_complete = false,
               waves_complete = false,
               iridium_complete = false;
-                                                                                                                                                            // @formatter:on
+                                                                                                                                                                // @formatter:on
   bool iridium_ready = false;
 
   ct_complete = !controller_self->global_config->ct_enabled;

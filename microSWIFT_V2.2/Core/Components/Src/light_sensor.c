@@ -15,7 +15,7 @@ static Light_Sensor *light_self;
 static as7341_gpio_int_struct gpio_struct;
 
 // Struct functions
-static light_return_code_t  _light_sensor_self_test (uint16_t *clear_channel_reading);
+static light_return_code_t  _light_sensor_self_test (void);
 static light_return_code_t  _light_sensor_setup_sensor (void);
 static light_return_code_t  _light_sensor_read_all_channels (void);
 static light_return_code_t  _light_sensor_start_timer ( uint16_t timeout_in_minutes );
