@@ -44,6 +44,38 @@ typedef enum
 
 typedef struct
 {
+  uint16_t f1_chan;
+  uint16_t f2_chan;
+  uint16_t f3_chan;
+  uint16_t f4_chan;
+  uint16_t f5_chan;
+  uint16_t f6_chan;
+  uint16_t f7_chan;
+  uint16_t f8_chan;
+  uint16_t nir_chan;
+  uint16_t clear_chan;
+  uint16_t dark_chan;
+  uint16_t spare_chan;
+} light_raw_counts;
+
+typedef struct
+{
+  uint32_t f1_chan;
+  uint32_t f2_chan;
+  uint32_t f3_chan;
+  uint32_t f4_chan;
+  uint32_t f5_chan;
+  uint32_t f6_chan;
+  uint32_t f7_chan;
+  uint32_t f8_chan;
+  uint32_t nir_chan;
+  uint32_t clear_chan;
+  uint32_t dark_chan;
+  uint32_t spare_chan;
+} light_basic_counts;
+
+typedef struct
+{
   I2C_HandleTypeDef         *i2c_handle;
 
   TX_SEMAPHORE              *int_pin_sema;
@@ -60,7 +92,9 @@ typedef struct
 
   gpio_pin_struct           fet;
 
-  uint16_t                  channel_data[NUM_LIGHT_CHANNELS + 1];
+  light_raw_counts          raw_counts;
+
+  light_basic_counts        basic_counts;
 
   int32_t                   current_bank;
 
@@ -71,6 +105,7 @@ typedef struct
   light_return_code_t       (*self_test) (void);
   light_return_code_t       (*setup_sensor) (void);
   light_return_code_t       (*read_all_channels) (void);
+  light_return_code_t       (*get_basic_counts) ()
   light_return_code_t       (*start_timer) ( uint16_t timeout_in_minutes );
   light_return_code_t       (*stop_timer) ( void );
   void                      (*get_measurements) (uint16_t *buffer);

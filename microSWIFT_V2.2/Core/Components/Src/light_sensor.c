@@ -24,7 +24,6 @@ static void                 _light_sensor_get_measurements (uint16_t *buffer);
 static void                 _light_sensor_get_single_measurement (uint16_t *measurement, light_channel_index_t which_channel);
 static void                 _light_sensor_on (void);
 static void                 _light_sensor_off (void);
-
 // Functions neccessary for the AS7341 pins
 static bool                 __as7341_wait_on_int (uint32_t timeout_ms);
 static GPIO_PinState        __get_as7341_int_pin_state ( void );
@@ -41,6 +40,8 @@ static int32_t              _light_sensor_i2c_write_blocking ( void *unused_hand
                                                            uint16_t reg_address, uint8_t *write_data,
                                                            uint16_t data_length );
 static void                 _light_sensor_ms_delay ( uint32_t delay );
+// Helper functions
+static void                 __raw_to_basic_counts (void);
 
 // @formatter:on
 void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle, TX_TIMER *timer,
@@ -548,4 +549,9 @@ static void _light_sensor_ms_delay ( uint32_t delay )
   {
     tx_thread_sleep (delay_ticks);
   }
+}
+
+static void __raw_to_basic_counts ( void )
+{
+#warning "Convert raw to basic counts here -- use bit shifting (you animal)"
 }
