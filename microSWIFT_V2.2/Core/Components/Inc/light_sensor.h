@@ -13,7 +13,7 @@
 #include "i2c.h"
 
 #define LIGHT_I2C_BUF_SIZE 32
-#define LIGHT_I2C_TIMEOUT 25
+#define LIGHT_I2C_TIMEOUT 10
 #define NUM_LIGHT_CHANNELS 11
 #define INTEGRATION_TIME_MS 50
 
@@ -47,6 +47,7 @@ typedef struct
   I2C_HandleTypeDef         *i2c_handle;
 
   TX_SEMAPHORE              *int_pin_sema;
+  TX_SEMAPHORE              *i2c_sema;
 
   TX_TIMER                  *timer;
 
@@ -67,7 +68,7 @@ typedef struct
 
   bool                      timer_timeout;
 
-  light_return_code_t       (*self_test) (uint16_t *clear_channel_reading);
+  light_return_code_t       (*self_test) (void);
   light_return_code_t       (*setup_sensor) (void);
   light_return_code_t       (*read_all_channels) (void);
   light_return_code_t       (*start_timer) ( uint16_t timeout_in_minutes );
@@ -80,7 +81,7 @@ typedef struct
 } Light_Sensor;
 
 void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle, TX_TIMER *timer,
-                          TX_SEMAPHORE *int_pin_sema );
+                          TX_SEMAPHORE *int_pin_sema, TX_SEMAPHORE *light_sensor_i2c_sema );
 void light_deinit ( void );
 void light_timer_expired ( ULONG expiration_input );
 bool light_get_timeout_status ( void );

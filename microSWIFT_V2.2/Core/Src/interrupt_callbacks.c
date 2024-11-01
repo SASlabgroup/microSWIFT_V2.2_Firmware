@@ -295,3 +295,31 @@ void HAL_GPIO_EXTI_Falling_Callback ( uint16_t GPIO_Pin )
     (void) tx_semaphore_put (&light_sensor_int_pin_sema);
   }
 }
+
+/**
+ * @brief  Memory Tx Transfer completed callback.
+ * @param  hi2c Pointer to a I2C_HandleTypeDef structure that contains
+ *                the configuration information for the specified I2C.
+ * @retval None
+ */
+void HAL_I2C_MemTxCpltCallback ( I2C_HandleTypeDef *hi2c )
+{
+  if ( hi2c->Instance == LIGHT_SENSOR_I2C )
+  {
+    (void) tx_semaphore_put (&light_sensor_i2c_sema);
+  }
+}
+
+/**
+ * @brief  Memory Rx Transfer completed callback.
+ * @param  hi2c Pointer to a I2C_HandleTypeDef structure that contains
+ *                the configuration information for the specified I2C.
+ * @retval None
+ */
+void HAL_I2C_MemRxCpltCallback ( I2C_HandleTypeDef *hi2c )
+{
+  if ( hi2c->Instance == LIGHT_SENSOR_I2C )
+  {
+    (void) tx_semaphore_put (&light_sensor_i2c_sema);
+  }
+}

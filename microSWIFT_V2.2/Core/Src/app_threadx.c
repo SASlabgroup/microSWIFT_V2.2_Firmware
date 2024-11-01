@@ -160,6 +160,7 @@ TX_TIMER iridium_timer;
 TX_SEMAPHORE ext_rtc_spi_sema;
 TX_SEMAPHORE aux_spi_1_spi_sema;
 TX_SEMAPHORE aux_spi_2_spi_sema;
+TX_SEMAPHORE light_sensor_i2c_sema;
 TX_SEMAPHORE aux_i2c_1_sema;
 TX_SEMAPHORE aux_i2c_2_sema;
 TX_SEMAPHORE iridium_uart_sema;
@@ -516,6 +517,12 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
+  ret = tx_semaphore_create(&light_sensor_i2c_sema, "AS7341 I2C sema", 0);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
   ret = tx_semaphore_create(&aux_i2c_1_sema, "Aux I2C 1 sema", 0);
   if ( ret != TX_SUCCESS )
   {
@@ -729,10 +736,15 @@ static void rtc_thread_entry ( ULONG thread_input )
 
   if ( ret != RTC_SUCCESS )
   {
+    // Gotta wait for the logger to fully initialize
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
     rtc_error_out (this_thread, "RTC failed to initialize.");
   }
 
   (void) tx_event_flags_set (&initialization_flags, RTC_INIT_SUCCESS, TX_OR);
+
+  tx_thread_sleep (5);
+  LOG("RTC Initialization successful.");
 
   while ( 1 )
   {
@@ -875,7 +887,7 @@ static void control_thread_entry ( ULONG thread_input )
     {
       control.shutdown_all_peripherals ();
       // Stay stuck here for a minute
-      for ( int i = 0; i < 25; i++ )
+      for ( int i = 0; i < 10; i++ )
       {
         watchdog_check_in (CONTROL_THREAD);
         led_sequence (TEST_FAILED_LED_SEQUENCE);
@@ -1344,7 +1356,7 @@ static void temperature_thread_entry ( ULONG thread_input )
                            "Temperature self test failed.");
   }
 
-  LOG("Temperature initialization complete. Temp =%3f", self_test_reading);
+  LOG("Temperature initialization complete. Temp = %3f", self_test_reading);
   (void) tx_event_flags_set (&initialization_flags, TEMPERATURE_INIT_SUCCESS, TX_OR);
 
   temperature.off ();
@@ -1415,13 +1427,12 @@ static void light_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = tx_thread_identify ();
   Light_Sensor light;
-  uint16_t self_test_clear_channel_reading = 0;
   int32_t light_thread_timeout = 15; // minutes
 
   tx_thread_sleep (1);
 
   light_sensor_init (&light, device_handles.core_i2c_handle, &light_timer,
-                     &light_sensor_int_pin_sema);
+                     &light_sensor_int_pin_sema, &light_sensor_i2c_sema);
 
   light.on ();
 
@@ -1432,12 +1443,13 @@ static void light_thread_entry ( ULONG thread_input )
     tests.light_thread_test (NULL);
   }
 
-  if ( !light_self_test (&light, &self_test_clear_channel_reading) )
+  if ( !light_self_test (&light) )
   {
     light_error_out (&light, LIGHT_SELF_TEST_FAILED, this_thread, "Light sensor self test failed.");
   }
 
-  LOG("Light sensor initialization complete. Clear channel reading =%hu",
+  LOG("Light sensor initialization complete. F1 = %hu, F2 = %hu, F3 = %hu, F4 = %hu, F5 = %hu, F6 = %hu, "
+      "F7 = %hu, F8 = %hu, NIR = %hu, Clear = %hu, Dark = %hu",
       self_test_clear_channel_reading);
   (void) tx_event_flags_set (&initialization_flags, TEMPERATURE_INIT_SUCCESS, TX_OR);
 

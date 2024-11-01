@@ -1002,7 +1002,7 @@ typedef struct
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 #define SMUX_MEMORY_ADDR_LOW (0x00)
 #define SMUX_MEMORY_ADDR_HIGH (0x13)
-#define SMUX_MEMORY_SIZE (SMUX_MEMORY_ADDR_HIGH)
+#define SMUX_MEMORY_SIZE (SMUX_MEMORY_ADDR_HIGH + 1)
 #define AS7341_NUM_ADCS 6
 
 typedef enum
@@ -1216,13 +1216,13 @@ int32_t as7341_set_register_bank        (dev_ctx_t *dev_handle, as7341_reg_bank_
 int32_t as7341_get_id                   (dev_ctx_t *dev_handle, uint8_t *id);
 int32_t as7341_set_integration_mode     (dev_ctx_t *dev_handle, as7341_int_mode_t mode);
 int32_t as7341_config_smux              (dev_ctx_t *dev_handle, as7341_smux_assignment *smux_assignment);
+int32_t as7341_validate_smux_config     (dev_ctx_t *dev_handle, as7341_smux_assignment *smux_assignment, bool *validated);
 int32_t as7341_power                    (dev_ctx_t *dev_handle, bool on);
 int32_t as7341_smux_enable              (dev_ctx_t *dev_handle);
 int32_t as7341_send_smux_command        (dev_ctx_t *dev_handle, as7341_smux_cmd_t cmd);
 int32_t as7341_config_smux_interrupt    (dev_ctx_t *dev_handle, bool enable);
 int32_t as7341_config_sys_interrupts    (dev_ctx_t *dev_handle, bool enable);
 int32_t as7341_wait_config              (dev_ctx_t *dev_handle, bool enable);
-int32_t as7341_wait_sync_config         (dev_ctx_t *dev_handle, bool enable);
 int32_t as7341_spectral_meas_config     (dev_ctx_t *dev_handle, bool enable);
 int32_t as7341_set_wait_time            (dev_ctx_t *dev_handle, float wait_time_ms);
 int32_t as7341_set_atime                (dev_ctx_t *dev_handle, uint8_t atime);

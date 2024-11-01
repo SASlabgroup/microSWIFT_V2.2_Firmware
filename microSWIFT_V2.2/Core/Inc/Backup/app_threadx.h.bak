@@ -196,6 +196,7 @@ extern Device_Handles device_handles;
 extern TX_SEMAPHORE ext_rtc_spi_sema;
 extern TX_SEMAPHORE aux_spi_1_spi_sema;
 extern TX_SEMAPHORE aux_spi_2_spi_sema;
+extern TX_SEMAPHORE light_sensor_i2c_sema;
 extern TX_SEMAPHORE aux_i2c_1_sema;
 extern TX_SEMAPHORE aux_i2c_2_sema;
 extern TX_SEMAPHORE iridium_uart_sema;

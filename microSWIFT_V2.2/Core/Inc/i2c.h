@@ -43,6 +43,8 @@ extern I2C_HandleTypeDef hi2c4;
 /* USER CODE BEGIN Private defines */
 #define I2C_OK 0
 #define I2C_ERROR -1
+
+#define LIGHT_SENSOR_I2C I2C1
 /* USER CODE END Private defines */
 
 void MX_I2C1_Init(void);

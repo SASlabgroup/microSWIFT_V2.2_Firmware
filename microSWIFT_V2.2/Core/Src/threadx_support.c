@@ -25,7 +25,7 @@
 
 bool gnss_apply_config ( GNSS *gnss )
 {
-  int fail_counter = 0, max_retries = 27;
+  int fail_counter = 0, max_retries = 20;
   gnss_return_code_t gnss_return_code = GNSS_SUCCESS;
 
   while ( fail_counter < max_retries )
@@ -112,7 +112,7 @@ bool turbidity_self_test ( void )
   return true;
 }
 
-bool light_self_test ( Light_Sensor *light, uint16_t *clear_channel_reading )
+bool light_self_test ( Light_Sensor *light )
 {
   int32_t fail_counter = 0, max_retries = 10;
   light_return_code_t light_return_code;
@@ -121,7 +121,7 @@ bool light_self_test ( Light_Sensor *light, uint16_t *clear_channel_reading )
   {
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
 
-    light_return_code = light->self_test (clear_channel_reading);
+    light_return_code = light->self_test ();
 
     if ( light_return_code == LIGHT_SUCCESS )
     {

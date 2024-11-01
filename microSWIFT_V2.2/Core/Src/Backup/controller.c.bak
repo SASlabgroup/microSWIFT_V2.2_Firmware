@@ -168,7 +168,6 @@ static bool _control_startup_procedure ( void )
 
   tx_return = tx_event_flags_get (controller_self->init_flags, init_success_flags, TX_AND_CLEAR,
                                   &current_flags, STARTUP_SEQUENCE_MAX_WAIT_TICKS);
-
   return (tx_return == TX_SUCCESS);
 }
 
@@ -364,7 +363,7 @@ static void _control_manage_state ( void )
               accelerometer_complete = false,
               waves_complete = false,
               iridium_complete = false;
-                                                                                                                                                          // @formatter:on
+                                                                                                                                                            // @formatter:on
   bool iridium_ready = false;
 
   ct_complete = !controller_self->global_config->ct_enabled;

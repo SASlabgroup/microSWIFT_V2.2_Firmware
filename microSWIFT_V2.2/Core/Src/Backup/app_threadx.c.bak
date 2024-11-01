@@ -160,6 +160,7 @@ TX_TIMER iridium_timer;
 TX_SEMAPHORE ext_rtc_spi_sema;
 TX_SEMAPHORE aux_spi_1_spi_sema;
 TX_SEMAPHORE aux_spi_2_spi_sema;
+TX_SEMAPHORE light_sensor_i2c_sema;
 TX_SEMAPHORE aux_i2c_1_sema;
 TX_SEMAPHORE aux_i2c_2_sema;
 TX_SEMAPHORE iridium_uart_sema;
@@ -306,13 +307,13 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   //
   // Allocate stack for the light thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XS_STACK, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XL_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the light thread. MID priority, no preemption-threshold
-  ret = tx_thread_create(&light_thread, "light thread", light_thread_entry, 0, pointer, XS_STACK,
+  ret = tx_thread_create(&light_thread, "light thread", light_thread_entry, 0, pointer, XL_STACK,
                          MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
@@ -516,6 +517,12 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
+  ret = tx_semaphore_create(&light_sensor_i2c_sema, "AS7341 I2C sema", 0);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
   ret = tx_semaphore_create(&aux_i2c_1_sema, "Aux I2C 1 sema", 0);
   if ( ret != TX_SUCCESS )
   {
@@ -547,6 +554,12 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
 
   ret = tx_semaphore_create(&aux_uart_2_sema, "Aux UART 2 sema", 0);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_semaphore_create(&light_sensor_int_pin_sema, "AS7341 Int pin sema", 0);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -723,10 +736,15 @@ static void rtc_thread_entry ( ULONG thread_input )
 
   if ( ret != RTC_SUCCESS )
   {
+    // Gotta wait for the logger to fully initialize
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
     rtc_error_out (this_thread, "RTC failed to initialize.");
   }
 
   (void) tx_event_flags_set (&initialization_flags, RTC_INIT_SUCCESS, TX_OR);
+
+  tx_thread_sleep (5);
+  LOG("RTC Initialization successful.");
 
   while ( 1 )
   {
@@ -869,7 +887,7 @@ static void control_thread_entry ( ULONG thread_input )
     {
       control.shutdown_all_peripherals ();
       // Stay stuck here for a minute
-      for ( int i = 0; i < 25; i++ )
+      for ( int i = 0; i < 10; i++ )
       {
         watchdog_check_in (CONTROL_THREAD);
         led_sequence (TEST_FAILED_LED_SEQUENCE);
@@ -1414,7 +1432,8 @@ static void light_thread_entry ( ULONG thread_input )
 
   tx_thread_sleep (1);
 
-  light_sensor_init (&light, device_handles.core_i2c_handle, &light_sensor_int_pin_sema);
+  light_sensor_init (&light, device_handles.core_i2c_handle, &light_timer,
+                     &light_sensor_int_pin_sema, &light_sensor_i2c_sema);
 
   light.on ();
 
