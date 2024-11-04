@@ -37,6 +37,18 @@ typedef struct
 
   bool                      error_detected;
 
+  struct
+  {
+    bool gnss_complete;
+    bool ct_complete;
+    bool temperature_complete;
+    bool light_complete;
+    bool turbidity_complete;
+    bool accelerometer_complete;
+    bool waves_complete;
+    bool iridium_complete;
+  } thread_status;
+
   bool                      (*startup_procedure)( void );
   void                      (*shutdown_procedure)( void );
   real16_T                  (*get_battery_voltage) ( void );

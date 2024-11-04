@@ -63,6 +63,18 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
   controller_self->current_message = current_message;
   controller_self->error_detected = false;
 
+  controller_self->thread_status.gnss_complete = false;
+  controller_self->thread_status.waves_complete = false;
+  controller_self->thread_status.iridium_complete = false;
+  controller_self->thread_status.ct_complete = !controller_self->global_config->ct_enabled;
+  controller_self->thread_status.temperature_complete = !controller_self->global_config
+      ->temperature_enabled;
+  controller_self->thread_status.light_complete = !controller_self->global_config->light_enabled;
+  controller_self->thread_status.turbidity_complete = !controller_self->global_config
+      ->turbidity_enabled;
+  controller_self->thread_status.accelerometer_complete = !controller_self->global_config
+      ->accelerometer_enabled;
+
   controller_self->startup_procedure = _control_startup_procedure;
   controller_self->shutdown_procedure = _control_shutdown_procedure;
   controller_self->get_battery_voltage = _control_get_battery_voltage;
@@ -360,23 +372,9 @@ static void _control_manage_state ( void )
 
   ULONG current_flags;
   UINT ret = TX_SUCCESS;
-  // @formatter:off
-  static bool gnss_complete = false,
-              ct_complete = false,
-              temperature_complete = false,
-              light_complete = false,
-              turbidity_complete = false,
-              accelerometer_complete = false,
-              waves_complete = false,
-              iridium_complete = false;
-                                                                                                                                                                  // @formatter:on
-  bool iridium_ready = false;
 
-  ct_complete = !controller_self->global_config->ct_enabled;
-  temperature_complete = !controller_self->global_config->temperature_enabled;
-  light_complete = !controller_self->global_config->light_enabled;
-  turbidity_complete = !controller_self->global_config->turbidity_enabled;
-  accelerometer_complete = !controller_self->global_config->accelerometer_enabled;
+  // @formatter:on
+  bool iridium_ready = false;
 
   (void) tx_event_flags_get (controller_self->complete_flags, ALL_EVENT_FLAGS, TX_OR_CLEAR,
                              &current_flags, TX_NO_WAIT);
@@ -391,12 +389,12 @@ static void _control_manage_state ( void )
   // Either of these (or both) will complete in less than 2 mins
   if ( current_flags & GNSS_TWO_MINS_OUT_FROM_COMPLETION )
   {
-    if ( !ct_complete )
+    if ( !controller_self->thread_status.ct_complete )
     {
       ret |= tx_thread_resume (controller_self->thread_handles->ct_thread);
     }
 
-    if ( !temperature_complete )
+    if ( !controller_self->thread_status.temperature_complete )
     {
       ret |= tx_thread_resume (controller_self->thread_handles->temperature_thread);
     }
@@ -405,21 +403,21 @@ static void _control_manage_state ( void )
   // When the GNSS thread is complete, we can run the Waves algo
   if ( current_flags & GNSS_THREAD_COMPLETED_SUCCESSFULLY )
   {
-    gnss_complete = true;
+    controller_self->thread_status.gnss_complete = true;
     ret |= tx_thread_resume (controller_self->thread_handles->waves_thread);
   }
 
   // If GNSS thread errors out, do not run waves
   if ( current_flags & GNSS_THREAD_COMPLETED_WITH_ERRORS )
   {
-    gnss_complete = true;
+    controller_self->thread_status.gnss_complete = true;
 
-    if ( !ct_complete )
+    if ( !controller_self->thread_status.ct_complete )
     {
       ret |= tx_thread_resume (controller_self->thread_handles->ct_thread);
     }
 
-    if ( !temperature_complete )
+    if ( !controller_self->thread_status.temperature_complete )
     {
       ret |= tx_thread_resume (controller_self->thread_handles->temperature_thread);
     }
@@ -428,41 +426,46 @@ static void _control_manage_state ( void )
   if ( (current_flags & CT_THREAD_COMPLETED_SUCCESSFULLY)
        | (current_flags & CT_THREAD_COMPLETED_WITH_ERRORS) )
   {
-    ct_complete = true;
+    controller_self->thread_status.ct_complete = true;
   }
 
   if ( (current_flags & TEMPERATURE_THREAD_COMPLETED_SUCCESSFULLY)
        | (current_flags & TEMPERATURE_THREAD_COMPLETED_WITH_ERRORS) )
   {
-    temperature_complete = true;
+    controller_self->thread_status.temperature_complete = true;
   }
 
   if ( (current_flags & TURBIDITY_THREAD_COMPLETED_SUCCESSFULLY)
        | (current_flags & TURBIDITY_THREAD_COMPLETED_WITH_ERRORS) )
   {
-    temperature_complete = true;
+    controller_self->thread_status.temperature_complete = true;
   }
 
   if ( (current_flags & LIGHT_THREAD_COMPLETED_SUCCESSFULLY)
        | (current_flags & LIGHT_THREAD_COMPLETED_WITH_ERRORS) )
   {
-    light_complete = true;
+    controller_self->thread_status.light_complete = true;
   }
 
   if ( (current_flags & ACCELEROMETER_THREAD_COMPLETED_SUCCESSFULLY)
        | (current_flags & ACCELEROMETER_THREAD_COMPLETED_WITH_ERRORS) )
   {
-    accelerometer_complete = true;
+    controller_self->thread_status.accelerometer_complete = true;
   }
 
   if ( (current_flags & WAVES_THREAD_COMPLETED_SUCCESSFULLY)
        | (current_flags & WAVES_THREAD_COMPLETED_WITH_ERRORS) )
   {
-    waves_complete = true;
+    controller_self->thread_status.waves_complete = true;
   }
 
-  iridium_ready = gnss_complete && ct_complete && temperature_complete && light_complete
-                  && turbidity_complete && accelerometer_complete && waves_complete;
+  iridium_ready = controller_self->thread_status.gnss_complete
+                  && controller_self->thread_status.ct_complete
+                  && controller_self->thread_status.temperature_complete
+                  && controller_self->thread_status.light_complete
+                  && controller_self->thread_status.turbidity_complete
+                  && controller_self->thread_status.accelerometer_complete
+                  && controller_self->thread_status.waves_complete;
 
   if ( iridium_ready )
   {
@@ -470,10 +473,12 @@ static void _control_manage_state ( void )
     ret |= tx_thread_resume (controller_self->thread_handles->iridium_thread);
   }
 
-  iridium_complete = (current_flags & IRIDIUM_THREAD_COMPLETED_SUCCESSFULLY)
-                     | (current_flags & IRIDIUM_THREAD_COMPLETED_WITH_ERRORS);
+  controller_self->thread_status.iridium_complete = (current_flags
+                                                     & IRIDIUM_THREAD_COMPLETED_SUCCESSFULLY)
+                                                    | (current_flags
+                                                       & IRIDIUM_THREAD_COMPLETED_WITH_ERRORS);
 
-  if ( iridium_complete )
+  if ( controller_self->thread_status.iridium_complete )
   {
     controller_self->shutdown_procedure ();
   }
