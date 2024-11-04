@@ -82,7 +82,7 @@
 
 // If there is a light sensor present
 #define LIGHT_SENSOR_ENABLED true
-#define TOTAL_LIGHT_SAMPLES 10
+#define TOTAL_LIGHT_SAMPLES (TOTAL_SAMPLES_PER_WINDOW / GNSS_SAMPLING_RATE)
 
 // If there is a turbidity sensor present
 #define TURBIDITY_SENSOR_ENABLED false

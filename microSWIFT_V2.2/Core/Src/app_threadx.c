@@ -1443,8 +1443,6 @@ static void light_thread_entry ( ULONG thread_input )
                                   / 60)
                                  + GNSS_WINDOW_BUFFER_TIME; // Same timeout as GNSS
 
-  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
-
   light_sensor_init (&light, &configuration, &(light_sensor_byte_pool_buffer[0]),
                      device_handles.core_i2c_handle, &light_timer, &light_sensor_int_pin_sema,
                      &light_sensor_i2c_sema);
