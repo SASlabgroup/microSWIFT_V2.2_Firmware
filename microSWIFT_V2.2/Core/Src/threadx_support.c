@@ -22,6 +22,7 @@
 #include "persistent_ram.h"
 #include "logger.h"
 #include "watchdog.h"
+#include "sdmmc.h"
 
 bool gnss_apply_config ( GNSS *gnss )
 {
@@ -337,6 +338,8 @@ void filex_error_out ( TX_THREAD *filex_thread, const char *fmt, ... )
   va_list args;
   va_start(args, fmt);
   char tmp_fmt[128];
+
+  HAL_SD_DeInit (&hsd1);
 
   vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
   va_end(args);

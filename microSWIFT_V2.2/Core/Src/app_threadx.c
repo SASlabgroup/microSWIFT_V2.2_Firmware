@@ -1443,7 +1443,7 @@ static void light_thread_entry ( ULONG thread_input )
                                   / 60)
                                  + GNSS_WINDOW_BUFFER_TIME; // Same timeout as GNSS
 
-  tx_thread_sleep (1);
+  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
 
   light_sensor_init (&light, &configuration, &(light_sensor_byte_pool_buffer[0]),
                      device_handles.core_i2c_handle, &light_timer, &light_sensor_int_pin_sema,
@@ -1474,8 +1474,8 @@ static void light_thread_entry ( ULONG thread_input )
       raw_counts.nir_chan, raw_counts.clear_chan, raw_counts.dark_chan);
 
   LOG("Basic counts:\n"
-      "F1 = %hu, F2 = %hu, F3 = %hu, F4 = %hu, F5 = %hu, F6 = %hu, "
-      "F7 = %hu, F8 = %hu, NIR = %hu, Clear = %hu, Dark = %hu",
+      "F1 = %u, F2 = %u, F3 = %u, F4 = %u, F5 = %u, F6 = %u, "
+      "F7 = %u, F8 = %u, NIR = %u, Clear = %u, Dark = %u",
       basic_counts.f1_chan, basic_counts.f2_chan, basic_counts.f3_chan, basic_counts.f4_chan,
       basic_counts.f5_chan, basic_counts.f6_chan, basic_counts.f7_chan, basic_counts.f8_chan,
       basic_counts.nir_chan, basic_counts.clear_chan, basic_counts.dark_chan);
@@ -1490,10 +1490,10 @@ static void light_thread_entry ( ULONG thread_input )
   // Take our samples
   while ( 1 )
   {
+
     watchdog_check_in (LIGHT_THREAD);
 
     light_ret = light.read_all_channels ();
-    light_ret |= light.process_measurements ();
 
     if ( light_ret != LIGHT_SUCCESS )
     {
@@ -1507,11 +1507,17 @@ static void light_thread_entry ( ULONG thread_input )
                        "Light sample window timed out after %d minutes.", light_thread_timeout);
     }
 
+    light_ret = light.process_measurements ();
+
     if ( light_ret == LIGHT_DONE_SAMPLING )
     {
       break;
     }
+
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND - (tx_time_get () % TX_TIMER_TICKS_PER_SECOND));
   }
+
+  light.get_samples_averages ();
 
   watchdog_check_in (LIGHT_THREAD);
   watchdog_deregister_thread (LIGHT_THREAD);

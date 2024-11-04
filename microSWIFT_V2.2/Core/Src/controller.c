@@ -374,7 +374,6 @@ static void _control_manage_state ( void )
   ULONG current_flags;
   UINT ret = TX_SUCCESS;
 
-  // @formatter:on
   bool iridium_ready = false;
 
   (void) tx_event_flags_get (controller_self->complete_flags, ALL_EVENT_FLAGS, TX_OR_CLEAR,
@@ -414,6 +413,7 @@ static void _control_manage_state ( void )
   if ( current_flags & GNSS_THREAD_COMPLETED_WITH_ERRORS )
   {
     controller_self->thread_status.gnss_complete = true;
+    controller_self->thread_status.waves_complete = true;
 
     if ( !controller_self->thread_status.ct_complete )
     {

@@ -14,7 +14,7 @@
 #include "configuration.h"
 
 #define LIGHT_I2C_BUF_SIZE 32
-#define LIGHT_I2C_TIMEOUT 10
+#define LIGHT_I2C_TIMEOUT 5
 #define NUM_LIGHT_CHANNELS 11
 #define INTEGRATION_TIME_MS 50
 #define LIGHT_SENSOR_BYTE_POOL_BUFFER_SIZE 86400// max size = 30 mins of qty 12 4-byte measurements every second
@@ -110,6 +110,7 @@ typedef struct
   uint32_t                  total_samples;
   light_basic_counts        samples_max;
   light_basic_counts        samples_min;
+  light_basic_counts        samples_averages_accumulator;
   light_basic_counts        *samples_series;
 
 
@@ -119,6 +120,7 @@ typedef struct
   light_return_code_t       (*start_timer) ( uint16_t timeout_in_minutes );
   light_return_code_t       (*stop_timer) ( void );
   light_return_code_t       (*process_measurements) (void);
+  light_return_code_t       (*get_samples_averages) (void);
   void                      (*get_raw_measurements) (light_raw_counts *buffer);
   void                      (*get_basic_counts) (light_basic_counts *buffer);
   void                      (*get_single_measurement) (uint16_t *raw_measurement, uint32_t *basic_count, light_channel_index_t which_channel);

@@ -180,7 +180,7 @@ int32_t as7341_config_smux ( dev_ctx_t *dev_handle, as7341_smux_assignment *smux
   ret |= as7341_smux_enable (dev_handle);
 
   // Wait until the interrupt fires to let us know the SMUX has completed (INT pin is active low)
-  if ( !((as7341_gpio_handle) dev_handle->handle)->wait_on_int (100) )
+  if ( !((as7341_gpio_handle) dev_handle->handle)->wait_on_int (1000) )
   {
     ret |= AS7341_ERROR;
   }

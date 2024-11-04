@@ -21,6 +21,7 @@ static light_return_code_t  _light_sensor_read_all_channels (void);
 static light_return_code_t  _light_sensor_start_timer ( uint16_t timeout_in_minutes );
 static light_return_code_t  _light_sensor_stop_timer ( void );
 static light_return_code_t  _light_sensor_process_measurements (void);
+static light_return_code_t  _light_sensor_get_samples_averages (void);
 static void                 _light_sensor_get_raw_measurements (light_raw_counts *buffer);
 static void                 _light_sensor_get_basic_counts (light_basic_counts *buffer);
 static void                 _light_sensor_get_single_measurement (uint16_t *raw_measurement, uint32_t *basic_count, light_channel_index_t which_channel);
@@ -108,8 +109,9 @@ void light_sensor_init ( Light_Sensor *struct_ptr, microSWIFT_configuration *glo
 
   light_self->total_samples = 0;
   light_self->samples_series = samples_series_buffer;
-  memset (&(light_self->samples_min), 0, sizeof(light_self->basic_counts));
-  memset (&(light_self->samples_max), 0, sizeof(light_self->basic_counts));
+  memset (&(light_self->samples_min), 0xFFFFFFFF, sizeof(light_basic_counts));
+  memset (&(light_self->samples_max), 0, sizeof(light_basic_counts));
+  memset (&(light_self->samples_averages_accumulator), 0, sizeof(light_basic_counts));
 
   light_self->self_test = _light_sensor_self_test;
   light_self->setup_sensor = _light_sensor_setup_sensor;
@@ -117,6 +119,7 @@ void light_sensor_init ( Light_Sensor *struct_ptr, microSWIFT_configuration *glo
   light_self->start_timer = _light_sensor_start_timer;
   light_self->stop_timer = _light_sensor_stop_timer;
   light_self->process_measurements = _light_sensor_process_measurements;
+  light_self->get_samples_averages = _light_sensor_get_samples_averages;
   light_self->get_raw_measurements = _light_sensor_get_raw_measurements;
   light_self->get_basic_counts = _light_sensor_get_basic_counts;
   light_self->get_single_measurement = _light_sensor_get_single_measurement;
@@ -242,13 +245,10 @@ static light_return_code_t _light_sensor_setup_sensor ( void )
     return LIGHT_I2C_ERROR;
   }
 
-  // Integration mode SYNS --> GPIO pin triggers samples to start
-  ret = as7341_set_integration_mode (&light_self->dev_ctx, SYNS_MODE);
-
   // Set ASTEP and ATIME to obtain the integration time from the following formula : t_int = (ATMIE + 1) X (ASTEP + 1) * 2.78us
   // We want an integration time of 182ms, so we'll set ATIME = 0, ASTEP = 65534
   ret = as7341_set_astep (&light_self->dev_ctx, 65534);
-  ret |= as7341_set_atime (&light_self->dev_ctx, 1);
+  ret |= as7341_set_atime (&light_self->dev_ctx, 0);
   if ( ret != LIGHT_SUCCESS )
   {
     return ret;
@@ -298,6 +298,12 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
 {
   bool data_ready = false;
   uint32_t loop_counter = 0;
+
+  // Integration mode SYNS --> GPIO pin triggers samples to start
+  if ( as7341_set_integration_mode (&light_self->dev_ctx, SYNS_MODE) != AS7341_OK )
+  {
+    return LIGHT_I2C_ERROR;
+  }
 
   // Make sure we're starting with SP_EN bit cleared
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
@@ -439,6 +445,9 @@ static light_return_code_t _light_sensor_stop_timer ( void )
  */
 static light_return_code_t _light_sensor_process_measurements ( void )
 {
+  light_return_code_t ret = LIGHT_SUCCESS;
+  uint32_t *basic_count_ptr = &light_self->basic_counts.f1_chan;
+  uint32_t *averages_ptr = &light_self->samples_averages_accumulator.f1_chan;
   // Update min/ max
   __get_mins_maxes ();
 
@@ -451,17 +460,46 @@ static light_return_code_t _light_sensor_process_measurements ( void )
   memcpy (&(light_self->samples_series[light_self->total_samples]), &light_self->basic_counts,
           sizeof(light_basic_counts));
 
+  for ( int i = 0; i < 12; i++, basic_count_ptr++, averages_ptr++ )
+  {
+    *averages_ptr += *basic_count_ptr;
+  }
+
   light_self->total_samples++;
+
+  return ret;
+}
+
+/**
+ * @brief  Average the samples.
+ * @param  void
+ * @retval light_return_code_t indicating success or specific failure type
+ */
+static light_return_code_t _light_sensor_get_samples_averages ( void )
+{
+  uint32_t *averages_ptr = &light_self->samples_averages_accumulator.f1_chan;
+
+  if ( light_self->total_samples == 0 )
+  {
+    return LIGHT_PARAMETERS_INVALID;
+  }
+
+  for ( int i = 0; i < 12; i++, averages_ptr++ )
+  {
+    *averages_ptr /= light_self->total_samples;
+  }
+
+  return LIGHT_SUCCESS;
 }
 
 static void _light_sensor_get_raw_measurements ( light_raw_counts *buffer )
 {
-  memcpy (buffer, &(light_self->raw_counts), sizeof(light_self->raw_counts));
+  memcpy (buffer, &(light_self->raw_counts), sizeof(light_raw_counts));
 }
 
 static void _light_sensor_get_basic_counts ( light_basic_counts *buffer )
 {
-  memcpy (buffer, &(light_self->basic_counts), sizeof(light_self->basic_counts));
+  memcpy (buffer, &(light_self->basic_counts), sizeof(light_basic_counts));
 }
 
 static void _light_sensor_get_single_measurement ( uint16_t *raw_measurement, uint32_t *basic_count,
@@ -557,9 +595,10 @@ static int32_t _light_sensor_i2c_read_blocking ( void *unused_handle, uint16_t b
       light_self->as7341_current_reg_bank = REG_BANK_UNKNOWN;
       return AS7341_ERROR;
     }
+
+    light_self->as7341_current_reg_bank = REG_BANK_60_74;
   }
   else if ( ((reg_address >= 0x80) || (reg_address < 0x64))
-//  else if ( (reg_address >= 0x80)
             && (reg_address != CFG0_REG_ADDR)
             && ((light_self->as7341_current_reg_bank == REG_BANK_60_74)
                 || (light_self->as7341_current_reg_bank == REG_BANK_UNKNOWN)) )
@@ -569,6 +608,8 @@ static int32_t _light_sensor_i2c_read_blocking ( void *unused_handle, uint16_t b
       light_self->as7341_current_reg_bank = REG_BANK_UNKNOWN;
       return AS7341_ERROR;
     }
+
+    light_self->as7341_current_reg_bank = REG_BANK_80_PLUS;
   }
 
   if ( HAL_I2C_Mem_Read_IT (light_self->i2c_handle, bus_address, reg_address, 1, read_data,
@@ -606,9 +647,10 @@ static int32_t _light_sensor_i2c_write_blocking ( void *unused_handle, uint16_t 
       light_self->as7341_current_reg_bank = REG_BANK_UNKNOWN;
       return AS7341_ERROR;
     }
+
+    light_self->as7341_current_reg_bank = REG_BANK_60_74;
   }
   else if ( ((reg_address >= 0x80) || (reg_address < 0x64))
-//  else if ( (reg_address >= 0x80)
             && (reg_address != CFG0_REG_ADDR)
             && ((light_self->as7341_current_reg_bank == REG_BANK_60_74)
                 || (light_self->as7341_current_reg_bank == REG_BANK_UNKNOWN)) )
@@ -618,6 +660,8 @@ static int32_t _light_sensor_i2c_write_blocking ( void *unused_handle, uint16_t 
       light_self->as7341_current_reg_bank = REG_BANK_UNKNOWN;
       return AS7341_ERROR;
     }
+
+    light_self->as7341_current_reg_bank = REG_BANK_80_PLUS;
   }
 
   if ( HAL_I2C_Mem_Write_IT (light_self->i2c_handle, bus_address, reg_address, 1, write_data,
