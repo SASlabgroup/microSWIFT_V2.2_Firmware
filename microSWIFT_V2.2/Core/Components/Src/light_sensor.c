@@ -20,8 +20,8 @@ static light_return_code_t  _light_sensor_setup_sensor (void);
 static light_return_code_t  _light_sensor_read_all_channels (void);
 static light_return_code_t  _light_sensor_start_timer ( uint16_t timeout_in_minutes );
 static light_return_code_t  _light_sensor_stop_timer ( void );
-static void                 _light_sensor_get_raw_measurements (uint16_t *buffer);
-static void                 _light_sensor_get_basic_counts (uint32_t *buffer);
+static void                 _light_sensor_get_raw_measurements (light_raw_counts *buffer);
+static void                 _light_sensor_get_basic_counts (light_basic_counts *buffer);
 static void                 _light_sensor_get_single_measurement (uint16_t *raw_measurement, uint32_t *basic_count, light_channel_index_t which_channel);
 static void                 _light_sensor_on (void);
 static void                 _light_sensor_off (void);
@@ -45,6 +45,15 @@ static void                 _light_sensor_ms_delay ( uint32_t delay );
 static void                 __raw_to_basic_counts (void);
 
 // @formatter:on
+/**
+ * @brief  Initialize the Light_Sensor struct.
+ * @param  struct_ptr:= pointer to Light_Sensor struct
+ * @param  i2c_handle:= handle for I2C onboard peripheral
+ * @param  timer:= pointer to TX_TIMER instance
+ * @param  int_pin_sema:= pointer to semaphore used to evaluate falling edges on Int pin
+ * @param  light_Sensor_i2c_sema:= semaphore used to determine TxRx completion status from I2C interrupt transactions
+ * @retval Void
+ */
 void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle, TX_TIMER *timer,
                          TX_SEMAPHORE *int_pin_sema, TX_SEMAPHORE *light_sensor_i2c_sema )
 {
@@ -104,6 +113,11 @@ void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle
   light_self->off = _light_sensor_off;
 }
 
+/**
+ * @brief  Deinitialize the I2C interface.
+ * @param  Void
+ * @retval Void
+ */
 void light_deinit ( void )
 {
   if ( light_self->dev_ctx.deinit != NULL )
@@ -112,16 +126,33 @@ void light_deinit ( void )
   }
 }
 
+/**
+ * @brief  Timer timeout callback
+ * @param  expiration_input:= Unused input
+ * @retval Void
+ */
 void light_timer_expired ( ULONG expiration_input )
 {
+  (void) expiration_input;
   light_self->timer_timeout = true;
 }
 
+/**
+ * @brief  Get the timout status.
+ * @param  Void
+ * @retval Bool representing timeout status (true = timeout occurred)
+ */
 bool light_get_timeout_status ( void )
 {
   return light_self->timer_timeout;
 }
 
+/**
+ * @brief  Test the light sensor. This involves checking the ID, setting up the sensor, and taking
+ *         initial measurements.
+ * @param  Void
+ * @retval light_return_code_t indicating success or specific failure type
+ */
 static light_return_code_t _light_sensor_self_test ( void )
 {
   light_return_code_t ret = LIGHT_SUCCESS;
@@ -184,6 +215,11 @@ static light_return_code_t _light_sensor_self_test ( void )
   return ret;
 }
 
+/**
+ * @brief  Apply the specific configuration to the sensor
+ * @param  Void
+ * @retval light_return_code_t indicating success or specific failure type
+ */
 static light_return_code_t _light_sensor_setup_sensor ( void )
 {
   light_return_code_t ret = LIGHT_SUCCESS;
@@ -242,6 +278,11 @@ static light_return_code_t _light_sensor_setup_sensor ( void )
   return ret;
 }
 
+/**
+ * @brief  Read all channels
+ * @param  Void
+ * @retval light_return_code_t indicating success or specific failure type
+ */
 static light_return_code_t _light_sensor_read_all_channels ( void )
 {
   bool data_ready = false;
@@ -283,8 +324,8 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
     loop_counter++;
   }
 
-  if ( as7341_get_all_channel_data (&light_self->dev_ctx,
-                                    ((as7341_all_channel_data_struct*) &light_self->raw_counts))
+  if ( as7341_get_all_channel_data (
+      &light_self->dev_ctx, ((as7341_all_channel_data_struct*) &light_self->raw_counts.f1_chan))
        != AS7341_OK )
   {
     return LIGHT_I2C_ERROR;
@@ -327,8 +368,8 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
     loop_counter++;
   }
 
-  if ( as7341_get_all_channel_data (&light_self->dev_ctx,
-                                    ((as7341_all_channel_data_struct*) &light_self->raw_counts))
+  if ( as7341_get_all_channel_data (
+      &light_self->dev_ctx, ((as7341_all_channel_data_struct*) &light_self->raw_counts.f7_chan))
        != AS7341_OK )
   {
     return LIGHT_I2C_ERROR;
@@ -339,6 +380,7 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
     return LIGHT_I2C_ERROR;
   }
 
+  // Convert everything to basic counts
   __raw_to_basic_counts ();
 
   return LIGHT_SUCCESS;
@@ -369,12 +411,12 @@ static light_return_code_t _light_sensor_stop_timer ( void )
       LIGHT_SUCCESS : LIGHT_TIMER_ERROR;
 }
 
-static void _light_sensor_get_raw_measurements ( uint16_t *buffer )
+static void _light_sensor_get_raw_measurements ( light_raw_counts *buffer )
 {
   memcpy (buffer, &(light_self->raw_counts), sizeof(light_self->raw_counts));
 }
 
-static void _light_sensor_get_basic_counts ( uint32_t *buffer )
+static void _light_sensor_get_basic_counts ( light_basic_counts *buffer )
 {
   memcpy (buffer, &(light_self->basic_counts), sizeof(light_self->basic_counts));
 }

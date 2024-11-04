@@ -1427,6 +1427,8 @@ static void light_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = tx_thread_identify ();
   Light_Sensor light;
+  light_raw_counts raw_counts;
+  light_basic_counts basic_counts;
   int32_t light_thread_timeout = ((configuration.samples_per_window
                                    / configuration.gnss_sampling_rate)
                                   / 60)
@@ -1451,12 +1453,21 @@ static void light_thread_entry ( ULONG thread_input )
     light_error_out (&light, LIGHT_SELF_TEST_FAILED, this_thread, "Light sensor self test failed.");
   }
 
-  LOG("Light sensor initialization complete.\nF1 = %hu, F2 = %hu, F3 = %hu, F4 = %hu, F5 = %hu, F6 = %hu, "
+  light.get_raw_measurements (&raw_counts);
+  light.get_basic_counts (&basic_counts);
+
+  LOG("Light sensor initialization complete. Raw counts:\n"
+      "F1 = %hu, F2 = %hu, F3 = %hu, F4 = %hu, F5 = %hu, F6 = %hu, "
       "F7 = %hu, F8 = %hu, NIR = %hu, Clear = %hu, Dark = %hu",
-      light.channel_data[F1], light.channel_data[F2], light.channel_data[F3],
-      light.channel_data[F4], light.channel_data[F1], light.channel_data[F6],
-      light.channel_data[F7], light.channel_data[F8], light.channel_data[NIR],
-      light.channel_data[CLEAR], light.channel_data[DARK]);
+      raw_counts.f1_chan, raw_counts.f2_chan, raw_counts.f3_chan, raw_counts.f4_chan,
+      raw_counts.f5_chan, raw_counts.f6_chan, raw_counts.f7_chan, raw_counts.f8_chan,
+      raw_counts.nir_chan, raw_counts.clear_chan, raw_counts.dark_chan);
+  LOG("Basic counts:\n"
+      "F1 = %hu, F2 = %hu, F3 = %hu, F4 = %hu, F5 = %hu, F6 = %hu, "
+      "F7 = %hu, F8 = %hu, NIR = %hu, Clear = %hu, Dark = %hu",
+      basic_counts.f1_chan, basic_counts.f2_chan, basic_counts.f3_chan, basic_counts.f4_chan,
+      basic_counts.f5_chan, basic_counts.f6_chan, basic_counts.f7_chan, basic_counts.f8_chan,
+      basic_counts.nir_chan, basic_counts.clear_chan, basic_counts.dark_chan);
 
   (void) tx_event_flags_set (&initialization_flags, LIGHT_INIT_SUCCESS, TX_OR);
 
