@@ -178,9 +178,14 @@ TX_QUEUE logger_message_queue;
 __ALIGN_BEGIN UCHAR waves_byte_pool_buffer[WAVES_MEM_POOL_SIZE] __attribute__((section(".ram1")))__ALIGN_END;
 TX_BYTE_POOL waves_byte_pool;
 
-// Logger stack buffer
+// Logger block pool
 __ALIGN_BEGIN uint8_t logger_block_buffer[(sizeof(log_line_buf) * LOG_QUEUE_LENGTH)
                                           + (LOG_QUEUE_LENGTH * sizeof(void*))] __attribute__((section(".ram1")))__ALIGN_END;
+
+// Light sensor byte pool
+__ALIGN_BEGIN light_basic_counts light_sensor_byte_pool_buffer[LIGHT_SENSOR_BYTE_POOL_BUFFER_SIZE
+                                                               / sizeof(light_basic_counts)] __attribute__((section(".ram1")))__ALIGN_END;
+
 TX_BLOCK_POOL logger_block_pool;
 /* USER CODE END PV */
 
@@ -1170,8 +1175,6 @@ static void gnss_thread_entry ( ULONG thread_input )
   watchdog_check_in (GNSS_THREAD);
   watchdog_deregister_thread (GNSS_THREAD);
 
-  LOG("GNSS Thread complete, now terminating.");
-
   (void) tx_event_flags_set (&complete_flags, GNSS_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
 }
@@ -1227,7 +1230,7 @@ static void ct_thread_entry ( ULONG thread_input )
 
   if ( !ct_self_test (&ct, false, &ct_readings) )
   {
-    ct_error_out (&ct, CT_SELF_TEST_FAILED, this_thread, "CT self test failed.");
+    ct_error_out (&ct, CT_INIT_FAILED, this_thread, "CT self test failed.");
   }
 
   LOG("CT initialization complete. Temp = %3f, Salinity = %3f", ct_readings.temp,
@@ -1247,11 +1250,11 @@ static void ct_thread_entry ( ULONG thread_input )
   // Turn on the CT sensor, warm it up, and frame sync
   if ( !ct_self_test (&ct, true, &ct_readings) )
   {
-    ct_error_out (&ct, CT_SELF_TEST_FAILED, this_thread, "CT self test failed.");
+    ct_error_out (&ct, CT_INIT_FAILED, this_thread, "CT self test failed.");
   }
 
   // Take our samples
-  while ( ct.total_samples < configuration.total_ct_samples )
+  while ( 1 )
   {
     watchdog_check_in (CT_THREAD);
 
@@ -1267,6 +1270,14 @@ static void ct_thread_entry ( ULONG thread_input )
       // If there are too many parsing errors or a UART error occurs, stop trying
       ct_error_out (&ct, CT_SAMPLING_ERROR, this_thread,
                     "CT sensor too many parsing errors, shutting down.");
+    }
+
+    // If this evaluates to true, something hung up with GNSS sampling and we were not able
+    // to get all required samples in the alloted time.
+    if ( ct_get_timeout_status () )
+    {
+      ct_error_out (&ct, CT_SAMPLE_WINDOW_TIMEOUT, this_thread,
+                    "CT sample window timed out after %d minutes.", ct_thread_timeout);
     }
 
     if ( ct_return_code == CT_DONE_SAMPLING )
@@ -1301,8 +1312,6 @@ static void ct_thread_entry ( ULONG thread_input )
 
   watchdog_check_in (CT_THREAD);
   watchdog_deregister_thread (CT_THREAD);
-
-  LOG("CT Thread complete, now terminating.");
 
   (void) tx_event_flags_set (&complete_flags, CT_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
@@ -1352,7 +1361,7 @@ static void temperature_thread_entry ( ULONG thread_input )
 
   if ( !temperature_self_test (&temperature, &self_test_reading) )
   {
-    temperature_error_out (&temperature, TEMPERATURE_SELF_TEST_FAILED, this_thread,
+    temperature_error_out (&temperature, TEMPERATURE_INIT_FAILED, this_thread,
                            "Temperature self test failed.");
   }
 
@@ -1381,8 +1390,9 @@ static void temperature_thread_entry ( ULONG thread_input )
 
     if ( temperature_get_timeout_status () )
     {
-      temperature_error_out (&temperature, TEMPERATURE_SAMPLING_ERROR, this_thread,
-                             "Temperature thread timed out.");
+      temperature_error_out (&temperature, TEMPERATURE_SAMPLE_WINDOW_TIMEOUT, this_thread,
+                             "Temperature sample window timed out after %d minutes.",
+                             temperature_thread_timeout);
     }
 
     fail_counter++;
@@ -1405,8 +1415,6 @@ static void temperature_thread_entry ( ULONG thread_input )
   watchdog_check_in (TEMPERATURE_THREAD);
   watchdog_deregister_thread (TEMPERATURE_THREAD);
 
-  LOG("Temperature Thread complete, now terminating.");
-
   (void) tx_event_flags_set (&complete_flags, TEMPERATURE_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
 }
@@ -1426,6 +1434,7 @@ static void light_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = tx_thread_identify ();
+  light_return_code_t light_ret;
   Light_Sensor light;
   light_raw_counts raw_counts;
   light_basic_counts basic_counts;
@@ -1436,8 +1445,9 @@ static void light_thread_entry ( ULONG thread_input )
 
   tx_thread_sleep (1);
 
-  light_sensor_init (&light, device_handles.core_i2c_handle, &light_timer,
-                     &light_sensor_int_pin_sema, &light_sensor_i2c_sema);
+  light_sensor_init (&light, &configuration, &(light_sensor_byte_pool_buffer[0]),
+                     device_handles.core_i2c_handle, &light_timer, &light_sensor_int_pin_sema,
+                     &light_sensor_i2c_sema);
 
   light.on ();
 
@@ -1450,7 +1460,7 @@ static void light_thread_entry ( ULONG thread_input )
 
   if ( !light_self_test (&light) )
   {
-    light_error_out (&light, LIGHT_SELF_TEST_FAILED, this_thread, "Light sensor self test failed.");
+    light_error_out (&light, LIGHT_INIT_FAILED, this_thread, "Light sensor self test failed.");
   }
 
   light.get_raw_measurements (&raw_counts);
@@ -1462,6 +1472,7 @@ static void light_thread_entry ( ULONG thread_input )
       raw_counts.f1_chan, raw_counts.f2_chan, raw_counts.f3_chan, raw_counts.f4_chan,
       raw_counts.f5_chan, raw_counts.f6_chan, raw_counts.f7_chan, raw_counts.f8_chan,
       raw_counts.nir_chan, raw_counts.clear_chan, raw_counts.dark_chan);
+
   LOG("Basic counts:\n"
       "F1 = %hu, F2 = %hu, F3 = %hu, F4 = %hu, F5 = %hu, F6 = %hu, "
       "F7 = %hu, F8 = %hu, NIR = %hu, Clear = %hu, Dark = %hu",
@@ -1471,21 +1482,39 @@ static void light_thread_entry ( ULONG thread_input )
 
   (void) tx_event_flags_set (&initialization_flags, LIGHT_INIT_SUCCESS, TX_OR);
 
-//  light.off ();
-//  tx_thread_suspend (this_thread);
-//
-//  /******************************* Control thread resumes this thread *****************************/
-//  light.on ();
-//  light.start_timer (light_thread_timeout);
-//  watchdog_register_thread (LIGHT_THREAD);
-//  watchdog_check_in (LIGHT_THREAD);
-//
-//  // TODO: Run sensor
-//
-//  watchdog_check_in (LIGHT_THREAD);
-//  watchdog_deregister_thread (LIGHT_THREAD);
+  watchdog_register_thread (LIGHT_THREAD);
+  watchdog_check_in (LIGHT_THREAD);
 
-  LOG("Light Thread complete, now terminating.");
+  light.start_timer (light_thread_timeout);
+
+  // Take our samples
+  while ( 1 )
+  {
+    watchdog_check_in (LIGHT_THREAD);
+
+    light_ret = light.read_all_channels ();
+    light_ret |= light.process_measurements ();
+
+    if ( light_ret != LIGHT_SUCCESS )
+    {
+      light_error_out (&light, LIGHT_SAMPLING_ERROR, this_thread,
+                       "Error occurred when reading light sensor channels.");
+    }
+
+    if ( light_get_timeout_status () )
+    {
+      light_error_out (&light, LIGHT_SAMPLE_WINDOW_TIMEOUT, this_thread,
+                       "Light sample window timed out after %d minutes.", light_thread_timeout);
+    }
+
+    if ( light_ret == LIGHT_DONE_SAMPLING )
+    {
+      break;
+    }
+  }
+
+  watchdog_check_in (LIGHT_THREAD);
+  watchdog_deregister_thread (LIGHT_THREAD);
 
   (void) tx_event_flags_set (&complete_flags, LIGHT_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
@@ -1528,8 +1557,6 @@ static void turbidity_thread_entry ( ULONG thread_input )
   watchdog_check_in (TURBIDITY_THREAD);
   watchdog_deregister_thread (TURBIDITY_THREAD);
 
-  LOG("Turbidity Thread complete, now terminating.");
-
   (void) tx_event_flags_set (&complete_flags, TURBIDITY_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
 }
@@ -1568,8 +1595,6 @@ static void accelerometer_thread_entry ( ULONG thread_input )
 
   watchdog_check_in (ACCELEROMETER_THREAD);
   watchdog_deregister_thread (ACCELEROMETER_THREAD);
-
-  LOG("Accelerometer Thread complete, now terminating.");
 
   (void) tx_event_flags_set (&complete_flags, ACCELEROMETER_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
@@ -1657,8 +1682,6 @@ static void waves_thread_entry ( ULONG thread_input )
 
   watchdog_check_in (WAVES_THREAD);
   watchdog_deregister_thread (WAVES_THREAD);
-
-  LOG("NEDWaves Thread complete, now terminating.");
 
   (void) tx_event_flags_set (&complete_flags, WAVES_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
@@ -1803,8 +1826,6 @@ static void iridium_thread_entry ( ULONG thread_input )
 
   watchdog_check_in (IRIDIUM_THREAD);
   watchdog_deregister_thread (IRIDIUM_THREAD);
-
-  LOG("Iridium Thread complete, now terminating.");
 
   (void) tx_event_flags_set (&complete_flags, IRIDIUM_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);

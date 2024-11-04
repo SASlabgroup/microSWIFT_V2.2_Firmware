@@ -228,7 +228,8 @@ static void _control_shutdown_procedure ( void )
 
   persistent_ram_increment_sample_window_counter ();
 
-  tx_thread_sleep (2);
+  // Give the logger time to complete
+  tx_thread_sleep (10);
 
   // Deinit all enabled peripherals
   controller_self->shutdown_all_interfaces ();
@@ -405,6 +406,8 @@ static void _control_manage_state ( void )
   {
     controller_self->thread_status.gnss_complete = true;
     ret |= tx_thread_resume (controller_self->thread_handles->waves_thread);
+
+    LOG("GNSS thread complete, now terminating.");
   }
 
   // If GNSS thread errors out, do not run waves
@@ -421,42 +424,56 @@ static void _control_manage_state ( void )
     {
       ret |= tx_thread_resume (controller_self->thread_handles->temperature_thread);
     }
+
+    LOG("GNSS thread complete, now terminating.");
   }
 
   if ( (current_flags & CT_THREAD_COMPLETED_SUCCESSFULLY)
        | (current_flags & CT_THREAD_COMPLETED_WITH_ERRORS) )
   {
     controller_self->thread_status.ct_complete = true;
+
+    LOG("CT thread complete, now terminating.");
   }
 
   if ( (current_flags & TEMPERATURE_THREAD_COMPLETED_SUCCESSFULLY)
        | (current_flags & TEMPERATURE_THREAD_COMPLETED_WITH_ERRORS) )
   {
     controller_self->thread_status.temperature_complete = true;
+
+    LOG("Temperature thread complete, now terminating.");
   }
 
   if ( (current_flags & TURBIDITY_THREAD_COMPLETED_SUCCESSFULLY)
        | (current_flags & TURBIDITY_THREAD_COMPLETED_WITH_ERRORS) )
   {
     controller_self->thread_status.temperature_complete = true;
+
+    LOG("Turbidity thread complete, now terminating.");
   }
 
   if ( (current_flags & LIGHT_THREAD_COMPLETED_SUCCESSFULLY)
        | (current_flags & LIGHT_THREAD_COMPLETED_WITH_ERRORS) )
   {
     controller_self->thread_status.light_complete = true;
+
+    LOG("Light thread complete, now terminating.");
   }
 
   if ( (current_flags & ACCELEROMETER_THREAD_COMPLETED_SUCCESSFULLY)
        | (current_flags & ACCELEROMETER_THREAD_COMPLETED_WITH_ERRORS) )
   {
     controller_self->thread_status.accelerometer_complete = true;
+
+    LOG("Accelerometer thread complete, now terminating.");
   }
 
   if ( (current_flags & WAVES_THREAD_COMPLETED_SUCCESSFULLY)
        | (current_flags & WAVES_THREAD_COMPLETED_WITH_ERRORS) )
   {
     controller_self->thread_status.waves_complete = true;
+
+    LOG("NED Waves thread complete, now terminating.");
   }
 
   iridium_ready = controller_self->thread_status.gnss_complete
@@ -480,6 +497,8 @@ static void _control_manage_state ( void )
 
   if ( controller_self->thread_status.iridium_complete )
   {
+    LOG("Iridium thread complete, now terminating.");
+
     controller_self->shutdown_procedure ();
   }
 
@@ -513,18 +532,18 @@ static void _control_monitor_and_handle_errors ( void )
                 & (GNSS_INIT_FAILED | GNSS_CONFIGURATION_FAILED | GNSS_RESOLUTION_ERROR
                    | GNSS_TOO_MANY_PARTIAL_MSGS | GNSS_SAMPLE_WINDOW_TIMEOUT
                    | GNSS_FRAME_SYNC_FAILED | GNSS_SAMPLE_WINDOW_ERROR);
-  ct_errors = current_flags & (CT_INIT_FAILED | CT_SELF_TEST_FAILED | CT_SAMPLING_ERROR);
+  ct_errors = current_flags & (CT_INIT_FAILED | CT_SAMPLING_ERROR | CT_SAMPLE_WINDOW_TIMEOUT);
   temperature_errors = current_flags
-                       & (TEMPERATURE_INIT_FAILED | TEMPERATURE_SELF_TEST_FAILED
-                          | TEMPERATURE_SAMPLING_ERROR);
+                       & (TEMPERATURE_INIT_FAILED | TEMPERATURE_SAMPLING_ERROR
+                          | TEMPERATURE_SAMPLE_WINDOW_TIMEOUT);
   light_errors = current_flags
-                 & (LIGHT_INIT_FAILED | LIGHT_SELF_TEST_FAILED | LIGHT_SAMPLING_ERROR);
+                 & (LIGHT_INIT_FAILED | LIGHT_SAMPLING_ERROR | LIGHT_SAMPLE_WINDOW_TIMEOUT);
   turbidity_errors = current_flags
-                     & (TURBIDITY_INIT_FAILED | TURBIDITY_SELF_TEST_FAILED
-                        | TURBIDITY_SAMPLING_ERROR);
+                     & (TURBIDITY_INIT_FAILED | TURBIDITY_SAMPLING_ERROR
+                        | TURBIDITY_SAMPLE_WINDOW_TIMEOUT);
   accelerometer_errors = current_flags
-                         & (ACCELEROMETER_INIT_FAILED | ACCELEROMETER_SELF_TEST_FAILED
-                            | ACCELEROMETER_SAMPLING_ERROR);
+                         & (ACCELEROMETER_INIT_FAILED | ACCELEROMETER_SAMPLING_ERROR
+                            | ACCELEROMETER_SAMPLE_WINDOW_TIMEOUT);
   iridium_errors = current_flags & (IRIDIUM_INIT_ERROR | IRIDIUM_UART_COMMS_ERROR);
   waves_errors = current_flags & (WAVES_INIT_FAILED);
   file_system_errors = current_flags & (FILE_SYSTEM_ERROR);
@@ -666,17 +685,8 @@ static void __handle_ct_error ( ULONG error_flag )
 }
 static void __handle_temperature_error ( ULONG error_flag )
 {
-  /*
-   * TODO:
-   *    [ ] Turn off the temperature sensor
-   *    [ ] Set the temperature field to error code, salinity field to 0
-   *    [ ] Log the error in the error message buffer
-   *    [ ] Set the TEMPERATURE_THREAD_COMPLETED_WITH_ERORRS flag
-   *    [ ] Terminate the Temperature thread
-   *    [ ] Continue application logic
-   */
-#warning" Shut down Temperature sensor here "
-//  HAL_GPIO_WritePin (TEMP_FET_GPIO_Port, TEMP_FET_Pin, GPIO_PIN_RESET);
+  // Shut down the Temperature sensor
+  HAL_GPIO_WritePin (TEMP_FET_GPIO_Port, TEMP_FET_Pin, GPIO_PIN_RESET);
 
   memset (&controller_self->current_message->mean_temp, CT_VALUES_ERROR_CODE, sizeof(real16_T));
 
@@ -747,7 +757,7 @@ static void __handle_iridium_error ( ULONG error_flag )
   HAL_GPIO_WritePin (IRIDIUM_FET_GPIO_Port, IRIDIUM_FET_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin (BUS_5V_FET_GPIO_Port, BUS_5V_FET_Pin, GPIO_PIN_RESET);
 
-  persistent_ram_log_error_string ("MOdem error detected.");
+  persistent_ram_log_error_string ("Modem error detected.");
 
   (void) tx_event_flags_set (controller_self->complete_flags, IRIDIUM_THREAD_COMPLETED_WITH_ERRORS,
   TX_OR);

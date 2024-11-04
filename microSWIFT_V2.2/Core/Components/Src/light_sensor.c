@@ -20,6 +20,7 @@ static light_return_code_t  _light_sensor_setup_sensor (void);
 static light_return_code_t  _light_sensor_read_all_channels (void);
 static light_return_code_t  _light_sensor_start_timer ( uint16_t timeout_in_minutes );
 static light_return_code_t  _light_sensor_stop_timer ( void );
+static light_return_code_t  _light_sensor_process_measurements (void);
 static void                 _light_sensor_get_raw_measurements (light_raw_counts *buffer);
 static void                 _light_sensor_get_basic_counts (light_basic_counts *buffer);
 static void                 _light_sensor_get_single_measurement (uint16_t *raw_measurement, uint32_t *basic_count, light_channel_index_t which_channel);
@@ -43,6 +44,7 @@ static int32_t              _light_sensor_i2c_write_blocking ( void *unused_hand
 static void                 _light_sensor_ms_delay ( uint32_t delay );
 // Helper functions
 static void                 __raw_to_basic_counts (void);
+static void                 __get_mins_maxes (void);
 
 // @formatter:on
 /**
@@ -54,12 +56,15 @@ static void                 __raw_to_basic_counts (void);
  * @param  light_Sensor_i2c_sema:= semaphore used to determine TxRx completion status from I2C interrupt transactions
  * @retval Void
  */
-void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle, TX_TIMER *timer,
-                         TX_SEMAPHORE *int_pin_sema, TX_SEMAPHORE *light_sensor_i2c_sema )
+void light_sensor_init ( Light_Sensor *struct_ptr, microSWIFT_configuration *global_config,
+                         light_basic_counts *samples_series_buffer, I2C_HandleTypeDef *i2c_handle,
+                         TX_TIMER *timer, TX_SEMAPHORE *int_pin_sema,
+                         TX_SEMAPHORE *light_sensor_i2c_sema )
 {
   light_self = struct_ptr;
   light_self->gpio_handle = &gpio_struct;
 
+  light_self->global_config = global_config;
   light_self->i2c_handle = i2c_handle;
   light_self->int_pin_sema = int_pin_sema;
   light_self->i2c_sema = light_sensor_i2c_sema;
@@ -95,17 +100,23 @@ void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle
   memset (&(light_self->raw_counts), 0, sizeof(light_self->raw_counts));
   memset (&(light_self->basic_counts), 0, sizeof(light_self->basic_counts));
 
-  light_self->current_bank = REG_BANK_UNKNOWN;
+  light_self->as7341_current_reg_bank = REG_BANK_UNKNOWN;
 
   light_self->sensor_gain = GAIN_64X;
 
   light_self->timer_timeout = false;
+
+  light_self->total_samples = 0;
+  light_self->samples_series = samples_series_buffer;
+  memset (&(light_self->samples_min), 0, sizeof(light_self->basic_counts));
+  memset (&(light_self->samples_max), 0, sizeof(light_self->basic_counts));
 
   light_self->self_test = _light_sensor_self_test;
   light_self->setup_sensor = _light_sensor_setup_sensor;
   light_self->read_all_channels = _light_sensor_read_all_channels;
   light_self->start_timer = _light_sensor_start_timer;
   light_self->stop_timer = _light_sensor_stop_timer;
+  light_self->process_measurements = _light_sensor_process_measurements;
   light_self->get_raw_measurements = _light_sensor_get_raw_measurements;
   light_self->get_basic_counts = _light_sensor_get_basic_counts;
   light_self->get_single_measurement = _light_sensor_get_single_measurement;
@@ -279,7 +290,7 @@ static light_return_code_t _light_sensor_setup_sensor ( void )
 }
 
 /**
- * @brief  Read all channels
+ * @brief  Read all channels, data will be stored in light_self->raw_counts and light_self->basic_counts.
  * @param  Void
  * @retval light_return_code_t indicating success or specific failure type
  */
@@ -386,6 +397,11 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
   return LIGHT_SUCCESS;
 }
 
+/**
+ * @brief  Start the thread timer.
+ * @param  timeout_in_minutes:= timeout, in minutes
+ * @retval light_return_code_t indicating success or specific failure type
+ */
 static light_return_code_t _light_sensor_start_timer ( uint16_t timeout_in_minutes )
 {
   uint16_t timeout = TX_TIMER_TICKS_PER_SECOND * 60 * timeout_in_minutes;
@@ -405,10 +421,37 @@ static light_return_code_t _light_sensor_start_timer ( uint16_t timeout_in_minut
   return ret;
 }
 
+/**
+ * @brief  Stop the thread timer.
+ * @param  void
+ * @retval light_return_code_t indicating success or specific failure type
+ */
 static light_return_code_t _light_sensor_stop_timer ( void )
 {
   return (tx_timer_deactivate (light_self->timer) == TX_SUCCESS) ?
       LIGHT_SUCCESS : LIGHT_TIMER_ERROR;
+}
+
+/**
+ * @brief  Process the last round of measurements
+ * @param  void
+ * @retval light_return_code_t indicating success or specific failure type
+ */
+static light_return_code_t _light_sensor_process_measurements ( void )
+{
+  // Update min/ max
+  __get_mins_maxes ();
+
+  if ( light_self->total_samples == light_self->global_config->total_light_samples )
+  {
+    return LIGHT_DONE_SAMPLING;
+  }
+
+  // Store the most recent samples in the time series
+  memcpy (&(light_self->samples_series[light_self->total_samples]), &light_self->basic_counts,
+          sizeof(light_basic_counts));
+
+  light_self->total_samples++;
 }
 
 static void _light_sensor_get_raw_measurements ( light_raw_counts *buffer )
@@ -506,24 +549,24 @@ static int32_t _light_sensor_i2c_read_blocking ( void *unused_handle, uint16_t b
 //  if ( (reg_address < 0x80)
   if ( ((reg_address >= 0x64) && (reg_address < 0x80))
        && (reg_address != CFG0_REG_ADDR)
-       && ((light_self->current_bank == REG_BANK_80_PLUS)
-           || (light_self->current_bank == REG_BANK_UNKNOWN)) )
+       && ((light_self->as7341_current_reg_bank == REG_BANK_80_PLUS)
+           || (light_self->as7341_current_reg_bank == REG_BANK_UNKNOWN)) )
   {
     if ( as7341_set_register_bank (&light_self->dev_ctx, REG_BANK_60_74) != AS7341_OK )
     {
-      light_self->current_bank = REG_BANK_UNKNOWN;
+      light_self->as7341_current_reg_bank = REG_BANK_UNKNOWN;
       return AS7341_ERROR;
     }
   }
   else if ( ((reg_address >= 0x80) || (reg_address < 0x64))
 //  else if ( (reg_address >= 0x80)
             && (reg_address != CFG0_REG_ADDR)
-            && ((light_self->current_bank == REG_BANK_60_74)
-                || (light_self->current_bank == REG_BANK_UNKNOWN)) )
+            && ((light_self->as7341_current_reg_bank == REG_BANK_60_74)
+                || (light_self->as7341_current_reg_bank == REG_BANK_UNKNOWN)) )
   {
     if ( as7341_set_register_bank (&light_self->dev_ctx, REG_BANK_80_PLUS) != AS7341_OK )
     {
-      light_self->current_bank = REG_BANK_UNKNOWN;
+      light_self->as7341_current_reg_bank = REG_BANK_UNKNOWN;
       return AS7341_ERROR;
     }
   }
@@ -555,24 +598,24 @@ static int32_t _light_sensor_i2c_write_blocking ( void *unused_handle, uint16_t 
 //  if ( (reg_address < 0x80)
   if ( ((reg_address >= 0x64) && (reg_address < 0x80))
        && (reg_address != CFG0_REG_ADDR)
-       && ((light_self->current_bank == REG_BANK_80_PLUS)
-           || (light_self->current_bank == REG_BANK_UNKNOWN)) )
+       && ((light_self->as7341_current_reg_bank == REG_BANK_80_PLUS)
+           || (light_self->as7341_current_reg_bank == REG_BANK_UNKNOWN)) )
   {
     if ( as7341_set_register_bank (&light_self->dev_ctx, REG_BANK_60_74) != AS7341_OK )
     {
-      light_self->current_bank = REG_BANK_UNKNOWN;
+      light_self->as7341_current_reg_bank = REG_BANK_UNKNOWN;
       return AS7341_ERROR;
     }
   }
   else if ( ((reg_address >= 0x80) || (reg_address < 0x64))
 //  else if ( (reg_address >= 0x80)
             && (reg_address != CFG0_REG_ADDR)
-            && ((light_self->current_bank == REG_BANK_60_74)
-                || (light_self->current_bank == REG_BANK_UNKNOWN)) )
+            && ((light_self->as7341_current_reg_bank == REG_BANK_60_74)
+                || (light_self->as7341_current_reg_bank == REG_BANK_UNKNOWN)) )
   {
     if ( as7341_set_register_bank (&light_self->dev_ctx, REG_BANK_80_PLUS) != AS7341_OK )
     {
-      light_self->current_bank = REG_BANK_UNKNOWN;
+      light_self->as7341_current_reg_bank = REG_BANK_UNKNOWN;
       return AS7341_ERROR;
     }
   }
@@ -625,6 +668,27 @@ static void __raw_to_basic_counts ( void )
     for ( int i = 0; i < 12; i++, raw_cnt_ptr++, basic_cnt_ptr++ )
     {
       *basic_cnt_ptr = *raw_cnt_ptr << (light_self->sensor_gain - 1);
+    }
+  }
+}
+
+static void __get_mins_maxes ( void )
+{
+  uint32_t *basic_count, *min, *max;
+  basic_count = &light_self->basic_counts.f1_chan;
+  min = &light_self->samples_min.f1_chan;
+  max = &light_self->samples_max.f1_chan;
+
+  for ( int i = 0; i < 12; i++, basic_count++, min++, max++ )
+  {
+    if ( *basic_count < *min )
+    {
+      *min = *basic_count;
+    }
+
+    if ( *basic_count > *max )
+    {
+      *max = *basic_count;
     }
   }
 }

@@ -89,7 +89,7 @@ int main ( void )
   SystemPower_Config ();
 
   /* USER CODE BEGIN SysInit */
-//#error"major changes have been made to pinout, verify all connections."
+
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
