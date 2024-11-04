@@ -105,11 +105,11 @@ typedef struct
   light_return_code_t       (*self_test) (void);
   light_return_code_t       (*setup_sensor) (void);
   light_return_code_t       (*read_all_channels) (void);
-  light_return_code_t       (*get_basic_counts) ()
   light_return_code_t       (*start_timer) ( uint16_t timeout_in_minutes );
   light_return_code_t       (*stop_timer) ( void );
-  void                      (*get_measurements) (uint16_t *buffer);
-  void                      (*get_single_measurement) (uint16_t *measurement, light_channel_index_t which_channel);
+  void                      (*get_raw_measurements) (uint16_t *buffer);
+  void                      (*get_basic_counts) (uint32_t *buffer);
+  void                      (*get_single_measurement) (uint16_t *raw_measurement, uint32_t *basic_count, light_channel_index_t which_channel);
   void                      (*on) (void);
   void                      (*off) (void);
 

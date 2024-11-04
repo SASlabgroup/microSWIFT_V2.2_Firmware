@@ -356,6 +356,8 @@ static void _control_enter_processor_standby_mode ( void )
 
 static void _control_manage_state ( void )
 {
+#warning "Add a timeout determined by duty cycle. That way, if a thread doesn't finish in time, it can be force quit. "
+
   ULONG current_flags;
   UINT ret = TX_SUCCESS;
   // @formatter:off
@@ -367,7 +369,7 @@ static void _control_manage_state ( void )
               accelerometer_complete = false,
               waves_complete = false,
               iridium_complete = false;
-                                                                                                                                                                // @formatter:on
+                                                                                                                                                                  // @formatter:on
   bool iridium_ready = false;
 
   ct_complete = !controller_self->global_config->ct_enabled;

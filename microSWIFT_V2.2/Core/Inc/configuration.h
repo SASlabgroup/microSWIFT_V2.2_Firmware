@@ -45,6 +45,7 @@
 //      first sample window. Subsequent windows will calculate the GNSS acq time
 #define GNSS_MAX_ACQUISITION_WAIT_TIME 10
 
+#warning "Convert this to duty cycle, where the input is the number of minutes for a full cycle."
 // Are we doing 1 or two sample windows per hour
 #define SAMPLE_WINDOWS_PER_HOUR 2
 

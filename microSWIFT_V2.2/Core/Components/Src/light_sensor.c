@@ -20,8 +20,9 @@ static light_return_code_t  _light_sensor_setup_sensor (void);
 static light_return_code_t  _light_sensor_read_all_channels (void);
 static light_return_code_t  _light_sensor_start_timer ( uint16_t timeout_in_minutes );
 static light_return_code_t  _light_sensor_stop_timer ( void );
-static void                 _light_sensor_get_measurements (uint16_t *buffer);
-static void                 _light_sensor_get_single_measurement (uint16_t *measurement, light_channel_index_t which_channel);
+static void                 _light_sensor_get_raw_measurements (uint16_t *buffer);
+static void                 _light_sensor_get_basic_counts (uint32_t *buffer);
+static void                 _light_sensor_get_single_measurement (uint16_t *raw_measurement, uint32_t *basic_count, light_channel_index_t which_channel);
 static void                 _light_sensor_on (void);
 static void                 _light_sensor_off (void);
 // Functions neccessary for the AS7341 pins
@@ -82,7 +83,8 @@ void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle
   light_self->fet.port = LIGHT_FET_GPIO_Port;
   light_self->fet.pin = LIGHT_FET_Pin;
 
-  memset (&(light_self->channel_data[0]), 0, sizeof(light_self->channel_data));
+  memset (&(light_self->raw_counts), 0, sizeof(light_self->raw_counts));
+  memset (&(light_self->basic_counts), 0, sizeof(light_self->basic_counts));
 
   light_self->current_bank = REG_BANK_UNKNOWN;
 
@@ -95,7 +97,8 @@ void light_sensor_init ( Light_Sensor *struct_ptr, I2C_HandleTypeDef *i2c_handle
   light_self->read_all_channels = _light_sensor_read_all_channels;
   light_self->start_timer = _light_sensor_start_timer;
   light_self->stop_timer = _light_sensor_stop_timer;
-  light_self->get_measurements = _light_sensor_get_measurements;
+  light_self->get_raw_measurements = _light_sensor_get_raw_measurements;
+  light_self->get_basic_counts = _light_sensor_get_basic_counts;
   light_self->get_single_measurement = _light_sensor_get_single_measurement;
   light_self->on = _light_sensor_on;
   light_self->off = _light_sensor_off;
@@ -280,8 +283,8 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
     loop_counter++;
   }
 
-  if ( as7341_get_all_channel_data (
-      &light_self->dev_ctx, ((as7341_all_channel_data_struct*) &light_self->channel_data[F1]))
+  if ( as7341_get_all_channel_data (&light_self->dev_ctx,
+                                    ((as7341_all_channel_data_struct*) &light_self->raw_counts))
        != AS7341_OK )
   {
     return LIGHT_I2C_ERROR;
@@ -324,8 +327,8 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
     loop_counter++;
   }
 
-  if ( as7341_get_all_channel_data (
-      &light_self->dev_ctx, ((as7341_all_channel_data_struct*) &light_self->channel_data[F7]))
+  if ( as7341_get_all_channel_data (&light_self->dev_ctx,
+                                    ((as7341_all_channel_data_struct*) &light_self->raw_counts))
        != AS7341_OK )
   {
     return LIGHT_I2C_ERROR;
@@ -335,6 +338,8 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
   {
     return LIGHT_I2C_ERROR;
   }
+
+  __raw_to_basic_counts ();
 
   return LIGHT_SUCCESS;
 }
@@ -364,21 +369,31 @@ static light_return_code_t _light_sensor_stop_timer ( void )
       LIGHT_SUCCESS : LIGHT_TIMER_ERROR;
 }
 
-static void _light_sensor_get_measurements ( uint16_t *buffer )
+static void _light_sensor_get_raw_measurements ( uint16_t *buffer )
 {
-  memcpy (buffer, &(light_self->channel_data[0]), sizeof(light_self->channel_data));
+  memcpy (buffer, &(light_self->raw_counts), sizeof(light_self->raw_counts));
 }
 
-static void _light_sensor_get_single_measurement ( uint16_t *measurement,
+static void _light_sensor_get_basic_counts ( uint32_t *buffer )
+{
+  memcpy (buffer, &(light_self->basic_counts), sizeof(light_self->basic_counts));
+}
+
+static void _light_sensor_get_single_measurement ( uint16_t *raw_measurement, uint32_t *basic_count,
                                                    light_channel_index_t which_channel )
 {
+  uint16_t *raw = &light_self->raw_counts.f1_chan;
+  uint32_t *basic = &light_self->basic_counts.f1_chan;
+
   if ( (which_channel < 0) || (which_channel > DARK_CHANNEL) )
   {
-    *measurement = 0;
+    *raw_measurement = 0;
+    *basic_count = 0;
     return;
   }
 
-  *measurement = light_self->channel_data[which_channel];
+  *raw_measurement = *(raw + which_channel);
+  *basic_count = *(basic + which_channel);
 }
 
 static void _light_sensor_on ( void )
@@ -553,5 +568,21 @@ static void _light_sensor_ms_delay ( uint32_t delay )
 
 static void __raw_to_basic_counts ( void )
 {
-#warning "Convert raw to basic counts here -- use bit shifting (you animal)"
+  uint16_t *raw_cnt_ptr = &(light_self->raw_counts.f1_chan);
+  uint32_t *basic_cnt_ptr = &(light_self->basic_counts.f1_chan);
+
+  if ( light_self->sensor_gain == GAIN_0_5X )
+  {
+    for ( int i = 0; i < 12; i++, raw_cnt_ptr++, basic_cnt_ptr++ )
+    {
+      *basic_cnt_ptr = *raw_cnt_ptr >> 1;
+    }
+  }
+  else
+  {
+    for ( int i = 0; i < 12; i++, raw_cnt_ptr++, basic_cnt_ptr++ )
+    {
+      *basic_cnt_ptr = *raw_cnt_ptr << (light_self->sensor_gain - 1);
+    }
+  }
 }

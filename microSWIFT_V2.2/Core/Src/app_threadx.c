@@ -1427,7 +1427,10 @@ static void light_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = tx_thread_identify ();
   Light_Sensor light;
-  int32_t light_thread_timeout = 15; // minutes
+  int32_t light_thread_timeout = ((configuration.samples_per_window
+                                   / configuration.gnss_sampling_rate)
+                                  / 60)
+                                 + GNSS_WINDOW_BUFFER_TIME; // Same timeout as GNSS
 
   tx_thread_sleep (1);
 
@@ -1448,7 +1451,7 @@ static void light_thread_entry ( ULONG thread_input )
     light_error_out (&light, LIGHT_SELF_TEST_FAILED, this_thread, "Light sensor self test failed.");
   }
 
-  LOG("Light sensor initialization complete. F1 = %hu, F2 = %hu, F3 = %hu, F4 = %hu, F5 = %hu, F6 = %hu, "
+  LOG("Light sensor initialization complete.\nF1 = %hu, F2 = %hu, F3 = %hu, F4 = %hu, F5 = %hu, F6 = %hu, "
       "F7 = %hu, F8 = %hu, NIR = %hu, Clear = %hu, Dark = %hu",
       light.channel_data[F1], light.channel_data[F2], light.channel_data[F3],
       light.channel_data[F4], light.channel_data[F1], light.channel_data[F6],
@@ -1457,19 +1460,19 @@ static void light_thread_entry ( ULONG thread_input )
 
   (void) tx_event_flags_set (&initialization_flags, LIGHT_INIT_SUCCESS, TX_OR);
 
-  light.off ();
-  tx_thread_suspend (this_thread);
-
-  /******************************* Control thread resumes this thread *****************************/
-  light.on ();
-  light.start_timer (light_thread_timeout);
-  watchdog_register_thread (LIGHT_THREAD);
-  watchdog_check_in (LIGHT_THREAD);
-
-  // TODO: Run sensor
-
-  watchdog_check_in (LIGHT_THREAD);
-  watchdog_deregister_thread (LIGHT_THREAD);
+//  light.off ();
+//  tx_thread_suspend (this_thread);
+//
+//  /******************************* Control thread resumes this thread *****************************/
+//  light.on ();
+//  light.start_timer (light_thread_timeout);
+//  watchdog_register_thread (LIGHT_THREAD);
+//  watchdog_check_in (LIGHT_THREAD);
+//
+//  // TODO: Run sensor
+//
+//  watchdog_check_in (LIGHT_THREAD);
+//  watchdog_deregister_thread (LIGHT_THREAD);
 
   LOG("Light Thread complete, now terminating.");
 
