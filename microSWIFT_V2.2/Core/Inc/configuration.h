@@ -39,6 +39,9 @@
 // The max time in MINUTES to try to get an Iridium message off
 #define IRIDIUM_MAX_TRANSMIT_TIME 1
 
+// The version of RckBlock 9603 modem
+#define IRIDIUM_V3F false
+
 // The max time in MINUTES without good data from GNSS before commanding to sleep
 // !! Must be greater than 0
 // **** In the case of SAMPLE_WINDOWS_PER_HOUR > 1, this will only apply to the very
@@ -103,6 +106,7 @@ typedef struct microSWIFT_configuration
   uint32_t total_light_samples;
   uint32_t total_turbidity_samples;
 
+  bool iridium_v3f;
   bool gnss_high_performance_mode;
   bool ct_enabled;
   bool temperature_enabled;

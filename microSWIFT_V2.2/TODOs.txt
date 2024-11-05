@@ -29,23 +29,24 @@ Busses
 
 ****************************************************************************************************
 General
-****
+*******
 
+[ ] Make a common return code for EVERYTHING.
+	[ ] Ensure all functions return an int32_t for this and have a single enum definition for return codes
 [ ] Try using the RTC as the LSE clock source.
 	[ ] Will require a call to enable clock out on RTC in main immediately after HAL_Init and before clock/pwr config
 [x] Check static stack usage and adjust threead stack size accordingly
 [x] Make generic green/red led on/off functions
     [x] Need to move the pins and use throughole LEDs for the prototype
 [x] Finish implementation of watchdog
-[ ] Figure out new Iridium msg queue...
-	[ ] Currently in SRAM2, enough storage for 168 messages
-	[ ] Could move to SD card???
 [x] Check all init calls in startup procedure to make sure bus peripheral is starting properly
 [ ] Redo all GPIO bare pin calls -- FET pins, etc -- to use GPIO functions in gpio.c. Make sure to
     pass in GPIO pin/port definitions and include them in the structs.
 [x] Figure out how to disable watchdog in debug mode
 	[x] Likely just adjust the watchdog period to be very long
 [ ] Make sure everything sticks to the principle that there are no infinite loops
+	[ ] Need to insert some timers in various places, such as a timer for the full sample, process, transmit scheme
+	    and initialization of sensors
 [x] Ditch watchdog hour timer and all that baggage
 [x] Modify linker script -- add external memory if necessary
 	[x] Added section for SRAM2 and moved waves memory pool and a few other small things to RAM1
@@ -55,12 +56,16 @@ General
     
 ****************************************************************************************************
 Control
-****
+*******
+[ ] Figure out the control flow if GNSS is unable to get a fix'
+	[ ] 
 [x] Figure out how to identify first time power on and subsequent power on.
 [x] Remove all thread control and sys reset calls from threads other than control_thread
 [x] Implement Error_Handler() that checks error flags and acts accordingly
 	[x] This is implemented as control.monitor_and_handle_errors()
 [ ] Implement subsequent power on fasttrack
+	[ ] Need to make sure everything is still tested. Found a case where the light sensor ran astray
+	    in a subsequent window.
 [x] Consider wrapping the initialization of north, east, down arrays into mem_replacements.c and
     provide get/set functions for passing to GNSS and waves
 [ ] Implement shut_it_all_down(), enter_shutdown_mode(), etc
@@ -70,6 +75,11 @@ Control
 [ ] Figure out how to keep the modem off during standby mode.
 	[ ] Will need to configure pull resistors in standby like we do with the RTC Int
 	[ ] Make sure this works with both v3.D and v3.F modems
+
+****************************************************************************************************
+RTC
+***
+[ ] Ensure the timestamps are setup to overwrite -- this needs to be added to 
 
 ****************************************************************************************************
 GNSS
@@ -99,8 +109,9 @@ GNSS
 
 ****************************************************************************************************
 Iridium
-****
+*******
 
+[ ] When the thread is resumed, first check if there is anything to send before wasting energy charging the caps
 [x] Move buffers to inside Iridium struct
 [x] Use a TX_TIMER instead of a hardware timer
 [x] Switch UART over to using a generic uart driver
@@ -108,28 +119,29 @@ Iridium
 
 ****************************************************************************************************
 CT
-****
+**
 
 [ ] Move buffers to inside CT struct
 [ ] Switch over to generic UART driver
 
 ****************************************************************************************************
 Termperature
-****
+************
 
 [ ] Move buffers to inside Temperature struct
 [ ] Rework I2C driver
 
 ****************************************************************************************************
 Light
-****
+*****
 
 [ ] Rework I2C and figure out how to share bus
 	[ ] generic_i2c_driver is a start... The core I2C bus might well be shared between several sensors
+[ ] Give 2 timestamps to the light thread which can be used for tracking min/max for the clear channel
 
 ****************************************************************************************************
 ThreadX
-****
+*******
 
 [ ] Figure out the required main memory pool size
 	[ ] Currently good, but will likely need to increase size soon
@@ -147,7 +159,7 @@ ThreadX
     
 ****************************************************************************************************
 Logger
-****
+******
 
 [ ] Make a utility to pass all logs down to FileX
 [x] Initialize in control, set the configuration flag if it is enabled

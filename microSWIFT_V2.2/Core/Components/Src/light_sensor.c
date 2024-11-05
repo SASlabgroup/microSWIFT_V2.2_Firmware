@@ -445,7 +445,6 @@ static light_return_code_t _light_sensor_stop_timer ( void )
  */
 static light_return_code_t _light_sensor_process_measurements ( void )
 {
-  light_return_code_t ret = LIGHT_SUCCESS;
   uint32_t *basic_count_ptr = &light_self->basic_counts.f1_chan;
   uint32_t *averages_ptr = &light_self->samples_averages_accumulator.f1_chan;
   // Update min/ max
@@ -467,7 +466,7 @@ static light_return_code_t _light_sensor_process_measurements ( void )
 
   light_self->total_samples++;
 
-  return ret;
+  return LIGHT_SUCCESS;
 }
 
 /**

@@ -654,6 +654,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   configuration.total_temp_samples = TOTAL_TEMPERATURE_SAMPLES;
   configuration.total_light_samples = TOTAL_LIGHT_SAMPLES;
   configuration.total_turbidity_samples = TOTAL_TURBIDITY_SAMPLES;
+  configuration.iridium_v3f = IRIDIUM_V3F;
   configuration.gnss_high_performance_mode = GNSS_HIGH_PERFORMANCE_MODE_ENABLED;
   configuration.ct_enabled = CT_ENABLED;
   configuration.temperature_enabled = TEMPERATURE_ENABLED;

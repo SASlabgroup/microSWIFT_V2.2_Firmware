@@ -333,7 +333,10 @@ static void _control_enter_processor_standby_mode ( void )
 
   // Make sure the RTC INT_B pin is being pulled up (open drain on RTC)
   HAL_PWREx_EnablePullUpPullDownConfig ();
-  HAL_PWREx_EnableGPIOPullUp (PWR_GPIO_B, (1 << 2));
+  HAL_PWREx_EnableGPIOPullUp (PWR_GPIO_B, RTC_INT_B_Pin);
+
+  // Configure the sleep pin for the modem
+  HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_D, IRIDIUM_OnOff_Pin);
 
   // PWR_WAKEUP_PIN1_LOW_1 = PB2 --> RTC INT_B Low Polarity
   HAL_PWR_EnableWakeUpPin (PWR_WAKEUP_PIN1_LOW_1);
