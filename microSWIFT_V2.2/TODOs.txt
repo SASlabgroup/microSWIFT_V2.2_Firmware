@@ -31,8 +31,11 @@ Busses
 General
 *******
 
+[ ] Consider adding error interrupts for interfaces to identify issues early
+[ ] Move away from cycles per hour to duty cycle definition in configuration.h
 [ ] Make a common return code for EVERYTHING.
 	[ ] Ensure all functions return an int32_t for this and have a single enum definition for return codes
+[ ] Ensure all threads disable associated interrupts prior to termination
 [ ] Try using the RTC as the LSE clock source.
 	[ ] Will require a call to enable clock out on RTC in main immediately after HAL_Init and before clock/pwr config
 [x] Check static stack usage and adjust threead stack size accordingly
@@ -57,8 +60,8 @@ General
 ****************************************************************************************************
 Control
 *******
-[ ] Figure out the control flow if GNSS is unable to get a fix'
-	[ ] 
+[ ] Figure out the control flow if GNSS is unable to get a fix
+	[ ] Probably still get the other sensors?
 [x] Figure out how to identify first time power on and subsequent power on.
 [x] Remove all thread control and sys reset calls from threads other than control_thread
 [x] Implement Error_Handler() that checks error flags and acts accordingly
@@ -166,3 +169,10 @@ Logger
 	[x] It has its own thread and event loop
 [x] logger functions first check if it is enabled, if not, return immediately
 [x] must run in a server style thread...
+
+****************************************************************************************************
+FileX
+*****
+
+[ ] Make sure this can fail to no ill effect
+[ ] 

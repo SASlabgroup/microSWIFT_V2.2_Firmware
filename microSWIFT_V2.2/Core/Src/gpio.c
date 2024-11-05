@@ -99,8 +99,14 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PF2 PF5 */
-  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_5;
+  /*Configure GPIO pin : PtPin */
+  GPIO_InitStruct.Pin = VCNL4010_INT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(VCNL4010_INT_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PF5 */
+  GPIO_InitStruct.Pin = GPIO_PIN_5;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);

@@ -89,7 +89,7 @@ int main ( void )
   SystemPower_Config ();
 
   /* USER CODE BEGIN SysInit */
-
+  HAL_PWREx_DisablePullUpPullDownConfig ();
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */

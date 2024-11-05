@@ -53,7 +53,7 @@
 #define SAMPLE_WINDOWS_PER_HOUR 2
 
 // Mins for a full sample, process, transmit period
-#define WINDOW_DUTY_CYCLE_PERIOD 30
+#define DUTY_CYCLE_PERIOD 30
 
 #ifdef DEBUG
 #define WATCHDOG_PERIOD 600000 // 1 min (in ms)
