@@ -208,11 +208,11 @@ static void accelerometer_thread_entry ( ULONG thread_input );
 /* USER CODE END PFP */
 
 /**
-  * @brief  Application ThreadX Initialization.
-  * @param memory_ptr: memory pointer
-  * @retval int
-  */
-UINT App_ThreadX_Init(VOID *memory_ptr)
+ * @brief  Application ThreadX Initialization.
+ * @param memory_ptr: memory pointer
+ * @retval int
+ */
+UINT App_ThreadX_Init ( VOID *memory_ptr )
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -677,18 +677,18 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   return ret;
 }
 
-  /**
-  * @brief  Function that implements the kernel's initialization.
-  * @param  None
-  * @retval None
-  */
-void MX_ThreadX_Init(void)
+/**
+ * @brief  Function that implements the kernel's initialization.
+ * @param  None
+ * @retval None
+ */
+void MX_ThreadX_Init ( void )
 {
   /* USER CODE BEGIN  Before_Kernel_Start */
 
   /* USER CODE END  Before_Kernel_Start */
 
-  tx_kernel_enter();
+  tx_kernel_enter ();
 
   /* USER CODE BEGIN  Kernel_Start_Error */
 
@@ -728,7 +728,7 @@ static void rtc_thread_entry ( ULONG thread_input )
   UINT tx_ret;
   rtc_request_message req;
 
-  tx_thread_sleep (1);
+  tx_thread_sleep (10);
 
   ret = ext_rtc_init (&rtc, device_handles.core_spi_handle);
 
@@ -749,7 +749,7 @@ static void rtc_thread_entry ( ULONG thread_input )
 
   (void) tx_event_flags_set (&initialization_flags, RTC_INIT_SUCCESS, TX_OR);
 
-  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+  tx_thread_sleep (100);
   LOG("RTC Initialization successful.");
 
   while ( 1 )
@@ -842,7 +842,7 @@ static void logger_thread_entry ( ULONG thread_input )
       // Need to wait until the transmission is complete before grabbing another message
       (void) tx_semaphore_get (&logger_sema, TX_WAIT_FOREVER);
       // Still need a short delay before sending another UART transmission
-      tx_thread_sleep (2);
+      tx_thread_sleep (10);
     }
 
   }
@@ -917,15 +917,7 @@ static void control_thread_entry ( ULONG thread_input )
     control.monitor_and_handle_errors ();
     control.manage_state ();
 
-    tx_thread_sleep (1);
-
-    // TODO: Continue with the correct logic, i.e. if GNSS timed out, set alarm and shut down.
-    //       Otherwise, continue with other sensors, run waves, etc. Try to keep as many threads
-    //       as possible running concurrently.
-    // TODO: If a sensor is not present, fill the SBD message fields with 0's.
-    // TODO: We're not doing the skip_current_message thing, so if GNSS fails to get a full sample
-    //       window, just set the alarm and power down
-    // TODO: When GNSS is complete, break
+    tx_thread_relinquish ();
   }
 
 }
@@ -958,7 +950,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   UINT tx_return;
   ULONG actual_flags;
   int timer_ticks_to_get_message = round (
-      ((float) TX_TIMER_TICKS_PER_SECOND / (float) configuration.gnss_sampling_rate) + 5);
+      ((float) TX_TIMER_TICKS_PER_SECOND / (float) configuration.gnss_sampling_rate) + 25);
   uint16_t sample_window_timeout = ((configuration.samples_per_window
                                      / configuration.gnss_sampling_rate)
                                     / 60)
@@ -967,8 +959,6 @@ static void gnss_thread_entry ( ULONG thread_input )
   uint32_t two_mins_remaining_sample_count = abs (
       (2 * 60 * configuration.gnss_sampling_rate) - configuration.samples_per_window);
   bool two_mins_out_msg_sent = false;
-
-  tx_thread_sleep (1);
 
   if ( lpuart1_init () != UART_OK )
   {
