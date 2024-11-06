@@ -31,6 +31,7 @@ Busses
 General
 *******
 
+[ ] !!!! Fix all timing instances of TX calls to use 
 [ ] Consider adding error interrupts for interfaces to identify issues early
 [ ] Move away from cycles per hour to duty cycle definition in configuration.h
 [ ] Make a common return code for EVERYTHING.

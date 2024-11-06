@@ -129,13 +129,13 @@ typedef struct
 
 } Light_Sensor;
 
-void light_sensor_init ( Light_Sensor *struct_ptr, microSWIFT_configuration *global_config,
-                         light_basic_counts *samples_series_buffer, I2C_HandleTypeDef *i2c_handle,
-                         TX_TIMER *timer, TX_SEMAPHORE *int_pin_sema,
-                         TX_SEMAPHORE *light_sensor_i2c_sema );
-void light_deinit ( void );
-void light_timer_expired ( ULONG expiration_input );
-bool light_get_timeout_status ( void );
+void light_sensor_init          ( Light_Sensor *struct_ptr, microSWIFT_configuration *global_config,
+                                  light_basic_counts *samples_series_buffer, I2C_HandleTypeDef *i2c_handle,
+                                  TX_TIMER *timer, TX_SEMAPHORE *int_pin_sema,
+                                  TX_SEMAPHORE *light_sensor_i2c_sema );
+void light_deinit               ( void );
+void light_timer_expired        ( ULONG expiration_input );
+bool light_get_timeout_status   ( void );
 
 // @formatter:on
 #endif /* COMPONENTS_INC_LIGHT_SENSOR_H_ */

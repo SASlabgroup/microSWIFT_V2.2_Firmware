@@ -69,6 +69,8 @@ void Error_Handler(void);
 #define LIGHT_FET_GPIO_Port GPIOE
 #define TURBIDITY_FET_Pin GPIO_PIN_13
 #define TURBIDITY_FET_GPIO_Port GPIOC
+#define VCNL4010_INT_Pin GPIO_PIN_2
+#define VCNL4010_INT_GPIO_Port GPIOF
 #define VBATT_ADC_IN_Pin GPIO_PIN_0
 #define VBATT_ADC_IN_GPIO_Port GPIOC
 #define RTC_TIMESTAMP_4_Pin GPIO_PIN_1
