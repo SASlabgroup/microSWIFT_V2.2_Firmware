@@ -1055,8 +1055,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   // **NOTE: RTC will be set when time is resolved
   while ( !(gnss.all_resolution_stages_complete || gnss_get_timer_timeout_status ()) )
   {
-    // Refresh watchdog every 30 seconds
-    if ( tx_time_get () % (TX_TIMER_TICKS_PER_SECOND * 30) == 0 )
+    if ( gnss.total_samples % 50 == 0 )
     {
       watchdog_check_in (GNSS_THREAD);
     }
@@ -1193,7 +1192,7 @@ static void ct_thread_entry ( ULONG thread_input )
   real16_T half_salinity, half_temp;
   int32_t ct_thread_timeout = 3; // mins
 
-  tx_thread_sleep (1);
+  tx_thread_sleep (10);
 
   if ( uart5_init () != UART_OK )
   {
@@ -1331,7 +1330,7 @@ static void temperature_thread_entry ( ULONG thread_input )
   int32_t temperature_thread_timeout = 2; // minutes
   int32_t fail_counter = 0, max_retries = 10;
 
-  tx_thread_sleep (1);
+  tx_thread_sleep (10);
 
   // Set the mean salinity and temp values to error values in the event the sensor fails
   half_temp.bitPattern = TEMPERATURE_VALUES_ERROR_CODE;
@@ -1503,6 +1502,7 @@ static void light_thread_entry ( ULONG thread_input )
       break;
     }
 
+    // Sleep the rest of the second away
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND - (tx_time_get () % TX_TIMER_TICKS_PER_SECOND));
   }
 
@@ -1533,7 +1533,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = tx_thread_identify ();
 
-  tx_thread_sleep (1);
+  tx_thread_sleep (10);
 
   // TODO: init and self test
 
@@ -1712,7 +1712,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   sbd_message_type_52 *msg_ptr = &sbd_message;
   bool current_message_sent = false;
 
-  tx_thread_sleep (1);
+  tx_thread_sleep (10);
 
   if ( uart4_init () != UART_OK )
   {

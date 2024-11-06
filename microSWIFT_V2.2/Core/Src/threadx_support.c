@@ -49,7 +49,7 @@ bool gnss_apply_config ( GNSS *gnss )
       continue;
     }
 
-    tx_thread_sleep (10);
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     fail_counter++;
   }
 
@@ -71,9 +71,9 @@ bool ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings 
     }
 
     ct->off ();
-    tx_thread_sleep (1);
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     ct->on ();
-    tx_thread_sleep (1);
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
 
     fail_counter++;
   }
@@ -88,8 +88,6 @@ bool temperature_self_test ( Temperature *temperature, float *self_test_temp )
 
   while ( fail_counter < max_retries )
   {
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-
     temp_return_code = temperature->self_test (self_test_temp);
 
     if ( temp_return_code == TEMPERATURE_SUCCESS )
@@ -98,9 +96,9 @@ bool temperature_self_test ( Temperature *temperature, float *self_test_temp )
     }
 
     temperature->off ();
-    tx_thread_sleep (1);
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     temperature->on ();
-    tx_thread_sleep (1);
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
 
     fail_counter++;
   }
@@ -120,8 +118,6 @@ bool light_self_test ( Light_Sensor *light )
 
   while ( fail_counter < max_retries )
   {
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-
     light_return_code = light->self_test ();
 
     if ( light_return_code == LIGHT_SUCCESS )
@@ -130,9 +126,9 @@ bool light_self_test ( Light_Sensor *light )
     }
 
     light->off ();
-    tx_thread_sleep (1);
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
     light->on ();
-    tx_thread_sleep (1);
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
 
     fail_counter++;
   }
@@ -160,9 +156,9 @@ bool iridium_apply_config ( Iridium *iridium )
     }
 
     iridium->off ();
-    tx_thread_sleep (25);
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
     iridium->on ();
-    tx_thread_sleep (25);
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
     fail_counter++;
   }
 
@@ -183,9 +179,9 @@ bool iridium_apply_config ( Iridium *iridium )
     }
 
     iridium->off ();
-    tx_thread_sleep (1);
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
     iridium->on ();
-    tx_thread_sleep (1);
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
     fail_counter++;
   }
 
