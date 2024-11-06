@@ -11,6 +11,8 @@
 
 #include "stdint.h"
 #include "stdbool.h"
+#include "reg_driver_def.h"
+
 /**************************************************************************************************/
 /************************************** Misc Definitions ******************************************/
 /**************************************************************************************************/
@@ -25,7 +27,7 @@
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*################################## Register Definitions ########################################*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-#warning"READ ALL REGISTERS TO FIGURE OUT DEFAULT VALUES"
+
 /**************************************************************************************************/
 /************************************ Command Register ********************************************/
 /**************************************************************************************************/
@@ -188,18 +190,18 @@ typedef struct
 /**************************************************************************************************/
 /***************************** Ambient Light Result Registers *************************************/
 /**************************************************************************************************/
-#define AMB_LIGHT_RSLT_LOW_BYTE_REG_ADDR (0x85)
-#define AMB_LIGHT_RSLT_HIGH_BYTE_REG_ADDR (0x86)
-#define AMB_LIGHT_RSLT_LOW_BYTE_REG_RESET_VAL (0b00000000)
+#define AMB_LIGHT_RSLT_HIGH_BYTE_REG_ADDR (0x85)
+#define AMB_LIGHT_RSLT_LOW_BYTE_REG_ADDR (0x86)
 #define AMB_LIGHT_RSLT_HIGH_BYTE_REG_RESET_VAL (0b00000000)
+#define AMB_LIGHT_RSLT_LOW_BYTE_REG_RESET_VAL (0b00000000)
 
 /**************************************************************************************************/
 /******************************* Proximity Result Registers ***************************************/
 /**************************************************************************************************/
-#define PROXIMITY_RSLT_LOW_BYTE_REG_ADDR (0x87)
-#define PROXIMITY_RSLT_HIGH_BYTE_REG_ADDR (0x88)
-#define PROXIMITY_RSLT_LOW_BYTE_REG_RESET_VAL (0b00000000)
+#define PROXIMITY_RSLT_HIGH_BYTE_REG_ADDR (0x87)
+#define PROXIMITY_RSLT_LOW_BYTE_REG_ADDR (0x88)
 #define PROXIMITY_RSLT_HIGH_BYTE_REG_RESET_VAL (0b00000000)
+#define PROXIMITY_RSLT_LOW_BYTE_REG_RESET_VAL (0b00000000)
 
 /**************************************************************************************************/
 /******************************* Interrupt Control Register ***************************************/
@@ -241,18 +243,18 @@ typedef struct
 /**************************************************************************************************/
 /********************************* Low Threshold Registers ****************************************/
 /**************************************************************************************************/
-#define LOW_THRESH_LOW_BYTE_REG_ADDR (0x8A)
-#define LOW_THRESH_HIGH_BYTE_REG_ADDR (0x8B)
-#define LOW_THRESH_LOW_BYTE_REG_RESET_VAL (0b00000000)
+#define LOW_THRESH_HIGH_BYTE_REG_ADDR (0x8A)
+#define LOW_THRESH_LOW_BYTE_REG_ADDR (0x8B)
 #define LOW_THRESH_HIGH_BYTE_REG_RESET_VAL (0b00000000)
+#define LOW_THRESH_LOW_BYTE_REG_RESET_VAL (0b00000000)
 
 /**************************************************************************************************/
 /******************************** HIGH Threshold Registers ****************************************/
 /**************************************************************************************************/
-#define HIGH_THRESH_LOW_BYTE_REG_ADDR (0x8C)
-#define HIGH_THRESH_HIGH_BYTE_REG_ADDR (0x8D)
-#define HIGH_THRESH_LOW_BYTE_REG_RESET_VAL (0b00000000)
+#define HIGH_THRESH_HIGH_BYTE_REG_ADDR (0x8C)
+#define HIGH_THRESH_LOW_BYTE_REG_ADDR (0x8D)
 #define HIGH_THRESH_HIGH_BYTE_REG_RESET_VAL (0b00000000)
+#define HIGH_THRESH_LOW_BYTE_REG_RESET_VAL (0b00000000)
 
 /**************************************************************************************************/
 /******************************** Interrupt Status Register ***************************************/
@@ -308,12 +310,20 @@ typedef struct
 /*################################## Function Declarations #######################################*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
-
-
-
-
-
-
+int32_t vcnl4010_register_io_functions      (dev_ctx_t *dev_handle, dev_init_ptr init_fn,
+                                             dev_deinit_ptr deinit_fn, dev_write_ptr bus_write_fn,
+                                             dev_read_ptr bus_read_fn, dev_ms_delay_ptr delay_fn);
+int32_t vcnl4010_start_ambient_conversion   (dev_ctx_t *dev_handle);
+int32_t vcnl4010_start_prox_conversion      (dev_ctx_t *dev_handle);
+int32_t vcnl4010_get_ambient_data_ready     (dev_ctx_t *dev_handle, bool *ready);
+int32_t vcnl4010_get_prox_data_ready        (dev_ctx_t *dev_handle, bool *ready);
+int32_t vcnl4010_get_ambient_reading        (dev_ctx_t *dev_handle, uint16_t *ambient);
+int32_t vcnl4010_get_proximity_reading      (dev_ctx_t *dev_handle, uint16_t *proximity);
+int32_t vcnl4010_cont_conv_config           (dev_ctx_t *dev_handle, bool enable);
+int32_t vcnl4010_get_cont_conv              (dev_ctx_t *dev_handle, bool *enabled);
+int32_t vcnl4010_auto_offset_comp_config    (dev_ctx_t *dev_handle, bool enable);
+int32_t vcnl4010_get_auto_offset_comp       (dev_ctx_t *dev_handle, bool *enabled);
+int32_t vcnl4010_set_proximity_frequency    (dev_ctx_t *dev_handle, vcnl4010_prox_freq_t prox_freq);
 
 //@formatter:on
 #endif /* COMPONENTS_DRIVERS_INC_VCNL4010_REG_H_ */
