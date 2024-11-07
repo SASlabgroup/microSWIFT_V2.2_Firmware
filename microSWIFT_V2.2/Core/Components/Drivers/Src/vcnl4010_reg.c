@@ -54,6 +54,22 @@ int32_t vcnl4010_start_prox_conversion ( dev_ctx_t *dev_handle )
   return ret;
 }
 
+int32_t vcnl4010_set_led_current ( dev_ctx_t *dev_handle, vcnl_led_current_t current )
+{
+  int32_t ret = VCNL4010_OK;
+  vcnl4010_ir_led_current_reg_t current_reg;
+
+  ret |= dev_handle->bus_read (NULL, VCNL4010_I2C_ADDR, IR_LED_CURRENT_REG_ADDR,
+                               (uint8_t*) &current_reg, 1);
+
+  current_reg.current_value = current;
+
+  ret |= dev_handle->bus_write (NULL, VCNL4010_I2C_ADDR, IR_LED_CURRENT_REG_ADDR,
+                                (uint8_t*) &current_reg, 1);
+
+  return ret;
+}
+
 int32_t vcnl4010_get_ambient_data_ready ( dev_ctx_t *dev_handle, bool *ready )
 {
   int32_t ret = VCNL4010_OK;

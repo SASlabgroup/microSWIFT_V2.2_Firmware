@@ -316,6 +316,7 @@ int32_t vcnl4010_register_io_functions      (dev_ctx_t *dev_handle, dev_init_ptr
 int32_t vcnl4010_get_id                     (dev_ctx_t *dev_handle, uint8_t *id);
 int32_t vcnl4010_start_ambient_conversion   (dev_ctx_t *dev_handle);
 int32_t vcnl4010_start_prox_conversion      (dev_ctx_t *dev_handle);
+int32_t vcnl4010_set_led_current            (dev_ctx_t *dev_handle, vcnl_led_current_t current);
 int32_t vcnl4010_get_ambient_data_ready     (dev_ctx_t *dev_handle, bool *ready);
 int32_t vcnl4010_get_prox_data_ready        (dev_ctx_t *dev_handle, bool *ready);
 int32_t vcnl4010_get_ambient_reading        (dev_ctx_t *dev_handle, uint16_t *ambient);
