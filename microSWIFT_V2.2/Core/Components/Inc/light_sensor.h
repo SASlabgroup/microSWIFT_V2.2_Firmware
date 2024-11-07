@@ -14,7 +14,7 @@
 #include "configuration.h"
 
 #define LIGHT_I2C_BUF_SIZE 32
-#define LIGHT_I2C_TIMEOUT 5
+#define LIGHT_I2C_TIMEOUT 50
 #define NUM_LIGHT_CHANNELS 11
 #define INTEGRATION_TIME_MS 50
 #define LIGHT_SENSOR_BYTE_POOL_BUFFER_SIZE 86400// max size = 30 mins of qty 12 4-byte measurements every second

@@ -251,7 +251,7 @@ static gnss_return_code_t _gnss_config ( void )
     return_code = __enable_high_performance_mode ();
   }
 
-  tx_thread_sleep (2);
+  tx_thread_sleep (20);
 
   return return_code;
 }
@@ -270,7 +270,8 @@ static gnss_return_code_t _gnss_sync_and_start_reception ( void )
       (((float) ((float) INITIAL_STAGES_BUFFER_SIZE / (float) UBX_NAV_PVT_MESSAGE_LENGTH))
        * ((float) ((float) TX_TIMER_TICKS_PER_SECOND
                    / (float) gnss_self->global_config->gnss_sampling_rate)))
-      + 1);
+      + 10);
+  uint32_t watchdog_counter = 0;
 
   // Zero out the message buffer
   memset (&(msg_buf[0]), 0, INITIAL_STAGES_BUFFER_SIZE);
@@ -279,9 +280,10 @@ static gnss_return_code_t _gnss_sync_and_start_reception ( void )
   // the gnss_max_acquisition_wait_time
   while ( !gnss_self->timer_timeout )
   {
-    if ( tx_time_get () % (TX_TIMER_TICKS_PER_SECOND * 30) == 0 )
+    if ( ++watchdog_counter % 5 == 0 )
     {
       watchdog_check_in (GNSS_THREAD);
+      watchdog_counter = 0;
     }
     // Grab 5 UBX_NAV_PVT messages
     HAL_UART_Receive_DMA (gnss_self->gnss_uart_handle, &(msg_buf[0]), INITIAL_STAGES_BUFFER_SIZE);
@@ -293,7 +295,7 @@ static gnss_return_code_t _gnss_sync_and_start_reception ( void )
       // If we didn't receive the needed messaged in time, cycle the GNSS sensor
       __cycle_power ();
       HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
-      HAL_Delay (3);
+      tx_thread_sleep (27);
       gnss_self->reset_uart ();
       continue;
     }
@@ -311,7 +313,7 @@ static gnss_return_code_t _gnss_sync_and_start_reception ( void )
     {
       // Short delay to help get the frame sync'd
       HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
-      HAL_Delay (3);
+      tx_thread_sleep (13);
       gnss_self->reset_uart ();
     }
   }
@@ -788,16 +790,16 @@ static gnss_return_code_t __send_config ( uint8_t *config_array, size_t message_
   int ticks_to_send_config = round (
       ((float) TX_TIMER_TICKS_PER_SECOND * ((float) message_size * 8.0)
        / (float) GNSS_DEFAULT_BAUD_RATE)
-      + 1);
+      + 10);
   int frame_sync_ticks = round (
       ((float) TX_TIMER_TICKS_PER_SECOND
        * (((float) FRAME_SYNC_RX_SIZE * 8.0) / (float) GNSS_DEFAULT_BAUD_RATE))
-      + 1);
+      + 10);
   int ticks_to_receive_msgs = round (
       (((float) ((float) GNSS_CONFIG_BUFFER_SIZE / (float) UBX_NAV_PVT_MESSAGE_LENGTH))
        * ((float) ((float) TX_TIMER_TICKS_PER_SECOND
                    / (float) gnss_self->global_config->gnss_sampling_rate)))
-      + 1);
+      + 10);
   ;
   ULONG actual_flags;
   UINT tx_return;
@@ -831,7 +833,7 @@ static gnss_return_code_t __send_config ( uint8_t *config_array, size_t message_
   {
     HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
     gnss_self->reset_uart ();
-    tx_thread_sleep (1);
+    tx_thread_sleep (10);
     return GNSS_CONFIG_ERROR;
   }
 
@@ -861,7 +863,7 @@ static gnss_return_code_t __send_config ( uint8_t *config_array, size_t message_
         {
           // This is an acknowledgement of our configuration message
           gnss_self->reset_uart ();
-          tx_thread_sleep (10);
+          tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
           return GNSS_SUCCESS;
         }
       }
@@ -1169,9 +1171,9 @@ static time_t __get_timestamp ( void )
 static void __cycle_power ( void )
 {
   gnss_self->off ();
-  tx_thread_sleep (1);
+  tx_thread_sleep (10);
   gnss_self->on ();
-  tx_thread_sleep (1);
+  tx_thread_sleep (10);
 }
 
 /**

@@ -730,7 +730,7 @@ static void rtc_thread_entry ( ULONG thread_input )
 
   tx_thread_sleep (10);
 
-  ret = ext_rtc_init (&rtc, device_handles.core_spi_handle);
+  ret = ext_rtc_init (&rtc, device_handles.core_spi_handle, &ext_rtc_spi_sema);
 
   rtc_server_init (&rtc_messaging_queue, &rtc_complete_flags);
 
@@ -842,7 +842,7 @@ static void logger_thread_entry ( ULONG thread_input )
       // Need to wait until the transmission is complete before grabbing another message
       (void) tx_semaphore_get (&logger_sema, TX_WAIT_FOREVER);
       // Still need a short delay before sending another UART transmission
-      tx_thread_sleep (10);
+      tx_thread_sleep (50);
     }
 
   }
@@ -864,6 +864,7 @@ static void control_thread_entry ( ULONG thread_input )
   Control control;
   struct watchdog_t watchdog;
   bool first_window = is_first_sample_window ();
+  uint32_t watchdog_counter = 0;
 
   // Run tests if needed
   if ( tests.control_test != NULL )
@@ -912,7 +913,11 @@ static void control_thread_entry ( ULONG thread_input )
 
   while ( 1 )
   {
-    watchdog_check_in (CONTROL_THREAD);
+    if ( ++watchdog_counter % 1000 == 0 )
+    {
+      watchdog_check_in (CONTROL_THREAD);
+      watchdog_counter = 0;
+    }
 
     control.monitor_and_handle_errors ();
     control.manage_state ();
@@ -1438,6 +1443,8 @@ static void light_thread_entry ( ULONG thread_input )
                      &light_sensor_i2c_sema);
 
   light.on ();
+
+  tx_thread_sleep (10);
 
   //
   // Run tests if needed

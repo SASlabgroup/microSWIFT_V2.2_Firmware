@@ -14,6 +14,8 @@
 #include "time.h"
 #include "gpio.h"
 
+//@formatter:off
+
 #define RTC_SPI_TIMEOUT 25
 #define RTC_SPI_BUF_SIZE 32
 #define RTC_WATCHDOG_MIN_REFRESH 10000
@@ -22,29 +24,34 @@
 
 typedef struct
 {
-  dev_ctx_t dev_ctx;
-  SPI_HandleTypeDef *rtc_spi_bus;
-  gpio_pin_struct int_a_pin;
-  gpio_pin_struct int_b_pin;
-  gpio_pin_struct ts_pins[NUMBER_OF_TIMESTAMPS];
+  dev_ctx_t                 dev_ctx;
 
-  bool ts_in_use[NUMBER_OF_TIMESTAMPS];
+  SPI_HandleTypeDef         *rtc_spi_bus;
 
-  uint8_t watchdog_refresh_time_val;
+  TX_SEMAPHORE              *spi_sema;
+
+  gpio_pin_struct           int_a_pin;
+  gpio_pin_struct           int_b_pin;
+  gpio_pin_struct           ts_pins[NUMBER_OF_TIMESTAMPS];
+
+  bool                      ts_in_use[NUMBER_OF_TIMESTAMPS];
+
+  uint8_t                   watchdog_refresh_time_val;
 
   pcf2131_irq_config_struct irq_config;
 
-  rtc_return_code (*setup_rtc) ( void );
-  rtc_return_code (*config_watchdog) ( uint32_t period_ms );
-  rtc_return_code (*refresh_watchdog) ( void );
-  rtc_return_code (*set_date_time) ( struct tm *input_date_time );
-  rtc_return_code (*get_date_time) ( struct tm *return_date_time );
-  rtc_return_code (*set_timestamp) ( pcf2131_timestamp_t which_timestamp );
-  rtc_return_code (*get_timestamp) ( pcf2131_timestamp_t which_timestamp, time_t *return_timestamp );
-  rtc_return_code (*set_alarm) ( rtc_alarm_struct alarm_setting );
-  rtc_return_code (*clear_flag) ( rtc_flag_t which_flag );
+  rtc_return_code           (*setup_rtc) ( void );
+  rtc_return_code           (*config_watchdog) ( uint32_t period_ms );
+  rtc_return_code           (*refresh_watchdog) ( void );
+  rtc_return_code           (*set_date_time) ( struct tm *input_date_time );
+  rtc_return_code           (*get_date_time) ( struct tm *return_date_time );
+  rtc_return_code           (*set_timestamp) ( pcf2131_timestamp_t which_timestamp );
+  rtc_return_code           (*get_timestamp) ( pcf2131_timestamp_t which_timestamp, time_t *return_timestamp );
+  rtc_return_code           (*set_alarm) ( rtc_alarm_struct alarm_setting );
+  rtc_return_code           (*clear_flag) ( rtc_flag_t which_flag );
 } Ext_RTC;
 
-rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus );
+rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus, TX_SEMAPHORE *rtc_spi_sema );
 
+//@formatter:on
 #endif /* COMPONENTS_INC_EXT_RTC_H_ */

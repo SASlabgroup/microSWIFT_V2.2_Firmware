@@ -16,7 +16,7 @@ int32_t vcnl4010_register_io_functions ( dev_ctx_t *dev_handle, dev_init_ptr ini
   dev_handle->bus_read = bus_read_fn;
   dev_handle->bus_write = bus_write_fn;
   dev_handle->handle = (void*) NULL;
-  dev_handle->delay = delay;
+  dev_handle->delay = delay_fn;
 
   return dev_handle->init ();
 }

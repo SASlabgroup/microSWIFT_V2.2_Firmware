@@ -16,7 +16,7 @@
 #include "gpio.h"
 #include "time.h"
 
-#define LOG_QUEUE_LENGTH 16
+#define LOG_QUEUE_LENGTH 32
 
 #define LOG(fmt, ...) (uart_log(fmt, ##__VA_ARGS__))
 

@@ -6,6 +6,7 @@
  */
 
 #include "stdint.h"
+#include "stddef.h"
 
 #ifndef COMPONENTS_DRIVERS_INC_REG_DRIVER_DEF_H_
 #define COMPONENTS_DRIVERS_INC_REG_DRIVER_DEF_H_

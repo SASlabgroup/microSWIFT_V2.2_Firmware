@@ -741,7 +741,7 @@ int32_t pcf2131_perform_otp_refresh ( dev_ctx_t *dev_handle )
                                 sizeof(pcf2131_clkout_ctrl_reg_t));
 
   // Datasheet states OTP refresh takes 100ms to complete
-  dev_handle->delay (200);
+  dev_handle->delay (150);
 
   ret |= dev_handle->bus_read (NULL, 0, CLKOUT_CTRL_REG_ADDR, (uint8_t*) &clk_out,
                                sizeof(pcf2131_clkout_ctrl_reg_t));

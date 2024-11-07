@@ -185,18 +185,12 @@ static light_return_code_t _light_sensor_self_test ( void )
     return LIGHT_I2C_ERROR;
   }
 
-  // Wait for the asic to boot
-  while ( !asic_initialized )
-  {
-    as7341_get_initialization_status (&light_self->dev_ctx, &asic_initialized);
-  }
-
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
   {
     return LIGHT_I2C_ERROR;
   }
 
-  tx_thread_sleep (2);
+  tx_thread_sleep (20);
 
   if ( as7341_power (&light_self->dev_ctx, true) != AS7341_OK )
   {
@@ -328,10 +322,10 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
   {
     // We're triggering sampling via GPIO pin, so we'll do that here
     light_self->gpio_handle->set_gpio_pin_state (GPIO_PIN_SET);
-    tx_thread_relinquish ();
+    tx_thread_sleep (1);
     light_self->gpio_handle->set_gpio_pin_state (GPIO_PIN_RESET);
 
-    tx_thread_sleep (1);
+    tx_thread_sleep (25);
 
     if ( as7341_get_data_ready (&light_self->dev_ctx, &data_ready) != AS7341_OK )
     {
@@ -372,10 +366,10 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
   {
     // We're triggering sampling via GPIO pin, so we'll do that here
     light_self->gpio_handle->set_gpio_pin_state (GPIO_PIN_SET);
-    tx_thread_relinquish ();
+    tx_thread_sleep (1);
     light_self->gpio_handle->set_gpio_pin_state (GPIO_PIN_RESET);
 
-    tx_thread_sleep (1);
+    tx_thread_sleep (25);
 
     if ( as7341_get_data_ready (&light_self->dev_ctx, &data_ready) != AS7341_OK )
     {
@@ -530,7 +524,7 @@ static void _light_sensor_off ( void )
 
 static bool __as7341_wait_on_int ( uint32_t timeout_ms )
 {
-  ULONG timeout = (timeout_ms / (1000 / TX_TIMER_TICKS_PER_SECOND)) + 1;
+  ULONG timeout = timeout_ms + 1;
 
   if ( tx_semaphore_get (light_self->int_pin_sema, timeout) != TX_SUCCESS )
   {
@@ -681,16 +675,13 @@ static int32_t _light_sensor_i2c_write_blocking ( void *unused_handle, uint16_t 
 static void _light_sensor_ms_delay ( uint32_t delay )
 
 {
-  UINT delay_ticks = (delay == 0) ?
-      0 : delay / TX_TIMER_TICKS_PER_SECOND;
-
   if ( delay == 0 )
   {
     tx_thread_relinquish ();
   }
   else
   {
-    tx_thread_sleep (delay_ticks);
+    tx_thread_sleep (delay);
   }
 }
 

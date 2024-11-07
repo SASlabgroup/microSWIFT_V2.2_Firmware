@@ -56,7 +56,8 @@ static uint8_t __weekday_from_date ( int y, int m, int d );
  * @param  messaging_queue:= Pointer to global messaging queue for inbound requests
  * @retval rtc_return_code
  */
-rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus )
+rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus,
+                               TX_SEMAPHORE *rtc_spi_sema )
 {
   int32_t ret;
   uint8_t register_read = 0;
@@ -64,6 +65,8 @@ rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_b
   rtc_self = struct_ptr;
 
   rtc_self->rtc_spi_bus = rtc_spi_bus;
+
+  rtc_self->spi_sema = rtc_spi_sema;
 
   rtc_self->int_a_pin.port = RTC_INT_A_GPIO_Port;
   rtc_self->int_a_pin.pin = RTC_INT_A_Pin;
@@ -578,10 +581,14 @@ static int32_t _ext_rtc_read_reg_spi_blocking ( void *unused_handle, uint16_t un
 
   HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
 
-  if ( HAL_SPI_TransmitReceive (rtc_self->rtc_spi_bus, &(write_buf[0]), &read_buf[0],
-                                data_length + 1,
-                                RTC_SPI_TIMEOUT)
+  if ( HAL_SPI_TransmitReceive_IT (rtc_self->rtc_spi_bus, &(write_buf[0]), &read_buf[0],
+                                   data_length + 1)
        != HAL_OK )
+  {
+    retval = PCF2131_ERROR;
+  }
+
+  if ( tx_semaphore_get (rtc_self->spi_sema, RTC_SPI_TIMEOUT) != TX_SUCCESS )
   {
     retval = PCF2131_ERROR;
   }
@@ -621,8 +628,12 @@ static int32_t _ext_rtc_write_reg_spi_blocking ( void *unused_handle, uint16_t u
 
   HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
 
-  if ( HAL_SPI_Transmit (rtc_self->rtc_spi_bus, write_buf, data_length + 1, RTC_SPI_TIMEOUT)
-       != HAL_OK )
+  if ( HAL_SPI_Transmit_IT (rtc_self->rtc_spi_bus, write_buf, data_length + 1) != HAL_OK )
+  {
+    retval = PCF2131_ERROR;
+  }
+
+  if ( tx_semaphore_get (rtc_self->spi_sema, RTC_SPI_TIMEOUT) != TX_SUCCESS )
   {
     retval = PCF2131_ERROR;
   }
@@ -639,16 +650,13 @@ static int32_t _ext_rtc_write_reg_spi_blocking ( void *unused_handle, uint16_t u
  */
 static void _ext_rtc_ms_delay ( uint32_t delay )
 {
-  UINT delay_ticks = (delay == 0) ?
-      0 : delay / TX_TIMER_TICKS_PER_SECOND;
-
   if ( delay == 0 )
   {
     tx_thread_relinquish ();
   }
   else
   {
-    tx_thread_sleep (delay_ticks);
+    tx_thread_sleep (delay);
   }
 }
 

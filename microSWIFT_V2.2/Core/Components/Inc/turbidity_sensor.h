@@ -10,6 +10,9 @@
 
 #include "vcnl4010_reg.h"
 #include "microSWIFT_return_codes.h"
+#include "configuration.h"
+#include "i2c.h"
+#include "tx_api.h"
 
 // @formatter:off
 
@@ -37,10 +40,10 @@ typedef struct
   void                      (*off) (void);
 } Turbidity_Sensor;
 
-void turbidity_sensor_init          ( Turbidity_Sensor *struct_ptr, microSWIFT_configuration *global_config,
-                                      light_basic_counts *samples_series_buffer, I2C_HandleTypeDef *i2c_handle,
-                                      TX_TIMER *timer, TX_SEMAPHORE *int_pin_sema,
-                                      TX_SEMAPHORE *light_sensor_i2c_sema );
+//void turbidity_sensor_init          ( Turbidity_Sensor *struct_ptr, microSWIFT_configuration *global_config,
+//                                      light_basic_counts *samples_series_buffer, I2C_HandleTypeDef *i2c_handle,
+//                                      TX_TIMER *timer, TX_SEMAPHORE *int_pin_sema,
+//                                      TX_SEMAPHORE *light_sensor_i2c_sema );
 void turbidity_deinit               ( void );
 void turbidity_timer_expired        ( ULONG expiration_input );
 bool turbidity_get_timeout_status   ( void );
