@@ -13,6 +13,7 @@
 #include "configuration.h"
 #include "i2c.h"
 #include "tx_api.h"
+#include "gpio.h"
 
 // @formatter:off
 

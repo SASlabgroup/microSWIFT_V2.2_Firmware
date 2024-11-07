@@ -51,6 +51,14 @@ void turbidity_sensor_init ( Turbidity_Sensor *struct_ptr, microSWIFT_configurat
 
   turbidity_self->timer_timeout = false;
 
+  turbidity_self->self_test = _turbidity_sensor_self_test;
+  turbidity_self->setup_sensor = _turbidity_sensor_setup_sensor;
+  turbidity_self->get_sample = _turbidity_sensor_get_sample;
+  turbidity_self->process_measurements = _turbidity_sensor_process_measurements;
+  turbidity_self->start_time = _turbidity_sensor_start_timer;
+  turbidity_self->stop_timer = _turbidity_sensor_self_stop_timer;
+  turbidity_self->on = _turbidity_sensor_on;
+  turbidity_self->off = _turbidity_sensor_off;
 }
 
 void turbidity_deinit ( void )
@@ -65,7 +73,11 @@ void turbidity_timer_expired ( ULONG expiration_input )
 {
   turbidity_self->timer_timeout = true;
 }
-bool turbidity_get_timeout_status ( void );
+
+bool turbidity_get_timeout_status ( void )
+{
+  return turbidity_self->timer_timeout;
+}
 
 static uSWIFT_return_code_t _turbidity_sensor_self_test ( void );
 static uSWIFT_return_code_t _turbidity_sensor_setup_sensor ( void );
@@ -73,6 +85,7 @@ static uSWIFT_return_code_t _turbidity_sensor_get_sample ( void );
 static uSWIFT_return_code_t _turbidity_sensor_process_measurements ( void );
 static uSWIFT_return_code_t _turbidity_sensor_start_timer ( uint16_t timeout_in_minutes );
 static uSWIFT_return_code_t _turbidity_sensor_stop_timer ( void );
+
 static void _turbidity_sensor_on ( void );
 static void _turbidity_sensor_off ( void );
 

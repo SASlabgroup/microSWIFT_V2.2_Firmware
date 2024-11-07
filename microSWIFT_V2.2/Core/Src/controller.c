@@ -229,7 +229,7 @@ static void _control_shutdown_procedure ( void )
   persistent_ram_increment_sample_window_counter ();
 
   // Give the logger time to complete
-  tx_thread_sleep (10);
+  tx_thread_sleep (100);
 
   // Deinit all enabled peripherals
   controller_self->shutdown_all_interfaces ();

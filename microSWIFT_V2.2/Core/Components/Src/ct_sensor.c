@@ -316,7 +316,7 @@ static ct_return_code_t _ct_reset_uart ( void )
  */
 static ct_return_code_t _ct_start_timer ( uint16_t timeout_in_minutes )
 {
-  uint16_t timeout = TX_TIMER_TICKS_PER_SECOND * 60 * timeout_in_minutes;
+  ULONG timeout = TX_TIMER_TICKS_PER_SECOND * 60 * timeout_in_minutes;
   ct_return_code_t ret = CT_SUCCESS;
 
   if ( tx_timer_change (self->timer, timeout, 0) != TX_SUCCESS )

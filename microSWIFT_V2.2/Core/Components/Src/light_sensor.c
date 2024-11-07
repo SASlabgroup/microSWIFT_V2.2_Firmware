@@ -404,7 +404,7 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
  */
 static light_return_code_t _light_sensor_start_timer ( uint16_t timeout_in_minutes )
 {
-  uint16_t timeout = TX_TIMER_TICKS_PER_SECOND * 60 * timeout_in_minutes;
+  ULONG timeout = TX_TIMER_TICKS_PER_SECOND * 60 * timeout_in_minutes;
   light_return_code_t ret = LIGHT_SUCCESS;
 
   if ( tx_timer_change (light_self->timer, timeout, 0) != TX_SUCCESS )
