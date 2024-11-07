@@ -83,6 +83,14 @@ static uSWIFT_return_code_t _turbidity_sensor_self_test ( void )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
+  if ( vcnl4010_register_io_functions (&turbidity_self->dev_ctx, _turbidity_sensor_i2c_init,
+                                       _turbidity_sensor_i2c_deinit, _turbidity_sensor_i2c_write,
+                                       _turbidity_sensor_i2c_read, _turbidity_sensor_ms_delay)
+       != uSWIFT_SUCCESS )
+  {
+    return uSWIFT_INITIALIZATION_ERROR;
+  }
+
   return ret;
 }
 

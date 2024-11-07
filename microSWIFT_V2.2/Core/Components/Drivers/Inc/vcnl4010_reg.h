@@ -313,6 +313,7 @@ typedef struct
 int32_t vcnl4010_register_io_functions      (dev_ctx_t *dev_handle, dev_init_ptr init_fn,
                                              dev_deinit_ptr deinit_fn, dev_write_ptr bus_write_fn,
                                              dev_read_ptr bus_read_fn, dev_ms_delay_ptr delay_fn);
+int32_t vcnl4010_get_id                     (dev_ctx_t *dev_handle, uint8_t *id);
 int32_t vcnl4010_start_ambient_conversion   (dev_ctx_t *dev_handle);
 int32_t vcnl4010_start_prox_conversion      (dev_ctx_t *dev_handle);
 int32_t vcnl4010_get_ambient_data_ready     (dev_ctx_t *dev_handle, bool *ready);

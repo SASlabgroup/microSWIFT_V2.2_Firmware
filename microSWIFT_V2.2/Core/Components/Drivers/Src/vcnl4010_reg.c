@@ -21,6 +21,11 @@ int32_t vcnl4010_register_io_functions ( dev_ctx_t *dev_handle, dev_init_ptr ini
   return dev_handle->init ();
 }
 
+int32_t vcnl4010_get_id ( dev_ctx_t *dev_handle, uint8_t *id )
+{
+  return dev_handle->bus_read (NULL, VCNL4010_I2C_ADDR, PROD_ID_REV_REG_ADDR, id, 1);
+}
+
 int32_t vcnl4010_start_ambient_conversion ( dev_ctx_t *dev_handle )
 {
   int32_t ret = VCNL4010_OK;
