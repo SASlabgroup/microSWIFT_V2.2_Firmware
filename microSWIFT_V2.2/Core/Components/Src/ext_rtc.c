@@ -32,12 +32,12 @@ static rtc_return_code _ext_rtc_clear_flag ( rtc_flag_t which_flag );
 /* SPI driver functions */
 static int32_t _ext_rtc_spi_init ( void );
 static int32_t _ext_rtc_spi_deinit ( void );
-static int32_t _ext_rtc_read_reg_spi_blocking ( void *unused_handle, uint16_t unused_bus_address,
-                                                uint16_t reg_address, uint8_t *read_data,
-                                                uint16_t data_length );
-static int32_t _ext_rtc_write_reg_spi_blocking ( void *unused_handle, uint16_t unused_bus_address,
-                                                 uint16_t reg_address, uint8_t *write_data,
-                                                 uint16_t data_length );
+static int32_t _ext_rtc_read_reg_spi ( void *unused_handle, uint16_t unused_bus_address,
+                                       uint16_t reg_address, uint8_t *read_data,
+                                       uint16_t data_length );
+static int32_t _ext_rtc_write_reg_spi ( void *unused_handle, uint16_t unused_bus_address,
+                                        uint16_t reg_address, uint8_t *write_data,
+                                        uint16_t data_length );
 static void _ext_rtc_ms_delay ( uint32_t delay );
 static uint8_t __weekday_from_date ( int y, int m, int d );
 //static int32_t _ext_rtc_read_reg_spi_dma ( void *unused_handle, uint16_t unused_bus_address,
@@ -130,8 +130,8 @@ rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_b
 
   // Register dev_ctx functions
   if ( pcf2131_register_io_functions (&rtc_self->dev_ctx, _ext_rtc_spi_init, _ext_rtc_spi_deinit,
-                                      _ext_rtc_write_reg_spi_blocking,
-                                      _ext_rtc_read_reg_spi_blocking, _ext_rtc_ms_delay, NULL)
+                                      _ext_rtc_write_reg_spi, _ext_rtc_read_reg_spi,
+                                      _ext_rtc_ms_delay, NULL)
        != PCF2131_OK )
   {
     return RTC_SPI_ERROR;
@@ -560,9 +560,9 @@ static int32_t _ext_rtc_spi_deinit ( void )
  * @param  data_length - read data length in bytes
  * @retval rtc_return_code
  */
-static int32_t _ext_rtc_read_reg_spi_blocking ( void *unused_handle, uint16_t unused_bus_address,
-                                                uint16_t reg_address, uint8_t *read_data,
-                                                uint16_t data_length )
+static int32_t _ext_rtc_read_reg_spi ( void *unused_handle, uint16_t unused_bus_address,
+                                       uint16_t reg_address, uint8_t *read_data,
+                                       uint16_t data_length )
 {
   (void) unused_handle;
   (void) unused_bus_address;
@@ -608,9 +608,9 @@ static int32_t _ext_rtc_read_reg_spi_blocking ( void *unused_handle, uint16_t un
  * @param  data_length - write data length in bytes
  * @retval rtc_return_code
  */
-static int32_t _ext_rtc_write_reg_spi_blocking ( void *unused_handle, uint16_t unused_bus_address,
-                                                 uint16_t reg_address, uint8_t *write_data,
-                                                 uint16_t data_length )
+static int32_t _ext_rtc_write_reg_spi ( void *unused_handle, uint16_t unused_bus_address,
+                                        uint16_t reg_address, uint8_t *write_data,
+                                        uint16_t data_length )
 {
   (void) unused_handle;
   (void) unused_bus_address;

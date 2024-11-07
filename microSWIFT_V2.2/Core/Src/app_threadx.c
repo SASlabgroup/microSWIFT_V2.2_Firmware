@@ -161,6 +161,7 @@ TX_SEMAPHORE ext_rtc_spi_sema;
 TX_SEMAPHORE aux_spi_1_spi_sema;
 TX_SEMAPHORE aux_spi_2_spi_sema;
 TX_SEMAPHORE light_sensor_i2c_sema;
+TX_SEMAPHORE turbidity_sensor_i2c_sema;
 TX_SEMAPHORE aux_i2c_1_sema;
 TX_SEMAPHORE aux_i2c_2_sema;
 TX_SEMAPHORE iridium_uart_sema;
@@ -523,6 +524,12 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
 
   ret = tx_semaphore_create(&light_sensor_i2c_sema, "AS7341 I2C sema", 0);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_semaphore_create(&turbidity_sensor_i2c_sema, "VCNL4010 I2C sema", 0);
   if ( ret != TX_SUCCESS )
   {
     return ret;

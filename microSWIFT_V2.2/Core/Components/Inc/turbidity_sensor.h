@@ -17,6 +17,8 @@
 
 // @formatter:off
 
+#define TURBIDITY_I2C_TIMEOUT 50
+
 typedef struct
 {
   microSWIFT_configuration  *global_config;

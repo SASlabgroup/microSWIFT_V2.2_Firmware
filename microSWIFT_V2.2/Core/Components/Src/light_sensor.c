@@ -36,12 +36,12 @@ static void                 __set_as7341_gpio_pin_state ( GPIO_PinState state );
 // I/O functions for the sensor
 static int32_t              _light_sensor_i2c_init ( void );
 static int32_t              _light_sensor_i2c_deinit ( void );
-static int32_t              _light_sensor_i2c_read_blocking ( void *unused_handle, uint16_t bus_address,
-                                                          uint16_t reg_address, uint8_t *read_data,
-                                                          uint16_t data_length );
-static int32_t              _light_sensor_i2c_write_blocking ( void *unused_handle, uint16_t bus_address,
-                                                           uint16_t reg_address, uint8_t *write_data,
-                                                           uint16_t data_length );
+static int32_t              _light_sensor_i2c_read ( void *unused_handle, uint16_t bus_address,
+                                                     uint16_t reg_address, uint8_t *read_data,
+                                                     uint16_t data_length );
+static int32_t              _light_sensor_i2c_write ( void *unused_handle, uint16_t bus_address,
+                                                      uint16_t reg_address, uint8_t *write_data,
+                                                      uint16_t data_length );
 static void                 _light_sensor_ms_delay ( uint32_t delay );
 // Helper functions
 static void                 __raw_to_basic_counts (void);
@@ -173,12 +173,11 @@ static light_return_code_t _light_sensor_self_test ( void )
   as7341_auxid_reg_t aux_id;
   as7341_revid_reg_t rev_id;
   uint8_t id;
-  bool asic_initialized = false;
 
   // Initialize the I/O interface
   if ( as7341_register_io_functions (&light_self->dev_ctx, _light_sensor_i2c_init,
-                                     _light_sensor_i2c_deinit, _light_sensor_i2c_write_blocking,
-                                     _light_sensor_i2c_read_blocking, _light_sensor_ms_delay,
+                                     _light_sensor_i2c_deinit, _light_sensor_i2c_write,
+                                     _light_sensor_i2c_read, _light_sensor_ms_delay,
                                      light_self->gpio_handle)
        != AS7341_OK )
   {
@@ -568,9 +567,9 @@ static int32_t _light_sensor_i2c_deinit ( void )
   return i2c1_deinit ();
 }
 
-static int32_t _light_sensor_i2c_read_blocking ( void *unused_handle, uint16_t bus_address,
-                                                 uint16_t reg_address, uint8_t *read_data,
-                                                 uint16_t data_length )
+static int32_t _light_sensor_i2c_read ( void *unused_handle, uint16_t bus_address,
+                                        uint16_t reg_address, uint8_t *read_data,
+                                        uint16_t data_length )
 {
   (void) unused_handle;
   int32_t ret = AS7341_OK;
@@ -610,6 +609,7 @@ static int32_t _light_sensor_i2c_read_blocking ( void *unused_handle, uint16_t b
        != HAL_OK )
   {
     ret = AS7341_ERROR;
+    return ret;
   }
 
   if ( tx_semaphore_get (light_self->i2c_sema, LIGHT_I2C_TIMEOUT) != TX_SUCCESS )
@@ -620,9 +620,9 @@ static int32_t _light_sensor_i2c_read_blocking ( void *unused_handle, uint16_t b
   return ret;
 }
 
-static int32_t _light_sensor_i2c_write_blocking ( void *unused_handle, uint16_t bus_address,
-                                                  uint16_t reg_address, uint8_t *write_data,
-                                                  uint16_t data_length )
+static int32_t _light_sensor_i2c_write ( void *unused_handle, uint16_t bus_address,
+                                         uint16_t reg_address, uint8_t *write_data,
+                                         uint16_t data_length )
 {
   (void) unused_handle;
   int32_t ret = AS7341_OK;
@@ -662,6 +662,7 @@ static int32_t _light_sensor_i2c_write_blocking ( void *unused_handle, uint16_t 
        != HAL_OK )
   {
     ret = AS7341_ERROR;
+    return ret;
   }
 
   if ( tx_semaphore_get (light_self->i2c_sema, LIGHT_I2C_TIMEOUT) != TX_SUCCESS )

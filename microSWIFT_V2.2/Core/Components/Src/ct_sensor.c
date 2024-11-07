@@ -351,7 +351,7 @@ static ct_return_code_t _ct_stop_timer ( void )
  */
 static void _ct_on ( void )
 {
-  HAL_GPIO_WritePin (GPIOG, CT_FET_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin (CT_FET_GPIO_Port, CT_FET_Pin, GPIO_PIN_SET);
 }
 
 /**
@@ -361,7 +361,7 @@ static void _ct_on ( void )
  */
 static void _ct_off ( void )
 {
-  HAL_GPIO_WritePin (GPIOG, CT_FET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (CT_FET_GPIO_Port, CT_FET_Pin, GPIO_PIN_RESET);
 }
 
 static void __reset_ct_struct_fields ( void )
