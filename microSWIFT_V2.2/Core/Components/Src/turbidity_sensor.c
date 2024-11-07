@@ -61,7 +61,10 @@ void turbidity_deinit ( void )
   }
 }
 
-void turbidity_timer_expired ( ULONG expiration_input );
+void turbidity_timer_expired ( ULONG expiration_input )
+{
+  turbidity_self->timer_timeout = true;
+}
 bool turbidity_get_timeout_status ( void );
 
 static uSWIFT_return_code_t _turbidity_sensor_self_test ( void );
