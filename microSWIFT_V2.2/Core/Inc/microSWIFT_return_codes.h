@@ -27,6 +27,7 @@ typedef enum
   uSWIFT_NAK_RECEIVED           = -13,
   uSWIFT_PROCESSING_ERROR       = -14,
   uSWIFT_MEMORY_BUFFER_ERROR    = -15,
+  uSWIFT_NO_SAMPLES_ERROR       = -16,
 
   uSWIFT_OBJECT_SPECIFIC_1      = -90,
   uSWIFT_OBJECT_SPECIFIC_2      = -91,

@@ -13,7 +13,8 @@ static Turbidity_Sensor *turbidity_self;
 // Struct functions
 static uSWIFT_return_code_t _turbidity_sensor_self_test (void);
 static uSWIFT_return_code_t _turbidity_sensor_setup_sensor (void);
-static uSWIFT_return_code_t _turbidity_sensor_get_sample (void);
+static uSWIFT_return_code_t _turbidity_sensor_take_measurement (void);
+static uSWIFT_return_code_t _turbidity_sensor_get_raw_counts (uint16_t *raw_counts);
 static uSWIFT_return_code_t _turbidity_sensor_process_measurements (void);
 static uSWIFT_return_code_t _turbidity_sensor_start_timer ( uint16_t timeout_in_minutes );
 static uSWIFT_return_code_t _turbidity_sensor_stop_timer (void);
@@ -48,12 +49,14 @@ void turbidity_sensor_init ( Turbidity_Sensor *struct_ptr, microSWIFT_configurat
   turbidity_self->timer = timer;
 
   turbidity_self->samples_series = samples_buffer;
+  turbidity_self->raw_count = 0;
 
   turbidity_self->timer_timeout = false;
 
   turbidity_self->self_test = _turbidity_sensor_self_test;
   turbidity_self->setup_sensor = _turbidity_sensor_setup_sensor;
-  turbidity_self->get_sample = _turbidity_sensor_get_sample;
+  turbidity_self->take_measurement = _turbidity_sensor_take_measurement;
+  turbidity_self->get_raw_counts = _turbidity_sensor_get_raw_counts;
   turbidity_self->process_measurements = _turbidity_sensor_process_measurements;
   turbidity_self->start_timer = _turbidity_sensor_start_timer;
   turbidity_self->stop_timer = _turbidity_sensor_stop_timer;
@@ -82,6 +85,7 @@ bool turbidity_get_timeout_status ( void )
 static uSWIFT_return_code_t _turbidity_sensor_self_test ( void )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
+  uint8_t id = 0;
 
   if ( vcnl4010_register_io_functions (&turbidity_self->dev_ctx, _turbidity_sensor_i2c_init,
                                        _turbidity_sensor_i2c_deinit, _turbidity_sensor_i2c_write,
@@ -91,129 +95,158 @@ static uSWIFT_return_code_t _turbidity_sensor_self_test ( void )
     return uSWIFT_INITIALIZATION_ERROR;
   }
 
-  return ret;
+  ret = vcnl4010_get_id (&turbidity_self->dev_ctx, &id);
+  if ( (ret != uSWIFT_SUCCESS) || (id != PROD_ID_REV_REG_RESET_VAL) )
+  {
+    return uSWIFT_INITIALIZATION_ERROR;
+  }
+
+  ret = turbidity_self->setup_sensor ();
+  if ( ret != uSWIFT_SUCCESS )
+  {
+    return uSWIFT_INITIALIZATION_ERROR;
+  }
+
+ret = turbidity_self->take_measurement(void)
+
+return ret;
 }
 
 static uSWIFT_return_code_t _turbidity_sensor_setup_sensor ( void )
 {
-  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
+uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
-  return ret;
+return ret;
 }
 
-static uSWIFT_return_code_t _turbidity_sensor_get_sample ( void )
+static uSWIFT_return_code_t _turbidity_sensor_take_measurement ( void )
 {
-  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
+uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
-  return ret;
+return ret;
+}
+
+static uSWIFT_return_code_t _turbidity_sensor_get_raw_counts ( uint16_t *raw_counts )
+{
+uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
+
+if ( turbidity_self->samples_counter == 0 )
+{
+  raw_counts = NULL;
+  return uSWIFT_NO_SAMPLES_ERROR;
+}
+
+*raw_counts = turbidity_self->raw_count;
+
+return ret;
 }
 
 static uSWIFT_return_code_t _turbidity_sensor_process_measurements ( void )
 {
-  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
+uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
-  return ret;
+return ret;
 }
 
 static uSWIFT_return_code_t _turbidity_sensor_start_timer ( uint16_t timeout_in_minutes )
 {
-  ULONG timeout = TX_TIMER_TICKS_PER_SECOND * 60 * timeout_in_minutes;
-  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
+ULONG timeout = TX_TIMER_TICKS_PER_SECOND * 60 * timeout_in_minutes;
+uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
-  if ( tx_timer_change (turbidity_self->timer, timeout, 0) != TX_SUCCESS )
-  {
-    ret = uSWIFT_TIMER_ERROR;
-    return ret;
-  }
-
-  if ( tx_timer_activate (turbidity_self->timer) != TX_SUCCESS )
-  {
-    ret = uSWIFT_TIMER_ERROR;
-  }
-
+if ( tx_timer_change (turbidity_self->timer, timeout, 0) != TX_SUCCESS )
+{
+  ret = uSWIFT_TIMER_ERROR;
   return ret;
+}
+
+if ( tx_timer_activate (turbidity_self->timer) != TX_SUCCESS )
+{
+  ret = uSWIFT_TIMER_ERROR;
+}
+
+return ret;
 }
 
 static uSWIFT_return_code_t _turbidity_sensor_stop_timer ( void )
 {
-  return (tx_timer_deactivate (turbidity_self->timer) == TX_SUCCESS) ?
-      uSWIFT_SUCCESS : uSWIFT_TIMER_ERROR;
+return (tx_timer_deactivate (turbidity_self->timer) == TX_SUCCESS) ?
+    uSWIFT_SUCCESS : uSWIFT_TIMER_ERROR;
 }
 
 static void _turbidity_sensor_on ( void )
 {
-  HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_SET);
+HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_SET);
 }
 
 static void _turbidity_sensor_off ( void )
 {
-  HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_RESET);
+HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_RESET);
 }
 
 static int32_t _turbidity_sensor_i2c_init ( void )
 {
-  return i2c2_init ();
+return i2c2_init ();
 }
 
 static int32_t _turbidity_sensor_i2c_deinit ( void )
 {
-  return i2c2_deinit ();
+return i2c2_deinit ();
 }
 
 static int32_t _turbidity_sensor_i2c_read ( void *unused_handle, uint16_t bus_address,
                                             uint16_t reg_address, uint8_t *read_data,
                                             uint16_t data_length )
 {
-  (void) unused_handle;
-  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
+(void) unused_handle;
+uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
-  if ( HAL_I2C_Mem_Read_IT (turbidity_self->i2c_handle, bus_address, reg_address, 1, read_data,
-                            data_length)
-       != HAL_OK )
-  {
-    ret = uSWIFT_COMMS_ERROR;
-    return ret;
-  }
-
-  if ( tx_semaphore_get (turbidity_self->i2c_sema, TURBIDITY_I2C_TIMEOUT) != TX_SUCCESS )
-  {
-    ret = uSWIFT_TIMEOUT;
-  }
-
+if ( HAL_I2C_Mem_Read_IT (turbidity_self->i2c_handle, bus_address, reg_address, 1, read_data,
+                          data_length)
+     != HAL_OK )
+{
+  ret = uSWIFT_COMMS_ERROR;
   return ret;
+}
+
+if ( tx_semaphore_get (turbidity_self->i2c_sema, TURBIDITY_I2C_TIMEOUT) != TX_SUCCESS )
+{
+  ret = uSWIFT_TIMEOUT;
+}
+
+return ret;
 }
 
 static int32_t _turbidity_sensor_i2c_write ( void *unused_handle, uint16_t bus_address,
                                              uint16_t reg_address, uint8_t *write_data,
                                              uint16_t data_length )
 {
-  (void) unused_handle;
-  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
+(void) unused_handle;
+uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
-  if ( HAL_I2C_Mem_Write_IT (turbidity_self->i2c_handle, bus_address, reg_address, 1, write_data,
-                             data_length)
-       != HAL_OK )
-  {
-    ret = uSWIFT_COMMS_ERROR;
-    return ret;
-  }
-
-  if ( tx_semaphore_get (turbidity_self->i2c_sema, TURBIDITY_I2C_TIMEOUT) != TX_SUCCESS )
-  {
-    ret = uSWIFT_TIMEOUT;
-  }
-
+if ( HAL_I2C_Mem_Write_IT (turbidity_self->i2c_handle, bus_address, reg_address, 1, write_data,
+                           data_length)
+     != HAL_OK )
+{
+  ret = uSWIFT_COMMS_ERROR;
   return ret;
+}
+
+if ( tx_semaphore_get (turbidity_self->i2c_sema, TURBIDITY_I2C_TIMEOUT) != TX_SUCCESS )
+{
+  ret = uSWIFT_TIMEOUT;
+}
+
+return ret;
 }
 
 static void _turbidity_sensor_ms_delay ( uint32_t delay )
 {
-  if ( delay == 0 )
-  {
-    tx_thread_relinquish ();
-  }
-  else
-  {
-    tx_thread_sleep (delay);
-  }
+if ( delay == 0 )
+{
+  tx_thread_relinquish ();
+}
+else
+{
+  tx_thread_sleep (delay);
+}
 }
