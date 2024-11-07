@@ -477,13 +477,13 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
-//
-//  ret = tx_timer_create(&turbidity_timer, "Turbidity thread timer", turbidity_timer_expired, 0, 1,
-//                        1, TX_NO_ACTIVATE);
-//  if ( ret != TX_SUCCESS )
-//  {
-//    return ret;
-//  }
+
+  ret = tx_timer_create(&turbidity_timer, "Turbidity thread timer", turbidity_timer_expired, 0, 1,
+                        1, TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
 //
 //  ret = tx_timer_create(&accelerometer_timer, "Accelerometer thread timer",
 //                        accelerometer_timer_expired, 0, 0, 0, TX_NO_ACTIVATE);
@@ -719,11 +719,13 @@ void MX_ThreadX_Init ( void )
  * @param  ULONG thread_input - unused
  * @retval void
  */
+uint32_t watchdog_refresh_counter = 0;
 static void rtc_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = tx_thread_identify ();
-  Ext_RTC rtc;
+  Ext_RTC rtc =
+    { 0 };
   rtc_return_code ret;
   UINT tx_ret;
   rtc_request_message req;
@@ -761,6 +763,7 @@ static void rtc_thread_entry ( ULONG thread_input )
       switch ( req.request )
       {
         case REFRESH_WATCHDOG:
+          watchdog_refresh_counter++;
           ret = rtc.refresh_watchdog ();
           break;
 
@@ -826,7 +829,8 @@ static void logger_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   logger_message msg;
   UINT tx_ret;
-  uart_logger logger;
+  uart_logger logger =
+    { 0 };
 
   uart_logger_init (&logger, &logger_block_pool, &logger_message_queue,
                     device_handles.logger_uart_handle);
@@ -861,7 +865,8 @@ static void logger_thread_entry ( ULONG thread_input )
 static void control_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
-  Control control;
+  Control control =
+    { 0 };
   struct watchdog_t watchdog;
   bool first_window = is_first_sample_window ();
   uint32_t watchdog_counter = 0;
@@ -922,7 +927,7 @@ static void control_thread_entry ( ULONG thread_input )
     control.monitor_and_handle_errors ();
     control.manage_state ();
 
-    tx_thread_relinquish ();
+    tx_thread_sleep (1);
   }
 
 }
@@ -943,7 +948,8 @@ static void gnss_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = tx_thread_identify ();
-  GNSS gnss;
+  GNSS gnss =
+    { 0 };
   uint8_t ubx_message_process_buf[GNSS_MESSAGE_BUF_SIZE];
   uint8_t gnss_config_response_buf[GNSS_CONFIG_BUFFER_SIZE];
   float *north = NULL, *east = NULL, *down = NULL;
@@ -1189,7 +1195,8 @@ static void ct_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = tx_thread_identify ();
-  CT ct;
+  CT ct =
+    { 0 };
   ct_sample ct_readings =
     { 0 };
   ct_return_code_t ct_return_code;
@@ -1327,7 +1334,8 @@ static void temperature_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = tx_thread_identify ();
-  Temperature temperature;
+  Temperature temperature =
+    { 0 };
   temperature_return_code_t temp_return_code = TEMPERATURE_SUCCESS;
   float self_test_reading = 0.0f, sampling_reading = 0.0f;
   real16_T half_temp =
@@ -1430,7 +1438,8 @@ static void light_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = tx_thread_identify ();
   light_return_code_t light_ret;
-  Light_Sensor light;
+  Light_Sensor light =
+    { 0 };
   light_raw_counts raw_counts;
   light_basic_counts basic_counts;
   int32_t light_thread_timeout = ((configuration.samples_per_window
@@ -1619,7 +1628,8 @@ static void waves_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = &waves_thread;
-  NEDWaves_memory waves_mem;
+  NEDWaves_memory waves_mem =
+    { 0 };
 
   tx_thread_sleep (1);
 
@@ -1705,7 +1715,8 @@ static void iridium_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = &iridium_thread;
-  Iridium iridium;
+  Iridium iridium =
+    { 0 };
   iridium_return_code_t iridium_return_code = IRIDIUM_SUCCESS;
   int32_t iridium_thread_timeout = configuration.iridium_max_transmit_time;
   UINT tx_return;

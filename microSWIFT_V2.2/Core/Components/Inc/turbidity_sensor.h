@@ -26,9 +26,11 @@ typedef struct
 
   TX_TIMER                  *timer;
 
+  uint16_t                  *samples_series;
+
   dev_ctx_t                 dev_ctx;
 
-  uint16_t                  *samples_series;
+  bool                      timer_timeout;
 
   uSWIFT_return_code_t      (*self_test) (void);
   uSWIFT_return_code_t      (*setup_sensor) (void);
@@ -40,10 +42,9 @@ typedef struct
   void                      (*off) (void);
 } Turbidity_Sensor;
 
-//void turbidity_sensor_init          ( Turbidity_Sensor *struct_ptr, microSWIFT_configuration *global_config,
-//                                      light_basic_counts *samples_series_buffer, I2C_HandleTypeDef *i2c_handle,
-//                                      TX_TIMER *timer, TX_SEMAPHORE *int_pin_sema,
-//                                      TX_SEMAPHORE *light_sensor_i2c_sema );
+void turbidity_sensor_init          ( Turbidity_Sensor *struct_ptr, microSWIFT_configuration *global_config,
+                                      I2C_HandleTypeDef *i2c_handle, TX_TIMER *timer,
+                                      TX_SEMAPHORE *sensor_i2c_sema, uint16_t *samples_buffer );
 void turbidity_deinit               ( void );
 void turbidity_timer_expired        ( ULONG expiration_input );
 bool turbidity_get_timeout_status   ( void );

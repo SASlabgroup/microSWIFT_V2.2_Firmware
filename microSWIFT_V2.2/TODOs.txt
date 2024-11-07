@@ -176,4 +176,7 @@ FileX
 *****
 
 [ ] Make sure this can fail to no ill effect
-[ ] 
+[ ] Add FileX thread to all things that need it
+	[ ] Control is not tracking this thread
+	[ ] Watchdog needs this thread added
+	[ ] Etcetera
