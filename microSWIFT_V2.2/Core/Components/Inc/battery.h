@@ -12,6 +12,7 @@
 #include "tx_api.h"
 #include "NEDWaves/rtwhalf.h"
 #include "app_threadx.h"
+#include "microSWIFT_return_codes.h"
 
 #define NUMBER_OF_ADC_SAMPLES 400
 #define BATTERY_CALIBRATION_OFFSET 0
@@ -21,13 +22,6 @@
 #define ADC_MICROVOLTS_PER_BIT 3292
 
 // @formatter:off
-typedef enum battery_error_code
-{
-  BATTERY_SUCCESS               = 0,
-  BATTERY_CONVERSION_ERROR      = -1,
-  BATTERY_TIMEOUT_ERROR         = -2,
-  BATTERY_ADC_ERROR             = -3
-} battery_return_code_t;
 
 typedef struct Battery
 {
@@ -37,7 +31,7 @@ typedef struct Battery
   float                 voltage;
   uint32_t              calibration_offset;
 
-  battery_return_code_t  (*get_voltage) ( real16_T *voltage );
+  uSWIFT_return_code_t  (*get_voltage) ( real16_T *voltage );
 } Battery;
 
 void battery_init ( Battery *struct_ptr, ADC_HandleTypeDef *adc_handle,

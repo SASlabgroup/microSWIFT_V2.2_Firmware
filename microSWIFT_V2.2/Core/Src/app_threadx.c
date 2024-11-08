@@ -906,7 +906,7 @@ static void control_thread_entry ( ULONG thread_input )
 
   while ( 1 )
   {
-    if ( ++watchdog_counter % 1000 == 0 )
+    if ( ++watchdog_counter % TX_TIMER_TICKS_PER_SECOND == 0 )
     {
       watchdog_check_in (CONTROL_THREAD);
       watchdog_counter = 0;
@@ -914,6 +914,13 @@ static void control_thread_entry ( ULONG thread_input )
 
     control.monitor_and_handle_errors ();
     control.manage_state ();
+
+    // Make sure we haven't timeout for the full duty cycle
+    if ( control_get_timeout_status () )
+    {
+      LOG("Duty cycle timeout. Starting shutdown sequence.");
+      control.shutdown_procedure ();
+    }
 
     tx_thread_sleep (1);
   }
@@ -1187,7 +1194,7 @@ static void ct_thread_entry ( ULONG thread_input )
     { 0 };
   ct_sample ct_readings =
     { 0 };
-  ct_return_code_t ct_return_code;
+  uSWIFT_return_code_t ct_return_code;
   uint32_t ct_parsing_error_counter = 0;
   real16_T half_salinity, half_temp;
   int32_t ct_thread_timeout = 3; // mins
@@ -1250,12 +1257,12 @@ static void ct_thread_entry ( ULONG thread_input )
 
     ct_return_code = ct.parse_sample ();
 
-    if ( ct_return_code == CT_PARSING_ERROR )
+    if ( ct_return_code == uSWIFT_PROCESSING_ERROR )
     {
       ct_parsing_error_counter++;
     }
 
-    if ( (ct_parsing_error_counter >= 10) || (ct_return_code == CT_UART_ERROR) )
+    if ( (ct_parsing_error_counter >= 10) || (ct_return_code == uSWIFT_COMMS_ERROR) )
     {
       // If there are too many parsing errors or a UART error occurs, stop trying
       ct_error_out (&ct, CT_SAMPLING_ERROR, this_thread,
@@ -1270,7 +1277,7 @@ static void ct_thread_entry ( ULONG thread_input )
                     "CT sample window timed out after %d minutes.", ct_thread_timeout);
     }
 
-    if ( ct_return_code == CT_DONE_SAMPLING )
+    if ( ct_return_code == uSWIFT_DONE_SAMPLING )
     {
       break;
     }
@@ -1288,7 +1295,7 @@ static void ct_thread_entry ( ULONG thread_input )
   // Got our samples, now average them
   ct_return_code = ct.get_averages (&ct_readings);
   // Make sure something didn't go terribly wrong
-  if ( ct_return_code == CT_NOT_ENOUGH_SAMPLES )
+  if ( ct_return_code == uSWIFT_NO_SAMPLES_ERROR )
   {
     ct_error_out (&ct, CT_SAMPLING_ERROR, this_thread, "CT sensor did not collect enough samples.");
   }

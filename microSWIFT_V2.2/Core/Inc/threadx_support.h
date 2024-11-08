@@ -17,7 +17,6 @@
 #include "temp_sensor.h"
 #include "turbidity_sensor.h"
 #include "light_sensor.h"
-#include "accelerometer_sensor.h"
 #include "iridium.h"
 #include "stdarg.h"
 

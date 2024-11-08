@@ -15,6 +15,7 @@
 #include "stdint.h"
 #include "stdbool.h"
 #include "configuration.h"
+#include "microSWIFT_return_codes.h"
 
 // @formatter:off
 
@@ -32,17 +33,6 @@
 #define CT_VALUES_ERROR_CODE            0x70E2
 #define CT_UART_TX_TIMEOUT_TICKS        (TX_TIMER_TICKS_PER_SECOND / 10)
 #define CT_UART_RX_TIMEOUT_TICKS        (TX_TIMER_TICKS_PER_SECOND * 3)
-
-typedef enum ct_error_code
-{
-  CT_SUCCESS            =  0,
-  CT_UART_ERROR         = -1,
-  CT_PARSING_ERROR      = -2,
-  CT_SELF_TEST_FAIL     = -3,
-  CT_NOT_ENOUGH_SAMPLES = -4,
-  CT_DONE_SAMPLING      = -5,
-  CT_TIMER_ERROR        = -6
-} ct_return_code_t;
 
 typedef struct
 {
@@ -73,13 +63,13 @@ typedef struct CT
   // Timer timeout
   bool                      timer_timeout;
   // Function pointers
-  ct_return_code_t          (*parse_sample) ( void );
-  ct_return_code_t          (*get_averages) ( ct_sample *readings );
-  ct_return_code_t          (*self_test) ( bool add_warmup_time, ct_sample *optional_readings );
-  ct_return_code_t          (*uart_init) ( void );
-  ct_return_code_t          (*reset_ct_uart) ( void );
-  ct_return_code_t          (*start_timer) ( uint16_t timeout_in_minutes );
-  ct_return_code_t          (*stop_timer) ( void );
+  uSWIFT_return_code_t      (*parse_sample) ( void );
+  uSWIFT_return_code_t      (*get_averages) ( ct_sample *readings );
+  uSWIFT_return_code_t      (*self_test) ( bool add_warmup_time, ct_sample *optional_readings );
+  uSWIFT_return_code_t      (*uart_init) ( void );
+  uSWIFT_return_code_t      (*reset_ct_uart) ( void );
+  uSWIFT_return_code_t      (*start_timer) ( uint16_t timeout_in_minutes );
+  uSWIFT_return_code_t      (*stop_timer) ( void );
   void                      (*on) ( void );
   void                      (*off) ( void );
 } CT;

@@ -17,7 +17,6 @@
 #include "temp_sensor.h"
 #include "turbidity_sensor.h"
 #include "light_sensor.h"
-#include "accelerometer_sensor.h"
 #include "iridium.h"
 #include "persistent_ram.h"
 #include "logger.h"
@@ -59,13 +58,13 @@ bool gnss_apply_config ( GNSS *gnss )
 bool ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings )
 {
   int32_t fail_counter = 0, max_retries = 10;
-  ct_return_code_t ct_return_code;
+  uSWIFT_return_code_t ct_return_code;
 
   while ( fail_counter < max_retries )
   {
     ct_return_code = ct->self_test (add_warmup_time, self_test_readings);
 
-    if ( ct_return_code == CT_SUCCESS )
+    if ( ct_return_code == uSWIFT_SUCCESS )
     {
       break;
     }
@@ -78,7 +77,7 @@ bool ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings 
     fail_counter++;
   }
 
-  return (ct_return_code == CT_SUCCESS);
+  return (ct_return_code == uSWIFT_SUCCESS);
 }
 
 bool temperature_self_test ( Temperature *temperature, float *self_test_temp )

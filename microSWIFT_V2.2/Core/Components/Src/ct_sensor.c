@@ -23,18 +23,18 @@
 // Object instance pointer
 CT *self;
 
-static ct_return_code_t _ct_parse_sample ( void );
-static ct_return_code_t _ct_get_averages ( ct_sample *readings );
-static ct_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *optional_readings );
-static ct_return_code_t _ct_uart_init ( void );
-static ct_return_code_t _ct_reset_uart ( void );
-static ct_return_code_t _ct_start_timer ( uint16_t timeout_in_minutes );
-static ct_return_code_t _ct_stop_timer ( void );
-static void             _ct_on ( void );
-static void             _ct_off ( void );
+static uSWIFT_return_code_t _ct_parse_sample ( void );
+static uSWIFT_return_code_t _ct_get_averages ( ct_sample *readings );
+static uSWIFT_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *optional_readings );
+static uSWIFT_return_code_t _ct_uart_init ( void );
+static uSWIFT_return_code_t _ct_reset_uart ( void );
+static uSWIFT_return_code_t _ct_start_timer ( uint16_t timeout_in_minutes );
+static uSWIFT_return_code_t _ct_stop_timer ( void );
+static void                 _ct_on ( void );
+static void                 _ct_off ( void );
 
 // Helper functions
-static void             __reset_ct_struct_fields ( void );
+static void                 __reset_ct_struct_fields ( void );
 
 // Search terms
 static const char *temp_units =     "Deg.C";
@@ -116,9 +116,9 @@ bool ct_get_timeout_status ( void )
  *
  * @return ct_return_code_t
  */
-static ct_return_code_t _ct_parse_sample ( void )
+static uSWIFT_return_code_t _ct_parse_sample ( void )
 {
-  ct_return_code_t return_code = CT_SUCCESS;
+  uSWIFT_return_code_t return_code = uSWIFT_SUCCESS;
   int fail_counter = 0, max_retries = 10;
   double temperature, salinity;
   char *index;
@@ -126,7 +126,7 @@ static ct_return_code_t _ct_parse_sample ( void )
   // Samples array overflow safety check
   if ( self->total_samples >= self->global_config->total_ct_samples )
   {
-    return_code = CT_DONE_SAMPLING;
+    return_code = uSWIFT_DONE_SAMPLING;
     return return_code;
   }
 
@@ -138,7 +138,7 @@ static ct_return_code_t _ct_parse_sample ( void )
          != UART_OK )
     {
       self->reset_ct_uart ();
-      return_code = CT_UART_ERROR;
+      return_code = uSWIFT_COMMS_ERROR;
       continue;
     }
 
@@ -147,7 +147,7 @@ static ct_return_code_t _ct_parse_sample ( void )
     if ( index == NULL || index > &(self->data_buf[0]) + TEMP_MEASUREMENT_START_INDEX )
     {
       // If this evaluates to true, we're out of sync. Insert a short delay
-      return_code = CT_PARSING_ERROR;
+      return_code = uSWIFT_PROCESSING_ERROR;
       tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
       continue;
     }
@@ -178,7 +178,7 @@ static ct_return_code_t _ct_parse_sample ( void )
 
     self->total_samples++;
 
-    return_code = CT_SUCCESS;
+    return_code = uSWIFT_SUCCESS;
     break;
   }
 
@@ -191,11 +191,11 @@ static ct_return_code_t _ct_parse_sample ( void )
  * @return ct_samples struct containing the averages conductivity
  *         and temperature values
  */
-static ct_return_code_t _ct_get_averages ( ct_sample *readings )
+static uSWIFT_return_code_t _ct_get_averages ( ct_sample *readings )
 {
   if ( self->total_samples < self->global_config->total_ct_samples )
   {
-    return CT_NOT_ENOUGH_SAMPLES;
+    return uSWIFT_NO_SAMPLES_ERROR;
   }
 
   self->samples_averages.temp = self->samples_accumulator.salinity / ((double) self->total_samples);
@@ -204,7 +204,7 @@ static ct_return_code_t _ct_get_averages ( ct_sample *readings )
   readings->temp = self->samples_averages.temp;
   readings->salinity = self->samples_averages.salinity;
 
-  return CT_SUCCESS;
+  return uSWIFT_SUCCESS;
 }
 
 /**
@@ -212,9 +212,9 @@ static ct_return_code_t _ct_get_averages ( ct_sample *readings )
  *
  * @return ct_return_code_t
  */
-static ct_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *optional_readings )
+static uSWIFT_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *optional_readings )
 {
-  ct_return_code_t return_code;
+  uSWIFT_return_code_t return_code;
   uint32_t elapsed_time, start_time;
   double temperature, salinity;
   char *index;
@@ -226,7 +226,7 @@ static ct_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *optiona
        != UART_OK )
   {
     self->reset_ct_uart ();
-    return_code = CT_UART_ERROR;
+    return_code = uSWIFT_COMMS_ERROR;
     return return_code;
   }
 
@@ -234,7 +234,7 @@ static ct_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *optiona
   // Make the message was received in the right alignment
   if ( index == NULL || index > &(self->data_buf[0]) + TEMP_MEASUREMENT_START_INDEX )
   {
-    return_code = CT_PARSING_ERROR;
+    return_code = uSWIFT_PROCESSING_ERROR;
     return return_code;
   }
   index += TEMP_OFFSET_FROM_UNITS;
@@ -242,14 +242,14 @@ static ct_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *optiona
   // error return of atof() is 0.0
   if ( temperature == 0.0 )
   {
-    return_code = CT_PARSING_ERROR;
+    return_code = uSWIFT_PROCESSING_ERROR;
     return return_code;
   }
 
   index = strstr (self->data_buf, salinity_units);
   if ( index == NULL )
   {
-    return_code = CT_PARSING_ERROR;
+    return_code = uSWIFT_PROCESSING_ERROR;
     return return_code;
   }
 
@@ -258,7 +258,7 @@ static ct_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *optiona
 
   if ( salinity == 0.0 )
   {
-    return_code = CT_PARSING_ERROR;
+    return_code = uSWIFT_PROCESSING_ERROR;
     return return_code;
   }
 
@@ -279,15 +279,15 @@ static ct_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *optiona
     optional_readings->temp = temperature;
   }
 
-  return_code = CT_SUCCESS;
+  return_code = uSWIFT_SUCCESS;
   return return_code;
 
 }
 
-static ct_return_code_t _ct_uart_init ( void )
+static uSWIFT_return_code_t _ct_uart_init ( void )
 {
   return (self->uart_driver.init () == UART_OK) ?
-      CT_SUCCESS : CT_UART_ERROR;
+      uSWIFT_SUCCESS : uSWIFT_COMMS_ERROR;
 }
 
 /**
@@ -296,11 +296,11 @@ static ct_return_code_t _ct_uart_init ( void )
  * @param self - GNSS struct
  * @param baud_rate - baud rate to set port to
  */
-static ct_return_code_t _ct_reset_uart ( void )
+static uSWIFT_return_code_t _ct_reset_uart ( void )
 {
   if ( self->uart_driver.deinit () != UART_OK )
   {
-    return CT_UART_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   tx_thread_sleep (1);
@@ -314,20 +314,20 @@ static ct_return_code_t _ct_reset_uart ( void )
  * @param timeout_in_minutes - timeout, in minutes
  * @return  ct_return_code_t
  */
-static ct_return_code_t _ct_start_timer ( uint16_t timeout_in_minutes )
+static uSWIFT_return_code_t _ct_start_timer ( uint16_t timeout_in_minutes )
 {
   ULONG timeout = TX_TIMER_TICKS_PER_SECOND * 60 * timeout_in_minutes;
-  ct_return_code_t ret = CT_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
   if ( tx_timer_change (self->timer, timeout, 0) != TX_SUCCESS )
   {
-    ret = CT_TIMER_ERROR;
+    ret = uSWIFT_TIMER_ERROR;
     return ret;
   }
 
   if ( tx_timer_activate (self->timer) != TX_SUCCESS )
   {
-    ret = CT_TIMER_ERROR;
+    ret = uSWIFT_TIMER_ERROR;
   }
 
   return ret;
@@ -338,10 +338,10 @@ static ct_return_code_t _ct_start_timer ( uint16_t timeout_in_minutes )
  *
  * @return  ct_return_code_t
  */
-static ct_return_code_t _ct_stop_timer ( void )
+static uSWIFT_return_code_t _ct_stop_timer ( void )
 {
   return (tx_timer_deactivate (self->timer) == TX_SUCCESS) ?
-      CT_SUCCESS : CT_TIMER_ERROR;
+      uSWIFT_SUCCESS : uSWIFT_TIMER_ERROR;
 }
 
 /**

@@ -260,18 +260,22 @@ static real16_T _control_get_battery_voltage ( void )
 {
   real16_T battery_voltage =
     { BATTERY_ERROR_VOLTAGE_VALUE };
-  battery_return_code_t ret = BATTERY_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
   ret = controller_self->battery.get_voltage (&battery_voltage);
-  if ( ret != BATTERY_SUCCESS )
+  if ( ret != uSWIFT_SUCCESS )
   {
     switch ( ret )
     {
-      case BATTERY_ADC_ERROR:
-        LOG("Battery ADC error, unable to obtain battery voltage");
+      case uSWIFT_INITIALIZATION_ERROR:
+        LOG("Battery ADC initialization error, unable to obtain battery voltage");
         break;
 
-      case BATTERY_TIMEOUT_ERROR:
+      case uSWIFT_CALIBRATION_ERROR:
+        LOG("Battery ADC calibration error, unable to obtain battery voltage");
+        break;
+
+      case uSWIFT_TIMEOUT:
         LOG("Battery ADC timed out, unable to obtain battery voltage");
         break;
 

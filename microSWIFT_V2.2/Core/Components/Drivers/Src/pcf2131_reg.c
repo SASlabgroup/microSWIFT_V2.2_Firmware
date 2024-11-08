@@ -10,7 +10,6 @@
 
 static uint8_t __weekday_from_date ( int y, int m, int d );
 static bcd_struct_t __dec_to_bcd_struct ( uint8_t decimal_val );
-static uint8_t __bcd_struct_to_dec ( bcd_struct_t bcd_vals );
 
 int32_t pcf2131_register_io_functions ( dev_ctx_t *dev_handle, dev_init_ptr init_fn,
                                         dev_deinit_ptr deinit_fn, dev_write_ptr bus_write_fn,
@@ -898,9 +897,4 @@ static bcd_struct_t __dec_to_bcd_struct ( uint8_t decimal_val )
   bcd_struct_t ret =
     { ((bcd_full & 0xF0) >> 4), bcd_full & 0x0F };
   return ret;
-}
-
-static uint8_t __bcd_struct_to_dec ( bcd_struct_t bcd_vals )
-{
-  return BCD_TO_DEC (bcd_vals.tens_place, bcd_vals.units_place);
 }
