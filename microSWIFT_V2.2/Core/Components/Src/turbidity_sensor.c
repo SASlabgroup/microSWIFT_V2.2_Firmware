@@ -37,7 +37,7 @@ static void                 _turbidity_sensor_ms_delay ( uint32_t delay );
 
 void turbidity_sensor_init ( Turbidity_Sensor *struct_ptr, microSWIFT_configuration *global_config,
                              I2C_HandleTypeDef *i2c_handle, TX_TIMER *timer,
-                             TX_SEMAPHORE *sensor_i2c_sema, uint16_t *samples_buffer )
+                             TX_SEMAPHORE *sensor_i2c_sema, int32_t *samples_buffer )
 {
   turbidity_self = struct_ptr;
 
@@ -49,6 +49,8 @@ void turbidity_sensor_init ( Turbidity_Sensor *struct_ptr, microSWIFT_configurat
   turbidity_self->timer = timer;
 
   turbidity_self->samples_series = samples_buffer;
+  memset (&(turbidity_self->averages_series[0]), 0, sizeof(turbidity_self->averages_series));
+  turbidity_self->samples_counter = 0;
   turbidity_self->raw_count = 0;
 
   turbidity_self->timer_timeout = false;
@@ -145,8 +147,7 @@ static uSWIFT_return_code_t _turbidity_sensor_take_measurement ( void )
 
         break;
 
-      case 1:
-      case 2:
+      case 1 ... 2:
         if ( vcnl4010_get_ambient_reading (&turbidity_self->dev_ctx, &intermediate_result)
              != uSWIFT_SUCCESS )
         {
@@ -169,10 +170,23 @@ static uSWIFT_return_code_t _turbidity_sensor_take_measurement ( void )
         break;
 
       default:
-#warning "Some kind of creative error handling here."
         break;
 
     }
+  }
+
+  turbidity_self->samples_series[turbidity_self->samples_counter] = result;
+
+  turbidity_self->raw_count = result;
+
+  if ( ++turbidity_self->samples_counter == turbidity_self->global_config->total_turbidity_samples )
+  {
+    ret = uSWIFT_DONE_SAMPLING;
+  }
+
+  if ( turbidity_self->samples_counter % 60 == 0 )
+  {
+    turbidity_self->process_measurements ();
   }
 
   return ret;
@@ -196,6 +210,20 @@ static uSWIFT_return_code_t _turbidity_sensor_get_raw_counts ( uint16_t *raw_cou
 static uSWIFT_return_code_t _turbidity_sensor_process_measurements ( void )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
+  static uint32_t averages_index = 0;
+  uint64_t temp_accumulator = 0;
+  uint32_t sample_index = turbidity_self->samples_counter;
+
+  for ( int i = 0; i < 60; i++, sample_index-- )
+  {
+    temp_accumulator += turbidity_self->samples_series[sample_index];
+  }
+
+  temp_accumulator /= 60;
+
+  turbidity_self->averages_series[averages_index] = (int32_t) temp_accumulator;
+
+  averages_index++;
 
   return ret;
 }

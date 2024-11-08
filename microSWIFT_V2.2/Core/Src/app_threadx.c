@@ -183,9 +183,13 @@ TX_BYTE_POOL waves_byte_pool;
 __ALIGN_BEGIN uint8_t logger_block_buffer[(sizeof(log_line_buf) * LOG_QUEUE_LENGTH)
                                           + (LOG_QUEUE_LENGTH * sizeof(void*))] __attribute__((section(".ram1")))__ALIGN_END;
 
-// Light sensor byte pool
-__ALIGN_BEGIN light_basic_counts light_sensor_byte_pool_buffer[LIGHT_SENSOR_BYTE_POOL_BUFFER_SIZE
-                                                               / sizeof(light_basic_counts)] __attribute__((section(".ram1")))__ALIGN_END;
+// Light sensor sample buffer
+__ALIGN_BEGIN light_basic_counts light_sensor_sample_buffer[LIGHT_SENSOR_BYTE_POOL_BUFFER_SIZE
+                                                            / sizeof(light_basic_counts)] __attribute__((section(".ram1")))__ALIGN_END;
+
+// Turbidity sensor sample buffer
+__ALIGN_BEGIN int32_t turbidity_sensor_sample_buffer[TURBIDITY_SENSOR_SAMPLE_BUFFER_SIZE
+                                                     / sizeof(int32_t)] __attribute__((section(".ram1")))__ALIGN_END;
 
 TX_BLOCK_POOL logger_block_pool;
 /* USER CODE END PV */
@@ -1454,7 +1458,7 @@ static void light_thread_entry ( ULONG thread_input )
                                   / 60)
                                  + GNSS_WINDOW_BUFFER_TIME; // Same timeout as GNSS
 
-  light_sensor_init (&light, &configuration, &(light_sensor_byte_pool_buffer[0]),
+  light_sensor_init (&light, &configuration, &(light_sensor_sample_buffer[0]),
                      device_handles.core_i2c_handle, &light_timer, &light_sensor_int_pin_sema,
                      &light_sensor_i2c_sema);
 

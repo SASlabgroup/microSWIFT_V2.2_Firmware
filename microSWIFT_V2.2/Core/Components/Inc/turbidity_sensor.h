@@ -18,6 +18,7 @@
 // @formatter:off
 
 #define TURBIDITY_I2C_TIMEOUT 50
+#define TURBIDITY_SENSOR_SAMPLE_BUFFER_SIZE 14400
 
 typedef struct
 {
@@ -29,11 +30,13 @@ typedef struct
 
   TX_TIMER                  *timer;
 
-  uint16_t                  *samples_series;
+  int32_t                   *samples_series;
 
-  uint16_t                  samples_counter;
+  int32_t                   averages_series[60]; // more than we would ever need
 
-  uint16_t                  raw_count;
+  int32_t                   samples_counter;
+
+  int32_t                   raw_count;
 
   dev_ctx_t                 dev_ctx;
 
@@ -52,7 +55,7 @@ typedef struct
 
 void turbidity_sensor_init          ( Turbidity_Sensor *struct_ptr, microSWIFT_configuration *global_config,
                                       I2C_HandleTypeDef *i2c_handle, TX_TIMER *timer,
-                                      TX_SEMAPHORE *sensor_i2c_sema, uint16_t *samples_buffer );
+                                      TX_SEMAPHORE *sensor_i2c_sema, int32_t *samples_buffer);
 void turbidity_deinit               ( void );
 void turbidity_timer_expired        ( ULONG expiration_input );
 bool turbidity_get_timeout_status   ( void );
