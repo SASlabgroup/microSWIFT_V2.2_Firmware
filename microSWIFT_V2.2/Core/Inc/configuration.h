@@ -89,7 +89,7 @@
 
 // If there is a turbidity sensor present
 #define TURBIDITY_SENSOR_ENABLED false
-#define TOTAL_TURBIDITY_SAMPLES 10
+#define TOTAL_TURBIDITY_SAMPLES (TOTAL_SAMPLES_PER_WINDOW / GNSS_SAMPLING_RATE)
 
 // If there is a fast accelerometer present
 #define ACCELEROMETER_ENABLED false

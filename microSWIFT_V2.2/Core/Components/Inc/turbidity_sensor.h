@@ -45,7 +45,7 @@ typedef struct
   uSWIFT_return_code_t      (*self_test) (void);
   uSWIFT_return_code_t      (*setup_sensor) (void);
   uSWIFT_return_code_t      (*take_measurement) (void);
-  uSWIFT_return_code_t      (*get_raw_counts) (uint16_t *raw_counts);
+  uSWIFT_return_code_t      (*get_raw_counts) (int32_t *raw_counts);
   uSWIFT_return_code_t      (*process_measurements) (void);
   uSWIFT_return_code_t      (*start_timer) ( uint16_t timeout_in_minutes );
   uSWIFT_return_code_t      (*stop_timer) (void);

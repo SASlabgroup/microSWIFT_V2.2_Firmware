@@ -164,12 +164,6 @@ static bool _control_startup_procedure ( void )
     (void) tx_thread_resume (controller_self->thread_handles->turbidity_thread);
   }
 
-  if ( controller_self->global_config->accelerometer_enabled )
-  {
-    init_success_flags |= ACCELEROMETER_INIT_SUCCESS;
-    (void) tx_thread_resume (controller_self->thread_handles->accelerometer_thread);
-  }
-
   // Flash power up sequence (this will also give threads time to execute their init procedures)
   if ( initial_powerup )
   {

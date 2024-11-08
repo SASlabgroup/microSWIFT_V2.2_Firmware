@@ -6,6 +6,7 @@
  */
 
 #include "generic_i2c_driver.h"
+#include "microSWIFT_return_codes.h"
 
 static int32_t _generic_i2c_read ( void *driver_ptr, uint8_t reg_addr, uint8_t *read_buf,
                                    uint16_t size );
@@ -63,7 +64,7 @@ static int32_t _generic_i2c_read ( void *driver_ptr, uint8_t reg_addr, uint8_t *
   if ( ret == GENERIC_I2C_OK )
   {
     if ( HAL_I2C_Master_Receive (driver_handle->i2c_handle, reg_addr, read_buf, size,
-    GENERIC_I2C_BLOCKING_TIMEOUT)
+                                 GENERIC_I2C_BLOCKING_TIMEOUT)
          != HAL_OK )
     {
       ret = GENERIC_I2C_ERROR;
@@ -97,7 +98,7 @@ static int32_t _generic_i2c_write ( void *driver_ptr, uint8_t reg_addr, uint8_t 
   if ( ret == GENERIC_I2C_OK )
   {
     if ( HAL_I2C_Master_Transmit (driver_handle->i2c_handle, reg_addr, write_buf, size,
-    GENERIC_I2C_BLOCKING_TIMEOUT)
+                                  GENERIC_I2C_BLOCKING_TIMEOUT)
          != HAL_OK )
     {
       ret = GENERIC_I2C_ERROR;

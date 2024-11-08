@@ -14,7 +14,7 @@ static Turbidity_Sensor *turbidity_self;
 static uSWIFT_return_code_t _turbidity_sensor_self_test (void);
 static uSWIFT_return_code_t _turbidity_sensor_setup_sensor (void);
 static uSWIFT_return_code_t _turbidity_sensor_take_measurement (void);
-static uSWIFT_return_code_t _turbidity_sensor_get_raw_counts (uint16_t *raw_counts);
+static uSWIFT_return_code_t _turbidity_sensor_get_raw_counts (int32_t *raw_counts);
 static uSWIFT_return_code_t _turbidity_sensor_process_measurements (void);
 static uSWIFT_return_code_t _turbidity_sensor_start_timer ( uint16_t timeout_in_minutes );
 static uSWIFT_return_code_t _turbidity_sensor_stop_timer (void);
@@ -111,6 +111,8 @@ static uSWIFT_return_code_t _turbidity_sensor_self_test ( void )
 
   ret = turbidity_self->take_measurement ();
 
+  turbidity_self->samples_counter = 0;
+
   return ret;
 }
 
@@ -192,7 +194,7 @@ static uSWIFT_return_code_t _turbidity_sensor_take_measurement ( void )
   return ret;
 }
 
-static uSWIFT_return_code_t _turbidity_sensor_get_raw_counts ( uint16_t *raw_counts )
+static uSWIFT_return_code_t _turbidity_sensor_get_raw_counts ( int32_t *raw_counts )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 

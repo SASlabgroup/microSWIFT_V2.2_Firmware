@@ -36,17 +36,15 @@ typedef enum led_sequence
 bool        gnss_apply_config ( GNSS *gnss );
 bool        ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings );
 bool        temperature_self_test ( Temperature *temperature, float *self_test_temp );
-bool        turbidity_self_test ( void );
+bool        turbidity_self_test ( Turbidity_Sensor *obs );
 bool        light_self_test ( Light_Sensor *light);
-bool        accelerometer_self_test ( void );
 bool        iridium_apply_config ( Iridium *iridium );
 
 void        gnss_error_out(GNSS *gnss, ULONG error_flag, TX_THREAD *gnss_thread, const char *fmt, ...);
 void        ct_error_out(CT* ct, ULONG error_flag, TX_THREAD *ct_thread, const char *fmt, ...);
 void        temperature_error_out(Temperature* temperature, ULONG error_flag, TX_THREAD *temperature_thread, const char *fmt, ...);
 void        light_error_out (Light_Sensor* light, ULONG error_flag, TX_THREAD* light_thread, const char *fmt, ...);
-//void        turbidity_error_out(Turbidity* turbidity, ULONG error_flag, TX_THREAD *turbidity_thread, const char *fmt, ...);
-//void        accelerometer_error_out(Accelerometer* accel, ULONG error_flag, TX_THREAD *accelerometer_thread, const char *fmt, ...);
+void        turbidity_error_out(Turbidity_Sensor* turbidity, ULONG error_flag, TX_THREAD *turbidity_thread, const char *fmt, ...);
 void        waves_error_out(ULONG error_flag, TX_THREAD *waves_thread, const char *fmt, ...);
 void        iridium_error_out(Iridium* iridium, ULONG error_flag, TX_THREAD *iridium_thread, const char *fmt, ...);
 void        rtc_error_out(TX_THREAD *rtc_thread, const char *fmt, ...);

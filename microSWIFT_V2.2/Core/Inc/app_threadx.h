@@ -184,7 +184,6 @@ typedef struct
   TX_THREAD *temperature_thread;
   TX_THREAD *light_thread;
   TX_THREAD *turbidity_thread;
-  TX_THREAD *accelerometer_thread;
   TX_THREAD *waves_thread;
   TX_THREAD *iridium_thread;
   TX_THREAD *filex_thread;

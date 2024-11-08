@@ -40,6 +40,8 @@
 #include "rf_switch.h"
 #include "iridium.h"
 #include "temp_sensor.h"
+#include "light_sensor.h"
+#include "turbidity_sensor.h"
 #include "NEDWaves/mem_replacements.h"
 #include "configuration.h"
 #include "linked_list.h"
@@ -114,7 +116,6 @@ TX_THREAD ct_thread;
 TX_THREAD temperature_thread;
 TX_THREAD light_thread;
 TX_THREAD turbidity_thread;
-TX_THREAD accelerometer_thread;
 TX_THREAD waves_thread;
 TX_THREAD iridium_thread;
 // @formatter:off
@@ -128,7 +129,6 @@ Thread_Handles thread_handles =
     &temperature_thread,
     &light_thread,
     &turbidity_thread,
-    &accelerometer_thread,
     &waves_thread,
     &iridium_thread,
     &fx_app_thread
@@ -153,7 +153,6 @@ TX_TIMER ct_timer;
 TX_TIMER temperature_timer;
 TX_TIMER light_timer;
 TX_TIMER turbidity_timer;
-TX_TIMER accelerometer_timer;
 TX_TIMER waves_timer;
 TX_TIMER iridium_timer;
 // Comms buses semaphores
@@ -344,21 +343,6 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
   //
-  // Allocate stack for the accelerometer thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, L_STACK, TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-  // Create the accelerometer thread. MID priority, no preemption-threshold
-  ret = tx_thread_create(&accelerometer_thread, "accelerometer thread", accelerometer_thread_entry,
-                         0, pointer, L_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
-                         TX_DONT_START);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-  //
   // Allocate stack for the waves thread
   ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XL_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
@@ -489,13 +473,6 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
-//
-//  ret = tx_timer_create(&accelerometer_timer, "Accelerometer thread timer",
-//                        accelerometer_timer_expired, 0, 0, 0, TX_NO_ACTIVATE);
-//  if ( ret != TX_SUCCESS )
-//  {
-//    return ret;
-//  }
 
   ret = tx_timer_create(&iridium_timer, "Iridium thread timer", iridium_timer_expired, 0, 1, 1,
                         TX_NO_ACTIVATE);
@@ -1361,7 +1338,7 @@ static void temperature_thread_entry ( ULONG thread_input )
 
   memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
 
-  temperature_init (&temperature, &configuration, device_handles.core_i2c_handle, &error_flags,
+  temperature_init (&temperature, &configuration, device_handles.aux_i2c_2_handle, &error_flags,
                     &temperature_timer, &core_i2c_mutex, true);
 
   temperature.on ();
@@ -1559,10 +1536,21 @@ static void turbidity_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = tx_thread_identify ();
+  Turbidity_Sensor obs =
+    { 0 };
+  int32_t raw_counts;
+  uSWIFT_return_code_t ret;
+  int32_t turbidity_thread_timeout = ((configuration.samples_per_window
+                                       / configuration.gnss_sampling_rate)
+                                      / 60)
+                                     + GNSS_WINDOW_BUFFER_TIME; // Same timeout as GNSS
+
+  turbidity_sensor_init (&obs, &configuration, device_handles.aux_i2c_1_handle, &turbidity_timer,
+                         &turbidity_sensor_i2c_sema, &turbidity_sensor_sample_buffer[0]);
+
+  obs.on ();
 
   tx_thread_sleep (10);
-
-  // TODO: init and self test
 
   //
   // Run tests if needed
@@ -1571,56 +1559,56 @@ static void turbidity_thread_entry ( ULONG thread_input )
     tests.turbidity_thread_test (NULL);
   }
 
-  tx_thread_suspend (this_thread);
+  if ( !turbidity_self_test (&obs) )
+  {
+    turbidity_error_out (&obs, TURBIDITY_INIT_FAILED, this_thread,
+                         "Turbidity sensor self test failed.");
+  }
+
+  obs.get_raw_counts (&raw_counts);
+
+  LOG("Turbidity sensor initialization complete. Raw counts: %d", raw_counts);
 
   watchdog_register_thread (TURBIDITY_THREAD);
   watchdog_check_in (TURBIDITY_THREAD);
 
-  // TODO: Run sensor
+  obs.start_timer (turbidity_thread_timeout);
+
+  // Take our samples
+  while ( 1 )
+  {
+
+    watchdog_check_in (LIGHT_THREAD);
+
+    ret = obs.take_measurement ();
+
+    if ( ret == uSWIFT_DONE_SAMPLING )
+    {
+      break;
+    }
+    else if ( ret != uSWIFT_SUCCESS )
+    {
+      turbidity_error_out (&obs, TURBIDITY_SAMPLING_ERROR, this_thread,
+                           "Error occurred when reading turbidity sensor.");
+    }
+
+    if ( turbidity_get_timeout_status () )
+    {
+      turbidity_error_out (&obs, TURBIDITY_SAMPLING_ERROR, this_thread,
+                           "Turbidity sample window timed out after %d minutes.",
+                           turbidity_thread_timeout);
+    }
+
+    // Sleep the rest of the second away
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND - (tx_time_get () % TX_TIMER_TICKS_PER_SECOND));
+  }
+
+  obs.off ();
 
   watchdog_check_in (TURBIDITY_THREAD);
   watchdog_deregister_thread (TURBIDITY_THREAD);
 
   (void) tx_event_flags_set (&complete_flags, TURBIDITY_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
-  tx_thread_terminate (this_thread);
-}
-
-/***************************************************************************************************
- ***************************************************************************************************
- ********************************    Accelerometer Thread    ***************************************
- ***************************************************************************************************
- ***************************************************************************************************
- * @brief  accelerometer_thread_entry
- *         This thread will manage the accelerometer sensor
- *
- * @param  ULONG thread_input - unused
- * @retval void
- */
-static void accelerometer_thread_entry ( ULONG thread_input )
-{
-  UNUSED(thread_input);
-  TX_THREAD *this_thread = tx_thread_identify ();
-
-  // TODO: init and self test
-
-  //
-  // Run tests if needed
-  if ( tests.accelerometer_thread_test != NULL )
-  {
-    tests.accelerometer_thread_test (NULL);
-  }
-
-  tx_thread_suspend (this_thread);
-
-  watchdog_register_thread (ACCELEROMETER_THREAD);
-  watchdog_check_in (ACCELEROMETER_THREAD);
-
-  // TODO: Run sensor
-
-  watchdog_check_in (ACCELEROMETER_THREAD);
-  watchdog_deregister_thread (ACCELEROMETER_THREAD);
-
-  (void) tx_event_flags_set (&complete_flags, ACCELEROMETER_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
 }
 

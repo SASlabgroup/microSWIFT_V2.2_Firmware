@@ -106,9 +106,29 @@ bool temperature_self_test ( Temperature *temperature, float *self_test_temp )
   return (temp_return_code == TEMPERATURE_SUCCESS);
 }
 
-bool turbidity_self_test ( void )
+bool turbidity_self_test ( Turbidity_Sensor *obs )
 {
-  return true;
+  int32_t fail_counter = 0, max_retries = 10;
+  uSWIFT_return_code_t ret;
+
+  while ( fail_counter < max_retries )
+  {
+    ret = obs->self_test ();
+
+    if ( ret == uSWIFT_SUCCESS )
+    {
+      break;
+    }
+
+    obs->off ();
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+    obs->on ();
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+
+    fail_counter++;
+  }
+
+  return (ret == uSWIFT_SUCCESS);
 }
 
 bool light_self_test ( Light_Sensor *light )
@@ -134,11 +154,6 @@ bool light_self_test ( Light_Sensor *light )
   }
 
   return (light_return_code == LIGHT_SUCCESS);
-}
-
-bool accelerometer_self_test ( void )
-{
-  return true;
 }
 
 bool iridium_apply_config ( Iridium *iridium )
@@ -272,6 +287,28 @@ void light_error_out ( Light_Sensor *light, ULONG error_flag, TX_THREAD *light_t
   watchdog_deregister_thread (LIGHT_THREAD);
 
   tx_thread_suspend (light_thread);
+}
+
+void turbidity_error_out ( Turbidity_Sensor *turbidity, ULONG error_flag,
+                           TX_THREAD *turbidity_thread, const char *fmt, ... )
+{
+  va_list args;
+  va_start(args, fmt);
+  char tmp_fmt[128];
+
+  turbidity->off ();
+  turbidity->stop_timer ();
+  turbidity_deinit ();
+
+  vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
+  va_end(args);
+  LOG(&(tmp_fmt[0]));
+
+  (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
+
+  watchdog_deregister_thread (TURBIDITY_THREAD);
+
+  tx_thread_suspend (turbidity_thread);
 }
 
 void waves_error_out ( ULONG error_flag, TX_THREAD *waves_thread, const char *fmt, ... )
