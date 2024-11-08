@@ -26,13 +26,13 @@
 bool gnss_apply_config ( GNSS *gnss )
 {
   int fail_counter = 0, max_retries = 20;
-  gnss_return_code_t gnss_return_code = GNSS_SUCCESS;
+  uSWIFT_return_code_t gnss_return_code = uSWIFT_SUCCESS;
 
   while ( fail_counter < max_retries )
   {
     gnss_return_code = gnss->config ();
 
-    if ( gnss_return_code == GNSS_SUCCESS )
+    if ( gnss_return_code == uSWIFT_SUCCESS )
     {
       break;
     }
@@ -52,7 +52,7 @@ bool gnss_apply_config ( GNSS *gnss )
     fail_counter++;
   }
 
-  return (gnss_return_code == GNSS_SUCCESS);
+  return (gnss_return_code == uSWIFT_SUCCESS);
 }
 
 bool ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings )

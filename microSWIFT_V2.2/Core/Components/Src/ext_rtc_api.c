@@ -27,9 +27,9 @@ void rtc_server_refresh_watchdog ( void )
   (void) tx_queue_send (self.request_queue, &queue_msg, RTC_QUEUE_MAX_WAIT_TICKS);
 }
 
-rtc_return_code rtc_server_get_time ( struct tm *return_time_struct, UINT complete_flag )
+uSWIFT_return_code_t rtc_server_get_time ( struct tm *return_time_struct, UINT complete_flag )
 {
-  int32_t ret = RTC_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   rtc_request_message queue_msg =
     { 0 };
   ULONG event_flags;
@@ -41,22 +41,22 @@ rtc_return_code rtc_server_get_time ( struct tm *return_time_struct, UINT comple
 
   if ( tx_queue_send (self.request_queue, &queue_msg, RTC_QUEUE_MAX_WAIT_TICKS) != TX_SUCCESS )
   {
-    return RTC_MESSAGE_QUEUE_ERROR;
+    return uSWIFT_MESSAGE_QUEUE_ERROR;
   }
 
   if ( tx_event_flags_get (self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
   RTC_FLAG_MAX_WAIT_TICKS)
        != TX_SUCCESS )
   {
-    return RTC_TIMEOUT;
+    return uSWIFT_TIMEOUT;
   }
 
   return ret;
 }
 
-rtc_return_code rtc_server_set_time ( struct tm *input_time_struct, UINT complete_flag )
+uSWIFT_return_code_t rtc_server_set_time ( struct tm *input_time_struct, UINT complete_flag )
 {
-  int32_t ret = RTC_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   rtc_request_message queue_msg =
     { 0 };
   ULONG event_flags;
@@ -68,22 +68,23 @@ rtc_return_code rtc_server_set_time ( struct tm *input_time_struct, UINT complet
 
   if ( tx_queue_send (self.request_queue, &queue_msg, RTC_QUEUE_MAX_WAIT_TICKS) != TX_SUCCESS )
   {
-    return RTC_MESSAGE_QUEUE_ERROR;
+    return uSWIFT_MESSAGE_QUEUE_ERROR;
   }
 
   if ( tx_event_flags_get (self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
   RTC_FLAG_MAX_WAIT_TICKS)
        != TX_SUCCESS )
   {
-    return RTC_TIMEOUT;
+    return uSWIFT_TIMEOUT;
   }
 
   return ret;
 }
 
-rtc_return_code rtc_server_set_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag )
+uSWIFT_return_code_t rtc_server_set_timestamp ( pcf2131_timestamp_t which_timestamp,
+                                                UINT complete_flag )
 {
-  int32_t ret = RTC_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   rtc_request_message queue_msg =
     { 0 };
   ULONG event_flags;
@@ -95,22 +96,23 @@ rtc_return_code rtc_server_set_timestamp ( pcf2131_timestamp_t which_timestamp, 
 
   if ( tx_queue_send (self.request_queue, &queue_msg, RTC_QUEUE_MAX_WAIT_TICKS) != TX_SUCCESS )
   {
-    return RTC_MESSAGE_QUEUE_ERROR;
+    return uSWIFT_MESSAGE_QUEUE_ERROR;
   }
 
   if ( tx_event_flags_get (self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
   RTC_FLAG_MAX_WAIT_TICKS)
        != TX_SUCCESS )
   {
-    return RTC_TIMEOUT;
+    return uSWIFT_TIMEOUT;
   }
 
   return ret;
 }
 
-rtc_return_code rtc_server_get_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag )
+uSWIFT_return_code_t rtc_server_get_timestamp ( pcf2131_timestamp_t which_timestamp,
+                                                UINT complete_flag )
 {
-  int32_t ret = RTC_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   rtc_request_message queue_msg =
     { 0 };
   ULONG event_flags;
@@ -122,22 +124,22 @@ rtc_return_code rtc_server_get_timestamp ( pcf2131_timestamp_t which_timestamp, 
 
   if ( tx_queue_send (self.request_queue, &queue_msg, RTC_QUEUE_MAX_WAIT_TICKS) != TX_SUCCESS )
   {
-    return RTC_MESSAGE_QUEUE_ERROR;
+    return uSWIFT_MESSAGE_QUEUE_ERROR;
   }
 
   if ( tx_event_flags_get (self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
   RTC_FLAG_MAX_WAIT_TICKS)
        != TX_SUCCESS )
   {
-    return RTC_TIMEOUT;
+    return uSWIFT_TIMEOUT;
   }
 
   return ret;
 }
 
-rtc_return_code rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UINT complete_flag )
+uSWIFT_return_code_t rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UINT complete_flag )
 {
-  int32_t ret = RTC_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   rtc_request_message queue_msg =
     { 0 };
   ULONG event_flags;
@@ -149,22 +151,22 @@ rtc_return_code rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UINT com
 
   if ( tx_queue_send (self.request_queue, &queue_msg, RTC_QUEUE_MAX_WAIT_TICKS) != TX_SUCCESS )
   {
-    return RTC_MESSAGE_QUEUE_ERROR;
+    return uSWIFT_MESSAGE_QUEUE_ERROR;
   }
 
   if ( tx_event_flags_get (self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
   RTC_FLAG_MAX_WAIT_TICKS)
        != TX_SUCCESS )
   {
-    return RTC_TIMEOUT;
+    return uSWIFT_TIMEOUT;
   }
 
   return ret;
 }
 
-rtc_return_code rtc_server_clear_flag ( rtc_flag_t which_flag, UINT complete_flag )
+uSWIFT_return_code_t rtc_server_clear_flag ( rtc_flag_t which_flag, UINT complete_flag )
 {
-  int32_t ret = RTC_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   rtc_request_message queue_msg =
     { 0 };
   ULONG event_flags;
@@ -176,35 +178,35 @@ rtc_return_code rtc_server_clear_flag ( rtc_flag_t which_flag, UINT complete_fla
 
   if ( tx_queue_send (self.request_queue, &queue_msg, RTC_QUEUE_MAX_WAIT_TICKS) != TX_SUCCESS )
   {
-    return RTC_MESSAGE_QUEUE_ERROR;
+    return uSWIFT_MESSAGE_QUEUE_ERROR;
   }
 
   if ( tx_event_flags_get (self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
   RTC_FLAG_MAX_WAIT_TICKS)
        != TX_SUCCESS )
   {
-    return RTC_TIMEOUT;
+    return uSWIFT_TIMEOUT;
   }
 
   return ret;
 }
 
 // Requires request message to be filled out
-rtc_return_code rtc_server_process_request ( rtc_request_message *request )
+uSWIFT_return_code_t rtc_server_process_request ( rtc_request_message *request )
 {
-  int32_t ret = RTC_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   ULONG event_flags;
 
   if ( tx_queue_send (self.request_queue, request, RTC_QUEUE_MAX_WAIT_TICKS) != TX_SUCCESS )
   {
-    return RTC_MESSAGE_QUEUE_ERROR;
+    return uSWIFT_MESSAGE_QUEUE_ERROR;
   }
 
   if ( tx_event_flags_get (self.complete_flags, request->complete_flag, TX_OR_CLEAR, &event_flags,
   RTC_FLAG_MAX_WAIT_TICKS)
        != TX_SUCCESS )
   {
-    return RTC_TIMEOUT;
+    return uSWIFT_TIMEOUT;
   }
 
   return ret;

@@ -13,6 +13,7 @@
 #include "spi.h"
 #include "time.h"
 #include "gpio.h"
+#include "microSWIFT_return_codes.h"
 
 //@formatter:off
 
@@ -40,18 +41,18 @@ typedef struct
 
   pcf2131_irq_config_struct irq_config;
 
-  rtc_return_code           (*setup_rtc) ( void );
-  rtc_return_code           (*config_watchdog) ( uint32_t period_ms );
-  rtc_return_code           (*refresh_watchdog) ( void );
-  rtc_return_code           (*set_date_time) ( struct tm *input_date_time );
-  rtc_return_code           (*get_date_time) ( struct tm *return_date_time );
-  rtc_return_code           (*set_timestamp) ( pcf2131_timestamp_t which_timestamp );
-  rtc_return_code           (*get_timestamp) ( pcf2131_timestamp_t which_timestamp, time_t *return_timestamp );
-  rtc_return_code           (*set_alarm) ( rtc_alarm_struct alarm_setting );
-  rtc_return_code           (*clear_flag) ( rtc_flag_t which_flag );
+  uSWIFT_return_code_t      (*setup_rtc) ( void );
+  uSWIFT_return_code_t      (*config_watchdog) ( uint32_t period_ms );
+  uSWIFT_return_code_t      (*refresh_watchdog) ( void );
+  uSWIFT_return_code_t      (*set_date_time) ( struct tm *input_date_time );
+  uSWIFT_return_code_t      (*get_date_time) ( struct tm *return_date_time );
+  uSWIFT_return_code_t      (*set_timestamp) ( pcf2131_timestamp_t which_timestamp );
+  uSWIFT_return_code_t      (*get_timestamp) ( pcf2131_timestamp_t which_timestamp, time_t *return_timestamp );
+  uSWIFT_return_code_t      (*set_alarm) ( rtc_alarm_struct alarm_setting );
+  uSWIFT_return_code_t      (*clear_flag) ( rtc_flag_t which_flag );
 } Ext_RTC;
 
-rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus, TX_SEMAPHORE *rtc_spi_sema );
+uSWIFT_return_code_t ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus, TX_SEMAPHORE *rtc_spi_sema );
 
 //@formatter:on
 #endif /* COMPONENTS_INC_EXT_RTC_H_ */

@@ -18,16 +18,16 @@
 static Ext_RTC *rtc_self;
 
 /* Core struct functions */
-static rtc_return_code _ext_rtc_setup_rtc ( void );
-static rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms );
-static rtc_return_code _ext_rtc_refresh_watchdog ( void );
-static rtc_return_code _ext_rtc_set_date_time ( struct tm *input_date_time );
-static rtc_return_code _ext_rtc_get_date_time ( struct tm *return_date_time );
-static rtc_return_code _ext_rtc_set_timestamp ( pcf2131_timestamp_t which_timestamp );
-static rtc_return_code _ext_rtc_get_timestamp ( pcf2131_timestamp_t which_timestamp,
-                                                time_t *return_timestamp );
-static rtc_return_code _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting );
-static rtc_return_code _ext_rtc_clear_flag ( rtc_flag_t which_flag );
+static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void );
+static uSWIFT_return_code_t _ext_rtc_config_watchdog ( uint32_t period_ms );
+static uSWIFT_return_code_t _ext_rtc_refresh_watchdog ( void );
+static uSWIFT_return_code_t _ext_rtc_set_date_time ( struct tm *input_date_time );
+static uSWIFT_return_code_t _ext_rtc_get_date_time ( struct tm *return_date_time );
+static uSWIFT_return_code_t _ext_rtc_set_timestamp ( pcf2131_timestamp_t which_timestamp );
+static uSWIFT_return_code_t _ext_rtc_get_timestamp ( pcf2131_timestamp_t which_timestamp,
+                                                     time_t *return_timestamp );
+static uSWIFT_return_code_t _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting );
+static uSWIFT_return_code_t _ext_rtc_clear_flag ( rtc_flag_t which_flag );
 
 /* SPI driver functions */
 static int32_t _ext_rtc_spi_init ( void );
@@ -54,12 +54,12 @@ static uint8_t __weekday_from_date ( int y, int m, int d );
  * @param  struct_ptr:= Global struct pointer, saved locally as static pointer
  * @param  rtc_spi_bus:= Handle for SPI bus
  * @param  messaging_queue:= Pointer to global messaging queue for inbound requests
- * @retval rtc_return_code
+ * @retval uSWIFT_return_code_t
  */
-rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus,
-                               TX_SEMAPHORE *rtc_spi_sema )
+uSWIFT_return_code_t ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus,
+                                    TX_SEMAPHORE *rtc_spi_sema )
 {
-  int32_t ret;
+  uSWIFT_return_code_t ret;
   uint8_t register_read = 0;
   // Grab the global struct pointer
   rtc_self = struct_ptr;
@@ -134,13 +134,13 @@ rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_b
                                       _ext_rtc_ms_delay, NULL)
        != PCF2131_OK )
   {
-    return RTC_SPI_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   // Software reset the RTC
   if ( pcf2131_software_reset (&rtc_self->dev_ctx) != PCF2131_OK )
   {
-    return RTC_SPI_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   // read the Software Reset register to see if the bit pattern matches default
@@ -148,7 +148,7 @@ rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_b
 
   if ( ret != PCF2131_OK || register_read != RESET_REG_RESET_VAL )
   {
-    return RTC_SPI_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   ret = rtc_self->clear_flag (ALL_RTC_FLAGS);
@@ -159,24 +159,24 @@ rtc_return_code ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_b
 /**
  * @brief  Apply all required RTC settings, with the exception of the watchdog timer.
  * @param  None
- * @retval rtc_return_code
+ * @retval uSWIFT_return_code_t
  */
-static rtc_return_code _ext_rtc_setup_rtc ( void )
+static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
 {
-  int32_t ret = RTC_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
   // Clock output
   ret = pcf2131_set_clkout_freq (&(rtc_self->dev_ctx), FREQ_32768);
   if ( ret != PCF2131_OK )
   {
-    return RTC_SPI_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   // Power management scheme
   ret = pcf2131_config_pwr_mgmt_scheme (&(rtc_self->dev_ctx), SWITCH_OVER_DIS_LOW_BATT_DIS);
   if ( ret != PCF2131_OK )
   {
-    return RTC_SPI_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   // Temperature measurement/ compensation
@@ -184,14 +184,14 @@ static rtc_return_code _ext_rtc_setup_rtc ( void )
   ret |= pcf2131_set_temp_meas_period (&(rtc_self->dev_ctx), EVERY_32_MINS);
   if ( ret != PCF2131_OK )
   {
-    return RTC_SPI_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   // Interrupts: Int A will be used for alarm, Int B for watchdog
   ret = pcf2131_config_interrupts (&(rtc_self->dev_ctx), &rtc_self->irq_config);
   if ( ret != PCF2131_OK )
   {
-    return RTC_SPI_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   // Timestamps
@@ -205,7 +205,7 @@ static rtc_return_code _ext_rtc_setup_rtc ( void )
   ret |= pcf2131_clear_timestamps (&rtc_self->dev_ctx);
   if ( ret != PCF2131_OK )
   {
-    return RTC_SPI_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   // Perform OTP refresh, only on first start
@@ -214,7 +214,7 @@ static rtc_return_code _ext_rtc_setup_rtc ( void )
     ret = pcf2131_perform_otp_refresh (&rtc_self->dev_ctx);
     if ( ret != PCF2131_OK )
     {
-      return RTC_SPI_ERROR;
+      return uSWIFT_COMMS_ERROR;
     }
   }
 
@@ -228,11 +228,11 @@ static rtc_return_code _ext_rtc_setup_rtc ( void )
  * @brief  Configure the watchdog, hook it up to INT pin, set the timer.
  *         !!! The watchdog will start after this function returns success !!!
  * @param  period_ms:= Watchdog refresh interval in milliseconds
- * @retval rtc_return_code
+ * @retval uSWIFT_return_code_t
  */
-static rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
+static uSWIFT_return_code_t _ext_rtc_config_watchdog ( uint32_t period_ms )
 {
-  int32_t ret = RTC_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   watchdog_time_source_t clock_select;
   pcf2131_irq_config_struct irq_config =
     { 0 };
@@ -240,7 +240,7 @@ static rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
   // We'll establish a minimum refresh interval of 10 seconds
   if ( (period_ms < RTC_WATCHDOG_MIN_REFRESH) || (period_ms > PCF2131_1_64HZ_CLK_MAX_PERIOD_MS) )
   {
-    return RTC_PARAMETERS_INVALID;
+    return uSWIFT_PARAMETERS_INVALID;
   }
 
   // Figure out what watchdog clock rate to use
@@ -273,14 +273,14 @@ static rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
   ret = pcf2131_watchdog_config_time_source (&rtc_self->dev_ctx, clock_select);
   if ( ret != PCF2131_OK )
   {
-    return RTC_SPI_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   // Set the watchdog timer value -- watchdog will start at this point
   ret = pcf2131_set_watchdog_timer_value (&rtc_self->dev_ctx, rtc_self->watchdog_refresh_time_val);
   if ( ret != PCF2131_OK )
   {
-    return RTC_SPI_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   return ret;
@@ -289,16 +289,16 @@ static rtc_return_code _ext_rtc_config_watchdog ( uint32_t period_ms )
 /**
  * @brief  Refresh the watchdog.
  * @param  None
- * @retval rtc_return_code
+ * @retval uSWIFT_return_code_t
  */
-static rtc_return_code _ext_rtc_refresh_watchdog ( void )
+static uSWIFT_return_code_t _ext_rtc_refresh_watchdog ( void )
 {
-  int32_t ret = RTC_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
   ret = pcf2131_set_watchdog_timer_value (&rtc_self->dev_ctx, rtc_self->watchdog_refresh_time_val);
   if ( ret != PCF2131_OK )
   {
-    ret = RTC_SPI_ERROR;
+    ret = uSWIFT_COMMS_ERROR;
   }
 
   return ret;
@@ -307,11 +307,11 @@ static rtc_return_code _ext_rtc_refresh_watchdog ( void )
 /**
  * @brief  Set the RTC date and Timer registers
  * @param  input_date_time:= struct tm containing the desired time settings
- * @retval rtc_return_code
+ * @retval uSWIFT_return_code_t
  */
-static rtc_return_code _ext_rtc_set_date_time ( struct tm *input_date_time )
+static uSWIFT_return_code_t _ext_rtc_set_date_time ( struct tm *input_date_time )
 {
-  int32_t ret = RTC_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
   input_date_time->tm_wday =
       (input_date_time->tm_wday == WEEKDAY_UNKNOWN) ?
@@ -327,14 +327,14 @@ static rtc_return_code _ext_rtc_set_date_time ( struct tm *input_date_time )
        || (input_date_time->tm_mon == BCD_ERROR) || (input_date_time->tm_year == BCD_ERROR)
        || (input_date_time->tm_year == BCD_ERROR) )
   {
-    return RTC_PARAMETERS_INVALID;
+    return uSWIFT_PARAMETERS_INVALID;
   }
 
   ret = pcf2131_set_date_time (&rtc_self->dev_ctx, input_date_time);
 
   if ( ret != PCF2131_OK )
   {
-    ret = RTC_SPI_ERROR;
+    ret = uSWIFT_COMMS_ERROR;
   }
 
   return ret;
@@ -343,17 +343,17 @@ static rtc_return_code _ext_rtc_set_date_time ( struct tm *input_date_time )
 /**
  * @brief  Get the current date/time from the RTC
  * @param  return_date_time:= Return pointer for struct tm
- * @retval rtc_return_code
+ * @retval uSWIFT_return_code_t
  */
-static rtc_return_code _ext_rtc_get_date_time ( struct tm *return_date_time )
+static uSWIFT_return_code_t _ext_rtc_get_date_time ( struct tm *return_date_time )
 {
-  int32_t ret = RTC_SUCCESS;
+  int32_t ret = uSWIFT_SUCCESS;
 
   ret = pcf2131_get_date_time (&rtc_self->dev_ctx, return_date_time);
 
   if ( ret != PCF2131_OK )
   {
-    ret = RTC_SPI_ERROR;
+    ret = uSWIFT_COMMS_ERROR;
   }
 
   return ret;
@@ -362,20 +362,20 @@ static rtc_return_code _ext_rtc_get_date_time ( struct tm *return_date_time )
 /**
  * @brief  Set a timestamp.
  * @param  which_timestamp:= Which timestamp (1-4) to set
- * @retval rtc_return_code
+ * @retval uSWIFT_return_code_t
  */
-static rtc_return_code _ext_rtc_set_timestamp ( pcf2131_timestamp_t which_timestamp )
+static uSWIFT_return_code_t _ext_rtc_set_timestamp ( pcf2131_timestamp_t which_timestamp )
 {
-  int32_t ret = RTC_SUCCESS;
+  int32_t ret = uSWIFT_SUCCESS;
 
   if ( (which_timestamp < TIMESTAMP_1) || (which_timestamp > TIMESTAMP_4) )
   {
-    return RTC_PARAMETERS_INVALID;
+    return uSWIFT_PARAMETERS_INVALID;
   }
 
   if ( rtc_self->ts_in_use[which_timestamp] )
   {
-    return RTC_TIMESTAMP_ALREADY_IN_USE;
+    return uSWIFT_ALREADY_IN_USE;
   }
 
   // Active low pins
@@ -394,36 +394,36 @@ static rtc_return_code _ext_rtc_set_timestamp ( pcf2131_timestamp_t which_timest
  * @brief  Get a timestamp.
  * @param  which_timestamp:= Which timestamp (1-4) to read
  * @param  return_timestamp:= Timestamp as time_t
- * @retval rtc_return_code
+ * @retval uSWIFT_return_code_t
  */
-static rtc_return_code _ext_rtc_get_timestamp ( pcf2131_timestamp_t which_timestamp,
-                                                time_t *return_timestamp )
+static uSWIFT_return_code_t _ext_rtc_get_timestamp ( pcf2131_timestamp_t which_timestamp,
+                                                     time_t *return_timestamp )
 {
-  int32_t ret = RTC_SUCCESS;
+  int32_t ret = uSWIFT_SUCCESS;
   struct tm timestamp_struct;
 
   if ( (which_timestamp < TIMESTAMP_1) || (which_timestamp > TIMESTAMP_4) )
   {
-    return RTC_PARAMETERS_INVALID;
+    return uSWIFT_PARAMETERS_INVALID;
   }
 
   if ( !rtc_self->ts_in_use[which_timestamp] )
   {
-    return RTC_TIMESTAMP_NOT_SET;
+    return uSWIFT_PARAMETERS_INVALID;
   }
 
   // Grab the timestamp
   ret = pcf2131_get_timestamp (&rtc_self->dev_ctx, which_timestamp, &timestamp_struct);
   if ( ret != PCF2131_OK )
   {
-    return RTC_SPI_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   // Clear the timestamp flag
   ret = pcf2131_clear_timestamp_flag (&rtc_self->dev_ctx, which_timestamp);
   if ( ret != PCF2131_OK )
   {
-    return RTC_SPI_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   rtc_self->ts_in_use[which_timestamp] = false;
@@ -436,16 +436,16 @@ static rtc_return_code _ext_rtc_get_timestamp ( pcf2131_timestamp_t which_timest
 /**
  * @brief  Set the alarm
  * @param  alarm_setting:= Settings to be applied to the alarm
- * @retval rtc_return_code
+ * @retval uSWIFT_return_code_t
  */
-static rtc_return_code _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting )
+static uSWIFT_return_code_t _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting )
 {
-  int32_t ret = RTC_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
   ret = pcf2131_set_alarm (&rtc_self->dev_ctx, &alarm_setting);
   if ( ret != PCF2131_OK )
   {
-    return RTC_SPI_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   return ret;
@@ -454,11 +454,11 @@ static rtc_return_code _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting )
 /**
  * @brief  Clear a flag in the RTC
  * @param  which_flag:= Flag to be cleared
- * @retval rtc_return_code
+ * @retval uSWIFT_return_code_t
  */
-static rtc_return_code _ext_rtc_clear_flag ( rtc_flag_t which_flag )
+static uSWIFT_return_code_t _ext_rtc_clear_flag ( rtc_flag_t which_flag )
 {
-  rtc_return_code retval = PCF2131_OK;
+  uSWIFT_return_code_t retval = uSWIFT_SUCCESS;
 
   switch ( which_flag )
   {
@@ -512,7 +512,7 @@ static rtc_return_code _ext_rtc_clear_flag ( rtc_flag_t which_flag )
       break;
 
     default:
-      return RTC_PARAMETERS_INVALID;
+      return uSWIFT_PARAMETERS_INVALID;
   }
 
   return retval;
@@ -521,11 +521,11 @@ static rtc_return_code _ext_rtc_clear_flag ( rtc_flag_t which_flag )
 /**
  * @brief Initialize the SPI bus if not already initialized.
  * @param  None
- * @retval rtc_return_code
+ * @retval uSWIFT_return_code_t
  */
 static int32_t _ext_rtc_spi_init ( void )
 {
-  rtc_return_code retval = PCF2131_OK;
+  uSWIFT_return_code_t retval = uSWIFT_SUCCESS;
 
   if ( !spi_bus_init_status (rtc_self->rtc_spi_bus->Instance) )
   {
@@ -538,11 +538,11 @@ static int32_t _ext_rtc_spi_init ( void )
 /**
  * @brief Deinitialize the SPI bus if it has not already been.
  * @param  None
- * @retval rtc_return_code
+ * @retval uSWIFT_return_code_t
  */
 static int32_t _ext_rtc_spi_deinit ( void )
 {
-  int32_t retval = PCF2131_OK;
+  int32_t retval = uSWIFT_SUCCESS;
 
   if ( spi_bus_init_status (rtc_self->rtc_spi_bus->Instance) )
   {
@@ -558,7 +558,7 @@ static int32_t _ext_rtc_spi_deinit ( void )
  * @param  reg_address - register address
  * @param  read_data - read data return pointer
  * @param  data_length - read data length in bytes
- * @retval rtc_return_code
+ * @retval uSWIFT_return_code_t
  */
 static int32_t _ext_rtc_read_reg_spi ( void *unused_handle, uint16_t unused_bus_address,
                                        uint16_t reg_address, uint8_t *read_data,
@@ -566,7 +566,7 @@ static int32_t _ext_rtc_read_reg_spi ( void *unused_handle, uint16_t unused_bus_
 {
   (void) unused_handle;
   (void) unused_bus_address;
-  int32_t retval = PCF2131_OK;
+  int32_t retval = uSWIFT_SUCCESS;
   uint8_t write_buf[RTC_SPI_BUF_SIZE] =
     { 0 };
   uint8_t read_buf[RTC_SPI_BUF_SIZE] =
@@ -576,7 +576,7 @@ static int32_t _ext_rtc_read_reg_spi ( void *unused_handle, uint16_t unused_bus_
 
   if ( !((data_length <= sizeof(write_buf)) && ((data_length + 1) <= sizeof(write_buf))) )
   {
-    return RTC_PARAMETERS_INVALID;
+    return uSWIFT_PARAMETERS_INVALID;
   }
 
   HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
@@ -585,12 +585,12 @@ static int32_t _ext_rtc_read_reg_spi ( void *unused_handle, uint16_t unused_bus_
                                    data_length + 1)
        != HAL_OK )
   {
-    retval = PCF2131_ERROR;
+    retval = uSWIFT_COMMS_ERROR;
   }
 
   if ( tx_semaphore_get (rtc_self->spi_sema, RTC_SPI_TIMEOUT) != TX_SUCCESS )
   {
-    retval = PCF2131_ERROR;
+    retval = uSWIFT_TIMEOUT;
   }
 
   HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_SET);
@@ -606,7 +606,7 @@ static int32_t _ext_rtc_read_reg_spi ( void *unused_handle, uint16_t unused_bus_
  * @param  reg_address - register address
  * @param  write_data - write data buffer pointer
  * @param  data_length - write data length in bytes
- * @retval rtc_return_code
+ * @retval uSWIFT_return_code_t
  */
 static int32_t _ext_rtc_write_reg_spi ( void *unused_handle, uint16_t unused_bus_address,
                                         uint16_t reg_address, uint8_t *write_data,
@@ -620,7 +620,7 @@ static int32_t _ext_rtc_write_reg_spi ( void *unused_handle, uint16_t unused_bus
 
   if ( !(data_length <= sizeof(write_buf)) )
   {
-    return RTC_PARAMETERS_INVALID;
+    return uSWIFT_PARAMETERS_INVALID;
   }
 
   write_buf[0] = (uint8_t) reg_address;
@@ -630,12 +630,12 @@ static int32_t _ext_rtc_write_reg_spi ( void *unused_handle, uint16_t unused_bus
 
   if ( HAL_SPI_Transmit_IT (rtc_self->rtc_spi_bus, write_buf, data_length + 1) != HAL_OK )
   {
-    retval = PCF2131_ERROR;
+    retval = uSWIFT_COMMS_ERROR;
   }
 
   if ( tx_semaphore_get (rtc_self->spi_sema, RTC_SPI_TIMEOUT) != TX_SUCCESS )
   {
-    retval = PCF2131_ERROR;
+    retval = uSWIFT_TIMEOUT;
   }
 
   HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_SET);
@@ -670,89 +670,3 @@ static uint8_t __weekday_from_date ( int y, int m, int d )
 
   return weekday;
 }
-
-///**
-// * @brief SPI read for the Sensor using DMA. CS pin handled within function.
-// * @param  bus_address - Unused -- used when I2C is the interfacing bus
-// * @param  reg_address - register address
-// * @param  read_data - read data return pointer
-// * @param  data_length - read data length in bytes
-// * @retval rtc_return_code
-// */
-//static int32_t _ext_rtc_read_reg_spi_dma ( void *unused_handle, uint16_t unused_bus_address,
-//                                           uint16_t reg_address, uint8_t *read_data,
-//                                           uint16_t data_length )
-//{
-//  (void) unused_handle;
-//  (void) unused_bus_address;
-//  int32_t retval = PCF2131_OK;
-//  uint8_t write_buf[RTC_SPI_BUF_SIZE] =
-//    { 0 };
-//  write_buf[0] = (uint8_t) (reg_address | PCF2131_SPI_READ_BIT);
-//
-//  assert(data_length <= sizeof(write_buf));
-//
-//  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
-//
-//  if ( HAL_SPI_TransmitReceive_DMA (rtc_self->rtc_spi_bus, write_buf, read_data, data_length)
-//       != HAL_OK )
-//  {
-//    retval = PCF2131_ERROR;
-//    goto done;
-//  }
-//
-//  if ( tx_semaphore_get (&ext_rtc_spi_sema, RTC_SPI_TIMEOUT) != TX_SUCCESS )
-//  {
-//    retval = PCF2131_ERROR;
-//    goto done;
-//  }
-//
-//done:
-//
-//  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_SET);
-//
-//  return retval;
-//}
-//
-///**
-// * @brief SPI write for the Sensor using DMA. CS pin handled within function.
-// * @param  bus_address - Unused -- used when I2C is the interfacing bus
-// * @param  reg_address - register address
-// * @param  write_data - write data buffer pointer
-// * @param  data_length - write data length in bytes
-// * @retval rtc_return_code
-// */
-//static int32_t _ext_rtc_write_reg_spi_dma ( void *unused_handle, uint16_t unused_bus_address,
-//                                            uint16_t reg_address, uint8_t *write_data,
-//                                            uint16_t data_length )
-//{
-//  (void) unused_handle;
-//  (void) unused_bus_address;
-//  int32_t retval = PCF2131_OK;
-//  uint8_t write_buf[RTC_SPI_BUF_SIZE + 1] =
-//    { 0 };
-//
-//  assert(data_length <= sizeof(write_buf));
-//
-//  write_buf[0] = (uint8_t) reg_address;
-//  memcpy (&(write_buf[1]), write_data, data_length);
-//
-//  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_RESET);
-//
-//  if ( HAL_SPI_Transmit_DMA (rtc_self->rtc_spi_bus, write_buf, data_length + 1) != HAL_OK )
-//  {
-//    retval = PCF2131_ERROR;
-//    goto done;
-//  }
-//
-//  if ( tx_semaphore_get (&ext_rtc_spi_sema, RTC_SPI_TIMEOUT) != TX_SUCCESS )
-//  {
-//    retval = PCF2131_ERROR;
-//  }
-//
-//done:
-//
-//  HAL_GPIO_WritePin (RTC_SPI_CS_GPIO_Port, RTC_SPI_CS_Pin, GPIO_PIN_SET);
-//
-//  return retval;
-//}

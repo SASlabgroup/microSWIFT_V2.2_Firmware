@@ -214,7 +214,7 @@ static void _control_shutdown_procedure ( void )
   controller_self->shutdown_all_peripherals ();
 
   // Make extra sure the alarm flag is cleared
-  if ( rtc_server_clear_flag (ALARM_FLAG, CONTROL_REQUEST_COMPLETE) != RTC_SUCCESS )
+  if ( rtc_server_clear_flag (ALARM_FLAG, CONTROL_REQUEST_COMPLETE) != uSWIFT_SUCCESS )
   {
     HAL_NVIC_SystemReset ();
   }
@@ -228,14 +228,14 @@ static void _control_shutdown_procedure ( void )
   }
 
   // Get the time so we can set the alarm
-  if ( rtc_server_get_time (&time_now, CONTROL_REQUEST_COMPLETE) != RTC_SUCCESS )
+  if ( rtc_server_get_time (&time_now, CONTROL_REQUEST_COMPLETE) != uSWIFT_SUCCESS )
   {
     HAL_NVIC_SystemReset ();
   }
 
   // Set the alarm
   __get_alarm_settings_from_time (&time_now, &alarm_settings);
-  if ( rtc_server_set_alarm (alarm_settings, CONTROL_REQUEST_COMPLETE) != RTC_SUCCESS )
+  if ( rtc_server_set_alarm (alarm_settings, CONTROL_REQUEST_COMPLETE) != uSWIFT_SUCCESS )
   {
     HAL_NVIC_SystemReset ();
   }

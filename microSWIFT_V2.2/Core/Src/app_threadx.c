@@ -714,7 +714,7 @@ static void rtc_thread_entry ( ULONG thread_input )
   TX_THREAD *this_thread = tx_thread_identify ();
   Ext_RTC rtc =
     { 0 };
-  rtc_return_code ret;
+  uSWIFT_return_code_t ret;
   UINT tx_ret;
   rtc_request_message req;
 
@@ -730,7 +730,7 @@ static void rtc_thread_entry ( ULONG thread_input )
   // Initialize the watchdog
   ret |= rtc.config_watchdog (WATCHDOG_PERIOD);
 
-  if ( ret != RTC_SUCCESS )
+  if ( ret != uSWIFT_SUCCESS )
   {
     // Gotta wait for the logger to fully initialize
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
@@ -782,11 +782,11 @@ static void rtc_thread_entry ( ULONG thread_input )
           break;
 
         default:
-          ret = RTC_PARAMETERS_INVALID;
+          ret = uSWIFT_PARAMETERS_INVALID;
           break;
       }
 
-      if ( ret != RTC_SUCCESS )
+      if ( ret != uSWIFT_SUCCESS )
       {
         rtc_error_out (this_thread, "RTC failed to service request %d, returning code %d.",
                        (int) req.request, (int) ret);
@@ -948,7 +948,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   uint8_t ubx_message_process_buf[GNSS_MESSAGE_BUF_SIZE];
   uint8_t gnss_config_response_buf[GNSS_CONFIG_BUFFER_SIZE];
   float *north = NULL, *east = NULL, *down = NULL;
-  gnss_return_code_t gnss_return_code;
+  uSWIFT_return_code_t gnss_return_code;
   int number_of_no_sample_errors = 0;
   float last_lat = 0;
   float last_lon = 0;
@@ -1048,7 +1048,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   gnss.start_timer (gnss_max_acq_time);
 
   // Frame sync and switch to DMA circular mode
-  if ( gnss.sync_and_start_reception () != GNSS_SUCCESS )
+  if ( gnss.sync_and_start_reception () != uSWIFT_SUCCESS )
   {
     // If we were unable to get good GNSS reception and start the DMA transfer loop, then shutdown
     gnss_error_out (&gnss, GNSS_FRAME_SYNC_FAILED, this_thread, "GNSS frame sync failed.");
@@ -1112,7 +1112,7 @@ static void gnss_thread_entry ( ULONG thread_input )
     {
       gnss_return_code = gnss.get_running_average_velocities ();
 
-      if ( gnss_return_code == GNSS_NO_SAMPLES_ERROR )
+      if ( gnss_return_code == uSWIFT_NO_SAMPLES_ERROR )
       {
         // If we get a full minute worth of dropped or incomplete messages, fail out
         if ( ++number_of_no_sample_errors == configuration.gnss_sampling_rate * 60 )

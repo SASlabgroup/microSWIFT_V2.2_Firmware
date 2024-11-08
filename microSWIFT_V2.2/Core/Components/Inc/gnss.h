@@ -13,31 +13,7 @@
 #include "u_ubx_protocol.h"
 #include "tx_api.h"
 #include "time.h"
-
-// Return codes
-typedef enum gnss_error_code
-{
-  // Error/ success codes
-  GNSS_SUCCESS = 0,
-  GNSS_UNKNOWN_ERROR = -1,
-  GNSS_LOCATION_INVALID = -2,
-  GNSS_VELOCITY_INVALID = -3,
-  GNSS_NO_SAMPLES_ERROR = -4,
-  GNSS_TIMEOUT_ERROR = -5,
-  GNSS_BUSY_ERROR = -6,
-  GNSS_NO_MESSAGE_RECEIVED = -7,
-  GNSS_UART_ERROR = -8,
-  GNSS_CONFIG_ERROR = -9,
-  GNSS_SELF_TEST_FAILED = -10,
-  GNSS_MESSAGE_PROCESS_ERROR = -11,
-  GNSS_RTC_ERROR = -12,
-  GNSS_TIMER_ERROR = -13,
-  GNSS_TIME_RESOLUTION_ERROR = -14,
-  GNSS_FIRST_SAMPLE_RESOLUTION_ERROR = -15,
-  GNSS_NAK_MESSAGE_RECEIVED = -16,
-  GNSS_HIGH_PERFORMANCE_ENABLE_ERROR = -17,
-  GNSS_DONE_SAMPLING = -18
-} gnss_return_code_t;
+#include "microSWIFT_return_codes.h"
 
 // Macros
 #define GNSS_CONFIG_BUFFER_SIZE 600
@@ -150,16 +126,16 @@ typedef struct GNSS
   bool                      all_samples_processed;
   bool                      timer_timeout;
   // Function pointers
-  gnss_return_code_t        (*config) ( void );
-  gnss_return_code_t        (*sync_and_start_reception) ( void );
-  gnss_return_code_t        (*get_location) ( float *latitude, float *longitude );
-  gnss_return_code_t        (*get_running_average_velocities) ( void );
-  gnss_return_code_t        (*software_start) ( void );
-  gnss_return_code_t        (*software_stop) ( void );
-  gnss_return_code_t        (*set_rtc) ( uint8_t *msg_payload );
-  gnss_return_code_t        (*reset_uart) ( void );
-  gnss_return_code_t        (*start_timer) ( uint16_t timeout_in_minutes );
-  gnss_return_code_t        (*stop_timer) ( void );
+  uSWIFT_return_code_t      (*config) ( void );
+  uSWIFT_return_code_t      (*sync_and_start_reception) ( void );
+  uSWIFT_return_code_t      (*get_location) ( float *latitude, float *longitude );
+  uSWIFT_return_code_t      (*get_running_average_velocities) ( void );
+  uSWIFT_return_code_t      (*software_start) ( void );
+  uSWIFT_return_code_t      (*software_stop) ( void );
+  uSWIFT_return_code_t      (*set_rtc) ( uint8_t *msg_payload );
+  uSWIFT_return_code_t      (*reset_uart) ( void );
+  uSWIFT_return_code_t      (*start_timer) ( uint16_t timeout_in_minutes );
+  uSWIFT_return_code_t      (*stop_timer) ( void );
   void                      (*process_message) ( void );
   void                      (*on) ( void );
   void                      (*off)( void );

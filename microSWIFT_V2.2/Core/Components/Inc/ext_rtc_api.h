@@ -13,23 +13,13 @@
 #include "pcf2131_reg.h"
 #include "limits.h"
 #include "tx_api.h"
+#include "microSWIFT_return_codes.h"
 
 // @formatter:off
 
 #define RTC_QUEUE_LENGTH            16U
 #define RTC_QUEUE_MAX_WAIT_TICKS    2U
 #define RTC_FLAG_MAX_WAIT_TICKS     10U
-
-typedef enum
-{
-  RTC_SUCCESS                   = 0,
-  RTC_SPI_ERROR                 = -1,
-  RTC_PARAMETERS_INVALID        = -2,
-  RTC_TIMESTAMP_ALREADY_IN_USE  = -3,
-  RTC_TIMESTAMP_NOT_SET         = -4,
-  RTC_MESSAGE_QUEUE_ERROR       = -5,
-  RTC_TIMEOUT                   = -6
-} rtc_return_code;
 
 // Which request function does a requester want performed
 typedef enum
@@ -119,20 +109,20 @@ typedef struct
 } rtc_server;
 
 // Interface functions
-void            rtc_server_init ( TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP *complete_flags );
-void            rtc_server_refresh_watchdog ( void );
-rtc_return_code rtc_server_get_time ( struct tm *return_time_struct, UINT complete_flag );
-rtc_return_code rtc_server_set_time ( struct tm *input_time_struct, UINT complete_flag );
-rtc_return_code rtc_server_set_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag );
-rtc_return_code rtc_server_get_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag );
-rtc_return_code rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UINT complete_flag );
-rtc_return_code rtc_server_clear_flag (rtc_flag_t which_flag, UINT complete_flag );
+void                 rtc_server_init ( TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP *complete_flags );
+void                 rtc_server_refresh_watchdog ( void );
+uSWIFT_return_code_t rtc_server_get_time ( struct tm *return_time_struct, UINT complete_flag );
+uSWIFT_return_code_t rtc_server_set_time ( struct tm *input_time_struct, UINT complete_flag );
+uSWIFT_return_code_t rtc_server_set_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag );
+uSWIFT_return_code_t rtc_server_get_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag );
+uSWIFT_return_code_t rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UINT complete_flag );
+uSWIFT_return_code_t rtc_server_clear_flag (rtc_flag_t which_flag, UINT complete_flag );
 // Generic do-all function
-rtc_return_code rtc_server_process_request ( rtc_request_message *request );
+uSWIFT_return_code_t rtc_server_process_request ( rtc_request_message *request );
 
 /* Helper functions */
-void            struct_tm_dec_to_bcd ( struct tm *struct_ptr );
-void            struct_tm_bcd_to_dec ( struct tm *struct_ptr );
+void                 struct_tm_dec_to_bcd ( struct tm *struct_ptr );
+void                 struct_tm_bcd_to_dec ( struct tm *struct_ptr );
 
 // @formatter:on
 
