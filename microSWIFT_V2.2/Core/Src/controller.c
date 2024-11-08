@@ -61,7 +61,7 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
   controller_self->complete_flags = complete_flags;
   controller_self->timer = timer;
   controller_self->current_message = current_message;
-  controller_self->error_detected = false;
+  controller_self->timer_timeout = false;
 
   controller_self->thread_status.gnss_complete = false;
   controller_self->thread_status.waves_complete = false;
@@ -93,6 +93,13 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
 void control_timer_expired ( ULONG expiration_input )
 {
   (void) expiration_input;
+
+  controller_self->timer_timeout = true;
+}
+
+bool control_get_timeout_status ( void )
+{
+  return controller_self->timer_timeout;
 }
 
 static bool _control_startup_procedure ( void )
@@ -105,6 +112,23 @@ static bool _control_startup_procedure ( void )
   real16_T voltage =
     { 0 };
   bool initial_powerup = is_first_sample_window ();
+
+  // Start the duty cycle timer
+  tx_return = tx_timer_change (
+      controller_self->timer,
+      (controller_self->global_config->duty_cycle * TX_TIMER_TICKS_PER_SECOND * 60), 0);
+  if ( tx_return != TX_SUCCESS )
+  {
+    led_sequence (TEST_FAILED_LED_SEQUENCE);
+    HAL_NVIC_SystemReset ();
+  }
+
+  tx_return = tx_timer_activate (controller_self->timer);
+  if ( tx_return != TX_SUCCESS )
+  {
+    led_sequence (TEST_FAILED_LED_SEQUENCE);
+    HAL_NVIC_SystemReset ();
+  }
 
 #warning "In subsequent sampling windows, if a non-critical sensor fails, set an error flag, shut\
          the component and thread down, and continue on."

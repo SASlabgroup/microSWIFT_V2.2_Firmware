@@ -207,7 +207,6 @@ static void ct_thread_entry ( ULONG thread_input );
 static void temperature_thread_entry ( ULONG thread_input );
 static void light_thread_entry ( ULONG thread_input );
 static void turbidity_thread_entry ( ULONG thread_input );
-static void accelerometer_thread_entry ( ULONG thread_input );
 
 /* USER CODE END PFP */
 
@@ -460,7 +459,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
-  ret = tx_timer_create(&light_timer, "Light thread timer", light_timer_expired, 0, 1, 1,
+  ret = tx_timer_create(&light_timer, "Light thread timer", light_timer_expired, 0, 1, 0,
                         TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
@@ -468,13 +467,13 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
 
   ret = tx_timer_create(&turbidity_timer, "Turbidity thread timer", turbidity_timer_expired, 0, 1,
-                        1, TX_NO_ACTIVATE);
+                        0, TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
-  ret = tx_timer_create(&iridium_timer, "Iridium thread timer", iridium_timer_expired, 0, 1, 1,
+  ret = tx_timer_create(&iridium_timer, "Iridium thread timer", iridium_timer_expired, 0, 1, 0,
                         TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
@@ -635,6 +634,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
 
   configuration.samples_per_window = TOTAL_SAMPLES_PER_WINDOW;
   configuration.windows_per_hour = SAMPLE_WINDOWS_PER_HOUR;
+  configuration.duty_cycle = DUTY_CYCLE_PERIOD;
   configuration.iridium_max_transmit_time = IRIDIUM_MAX_TRANSMIT_TIME;
   configuration.gnss_max_acquisition_wait_time = GNSS_MAX_ACQUISITION_WAIT_TIME;
   configuration.gnss_sampling_rate = GNSS_SAMPLING_RATE;

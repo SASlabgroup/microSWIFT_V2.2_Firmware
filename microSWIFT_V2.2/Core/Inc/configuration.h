@@ -98,6 +98,7 @@ typedef struct microSWIFT_configuration
 {
   uint32_t samples_per_window;
   uint32_t windows_per_hour;
+  uint32_t duty_cycle;
   uint32_t iridium_max_transmit_time;
   uint32_t gnss_max_acquisition_wait_time;
   uint32_t gnss_sampling_rate;
