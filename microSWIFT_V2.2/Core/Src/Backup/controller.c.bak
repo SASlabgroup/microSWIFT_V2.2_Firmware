@@ -61,7 +61,7 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
   controller_self->complete_flags = complete_flags;
   controller_self->timer = timer;
   controller_self->current_message = current_message;
-  controller_self->error_detected = false;
+  controller_self->timer_timeout = false;
 
   controller_self->thread_status.gnss_complete = false;
   controller_self->thread_status.waves_complete = false;
@@ -93,6 +93,13 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
 void control_timer_expired ( ULONG expiration_input )
 {
   (void) expiration_input;
+
+  controller_self->timer_timeout = true;
+}
+
+bool control_get_timeout_status ( void )
+{
+  return controller_self->timer_timeout;
 }
 
 static bool _control_startup_procedure ( void )
@@ -105,6 +112,23 @@ static bool _control_startup_procedure ( void )
   real16_T voltage =
     { 0 };
   bool initial_powerup = is_first_sample_window ();
+
+  // Start the duty cycle timer
+  tx_return = tx_timer_change (
+      controller_self->timer,
+      (controller_self->global_config->duty_cycle * TX_TIMER_TICKS_PER_SECOND * 60), 0);
+  if ( tx_return != TX_SUCCESS )
+  {
+    led_sequence (TEST_FAILED_LED_SEQUENCE);
+    HAL_NVIC_SystemReset ();
+  }
+
+  tx_return = tx_timer_activate (controller_self->timer);
+  if ( tx_return != TX_SUCCESS )
+  {
+    led_sequence (TEST_FAILED_LED_SEQUENCE);
+    HAL_NVIC_SystemReset ();
+  }
 
 #warning "In subsequent sampling windows, if a non-critical sensor fails, set an error flag, shut\
          the component and thread down, and continue on."
@@ -164,12 +188,6 @@ static bool _control_startup_procedure ( void )
     (void) tx_thread_resume (controller_self->thread_handles->turbidity_thread);
   }
 
-  if ( controller_self->global_config->accelerometer_enabled )
-  {
-    init_success_flags |= ACCELEROMETER_INIT_SUCCESS;
-    (void) tx_thread_resume (controller_self->thread_handles->accelerometer_thread);
-  }
-
   // Flash power up sequence (this will also give threads time to execute their init procedures)
   if ( initial_powerup )
   {
@@ -196,7 +214,7 @@ static void _control_shutdown_procedure ( void )
   controller_self->shutdown_all_peripherals ();
 
   // Make extra sure the alarm flag is cleared
-  if ( rtc_server_clear_flag (ALARM_FLAG, CONTROL_REQUEST_COMPLETE) != RTC_SUCCESS )
+  if ( rtc_server_clear_flag (ALARM_FLAG, CONTROL_REQUEST_COMPLETE) != uSWIFT_SUCCESS )
   {
     HAL_NVIC_SystemReset ();
   }
@@ -210,14 +228,14 @@ static void _control_shutdown_procedure ( void )
   }
 
   // Get the time so we can set the alarm
-  if ( rtc_server_get_time (&time_now, CONTROL_REQUEST_COMPLETE) != RTC_SUCCESS )
+  if ( rtc_server_get_time (&time_now, CONTROL_REQUEST_COMPLETE) != uSWIFT_SUCCESS )
   {
     HAL_NVIC_SystemReset ();
   }
 
   // Set the alarm
   __get_alarm_settings_from_time (&time_now, &alarm_settings);
-  if ( rtc_server_set_alarm (alarm_settings, CONTROL_REQUEST_COMPLETE) != RTC_SUCCESS )
+  if ( rtc_server_set_alarm (alarm_settings, CONTROL_REQUEST_COMPLETE) != uSWIFT_SUCCESS )
   {
     HAL_NVIC_SystemReset ();
   }
@@ -229,7 +247,7 @@ static void _control_shutdown_procedure ( void )
   persistent_ram_increment_sample_window_counter ();
 
   // Give the logger time to complete
-  tx_thread_sleep (10);
+  tx_thread_sleep (100);
 
   // Deinit all enabled peripherals
   controller_self->shutdown_all_interfaces ();
@@ -242,18 +260,22 @@ static real16_T _control_get_battery_voltage ( void )
 {
   real16_T battery_voltage =
     { BATTERY_ERROR_VOLTAGE_VALUE };
-  battery_return_code_t ret = BATTERY_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
   ret = controller_self->battery.get_voltage (&battery_voltage);
-  if ( ret != BATTERY_SUCCESS )
+  if ( ret != uSWIFT_SUCCESS )
   {
     switch ( ret )
     {
-      case BATTERY_ADC_ERROR:
-        LOG("Battery ADC error, unable to obtain battery voltage");
+      case uSWIFT_INITIALIZATION_ERROR:
+        LOG("Battery ADC initialization error, unable to obtain battery voltage");
         break;
 
-      case BATTERY_TIMEOUT_ERROR:
+      case uSWIFT_CALIBRATION_ERROR:
+        LOG("Battery ADC calibration error, unable to obtain battery voltage");
+        break;
+
+      case uSWIFT_TIMEOUT:
         LOG("Battery ADC timed out, unable to obtain battery voltage");
         break;
 

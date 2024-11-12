@@ -92,13 +92,13 @@ typedef union
 // Generic message request format
 typedef struct
 {
-  int32_t       request; // Use type rtc_request_t
+  int32_t               request; // Use type rtc_request_t
 
   // For set requests, this contains input data
   // For get requests, this is written back to
-  rtc_data_t    input_output_struct;
-  UINT          complete_flag;
-  int32_t       *return_code;
+  rtc_data_t            input_output_struct;
+  UINT                  complete_flag;
+  uSWIFT_return_code_t  *return_code;
 } rtc_request_message;
 
 typedef struct

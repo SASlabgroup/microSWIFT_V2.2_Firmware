@@ -11,9 +11,11 @@
 //@formatter:off
 typedef enum
 {
-  uSWIFT_SUCCESS                = 0,
+  uSWIFT_SUCCESS                =  0,
+  // Common errors used in low level drivers
   uSWIFT_COMMS_ERROR            = -1,
   uSWIFT_BUSY                   = -2,
+
   uSWIFT_TIMEOUT                = -3,
   uSWIFT_PARAMETERS_INVALID     = -4,
   uSWIFT_REQUEST_INVALID        = -5,
@@ -24,9 +26,13 @@ typedef enum
   uSWIFT_EMPTY_REQUEST          = -10,
   uSWIFT_INITIALIZATION_ERROR   = -11,
   uSWIFT_CONFIGURATION_ERROR    = -12,
-  uSWIFT_NAK_RECEIVED           = -13,
-  uSWIFT_PROCESSING_ERROR       = -14,
-  uSWIFT_MEMORY_BUFFER_ERROR    = -15,
+  uSWIFT_CALIBRATION_ERROR      = -13,
+  uSWIFT_NAK_RECEIVED           = -14,
+  uSWIFT_PROCESSING_ERROR       = -15,
+  uSWIFT_MEMORY_BUFFER_ERROR    = -16,
+  uSWIFT_NO_SAMPLES_ERROR       = -17,
+  uSWIFT_DONE_SAMPLING          = -18,
+  uSWIFT_SYNC_ERROR             = -19,
 
   uSWIFT_OBJECT_SPECIFIC_1      = -90,
   uSWIFT_OBJECT_SPECIFIC_2      = -91,

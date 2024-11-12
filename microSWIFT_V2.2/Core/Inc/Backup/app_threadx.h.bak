@@ -184,7 +184,6 @@ typedef struct
   TX_THREAD *temperature_thread;
   TX_THREAD *light_thread;
   TX_THREAD *turbidity_thread;
-  TX_THREAD *accelerometer_thread;
   TX_THREAD *waves_thread;
   TX_THREAD *iridium_thread;
   TX_THREAD *filex_thread;
@@ -197,6 +196,7 @@ extern TX_SEMAPHORE ext_rtc_spi_sema;
 extern TX_SEMAPHORE aux_spi_1_spi_sema;
 extern TX_SEMAPHORE aux_spi_2_spi_sema;
 extern TX_SEMAPHORE light_sensor_i2c_sema;
+extern TX_SEMAPHORE turbidity_sensor_i2c_sema;
 extern TX_SEMAPHORE aux_i2c_1_sema;
 extern TX_SEMAPHORE aux_i2c_2_sema;
 extern TX_SEMAPHORE iridium_uart_sema;

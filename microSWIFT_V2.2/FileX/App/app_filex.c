@@ -55,11 +55,11 @@ TX_THREAD fx_app_thread;
 ALIGN_32BYTES(uint32_t fx_sd_media_memory[FX_STM32_SD_DEFAULT_SECTOR_SIZE / sizeof(uint32_t)]);
 /* Define FileX global data structures.  */
 FX_MEDIA sdio_disk;
-HAL_SD_CardInfoTypeDef *pCardInfoSD;
 
 /* USER CODE BEGIN PV */
 FX_FILE fx_file;
 HAL_SD_CardInfoTypeDef sd_info;
+HAL_SD_CardInfoTypeDef *pCardInfoSD;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/

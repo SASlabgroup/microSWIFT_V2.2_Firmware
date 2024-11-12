@@ -324,8 +324,7 @@ static uSWIFT_return_code_t _ext_rtc_set_date_time ( struct tm *input_date_time 
 
   if ( (input_date_time->tm_sec == BCD_ERROR) || (input_date_time->tm_min == BCD_ERROR)
        || (input_date_time->tm_hour == BCD_ERROR) || (input_date_time->tm_mday == BCD_ERROR)
-       || (input_date_time->tm_mon == BCD_ERROR) || (input_date_time->tm_year == BCD_ERROR)
-       || (input_date_time->tm_year == BCD_ERROR) )
+       || (input_date_time->tm_mon == BCD_ERROR) || (input_date_time->tm_year == BCD_ERROR) )
   {
     return uSWIFT_PARAMETERS_INVALID;
   }
@@ -347,7 +346,7 @@ static uSWIFT_return_code_t _ext_rtc_set_date_time ( struct tm *input_date_time 
  */
 static uSWIFT_return_code_t _ext_rtc_get_date_time ( struct tm *return_date_time )
 {
-  int32_t ret = uSWIFT_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
   ret = pcf2131_get_date_time (&rtc_self->dev_ctx, return_date_time);
 
@@ -366,7 +365,7 @@ static uSWIFT_return_code_t _ext_rtc_get_date_time ( struct tm *return_date_time
  */
 static uSWIFT_return_code_t _ext_rtc_set_timestamp ( pcf2131_timestamp_t which_timestamp )
 {
-  int32_t ret = uSWIFT_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
   if ( (which_timestamp < TIMESTAMP_1) || (which_timestamp > TIMESTAMP_4) )
   {
@@ -399,7 +398,7 @@ static uSWIFT_return_code_t _ext_rtc_set_timestamp ( pcf2131_timestamp_t which_t
 static uSWIFT_return_code_t _ext_rtc_get_timestamp ( pcf2131_timestamp_t which_timestamp,
                                                      time_t *return_timestamp )
 {
-  int32_t ret = uSWIFT_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   struct tm timestamp_struct;
 
   if ( (which_timestamp < TIMESTAMP_1) || (which_timestamp > TIMESTAMP_4) )
@@ -542,7 +541,7 @@ static int32_t _ext_rtc_spi_init ( void )
  */
 static int32_t _ext_rtc_spi_deinit ( void )
 {
-  int32_t retval = uSWIFT_SUCCESS;
+  uSWIFT_return_code_t retval = uSWIFT_SUCCESS;
 
   if ( spi_bus_init_status (rtc_self->rtc_spi_bus->Instance) )
   {

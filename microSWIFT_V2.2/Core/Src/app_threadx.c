@@ -99,6 +99,7 @@ enum stack_sizes
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
+
 // The configuration struct
 microSWIFT_configuration configuration;
 // The SBD message we'll assemble
@@ -179,16 +180,18 @@ __ALIGN_BEGIN UCHAR waves_byte_pool_buffer[WAVES_MEM_POOL_SIZE] __attribute__((s
 TX_BYTE_POOL waves_byte_pool;
 
 // Logger block pool
-__ALIGN_BEGIN uint8_t logger_block_buffer[(sizeof(log_line_buf) * LOG_QUEUE_LENGTH)
-                                          + (LOG_QUEUE_LENGTH * sizeof(void*))] __attribute__((section(".ram1")))__ALIGN_END;
+__ALIGN_BEGIN UCHAR logger_block_buffer[(sizeof(log_line_buf) * LOG_QUEUE_LENGTH)
+                                        + (LOG_QUEUE_LENGTH * sizeof(void*))] __attribute__((section(".ram1")))__ALIGN_END;
 
 // Light sensor sample buffer
-__ALIGN_BEGIN light_basic_counts light_sensor_sample_buffer[LIGHT_SENSOR_BYTE_POOL_BUFFER_SIZE
-                                                            / sizeof(light_basic_counts)] __attribute__((section(".ram1")))__ALIGN_END;
+ALIGN_32BYTES(
+    light_basic_counts light_sensor_sample_buffer[LIGHT_SENSOR_BYTE_POOL_BUFFER_SIZE / sizeof(light_basic_counts)] __attribute__((section(".ram1"))));
 
 // Turbidity sensor sample buffer
-__ALIGN_BEGIN int32_t turbidity_sensor_sample_buffer[TURBIDITY_SENSOR_SAMPLE_BUFFER_SIZE
-                                                     / sizeof(int32_t)] __attribute__((section(".ram1")))__ALIGN_END;
+ALIGN_32BYTES(
+    uint16_t turbidity_sensor_ambient_buffer[TURBIDITY_SENSOR_SAMPLE_BUFFER_SIZE / sizeof(uint16_t)] __attribute__((section(".ram1"))));
+ALIGN_32BYTES(
+    uint16_t turbidity_sensor_proximity_buffer[TURBIDITY_SENSOR_SAMPLE_BUFFER_SIZE / sizeof(uint16_t)] __attribute__((section(".ram1"))));
 
 TX_BLOCK_POOL logger_block_pool;
 /* USER CODE END PV */
@@ -233,6 +236,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
+
   // Create the control thread. HIGHEST priority level and no preemption possible
   ret = tx_thread_create(&control_thread, "control thread", control_thread_entry, 0, pointer,
                          XL_STACK, HIGHEST_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
@@ -241,6 +245,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
+
   //
   // Allocate stack for the rtc thread
   ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK, TX_NO_WAIT);
@@ -255,6 +260,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
+
   //
   // Allocate stack for the logger thread
   ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK,
@@ -270,6 +276,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
+
   //
   // Allocate stack for the gnss thread
   ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XL_STACK, TX_NO_WAIT);
@@ -284,6 +291,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
+
   //
   // Allocate stack for the CT thread
   ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, S_STACK, TX_NO_WAIT);
@@ -298,6 +306,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
+
   //
   // Allocate stack for the temperature thread
   ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XS_STACK, TX_NO_WAIT);
@@ -313,6 +322,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
+
   //
   // Allocate stack for the light thread
   ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XL_STACK, TX_NO_WAIT);
@@ -327,6 +337,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
+
   //
   // Allocate stack for the turbidity thread
   ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XL_STACK, TX_NO_WAIT);
@@ -341,6 +352,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
+
   //
   // Allocate stack for the waves thread
   ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XL_STACK, TX_NO_WAIT);
@@ -355,17 +367,17 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
+
   //
   // Allocate stack for the Iridium thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XL_STACK, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, L_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the Iridium thread. HIGH priority, no preemption-threshold
   ret = tx_thread_create(&iridium_thread, "iridium thread", iridium_thread_entry, 0, pointer,
-                         XL_STACK, HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
-                         TX_DONT_START);
+                         L_STACK, HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -835,7 +847,7 @@ static void logger_thread_entry ( ULONG thread_input )
       // Need to wait until the transmission is complete before grabbing another message
       (void) tx_semaphore_get (&logger_sema, TX_WAIT_FOREVER);
       // Still need a short delay before sending another UART transmission
-      tx_thread_sleep (50);
+      tx_thread_sleep (25);
     }
 
   }
@@ -910,7 +922,6 @@ static void control_thread_entry ( ULONG thread_input )
     if ( ++watchdog_counter % TX_TIMER_TICKS_PER_SECOND == 0 )
     {
       watchdog_check_in (CONTROL_THREAD);
-      watchdog_counter = 0;
     }
 
     control.monitor_and_handle_errors ();
@@ -920,6 +931,7 @@ static void control_thread_entry ( ULONG thread_input )
     if ( control_get_timeout_status () )
     {
       LOG("Duty cycle timeout. Starting shutdown sequence.");
+      tx_thread_sleep (1);
       control.shutdown_procedure ();
     }
 
@@ -1546,7 +1558,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
   TX_THREAD *this_thread = tx_thread_identify ();
   Turbidity_Sensor obs =
     { 0 };
-  int32_t raw_counts;
+  uint16_t amb, prox;
   uSWIFT_return_code_t ret;
   int32_t turbidity_thread_timeout = ((configuration.samples_per_window
                                        / configuration.gnss_sampling_rate)
@@ -1554,7 +1566,8 @@ static void turbidity_thread_entry ( ULONG thread_input )
                                      + GNSS_WINDOW_BUFFER_TIME; // Same timeout as GNSS
 
   turbidity_sensor_init (&obs, &configuration, device_handles.aux_i2c_1_handle, &turbidity_timer,
-                         &turbidity_sensor_i2c_sema, &turbidity_sensor_sample_buffer[0]);
+                         &turbidity_sensor_i2c_sema, &turbidity_sensor_ambient_buffer[0],
+                         &turbidity_sensor_proximity_buffer[0]);
 
   obs.on ();
 
@@ -1573,9 +1586,10 @@ static void turbidity_thread_entry ( ULONG thread_input )
                          "Turbidity sensor self test failed.");
   }
 
-  obs.get_raw_counts (&raw_counts);
+  obs.get_most_recent_measurement (&amb, &prox);
 
-  LOG("Turbidity sensor initialization complete. Raw counts: %d", raw_counts);
+  LOG("Turbidity sensor initialization complete. Ambient raw counts: %d, Proximity raw counts: %d.",
+      amb, prox);
 
   (void) tx_event_flags_set (&initialization_flags, TURBIDITY_INIT_SUCCESS, TX_OR);
 

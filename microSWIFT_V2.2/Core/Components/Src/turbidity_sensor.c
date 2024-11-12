@@ -14,7 +14,7 @@ static Turbidity_Sensor *turbidity_self;
 static uSWIFT_return_code_t _turbidity_sensor_self_test (void);
 static uSWIFT_return_code_t _turbidity_sensor_setup_sensor (void);
 static uSWIFT_return_code_t _turbidity_sensor_take_measurement (void);
-static uSWIFT_return_code_t _turbidity_sensor_get_raw_counts (int32_t *raw_counts);
+static uSWIFT_return_code_t _turbidity_sensor_get_most_recent_measurement ( uint16_t *ambient, uint16_t *proximity );
 static uSWIFT_return_code_t _turbidity_sensor_process_measurements (void);
 static uSWIFT_return_code_t _turbidity_sensor_start_timer ( uint16_t timeout_in_minutes );
 static uSWIFT_return_code_t _turbidity_sensor_stop_timer (void);
@@ -37,7 +37,8 @@ static uSWIFT_return_code_t __turbidity_sensor_get_ambient_reading (uint16_t *re
 
 void turbidity_sensor_init ( Turbidity_Sensor *struct_ptr, microSWIFT_configuration *global_config,
                              I2C_HandleTypeDef *i2c_handle, TX_TIMER *timer,
-                             TX_SEMAPHORE *sensor_i2c_sema, int32_t *samples_buffer )
+                             TX_SEMAPHORE *sensor_i2c_sema, uint16_t *ambient_buffer,
+                             uint16_t *proximity_buffer )
 {
   turbidity_self = struct_ptr;
 
@@ -48,17 +49,20 @@ void turbidity_sensor_init ( Turbidity_Sensor *struct_ptr, microSWIFT_configurat
 
   turbidity_self->timer = timer;
 
-  turbidity_self->samples_series = samples_buffer;
-  memset (&(turbidity_self->averages_series[0]), 0, sizeof(turbidity_self->averages_series));
+  turbidity_self->ambient_series = ambient_buffer;
+  turbidity_self->proximity_series = proximity_buffer;
+  memset (&(turbidity_self->ambient_averages_series[0]), 0,
+          sizeof(turbidity_self->ambient_averages_series));
+  memset (&(turbidity_self->proximity_averages_series[0]), 0,
+          sizeof(turbidity_self->proximity_averages_series));
   turbidity_self->samples_counter = 0;
-  turbidity_self->raw_count = 0;
 
   turbidity_self->timer_timeout = false;
 
   turbidity_self->self_test = _turbidity_sensor_self_test;
   turbidity_self->setup_sensor = _turbidity_sensor_setup_sensor;
   turbidity_self->take_measurement = _turbidity_sensor_take_measurement;
-  turbidity_self->get_raw_counts = _turbidity_sensor_get_raw_counts;
+  turbidity_self->get_most_recent_measurement = _turbidity_sensor_get_most_recent_measurement;
   turbidity_self->process_measurements = _turbidity_sensor_process_measurements;
   turbidity_self->start_timer = _turbidity_sensor_start_timer;
   turbidity_self->stop_timer = _turbidity_sensor_stop_timer;
@@ -128,53 +132,15 @@ static uSWIFT_return_code_t _turbidity_sensor_setup_sensor ( void )
 static uSWIFT_return_code_t _turbidity_sensor_take_measurement ( void )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
-  int32_t result = 0;
-  uint16_t intermediate_result = 0;
 
-  // Take 4 measurements --> prox (+), ambient (-), ambient (-), prox (+)
-  for ( int i = 0; i < 4; i++ )
+  ret |= __turbidity_sensor_get_ambient_reading (
+      &turbidity_self->ambient_series[turbidity_self->samples_counter]);
+  ret |= __turbidity_sensor_get_proximity_reading (
+      &turbidity_self->proximity_series[turbidity_self->samples_counter]);
+  if ( ret != uSWIFT_SUCCESS )
   {
-    switch ( i )
-    {
-      case 0:
-        if ( __turbidity_sensor_get_proximity_reading (&intermediate_result) != uSWIFT_SUCCESS )
-        {
-          return uSWIFT_COMMS_ERROR;
-        }
-
-        result += intermediate_result;
-
-        break;
-
-      case 1 ... 2:
-        if ( __turbidity_sensor_get_ambient_reading (&intermediate_result) != uSWIFT_SUCCESS )
-        {
-          return uSWIFT_COMMS_ERROR;
-        }
-
-        result -= intermediate_result;
-
-        break;
-
-      case 3:
-        if ( __turbidity_sensor_get_proximity_reading (&intermediate_result) != uSWIFT_SUCCESS )
-        {
-          return uSWIFT_COMMS_ERROR;
-        }
-
-        result += intermediate_result;
-
-        break;
-
-      default:
-        break;
-
-    }
+    return ret;
   }
-
-  turbidity_self->samples_series[turbidity_self->samples_counter] = result;
-
-  turbidity_self->raw_count = result;
 
   if ( ++turbidity_self->samples_counter == turbidity_self->global_config->total_turbidity_samples )
   {
@@ -189,17 +155,18 @@ static uSWIFT_return_code_t _turbidity_sensor_take_measurement ( void )
   return ret;
 }
 
-static uSWIFT_return_code_t _turbidity_sensor_get_raw_counts ( int32_t *raw_counts )
+static uSWIFT_return_code_t _turbidity_sensor_get_most_recent_measurement ( uint16_t *ambient,
+                                                                            uint16_t *proximity )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
   if ( turbidity_self->samples_counter == 0 )
   {
-    raw_counts = NULL;
     return uSWIFT_NO_SAMPLES_ERROR;
   }
 
-  *raw_counts = turbidity_self->raw_count;
+  *ambient = turbidity_self->ambient_series[turbidity_self->samples_counter - 1];
+  *proximity = turbidity_self->proximity_series[turbidity_self->samples_counter - 1];
 
   return ret;
 }
@@ -208,17 +175,24 @@ static uSWIFT_return_code_t _turbidity_sensor_process_measurements ( void )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   static uint32_t averages_index = 0;
-  uint64_t temp_accumulator = 0;
-  uint32_t sample_index = turbidity_self->samples_counter;
+  uint32_t ambient_accumulator = 0, proximity_accumulator = 0;
 
-  for ( int i = 0; i < 60; i++, sample_index-- )
+  if ( turbidity_self->samples_counter < 60 )
   {
-    temp_accumulator += turbidity_self->samples_series[sample_index];
+    return uSWIFT_NO_SAMPLES_ERROR;
   }
 
-  temp_accumulator /= 60;
+  for ( int i = 59; i >= 0; i-- )
+  {
+    ambient_accumulator += turbidity_self->ambient_series[turbidity_self->samples_counter - i];
+    proximity_accumulator += turbidity_self->proximity_series[turbidity_self->samples_counter - i];
+  }
 
-  turbidity_self->averages_series[averages_index] = (int32_t) temp_accumulator;
+  ambient_accumulator /= 60;
+  proximity_accumulator /= 60;
+
+  turbidity_self->ambient_averages_series[averages_index] = (uint16_t) ambient_accumulator;
+  turbidity_self->proximity_averages_series[averages_index] = (uint16_t) proximity_accumulator;
 
   averages_index++;
 

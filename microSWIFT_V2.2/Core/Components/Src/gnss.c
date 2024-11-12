@@ -252,6 +252,16 @@ static uSWIFT_return_code_t _gnss_config ( void )
 
   tx_thread_sleep (20);
 
+  //
+  //
+  // Testing
+  uint8_t test_payload[12] =
+    { 224, 161, 251, 14, 232, 7, 11, 12, 21, 49, 14, 243 };
+
+  gnss_self->set_rtc (&test_payload[0]);  //
+  //
+  // End Testing
+
   return return_code;
 }
 

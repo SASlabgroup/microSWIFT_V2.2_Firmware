@@ -40,6 +40,8 @@
 #include "rf_switch.h"
 #include "iridium.h"
 #include "temp_sensor.h"
+#include "light_sensor.h"
+#include "turbidity_sensor.h"
 #include "NEDWaves/mem_replacements.h"
 #include "configuration.h"
 #include "linked_list.h"
@@ -114,7 +116,6 @@ TX_THREAD ct_thread;
 TX_THREAD temperature_thread;
 TX_THREAD light_thread;
 TX_THREAD turbidity_thread;
-TX_THREAD accelerometer_thread;
 TX_THREAD waves_thread;
 TX_THREAD iridium_thread;
 // @formatter:off
@@ -128,7 +129,6 @@ Thread_Handles thread_handles =
     &temperature_thread,
     &light_thread,
     &turbidity_thread,
-    &accelerometer_thread,
     &waves_thread,
     &iridium_thread,
     &fx_app_thread
@@ -153,7 +153,6 @@ TX_TIMER ct_timer;
 TX_TIMER temperature_timer;
 TX_TIMER light_timer;
 TX_TIMER turbidity_timer;
-TX_TIMER accelerometer_timer;
 TX_TIMER waves_timer;
 TX_TIMER iridium_timer;
 // Comms buses semaphores
@@ -161,6 +160,7 @@ TX_SEMAPHORE ext_rtc_spi_sema;
 TX_SEMAPHORE aux_spi_1_spi_sema;
 TX_SEMAPHORE aux_spi_2_spi_sema;
 TX_SEMAPHORE light_sensor_i2c_sema;
+TX_SEMAPHORE turbidity_sensor_i2c_sema;
 TX_SEMAPHORE aux_i2c_1_sema;
 TX_SEMAPHORE aux_i2c_2_sema;
 TX_SEMAPHORE iridium_uart_sema;
@@ -182,9 +182,13 @@ TX_BYTE_POOL waves_byte_pool;
 __ALIGN_BEGIN uint8_t logger_block_buffer[(sizeof(log_line_buf) * LOG_QUEUE_LENGTH)
                                           + (LOG_QUEUE_LENGTH * sizeof(void*))] __attribute__((section(".ram1")))__ALIGN_END;
 
-// Light sensor byte pool
-__ALIGN_BEGIN light_basic_counts light_sensor_byte_pool_buffer[LIGHT_SENSOR_BYTE_POOL_BUFFER_SIZE
-                                                               / sizeof(light_basic_counts)] __attribute__((section(".ram1")))__ALIGN_END;
+// Light sensor sample buffer
+__ALIGN_BEGIN light_basic_counts light_sensor_sample_buffer[LIGHT_SENSOR_BYTE_POOL_BUFFER_SIZE
+                                                            / sizeof(light_basic_counts)] __attribute__((section(".ram1")))__ALIGN_END;
+
+// Turbidity sensor sample buffer
+__ALIGN_BEGIN int32_t turbidity_sensor_sample_buffer[TURBIDITY_SENSOR_SAMPLE_BUFFER_SIZE
+                                                     / sizeof(int32_t)] __attribute__((section(".ram1")))__ALIGN_END;
 
 TX_BLOCK_POOL logger_block_pool;
 /* USER CODE END PV */
@@ -203,16 +207,15 @@ static void ct_thread_entry ( ULONG thread_input );
 static void temperature_thread_entry ( ULONG thread_input );
 static void light_thread_entry ( ULONG thread_input );
 static void turbidity_thread_entry ( ULONG thread_input );
-static void accelerometer_thread_entry ( ULONG thread_input );
 
 /* USER CODE END PFP */
 
 /**
-  * @brief  Application ThreadX Initialization.
-  * @param memory_ptr: memory pointer
-  * @retval int
-  */
-UINT App_ThreadX_Init(VOID *memory_ptr)
+ * @brief  Application ThreadX Initialization.
+ * @param memory_ptr: memory pointer
+ * @retval int
+ */
+UINT App_ThreadX_Init ( VOID *memory_ptr )
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -276,7 +279,7 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   }
   // Create the gnss thread. MID priority, no preemption-threshold
   ret = tx_thread_create(&gnss_thread, "gnss thread", gnss_thread_entry, 0, pointer, XL_STACK,
-                         MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
+                         HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -326,29 +329,14 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   }
   //
   // Allocate stack for the turbidity thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XS_STACK, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XL_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the turbidity thread. MID priority, no preemption-threshold
   ret = tx_thread_create(&turbidity_thread, "turbidity thread", turbidity_thread_entry, 0, pointer,
-                         XS_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-  //
-  // Allocate stack for the accelerometer thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, L_STACK, TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-  // Create the accelerometer thread. MID priority, no preemption-threshold
-  ret = tx_thread_create(&accelerometer_thread, "accelerometer thread", accelerometer_thread_entry,
-                         0, pointer, L_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
-                         TX_DONT_START);
+                         XL_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -369,14 +357,14 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   }
   //
   // Allocate stack for the Iridium thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, L_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the Iridium thread. HIGH priority, no preemption-threshold
   ret = tx_thread_create(&iridium_thread, "iridium thread", iridium_thread_entry, 0, pointer,
-                         M_STACK, HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
+                         L_STACK, HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -471,28 +459,21 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
     return ret;
   }
 
-  ret = tx_timer_create(&light_timer, "Light thread timer", light_timer_expired, 0, 1, 1,
+  ret = tx_timer_create(&light_timer, "Light thread timer", light_timer_expired, 0, 1, 0,
                         TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
-//
-//  ret = tx_timer_create(&turbidity_timer, "Turbidity thread timer", turbidity_timer_expired, 0, 1,
-//                        1, TX_NO_ACTIVATE);
-//  if ( ret != TX_SUCCESS )
-//  {
-//    return ret;
-//  }
-//
-//  ret = tx_timer_create(&accelerometer_timer, "Accelerometer thread timer",
-//                        accelerometer_timer_expired, 0, 0, 0, TX_NO_ACTIVATE);
-//  if ( ret != TX_SUCCESS )
-//  {
-//    return ret;
-//  }
 
-  ret = tx_timer_create(&iridium_timer, "Iridium thread timer", iridium_timer_expired, 0, 1, 1,
+  ret = tx_timer_create(&turbidity_timer, "Turbidity thread timer", turbidity_timer_expired, 0, 1,
+                        0, TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_timer_create(&iridium_timer, "Iridium thread timer", iridium_timer_expired, 0, 1, 0,
                         TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )
   {
@@ -523,6 +504,12 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   }
 
   ret = tx_semaphore_create(&light_sensor_i2c_sema, "AS7341 I2C sema", 0);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_semaphore_create(&turbidity_sensor_i2c_sema, "VCNL4010 I2C sema", 0);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -647,6 +634,7 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
 
   configuration.samples_per_window = TOTAL_SAMPLES_PER_WINDOW;
   configuration.windows_per_hour = SAMPLE_WINDOWS_PER_HOUR;
+  configuration.duty_cycle = DUTY_CYCLE_PERIOD;
   configuration.iridium_max_transmit_time = IRIDIUM_MAX_TRANSMIT_TIME;
   configuration.gnss_max_acquisition_wait_time = GNSS_MAX_ACQUISITION_WAIT_TIME;
   configuration.gnss_sampling_rate = GNSS_SAMPLING_RATE;
@@ -677,18 +665,18 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   return ret;
 }
 
-  /**
-  * @brief  Function that implements the kernel's initialization.
-  * @param  None
-  * @retval None
-  */
-void MX_ThreadX_Init(void)
+/**
+ * @brief  Function that implements the kernel's initialization.
+ * @param  None
+ * @retval None
+ */
+void MX_ThreadX_Init ( void )
 {
   /* USER CODE BEGIN  Before_Kernel_Start */
 
   /* USER CODE END  Before_Kernel_Start */
 
-  tx_kernel_enter();
+  tx_kernel_enter ();
 
   /* USER CODE BEGIN  Kernel_Start_Error */
 
@@ -719,18 +707,20 @@ void MX_ThreadX_Init(void)
  * @param  ULONG thread_input - unused
  * @retval void
  */
+uint32_t watchdog_refresh_counter = 0;
 static void rtc_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = tx_thread_identify ();
-  Ext_RTC rtc;
-  rtc_return_code ret;
+  Ext_RTC rtc =
+    { 0 };
+  uSWIFT_return_code_t ret;
   UINT tx_ret;
   rtc_request_message req;
 
-  tx_thread_sleep (1);
+  tx_thread_sleep (10);
 
-  ret = ext_rtc_init (&rtc, device_handles.core_spi_handle);
+  ret = ext_rtc_init (&rtc, device_handles.core_spi_handle, &ext_rtc_spi_sema);
 
   rtc_server_init (&rtc_messaging_queue, &rtc_complete_flags);
 
@@ -740,7 +730,7 @@ static void rtc_thread_entry ( ULONG thread_input )
   // Initialize the watchdog
   ret |= rtc.config_watchdog (WATCHDOG_PERIOD);
 
-  if ( ret != RTC_SUCCESS )
+  if ( ret != uSWIFT_SUCCESS )
   {
     // Gotta wait for the logger to fully initialize
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
@@ -749,7 +739,7 @@ static void rtc_thread_entry ( ULONG thread_input )
 
   (void) tx_event_flags_set (&initialization_flags, RTC_INIT_SUCCESS, TX_OR);
 
-  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+  tx_thread_sleep (100);
   LOG("RTC Initialization successful.");
 
   while ( 1 )
@@ -761,6 +751,7 @@ static void rtc_thread_entry ( ULONG thread_input )
       switch ( req.request )
       {
         case REFRESH_WATCHDOG:
+          watchdog_refresh_counter++;
           ret = rtc.refresh_watchdog ();
           break;
 
@@ -791,11 +782,11 @@ static void rtc_thread_entry ( ULONG thread_input )
           break;
 
         default:
-          ret = RTC_PARAMETERS_INVALID;
+          ret = uSWIFT_PARAMETERS_INVALID;
           break;
       }
 
-      if ( ret != RTC_SUCCESS )
+      if ( ret != uSWIFT_SUCCESS )
       {
         rtc_error_out (this_thread, "RTC failed to service request %d, returning code %d.",
                        (int) req.request, (int) ret);
@@ -826,7 +817,8 @@ static void logger_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   logger_message msg;
   UINT tx_ret;
-  uart_logger logger;
+  uart_logger logger =
+    { 0 };
 
   uart_logger_init (&logger, &logger_block_pool, &logger_message_queue,
                     device_handles.logger_uart_handle);
@@ -842,7 +834,7 @@ static void logger_thread_entry ( ULONG thread_input )
       // Need to wait until the transmission is complete before grabbing another message
       (void) tx_semaphore_get (&logger_sema, TX_WAIT_FOREVER);
       // Still need a short delay before sending another UART transmission
-      tx_thread_sleep (2);
+      tx_thread_sleep (50);
     }
 
   }
@@ -861,9 +853,11 @@ static void logger_thread_entry ( ULONG thread_input )
 static void control_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
-  Control control;
+  Control control =
+    { 0 };
   struct watchdog_t watchdog;
   bool first_window = is_first_sample_window ();
+  uint32_t watchdog_counter = 0;
 
   // Run tests if needed
   if ( tests.control_test != NULL )
@@ -912,20 +906,23 @@ static void control_thread_entry ( ULONG thread_input )
 
   while ( 1 )
   {
-    watchdog_check_in (CONTROL_THREAD);
+    if ( ++watchdog_counter % TX_TIMER_TICKS_PER_SECOND == 0 )
+    {
+      watchdog_check_in (CONTROL_THREAD);
+      watchdog_counter = 0;
+    }
 
     control.monitor_and_handle_errors ();
     control.manage_state ();
 
-    tx_thread_sleep (1);
+    // Make sure we haven't timeout for the full duty cycle
+    if ( control_get_timeout_status () )
+    {
+      LOG("Duty cycle timeout. Starting shutdown sequence.");
+      control.shutdown_procedure ();
+    }
 
-    // TODO: Continue with the correct logic, i.e. if GNSS timed out, set alarm and shut down.
-    //       Otherwise, continue with other sensors, run waves, etc. Try to keep as many threads
-    //       as possible running concurrently.
-    // TODO: If a sensor is not present, fill the SBD message fields with 0's.
-    // TODO: We're not doing the skip_current_message thing, so if GNSS fails to get a full sample
-    //       window, just set the alarm and power down
-    // TODO: When GNSS is complete, break
+    tx_thread_sleep (1);
   }
 
 }
@@ -946,11 +943,12 @@ static void gnss_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = tx_thread_identify ();
-  GNSS gnss;
+  GNSS gnss =
+    { 0 };
   uint8_t ubx_message_process_buf[GNSS_MESSAGE_BUF_SIZE];
   uint8_t gnss_config_response_buf[GNSS_CONFIG_BUFFER_SIZE];
   float *north = NULL, *east = NULL, *down = NULL;
-  gnss_return_code_t gnss_return_code;
+  uSWIFT_return_code_t gnss_return_code;
   int number_of_no_sample_errors = 0;
   float last_lat = 0;
   float last_lon = 0;
@@ -958,7 +956,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   UINT tx_return;
   ULONG actual_flags;
   int timer_ticks_to_get_message = round (
-      ((float) TX_TIMER_TICKS_PER_SECOND / (float) configuration.gnss_sampling_rate) + 5);
+      ((float) TX_TIMER_TICKS_PER_SECOND / (float) configuration.gnss_sampling_rate) + 25);
   uint16_t sample_window_timeout = ((configuration.samples_per_window
                                      / configuration.gnss_sampling_rate)
                                     / 60)
@@ -967,8 +965,6 @@ static void gnss_thread_entry ( ULONG thread_input )
   uint32_t two_mins_remaining_sample_count = abs (
       (2 * 60 * configuration.gnss_sampling_rate) - configuration.samples_per_window);
   bool two_mins_out_msg_sent = false;
-
-  tx_thread_sleep (1);
 
   if ( lpuart1_init () != UART_OK )
   {
@@ -1052,7 +1048,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   gnss.start_timer (gnss_max_acq_time);
 
   // Frame sync and switch to DMA circular mode
-  if ( gnss.sync_and_start_reception () != GNSS_SUCCESS )
+  if ( gnss.sync_and_start_reception () != uSWIFT_SUCCESS )
   {
     // If we were unable to get good GNSS reception and start the DMA transfer loop, then shutdown
     gnss_error_out (&gnss, GNSS_FRAME_SYNC_FAILED, this_thread, "GNSS frame sync failed.");
@@ -1065,8 +1061,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   // **NOTE: RTC will be set when time is resolved
   while ( !(gnss.all_resolution_stages_complete || gnss_get_timer_timeout_status ()) )
   {
-    // Refresh watchdog every 30 seconds
-    if ( tx_time_get () % (TX_TIMER_TICKS_PER_SECOND * 30) == 0 )
+    if ( gnss.total_samples % 50 == 0 )
     {
       watchdog_check_in (GNSS_THREAD);
     }
@@ -1117,7 +1112,7 @@ static void gnss_thread_entry ( ULONG thread_input )
     {
       gnss_return_code = gnss.get_running_average_velocities ();
 
-      if ( gnss_return_code == GNSS_NO_SAMPLES_ERROR )
+      if ( gnss_return_code == uSWIFT_NO_SAMPLES_ERROR )
       {
         // If we get a full minute worth of dropped or incomplete messages, fail out
         if ( ++number_of_no_sample_errors == configuration.gnss_sampling_rate * 60 )
@@ -1195,15 +1190,16 @@ static void ct_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = tx_thread_identify ();
-  CT ct;
+  CT ct =
+    { 0 };
   ct_sample ct_readings =
     { 0 };
-  ct_return_code_t ct_return_code;
+  uSWIFT_return_code_t ct_return_code;
   uint32_t ct_parsing_error_counter = 0;
   real16_T half_salinity, half_temp;
   int32_t ct_thread_timeout = 3; // mins
 
-  tx_thread_sleep (1);
+  tx_thread_sleep (10);
 
   if ( uart5_init () != UART_OK )
   {
@@ -1261,12 +1257,12 @@ static void ct_thread_entry ( ULONG thread_input )
 
     ct_return_code = ct.parse_sample ();
 
-    if ( ct_return_code == CT_PARSING_ERROR )
+    if ( ct_return_code == uSWIFT_PROCESSING_ERROR )
     {
       ct_parsing_error_counter++;
     }
 
-    if ( (ct_parsing_error_counter >= 10) || (ct_return_code == CT_UART_ERROR) )
+    if ( (ct_parsing_error_counter >= 10) || (ct_return_code == uSWIFT_COMMS_ERROR) )
     {
       // If there are too many parsing errors or a UART error occurs, stop trying
       ct_error_out (&ct, CT_SAMPLING_ERROR, this_thread,
@@ -1281,7 +1277,7 @@ static void ct_thread_entry ( ULONG thread_input )
                     "CT sample window timed out after %d minutes.", ct_thread_timeout);
     }
 
-    if ( ct_return_code == CT_DONE_SAMPLING )
+    if ( ct_return_code == uSWIFT_DONE_SAMPLING )
     {
       break;
     }
@@ -1299,7 +1295,7 @@ static void ct_thread_entry ( ULONG thread_input )
   // Got our samples, now average them
   ct_return_code = ct.get_averages (&ct_readings);
   // Make sure something didn't go terribly wrong
-  if ( ct_return_code == CT_NOT_ENOUGH_SAMPLES )
+  if ( ct_return_code == uSWIFT_NO_SAMPLES_ERROR )
   {
     ct_error_out (&ct, CT_SAMPLING_ERROR, this_thread, "CT sensor did not collect enough samples.");
   }
@@ -1333,7 +1329,8 @@ static void temperature_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = tx_thread_identify ();
-  Temperature temperature;
+  Temperature temperature =
+    { 0 };
   temperature_return_code_t temp_return_code = TEMPERATURE_SUCCESS;
   float self_test_reading = 0.0f, sampling_reading = 0.0f;
   real16_T half_temp =
@@ -1341,14 +1338,14 @@ static void temperature_thread_entry ( ULONG thread_input )
   int32_t temperature_thread_timeout = 2; // minutes
   int32_t fail_counter = 0, max_retries = 10;
 
-  tx_thread_sleep (1);
+  tx_thread_sleep (10);
 
   // Set the mean salinity and temp values to error values in the event the sensor fails
   half_temp.bitPattern = TEMPERATURE_VALUES_ERROR_CODE;
 
   memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
 
-  temperature_init (&temperature, &configuration, device_handles.core_i2c_handle, &error_flags,
+  temperature_init (&temperature, &configuration, device_handles.aux_i2c_2_handle, &error_flags,
                     &temperature_timer, &core_i2c_mutex, true);
 
   temperature.on ();
@@ -1436,7 +1433,8 @@ static void light_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   TX_THREAD *this_thread = tx_thread_identify ();
   light_return_code_t light_ret;
-  Light_Sensor light;
+  Light_Sensor light =
+    { 0 };
   light_raw_counts raw_counts;
   light_basic_counts basic_counts;
   int32_t light_thread_timeout = ((configuration.samples_per_window
@@ -1444,11 +1442,13 @@ static void light_thread_entry ( ULONG thread_input )
                                   / 60)
                                  + GNSS_WINDOW_BUFFER_TIME; // Same timeout as GNSS
 
-  light_sensor_init (&light, &configuration, &(light_sensor_byte_pool_buffer[0]),
+  light_sensor_init (&light, &configuration, &(light_sensor_sample_buffer[0]),
                      device_handles.core_i2c_handle, &light_timer, &light_sensor_int_pin_sema,
                      &light_sensor_i2c_sema);
 
   light.on ();
+
+  tx_thread_sleep (10);
 
   //
   // Run tests if needed
@@ -1513,6 +1513,7 @@ static void light_thread_entry ( ULONG thread_input )
       break;
     }
 
+    // Sleep the rest of the second away
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND - (tx_time_get () % TX_TIMER_TICKS_PER_SECOND));
   }
 
@@ -1542,10 +1543,21 @@ static void turbidity_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = tx_thread_identify ();
+  Turbidity_Sensor obs =
+    { 0 };
+  int32_t raw_counts;
+  uSWIFT_return_code_t ret;
+  int32_t turbidity_thread_timeout = ((configuration.samples_per_window
+                                       / configuration.gnss_sampling_rate)
+                                      / 60)
+                                     + GNSS_WINDOW_BUFFER_TIME; // Same timeout as GNSS
 
-  tx_thread_sleep (1);
+  turbidity_sensor_init (&obs, &configuration, device_handles.aux_i2c_1_handle, &turbidity_timer,
+                         &turbidity_sensor_i2c_sema, &turbidity_sensor_sample_buffer[0]);
 
-  // TODO: init and self test
+  obs.on ();
+
+  tx_thread_sleep (10);
 
   //
   // Run tests if needed
@@ -1554,56 +1566,58 @@ static void turbidity_thread_entry ( ULONG thread_input )
     tests.turbidity_thread_test (NULL);
   }
 
-  tx_thread_suspend (this_thread);
+  if ( !turbidity_self_test (&obs) )
+  {
+    turbidity_error_out (&obs, TURBIDITY_INIT_FAILED, this_thread,
+                         "Turbidity sensor self test failed.");
+  }
+
+  obs.get_raw_counts (&raw_counts);
+
+  LOG("Turbidity sensor initialization complete. Raw counts: %d", raw_counts);
+
+  (void) tx_event_flags_set (&initialization_flags, TURBIDITY_INIT_SUCCESS, TX_OR);
 
   watchdog_register_thread (TURBIDITY_THREAD);
   watchdog_check_in (TURBIDITY_THREAD);
 
-  // TODO: Run sensor
+  obs.start_timer (turbidity_thread_timeout);
+
+  // Take our samples
+  while ( 1 )
+  {
+
+    watchdog_check_in (LIGHT_THREAD);
+
+    ret = obs.take_measurement ();
+
+    if ( ret == uSWIFT_DONE_SAMPLING )
+    {
+      break;
+    }
+    else if ( ret != uSWIFT_SUCCESS )
+    {
+      turbidity_error_out (&obs, TURBIDITY_SAMPLING_ERROR, this_thread,
+                           "Error occurred when reading turbidity sensor.");
+    }
+
+    if ( turbidity_get_timeout_status () )
+    {
+      turbidity_error_out (&obs, TURBIDITY_SAMPLING_ERROR, this_thread,
+                           "Turbidity sample window timed out after %d minutes.",
+                           turbidity_thread_timeout);
+    }
+
+    // Sleep the rest of the second away
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND - (tx_time_get () % TX_TIMER_TICKS_PER_SECOND));
+  }
+
+  obs.off ();
 
   watchdog_check_in (TURBIDITY_THREAD);
   watchdog_deregister_thread (TURBIDITY_THREAD);
 
   (void) tx_event_flags_set (&complete_flags, TURBIDITY_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
-  tx_thread_terminate (this_thread);
-}
-
-/***************************************************************************************************
- ***************************************************************************************************
- ********************************    Accelerometer Thread    ***************************************
- ***************************************************************************************************
- ***************************************************************************************************
- * @brief  accelerometer_thread_entry
- *         This thread will manage the accelerometer sensor
- *
- * @param  ULONG thread_input - unused
- * @retval void
- */
-static void accelerometer_thread_entry ( ULONG thread_input )
-{
-  UNUSED(thread_input);
-  TX_THREAD *this_thread = tx_thread_identify ();
-
-  // TODO: init and self test
-
-  //
-  // Run tests if needed
-  if ( tests.accelerometer_thread_test != NULL )
-  {
-    tests.accelerometer_thread_test (NULL);
-  }
-
-  tx_thread_suspend (this_thread);
-
-  watchdog_register_thread (ACCELEROMETER_THREAD);
-  watchdog_check_in (ACCELEROMETER_THREAD);
-
-  // TODO: Run sensor
-
-  watchdog_check_in (ACCELEROMETER_THREAD);
-  watchdog_deregister_thread (ACCELEROMETER_THREAD);
-
-  (void) tx_event_flags_set (&complete_flags, ACCELEROMETER_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
 }
 
@@ -1622,7 +1636,8 @@ static void waves_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = &waves_thread;
-  NEDWaves_memory waves_mem;
+  NEDWaves_memory waves_mem =
+    { 0 };
 
   tx_thread_sleep (1);
 
@@ -1708,7 +1723,8 @@ static void iridium_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = &iridium_thread;
-  Iridium iridium;
+  Iridium iridium =
+    { 0 };
   iridium_return_code_t iridium_return_code = IRIDIUM_SUCCESS;
   int32_t iridium_thread_timeout = configuration.iridium_max_transmit_time;
   UINT tx_return;
@@ -1722,7 +1738,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   sbd_message_type_52 *msg_ptr = &sbd_message;
   bool current_message_sent = false;
 
-  tx_thread_sleep (1);
+  tx_thread_sleep (10);
 
   if ( uart4_init () != UART_OK )
   {

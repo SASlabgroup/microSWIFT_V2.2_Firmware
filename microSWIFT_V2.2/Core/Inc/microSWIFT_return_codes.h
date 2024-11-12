@@ -43,7 +43,7 @@ typedef enum
   uSWIFT_OBJECT_SPECIFIC_7      = -96,
   uSWIFT_OBJECT_SPECIFIC_8      = -97,
   uSWIFT_OBJECT_SPECIFIC_9      = -98,
-  uSWIFT_UNKNOWN_ERROR          = -99
+  uSWIFT_UNKNOWN_ERROR          = -99,
 }uSWIFT_return_code_t;
 //@formatter:on
 #endif /* INC_MICROSWIFT_RETURN_CODES_H_ */

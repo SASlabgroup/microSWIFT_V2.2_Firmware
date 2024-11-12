@@ -308,6 +308,10 @@ void HAL_I2C_MemTxCpltCallback ( I2C_HandleTypeDef *hi2c )
   {
     (void) tx_semaphore_put (&light_sensor_i2c_sema);
   }
+  else if ( hi2c->Instance == TURBIDITY_SENSOR_I2C )
+  {
+    (void) tx_semaphore_put (&turbidity_sensor_i2c_sema);
+  }
 }
 
 /**
@@ -321,5 +325,9 @@ void HAL_I2C_MemRxCpltCallback ( I2C_HandleTypeDef *hi2c )
   if ( hi2c->Instance == LIGHT_SENSOR_I2C )
   {
     (void) tx_semaphore_put (&light_sensor_i2c_sema);
+  }
+  else if ( hi2c->Instance == TURBIDITY_SENSOR_I2C )
+  {
+    (void) tx_semaphore_put (&turbidity_sensor_i2c_sema);
   }
 }

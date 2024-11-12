@@ -30,13 +30,13 @@ typedef struct
 
   TX_TIMER                  *timer;
 
-  int32_t                   *samples_series;
+  uint16_t                  *ambient_series;
+  uint16_t                  *proximity_series;
 
-  int32_t                   averages_series[60]; // more than we would ever need
+  uint16_t                  ambient_averages_series[60]; // more than we would ever need
+  uint16_t                  proximity_averages_series[60]; // more than we would ever need
 
-  int32_t                   samples_counter;
-
-  int32_t                   raw_count;
+  uint32_t                  samples_counter;
 
   dev_ctx_t                 dev_ctx;
 
@@ -45,9 +45,9 @@ typedef struct
   uSWIFT_return_code_t      (*self_test) (void);
   uSWIFT_return_code_t      (*setup_sensor) (void);
   uSWIFT_return_code_t      (*take_measurement) (void);
-  uSWIFT_return_code_t      (*get_raw_counts) (int32_t *raw_counts);
+  uSWIFT_return_code_t      (*get_most_recent_measurement) (uint16_t *ambient, uint16_t *proximity);
   uSWIFT_return_code_t      (*process_measurements) (void);
-  uSWIFT_return_code_t      (*start_timer) ( uint16_t timeout_in_minutes );
+  uSWIFT_return_code_t      (*start_timer) (uint16_t timeout_in_minutes);
   uSWIFT_return_code_t      (*stop_timer) (void);
   void                      (*on) (void);
   void                      (*off) (void);
@@ -55,7 +55,8 @@ typedef struct
 
 void turbidity_sensor_init          ( Turbidity_Sensor *struct_ptr, microSWIFT_configuration *global_config,
                                       I2C_HandleTypeDef *i2c_handle, TX_TIMER *timer,
-                                      TX_SEMAPHORE *sensor_i2c_sema, int32_t *samples_buffer);
+                                      TX_SEMAPHORE *sensor_i2c_sema, uint16_t *ambient_buffer,
+                                      uint16_t *proximity_buffer );
 void turbidity_deinit               ( void );
 void turbidity_timer_expired        ( ULONG expiration_input );
 bool turbidity_get_timeout_status   ( void );

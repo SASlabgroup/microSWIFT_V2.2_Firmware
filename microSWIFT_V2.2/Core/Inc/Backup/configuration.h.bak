@@ -84,12 +84,12 @@
 #define TOTAL_TEMPERATURE_SAMPLES 10
 
 // If there is a light sensor present
-#define LIGHT_SENSOR_ENABLED true
+#define LIGHT_SENSOR_ENABLED false
 #define TOTAL_LIGHT_SAMPLES (TOTAL_SAMPLES_PER_WINDOW / GNSS_SAMPLING_RATE)
 
 // If there is a turbidity sensor present
 #define TURBIDITY_SENSOR_ENABLED false
-#define TOTAL_TURBIDITY_SAMPLES 10
+#define TOTAL_TURBIDITY_SAMPLES (TOTAL_SAMPLES_PER_WINDOW / GNSS_SAMPLING_RATE)
 
 // If there is a fast accelerometer present
 #define ACCELEROMETER_ENABLED false
@@ -98,6 +98,7 @@ typedef struct microSWIFT_configuration
 {
   uint32_t samples_per_window;
   uint32_t windows_per_hour;
+  uint32_t duty_cycle;
   uint32_t iridium_max_transmit_time;
   uint32_t gnss_max_acquisition_wait_time;
   uint32_t gnss_sampling_rate;

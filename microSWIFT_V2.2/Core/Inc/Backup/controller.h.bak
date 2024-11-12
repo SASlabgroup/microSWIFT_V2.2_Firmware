@@ -35,7 +35,8 @@ typedef struct
 
   sbd_message_type_52       *current_message;
 
-  bool                      error_detected;
+  bool                      timer_timeout;
+
 
   struct
   {
@@ -67,5 +68,6 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
                        ADC_HandleTypeDef *battery_adc_handle, sbd_message_type_52 *current_message );
 
 void control_timer_expired ( ULONG expiration_input );
+bool control_get_timeout_status ( void );
 
 #endif /* INC_CONTROLLER_H_ */

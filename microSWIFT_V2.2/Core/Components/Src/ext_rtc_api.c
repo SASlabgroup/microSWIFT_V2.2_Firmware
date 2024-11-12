@@ -7,12 +7,12 @@
 
 #include "ext_rtc_api.h"
 
-static rtc_server self;
+static rtc_server rtc_server_self;
 
 void rtc_server_init ( TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP *complete_flags )
 {
-  self.request_queue = request_queue;
-  self.complete_flags = complete_flags;
+  rtc_server_self.request_queue = request_queue;
+  rtc_server_self.complete_flags = complete_flags;
 }
 
 void rtc_server_refresh_watchdog ( void )
@@ -24,7 +24,8 @@ void rtc_server_refresh_watchdog ( void )
   queue_msg.complete_flag = 0;
   queue_msg.return_code = NULL;
 
-  (void) tx_queue_send (self.request_queue, &queue_msg, RTC_QUEUE_MAX_WAIT_TICKS);
+  (void) tx_queue_send (rtc_server_self.request_queue, &queue_msg,
+  RTC_QUEUE_MAX_WAIT_TICKS);
 }
 
 uSWIFT_return_code_t rtc_server_get_time ( struct tm *return_time_struct, UINT complete_flag )
@@ -39,12 +40,14 @@ uSWIFT_return_code_t rtc_server_get_time ( struct tm *return_time_struct, UINT c
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 
-  if ( tx_queue_send (self.request_queue, &queue_msg, RTC_QUEUE_MAX_WAIT_TICKS) != TX_SUCCESS )
+  if ( tx_queue_send (rtc_server_self.request_queue, &queue_msg,
+  RTC_QUEUE_MAX_WAIT_TICKS)
+       != TX_SUCCESS )
   {
     return uSWIFT_MESSAGE_QUEUE_ERROR;
   }
 
-  if ( tx_event_flags_get (self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
+  if ( tx_event_flags_get (rtc_server_self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
   RTC_FLAG_MAX_WAIT_TICKS)
        != TX_SUCCESS )
   {
@@ -66,12 +69,14 @@ uSWIFT_return_code_t rtc_server_set_time ( struct tm *input_time_struct, UINT co
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 
-  if ( tx_queue_send (self.request_queue, &queue_msg, RTC_QUEUE_MAX_WAIT_TICKS) != TX_SUCCESS )
+  if ( tx_queue_send (rtc_server_self.request_queue, &queue_msg,
+  RTC_QUEUE_MAX_WAIT_TICKS)
+       != TX_SUCCESS )
   {
     return uSWIFT_MESSAGE_QUEUE_ERROR;
   }
 
-  if ( tx_event_flags_get (self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
+  if ( tx_event_flags_get (rtc_server_self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
   RTC_FLAG_MAX_WAIT_TICKS)
        != TX_SUCCESS )
   {
@@ -94,12 +99,14 @@ uSWIFT_return_code_t rtc_server_set_timestamp ( pcf2131_timestamp_t which_timest
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 
-  if ( tx_queue_send (self.request_queue, &queue_msg, RTC_QUEUE_MAX_WAIT_TICKS) != TX_SUCCESS )
+  if ( tx_queue_send (rtc_server_self.request_queue, &queue_msg,
+  RTC_QUEUE_MAX_WAIT_TICKS)
+       != TX_SUCCESS )
   {
     return uSWIFT_MESSAGE_QUEUE_ERROR;
   }
 
-  if ( tx_event_flags_get (self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
+  if ( tx_event_flags_get (rtc_server_self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
   RTC_FLAG_MAX_WAIT_TICKS)
        != TX_SUCCESS )
   {
@@ -122,12 +129,14 @@ uSWIFT_return_code_t rtc_server_get_timestamp ( pcf2131_timestamp_t which_timest
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 
-  if ( tx_queue_send (self.request_queue, &queue_msg, RTC_QUEUE_MAX_WAIT_TICKS) != TX_SUCCESS )
+  if ( tx_queue_send (rtc_server_self.request_queue, &queue_msg,
+  RTC_QUEUE_MAX_WAIT_TICKS)
+       != TX_SUCCESS )
   {
     return uSWIFT_MESSAGE_QUEUE_ERROR;
   }
 
-  if ( tx_event_flags_get (self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
+  if ( tx_event_flags_get (rtc_server_self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
   RTC_FLAG_MAX_WAIT_TICKS)
        != TX_SUCCESS )
   {
@@ -149,12 +158,14 @@ uSWIFT_return_code_t rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UIN
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 
-  if ( tx_queue_send (self.request_queue, &queue_msg, RTC_QUEUE_MAX_WAIT_TICKS) != TX_SUCCESS )
+  if ( tx_queue_send (rtc_server_self.request_queue, &queue_msg,
+  RTC_QUEUE_MAX_WAIT_TICKS)
+       != TX_SUCCESS )
   {
     return uSWIFT_MESSAGE_QUEUE_ERROR;
   }
 
-  if ( tx_event_flags_get (self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
+  if ( tx_event_flags_get (rtc_server_self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
   RTC_FLAG_MAX_WAIT_TICKS)
        != TX_SUCCESS )
   {
@@ -176,12 +187,14 @@ uSWIFT_return_code_t rtc_server_clear_flag ( rtc_flag_t which_flag, UINT complet
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 
-  if ( tx_queue_send (self.request_queue, &queue_msg, RTC_QUEUE_MAX_WAIT_TICKS) != TX_SUCCESS )
+  if ( tx_queue_send (rtc_server_self.request_queue, &queue_msg,
+  RTC_QUEUE_MAX_WAIT_TICKS)
+       != TX_SUCCESS )
   {
     return uSWIFT_MESSAGE_QUEUE_ERROR;
   }
 
-  if ( tx_event_flags_get (self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
+  if ( tx_event_flags_get (rtc_server_self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
   RTC_FLAG_MAX_WAIT_TICKS)
        != TX_SUCCESS )
   {
@@ -197,13 +210,17 @@ uSWIFT_return_code_t rtc_server_process_request ( rtc_request_message *request )
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   ULONG event_flags;
 
-  if ( tx_queue_send (self.request_queue, request, RTC_QUEUE_MAX_WAIT_TICKS) != TX_SUCCESS )
+  if ( tx_queue_send (rtc_server_self.request_queue, request,
+  RTC_QUEUE_MAX_WAIT_TICKS)
+       != TX_SUCCESS )
   {
     return uSWIFT_MESSAGE_QUEUE_ERROR;
   }
 
-  if ( tx_event_flags_get (self.complete_flags, request->complete_flag, TX_OR_CLEAR, &event_flags,
-  RTC_FLAG_MAX_WAIT_TICKS)
+  if ( tx_event_flags_get (rtc_server_self.complete_flags, request->complete_flag,
+  TX_OR_CLEAR,
+                           &event_flags,
+                           RTC_FLAG_MAX_WAIT_TICKS)
        != TX_SUCCESS )
   {
     return uSWIFT_TIMEOUT;
@@ -214,7 +231,8 @@ uSWIFT_return_code_t rtc_server_process_request ( rtc_request_message *request )
 
 void struct_tm_dec_to_bcd ( struct tm *struct_ptr )
 {
-  struct_ptr->tm_sec = (struct_ptr->tm_sec > 59) ?
+  // Account for leap seconds
+  struct_ptr->tm_sec = (struct_ptr->tm_sec > 60) ?
       BCD_ERROR : DEC_TO_BCD(struct_ptr->tm_sec)
   ;
   struct_ptr->tm_min = (struct_ptr->tm_min > 59) ?
