@@ -279,7 +279,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   // Create the gnss thread. MID priority, no preemption-threshold
   ret = tx_thread_create(&gnss_thread, "gnss thread", gnss_thread_entry, 0, pointer, XL_STACK,
-                         MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
+                         HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -329,14 +329,14 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   //
   // Allocate stack for the turbidity thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XS_STACK, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XL_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the turbidity thread. MID priority, no preemption-threshold
   ret = tx_thread_create(&turbidity_thread, "turbidity thread", turbidity_thread_entry, 0, pointer,
-                         XS_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
+                         XL_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -357,14 +357,15 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   //
   // Allocate stack for the Iridium thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XL_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the Iridium thread. HIGH priority, no preemption-threshold
   ret = tx_thread_create(&iridium_thread, "iridium thread", iridium_thread_entry, 0, pointer,
-                         M_STACK, HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
+                         XL_STACK, HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
+                         TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -1575,6 +1576,8 @@ static void turbidity_thread_entry ( ULONG thread_input )
   obs.get_raw_counts (&raw_counts);
 
   LOG("Turbidity sensor initialization complete. Raw counts: %d", raw_counts);
+
+  (void) tx_event_flags_set (&initialization_flags, TURBIDITY_INIT_SUCCESS, TX_OR);
 
   watchdog_register_thread (TURBIDITY_THREAD);
   watchdog_check_in (TURBIDITY_THREAD);

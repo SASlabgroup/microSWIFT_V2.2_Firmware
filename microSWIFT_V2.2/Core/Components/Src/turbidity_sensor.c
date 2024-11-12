@@ -31,8 +31,8 @@ static int32_t              _turbidity_sensor_i2c_write ( void *unused_handle, u
                                                            uint16_t data_length );
 static void                 _turbidity_sensor_ms_delay ( uint32_t delay );
 // Helper functions
-
-
+static uSWIFT_return_code_t __turbidity_sensor_get_proximity_reading (uint16_t *reading);
+static uSWIFT_return_code_t __turbidity_sensor_get_ambient_reading (uint16_t *reading);
 // @formatter:on
 
 void turbidity_sensor_init ( Turbidity_Sensor *struct_ptr, microSWIFT_configuration *global_config,
@@ -111,8 +111,6 @@ static uSWIFT_return_code_t _turbidity_sensor_self_test ( void )
 
   ret = turbidity_self->take_measurement ();
 
-  turbidity_self->samples_counter = 0;
-
   return ret;
 }
 
@@ -139,8 +137,7 @@ static uSWIFT_return_code_t _turbidity_sensor_take_measurement ( void )
     switch ( i )
     {
       case 0:
-        if ( vcnl4010_get_proximity_reading (&turbidity_self->dev_ctx, &intermediate_result)
-             != uSWIFT_SUCCESS )
+        if ( __turbidity_sensor_get_proximity_reading (&intermediate_result) != uSWIFT_SUCCESS )
         {
           return uSWIFT_COMMS_ERROR;
         }
@@ -150,8 +147,7 @@ static uSWIFT_return_code_t _turbidity_sensor_take_measurement ( void )
         break;
 
       case 1 ... 2:
-        if ( vcnl4010_get_ambient_reading (&turbidity_self->dev_ctx, &intermediate_result)
-             != uSWIFT_SUCCESS )
+        if ( __turbidity_sensor_get_ambient_reading (&intermediate_result) != uSWIFT_SUCCESS )
         {
           return uSWIFT_COMMS_ERROR;
         }
@@ -161,8 +157,7 @@ static uSWIFT_return_code_t _turbidity_sensor_take_measurement ( void )
         break;
 
       case 3:
-        if ( vcnl4010_get_proximity_reading (&turbidity_self->dev_ctx, &intermediate_result)
-             != uSWIFT_SUCCESS )
+        if ( __turbidity_sensor_get_proximity_reading (&intermediate_result) != uSWIFT_SUCCESS )
         {
           return uSWIFT_COMMS_ERROR;
         }
@@ -331,4 +326,60 @@ static void _turbidity_sensor_ms_delay ( uint32_t delay )
   {
     tx_thread_sleep (delay);
   }
+}
+
+static uSWIFT_return_code_t __turbidity_sensor_get_proximity_reading ( uint16_t *reading )
+{
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
+  uint32_t ready_counter = 0, ready_timeout = 10;
+  bool drdy = false;
+
+  ret = vcnl4010_start_prox_conversion (&turbidity_self->dev_ctx);
+  if ( ret != uSWIFT_SUCCESS )
+  {
+    return ret;
+  }
+
+  while ( (ready_counter++ < ready_timeout) && !drdy )
+  {
+    ret = vcnl4010_get_prox_data_ready (&turbidity_self->dev_ctx, &drdy);
+    if ( ret != uSWIFT_SUCCESS )
+    {
+      return ret;
+    }
+
+    tx_thread_sleep (1);
+  }
+
+  ret = vcnl4010_get_proximity_reading (&turbidity_self->dev_ctx, reading);
+
+  return ret;
+}
+
+static uSWIFT_return_code_t __turbidity_sensor_get_ambient_reading ( uint16_t *reading )
+{
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
+  uint32_t ready_counter = 0, ready_timeout = 10;
+  bool drdy = false;
+
+  ret = vcnl4010_start_ambient_conversion (&turbidity_self->dev_ctx);
+  if ( ret != uSWIFT_SUCCESS )
+  {
+    return ret;
+  }
+
+  while ( (ready_counter++ < ready_timeout) && !drdy )
+  {
+    ret = vcnl4010_get_ambient_data_ready (&turbidity_self->dev_ctx, &drdy);
+    if ( ret != uSWIFT_SUCCESS )
+    {
+      return ret;
+    }
+
+    tx_thread_sleep (1);
+  }
+
+  ret = vcnl4010_get_ambient_reading (&turbidity_self->dev_ctx, reading);
+
+  return ret;
 }

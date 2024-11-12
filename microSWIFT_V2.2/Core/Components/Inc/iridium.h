@@ -16,6 +16,7 @@
 #include "generic_uart_driver.h"
 #include "gpio.h"
 #include "sbd.h"
+#include "microSWIFT_return_codes.h"
 
 // @formatter:off
 
