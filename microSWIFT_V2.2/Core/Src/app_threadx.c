@@ -847,7 +847,7 @@ static void logger_thread_entry ( ULONG thread_input )
       // Need to wait until the transmission is complete before grabbing another message
       (void) tx_semaphore_get (&logger_sema, TX_WAIT_FOREVER);
       // Still need a short delay before sending another UART transmission
-      tx_thread_sleep (25);
+      tx_thread_sleep (35);
     }
 
   }

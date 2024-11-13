@@ -58,7 +58,7 @@ void temperature_init ( Temperature *struct_ptr, microSWIFT_configuration *globa
 
   generic_i2c_register_io_functions (&temperature_self->i2c_driver, i2c_handle, i2c_mutex,
   TEMPERATURE_I2C_MUTEX_WAIT_TICKS,
-                                     i2c1_init, i2c1_deinit, NULL,
+                                     i2c3_init, i2c3_deinit, NULL,
                                      NULL,
                                      true);
 }
