@@ -113,6 +113,9 @@ static uSWIFT_return_code_t _turbidity_sensor_self_test ( void )
     return uSWIFT_INITIALIZATION_ERROR;
   }
 
+  // Throw out the first measurement
+  ret = turbidity_self->take_measurement ();
+  turbidity_self->samples_counter = 0;
   ret = turbidity_self->take_measurement ();
 
   return ret;
