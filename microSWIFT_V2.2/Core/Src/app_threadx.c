@@ -662,7 +662,6 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   configuration.temperature_enabled = TEMPERATURE_ENABLED;
   configuration.light_enabled = LIGHT_SENSOR_ENABLED;
   configuration.turbidity_enabled = TURBIDITY_SENSOR_ENABLED;
-  configuration.accelerometer_enabled = ACCELEROMETER_ENABLED;
 
   /* USER CODE END App_ThreadX_MEM_POOL */
   /* USER CODE BEGIN App_ThreadX_Init */
@@ -1788,6 +1787,8 @@ static void iridium_thread_entry ( ULONG thread_input )
   /******************************* Control thread resumes this thread *****************************/
   watchdog_register_thread (IRIDIUM_THREAD);
   watchdog_check_in (IRIDIUM_THREAD);
+
+#warning"Figure out how to bail early here if there is no valid message to send."
 
   iridium.wake ();
   iridium.charge_caps (IRIDIUM_TOP_UP_CAP_CHARGE_TIME);

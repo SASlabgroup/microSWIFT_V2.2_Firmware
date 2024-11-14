@@ -72,8 +72,6 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
   controller_self->thread_status.light_complete = !controller_self->global_config->light_enabled;
   controller_self->thread_status.turbidity_complete = !controller_self->global_config
       ->turbidity_enabled;
-  controller_self->thread_status.accelerometer_complete = !controller_self->global_config
-      ->accelerometer_enabled;
 
   controller_self->startup_procedure = _control_startup_procedure;
   controller_self->shutdown_procedure = _control_shutdown_procedure;
@@ -471,7 +469,7 @@ static void _control_manage_state ( void )
   if ( (current_flags & TURBIDITY_THREAD_COMPLETED_SUCCESSFULLY)
        | (current_flags & TURBIDITY_THREAD_COMPLETED_WITH_ERRORS) )
   {
-    controller_self->thread_status.temperature_complete = true;
+    controller_self->thread_status.turbidity_complete = true;
 
     LOG("Turbidity thread complete, now terminating.");
   }
@@ -482,14 +480,6 @@ static void _control_manage_state ( void )
     controller_self->thread_status.light_complete = true;
 
     LOG("Light thread complete, now terminating.");
-  }
-
-  if ( (current_flags & ACCELEROMETER_THREAD_COMPLETED_SUCCESSFULLY)
-       | (current_flags & ACCELEROMETER_THREAD_COMPLETED_WITH_ERRORS) )
-  {
-    controller_self->thread_status.accelerometer_complete = true;
-
-    LOG("Accelerometer thread complete, now terminating.");
   }
 
   if ( (current_flags & WAVES_THREAD_COMPLETED_SUCCESSFULLY)
@@ -505,7 +495,6 @@ static void _control_manage_state ( void )
                   && controller_self->thread_status.temperature_complete
                   && controller_self->thread_status.light_complete
                   && controller_self->thread_status.turbidity_complete
-                  && controller_self->thread_status.accelerometer_complete
                   && controller_self->thread_status.waves_complete;
 
   if ( iridium_ready )

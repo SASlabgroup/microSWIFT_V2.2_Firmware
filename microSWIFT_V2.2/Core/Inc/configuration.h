@@ -91,9 +91,6 @@
 #define TURBIDITY_SENSOR_ENABLED true
 #define TOTAL_TURBIDITY_SAMPLES (TOTAL_SAMPLES_PER_WINDOW / GNSS_SAMPLING_RATE)
 
-// If there is a fast accelerometer present
-#define ACCELEROMETER_ENABLED false
-
 typedef struct microSWIFT_configuration
 {
   uint32_t samples_per_window;
@@ -113,7 +110,6 @@ typedef struct microSWIFT_configuration
   bool temperature_enabled;
   bool light_enabled;
   bool turbidity_enabled;
-  bool accelerometer_enabled;
 
 } microSWIFT_configuration;
 
