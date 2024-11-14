@@ -21,10 +21,10 @@
 
 typedef int32_t (*i2c_init_fn) ( void );
 typedef int32_t (*i2c_deinit_fn) ( void );
-typedef int32_t (*i2c_read_fn) ( void *driver_ptr, uint8_t reg_addr, uint8_t *read_buf,
+typedef int32_t (*i2c_read_fn) ( void *driver_ptr, uint8_t dev_addr, uint8_t reg_addr, uint8_t *read_buf,
                                   uint16_t size );
-typedef int32_t (*i2c_write_fn) ( void *driver_ptr, uint8_t reg_addr, uint8_t *write_buf,
-                                  uint16_t size);
+typedef int32_t (*i2c_write_fn) ( void *driver_ptr, uint8_t dev_addr, uint8_t reg_addr, uint8_t *write_buf,
+                                  uint16_t size );
 
 typedef struct
 {

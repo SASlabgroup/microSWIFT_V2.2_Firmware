@@ -8,10 +8,10 @@
 #include "generic_i2c_driver.h"
 #include "microSWIFT_return_codes.h"
 
-static int32_t _generic_i2c_read ( void *driver_ptr, uint8_t reg_addr, uint8_t *read_buf,
-                                   uint16_t size );
-static int32_t _generic_i2c_write ( void *driver_ptr, uint8_t reg_addr, uint8_t *write_buf,
-                                    uint16_t size );
+static int32_t _generic_i2c_read ( void *driver_ptr, uint8_t dev_addr, uint8_t reg_addr,
+                                   uint8_t *read_buf, uint16_t size );
+static int32_t _generic_i2c_write ( void *driver_ptr, uint8_t dev_addr, uint8_t reg_addr,
+                                    uint8_t *write_buf, uint16_t size );
 
 void generic_i2c_register_io_functions ( generic_i2c_driver *driver_ptr,
                                          I2C_HandleTypeDef *i2c_handle, TX_MUTEX *i2c_mutex,
@@ -45,8 +45,8 @@ void generic_i2c_register_io_functions ( generic_i2c_driver *driver_ptr,
   }
 }
 
-static int32_t _generic_i2c_read ( void *driver_ptr, uint8_t reg_addr, uint8_t *read_buf,
-                                   uint16_t size )
+static int32_t _generic_i2c_read ( void *driver_ptr, uint8_t dev_addr, uint8_t reg_addr,
+                                   uint8_t *read_buf, uint16_t size )
 {
   generic_i2c_driver *driver_handle = (generic_i2c_driver*) driver_ptr;
   UINT tx_ret;
@@ -63,7 +63,7 @@ static int32_t _generic_i2c_read ( void *driver_ptr, uint8_t reg_addr, uint8_t *
 
   if ( ret == GENERIC_I2C_OK )
   {
-    if ( HAL_I2C_Mem_Read (driver_handle->i2c_handle, (0x77 << 1), reg_addr, 1, read_buf, size,
+    if ( HAL_I2C_Mem_Read (driver_handle->i2c_handle, dev_addr, reg_addr, 1, read_buf, size,
     GENERIC_I2C_BLOCKING_TIMEOUT)
          != HAL_OK )
     {
@@ -79,8 +79,8 @@ static int32_t _generic_i2c_read ( void *driver_ptr, uint8_t reg_addr, uint8_t *
   return ret;
 }
 
-static int32_t _generic_i2c_write ( void *driver_ptr, uint8_t reg_addr, uint8_t *write_buf,
-                                    uint16_t size )
+static int32_t _generic_i2c_write ( void *driver_ptr, uint8_t dev_addr, uint8_t reg_addr,
+                                    uint8_t *write_buf, uint16_t size )
 {
   generic_i2c_driver *driver_handle = (generic_i2c_driver*) driver_ptr;
   UINT tx_ret;
@@ -97,7 +97,7 @@ static int32_t _generic_i2c_write ( void *driver_ptr, uint8_t reg_addr, uint8_t 
 
   if ( ret == GENERIC_I2C_OK )
   {
-    if ( HAL_I2C_Mem_Write (driver_handle->i2c_handle, (0x77 << 1), reg_addr, 1, write_buf, size,
+    if ( HAL_I2C_Mem_Write (driver_handle->i2c_handle, dev_addr, reg_addr, 1, write_buf, size,
     GENERIC_I2C_BLOCKING_TIMEOUT)
          != HAL_OK )
     {

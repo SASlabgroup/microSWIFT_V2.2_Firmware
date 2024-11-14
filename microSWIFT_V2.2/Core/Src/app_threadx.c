@@ -25,6 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "stdio.h"
 #include "app_filex.h"
 #include "main.h"
 #include "stddef.h"
@@ -309,14 +310,14 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
 
   //
   // Allocate stack for the temperature thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XS_STACK, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the temperature thread. MID priority, no preemption-threshold
   ret = tx_thread_create(&temperature_thread, "temperature thread", temperature_thread_entry, 0,
-                         pointer, XS_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
+                         pointer, M_STACK, MID_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
                          TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
@@ -752,7 +753,6 @@ static void rtc_thread_entry ( ULONG thread_input )
 
   (void) tx_event_flags_set (&initialization_flags, RTC_INIT_SUCCESS, TX_OR);
 
-  tx_thread_sleep (100);
   LOG("RTC Initialization successful.");
 
   while ( 1 )
@@ -1344,7 +1344,7 @@ static void temperature_thread_entry ( ULONG thread_input )
   TX_THREAD *this_thread = tx_thread_identify ();
   Temperature temperature =
     { 0 };
-  temperature_return_code_t temp_return_code = TEMPERATURE_SUCCESS;
+  uSWIFT_return_code_t temp_return_code = uSWIFT_SUCCESS;
   float self_test_reading = 0.0f, sampling_reading = 0.0f;
   real16_T half_temp =
     { 0 };
@@ -1376,7 +1376,8 @@ static void temperature_thread_entry ( ULONG thread_input )
                            "Temperature self test failed.");
   }
 
-  LOG("Temperature initialization complete. Temp = %3f", self_test_reading);
+  LOG("Temperature initialization complete. Temp = %4.3f degC, %4.3f degF.", self_test_reading,
+      ((self_test_reading * 9) / 5) + 32);
   (void) tx_event_flags_set (&initialization_flags, TEMPERATURE_INIT_SUCCESS, TX_OR);
 
   temperature.off ();
@@ -1394,7 +1395,7 @@ static void temperature_thread_entry ( ULONG thread_input )
 
     temp_return_code = temperature.get_readings (false, &sampling_reading);
 
-    if ( temp_return_code == TEMPERATURE_SUCCESS )
+    if ( temp_return_code == uSWIFT_SUCCESS )
     {
       break;
     }

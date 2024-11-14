@@ -74,6 +74,7 @@ void uart_log ( const char *fmt, ... )
 
   str_len = vsnprintf (&(log_buf->line_buf[sizeof(log_line_buf) - bytes_remaining]),
                        bytes_remaining, fmt, args);
+
   va_end(args);
 
   bytes_remaining -= str_len + 1;

@@ -83,13 +83,13 @@ bool ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings 
 bool temperature_self_test ( Temperature *temperature, float *self_test_temp )
 {
   int32_t fail_counter = 0, max_retries = 10;
-  temperature_return_code_t temp_return_code;
+  uSWIFT_return_code_t temp_return_code;
 
   while ( fail_counter < max_retries )
   {
     temp_return_code = temperature->self_test (self_test_temp);
 
-    if ( temp_return_code == TEMPERATURE_SUCCESS )
+    if ( temp_return_code == uSWIFT_SUCCESS )
     {
       break;
     }
@@ -102,7 +102,7 @@ bool temperature_self_test ( Temperature *temperature, float *self_test_temp )
     fail_counter++;
   }
 
-  return (temp_return_code == TEMPERATURE_SUCCESS);
+  return (temp_return_code == uSWIFT_SUCCESS);
 }
 
 bool turbidity_self_test ( Turbidity_Sensor *obs )
