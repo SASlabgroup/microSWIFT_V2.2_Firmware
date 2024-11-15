@@ -665,8 +665,12 @@ static void __handle_rtc_error ( void )
 
 static void __handle_gnss_error ( ULONG error_flags )
 {
+  // Shut down CT sensor
+  HAL_GPIO_WritePin (GNSS_FET_GPIO_Port, GNSS_FET_Pin, GPIO_PIN_RESET);
   // Set all the fields of the SBD message to error values
   memset (controller_self->current_message, 0, sizeof(sbd_message_type_52));
+
+  persistent_ram_log_error_string ("GNSS error.");
 
   // Set the GNSS_THREAD_COMPLETED_WITH_ERRORS and WAVES_THREAD_COMPLETED_WITH_ERRORS flags to prevent waves thread from running
   (void) tx_event_flags_set (
@@ -696,6 +700,7 @@ static void __handle_ct_error ( ULONG error_flag )
   (void) tx_thread_terminate (controller_self->thread_handles->ct_thread);
 
 }
+
 static void __handle_temperature_error ( ULONG error_flag )
 {
   // Shut down the Temperature sensor
@@ -713,42 +718,41 @@ static void __handle_temperature_error ( ULONG error_flag )
   (void) tx_thread_terminate (controller_self->thread_handles->temperature_thread);
 
 }
+
 static void __handle_turbidity_error ( ULONG error_flag )
 {
-  /*
-   * TODO:
-   *    [ ] Turn off the turbidity sensor
-   *    [ ] Set fields in the SBD message to error values
-   *    [ ] Log the error in the error message buffer
-   *    [ ] Set the TURBIDITY_THREAD_COMPLETED_WITH_ERORRS flag
-   *    [ ] Terminate the turbidity thread
-   *    [ ] Continue application logic
-   */
+  // Shut down the Turbidity sensor
+  HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_RESET);
+
+#warning"Set the turbidity fields to error values here."
+
+  persistent_ram_log_error_string ("Turbidity error.");
+
+  // Set the TEMPERATURE_COMPLETED_WITH_ERRORS flag
+  (void) tx_event_flags_set (controller_self->complete_flags,
+                             TURBIDITY_THREAD_COMPLETED_WITH_ERRORS, TX_OR);
+
+  (void) tx_thread_suspend (controller_self->thread_handles->turbidity_thread);
+  (void) tx_thread_terminate (controller_self->thread_handles->turbidity_thread);
 }
+
 static void __handle_light_error ( ULONG error_flag )
 {
-  /*
-   * TODO:
-   *    [ ] Turn off the light sensor
-   *    [ ] Set fields in the SBD message to error values
-   *    [ ] Log the error in the error message buffer
-   *    [ ] Set the LIGHT_THREAD_COMPLETED_WITH_ERORRS flag
-   *    [ ] Terminate the light thread
-   *    [ ] Continue application logic
-   */
+  // Shut down the Turbidity sensor
+  HAL_GPIO_WritePin (LIGHT_FET_GPIO_Port, LIGHT_FET_Pin, GPIO_PIN_RESET);
+
+#warning"Set the light fields to error values here."
+
+  persistent_ram_log_error_string ("Light error.");
+
+  // Set the TEMPERATURE_COMPLETED_WITH_ERRORS flag
+  (void) tx_event_flags_set (controller_self->complete_flags, LIGHT_THREAD_COMPLETED_WITH_ERRORS,
+  TX_OR);
+
+  (void) tx_thread_suspend (controller_self->thread_handles->light_thread);
+  (void) tx_thread_terminate (controller_self->thread_handles->light_thread);
 }
-static void __handle_accelerometer_error ( ULONG error_flag )
-{
-  /*
-   * TODO:
-   *    [ ] Turn off the accelerometer sensor
-   *    [ ] Set fields in the SBD message to error values
-   *    [ ] Log the error in the error message buffer
-   *    [ ] Set the ACCELEROMETER_THREAD_COMPLETED_WITH_ERORRS flag
-   *    [ ] Terminate the accelerometer thread
-   *    [ ] Continue application logic
-   */
-}
+
 static void __handle_waves_error ( void )
 {
   // Set all the fields of the SBD message to error values
@@ -780,10 +784,7 @@ static void __handle_iridium_error ( ULONG error_flag )
 }
 static void __handle_file_system_error ( void )
 {
-  /*
-   * TODO:
-   *    [ ] Unknown
-   */
+#warning "figure out how to handle file system errors."
 }
 static void __handle_misc_error ( ULONG error_flag )
 {
