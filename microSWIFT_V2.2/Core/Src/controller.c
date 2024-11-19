@@ -527,9 +527,8 @@ static void _control_manage_state ( void )
 static void _control_monitor_and_handle_errors ( void )
 {
   ULONG current_flags;
-  ULONG gnss_errors, ct_errors, temperature_errors, light_errors, turbidity_errors,
-      accelerometer_errors, waves_errors, iridium_errors, file_system_errors, rtc_errors,
-      misc_errors;
+  ULONG gnss_errors, ct_errors, temperature_errors, light_errors, turbidity_errors, waves_errors,
+      iridium_errors, file_system_errors, rtc_errors, misc_errors;
 
   // Get the error flags
   (void) tx_event_flags_get (controller_self->error_flags, ALL_EVENT_FLAGS, TX_OR_CLEAR,
@@ -554,9 +553,6 @@ static void _control_monitor_and_handle_errors ( void )
   turbidity_errors = current_flags
                      & (TURBIDITY_INIT_FAILED | TURBIDITY_SAMPLING_ERROR
                         | TURBIDITY_SAMPLE_WINDOW_TIMEOUT);
-  accelerometer_errors = current_flags
-                         & (ACCELEROMETER_INIT_FAILED | ACCELEROMETER_SAMPLING_ERROR
-                            | ACCELEROMETER_SAMPLE_WINDOW_TIMEOUT);
   iridium_errors = current_flags & (IRIDIUM_INIT_ERROR | IRIDIUM_UART_COMMS_ERROR);
   waves_errors = current_flags & (WAVES_INIT_FAILED);
   file_system_errors = current_flags & (FILE_SYSTEM_ERROR);
@@ -596,11 +592,6 @@ static void _control_monitor_and_handle_errors ( void )
   if ( turbidity_errors )
   {
     __handle_turbidity_error (turbidity_errors);
-  }
-
-  if ( accelerometer_errors )
-  {
-    __handle_accelerometer_error (accelerometer_errors);
   }
 
   if ( waves_errors )

@@ -9,6 +9,8 @@
 #define INC_SBD_H_
 
 #include "time.h"
+#include "NEDWaves/rtwhalf.h"
+#define TYPE_99_CHAR_BUF_LEN 320
 
 // @formatter:off
 typedef struct sbd_message_type_52
@@ -41,7 +43,7 @@ typedef struct sbd_message_type_52
 typedef struct
 {
             uint8_t   number_99;
-            char      char_buf[320];
+            char      char_buf[TYPE_99_CHAR_BUF_LEN];
   __packed  float     lat;
   __packed  float     lon;
   __packed  time_t    timetamp;

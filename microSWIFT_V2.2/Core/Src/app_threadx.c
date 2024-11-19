@@ -1788,7 +1788,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   watchdog_register_thread (IRIDIUM_THREAD);
   watchdog_check_in (IRIDIUM_THREAD);
 
-#error "On first window, set the RTC. Do this here after the thread has been resumed."
+#warning "On first window, set the RTC. Do this here after the thread has been resumed."
 
 #warning"Figure out how to bail early here if there is no valid message to send."
 
