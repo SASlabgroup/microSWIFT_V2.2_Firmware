@@ -231,6 +231,7 @@ sbd_message_type_99* persistent_ram_get_prioritized_unsent_error_message ( void 
   {
     ret_ptr = &persistent_self.error_storage.msg_queue[persistent_self.error_storage
         .current_msg_index].payload;
+    return ret_ptr;
   }
   // Empty queue check
   else if ( persistent_self.error_storage.num_error_msgs_enqueued == 0 )
@@ -238,7 +239,7 @@ sbd_message_type_99* persistent_ram_get_prioritized_unsent_error_message ( void 
     return ret_ptr;
   }
 
-  // Find the most recent message
+  // Otherwise, find the most recent message
   for ( int i = 0; i < MAX_NUM_ERROR_MSGS_STORED; i++ )
   {
     if ( persistent_self.error_storage.msg_queue[i].state == ERROR_MSG_FULL )
@@ -328,6 +329,7 @@ static void close_out_error_msg ( uint32_t msg_index )
    * Add timestamp, lat/lon?
    *
    */
+#error "Fill this out before testing."
 
   return;
 }
