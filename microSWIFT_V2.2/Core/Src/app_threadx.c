@@ -1129,7 +1129,7 @@ static void gnss_thread_entry ( ULONG thread_input )
         // If we get a full minute worth of dropped or incomplete messages, fail out
         if ( ++number_of_no_sample_errors == configuration.gnss_sampling_rate * 60 )
         {
-          gnss_error_out (&gnss, GNSS_SAMPLE_WINDOW_ERROR, this_thread,
+          gnss_error_out (&gnss, GNSS_TOO_MANY_PARTIAL_MSGS, this_thread,
                           "GNSS received too many partial or dropped messages: %d",
                           number_of_no_sample_errors);
         }

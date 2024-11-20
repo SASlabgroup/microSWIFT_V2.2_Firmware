@@ -16,7 +16,6 @@ static Persistent_Storage persistent_self __attribute__((section(".sram2")));
 
 // Helper functions
 static void _persistent_ram_clear ( void );
-static void close_out_error_msg ( uint32_t msg_index );
 
 void persistent_ram_init ( void )
 {
@@ -101,20 +100,30 @@ void persistent_ram_log_error_string ( char *error_str )
   if ( (persistent_self.error_storage.char_buf_index + TIMESTAMP_STR_LEN + error_str_len + 2)
        > TYPE_99_CHAR_BUF_LEN )
   {
-    close_out_error_msg (persistent_self.error_storage.current_msg_index);
+    // Null terminate the message
+    persistent_self.error_storage.msg_queue[persistent_self.error_storage.current_msg_index].payload
+        .char_buf[persistent_self.error_storage.char_buf_index] = 0;
+    // Mark as full
+    persistent_self.error_storage.msg_queue[persistent_self.error_storage.current_msg_index].state =
+        ERROR_MSG_FULL;
+    // Reset the char buf index
+    persistent_self.error_storage.char_buf_index = 0;
+    // increment the counter
+    persistent_self.error_storage.num_error_msgs_enqueued++;
 
     if ( persistent_self.error_storage.num_error_msgs_enqueued == MAX_NUM_ERROR_MSGS_STORED )
     {
+      // No more room, just drop the string and return
       return;
     }
     else
     {
+      // Find the next available message
       for ( int i = 0; i < MAX_NUM_ERROR_MSGS_STORED; i++ )
       {
         if ( persistent_self.error_storage.msg_queue[i].state == ERROR_MSG_EMPTY )
         {
           persistent_self.error_storage.current_msg_index = i;
-          persistent_self.error_storage.char_buf_index = 0;
           break;
         }
 
@@ -320,16 +329,4 @@ static void _persistent_ram_clear ( void )
   memset (&persistent_self.telemetry_storage, 0, sizeof(Telemetry_Message_Storage));
   memset (&persistent_self.error_storage, 0, sizeof(Error_Message_Storage));
   persistent_self.magic_number = PERSISTENT_RAM_MAGIC_DOUBLE_WORD;
-}
-
-static void close_out_error_msg ( uint32_t msg_index )
-{
-  /*
-   * Null terminate msg
-   * Add timestamp, lat/lon?
-   *
-   */
-#error "Fill this out before testing."
-
-  return;
 }
