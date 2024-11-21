@@ -15,13 +15,13 @@ static Light_Sensor *light_self;
 static as7341_gpio_int_struct gpio_struct;
 
 // Struct functions
-static light_return_code_t  _light_sensor_self_test (void);
-static light_return_code_t  _light_sensor_setup_sensor (void);
-static light_return_code_t  _light_sensor_read_all_channels (void);
-static light_return_code_t  _light_sensor_start_timer ( uint16_t timeout_in_minutes );
-static light_return_code_t  _light_sensor_stop_timer ( void );
-static light_return_code_t  _light_sensor_process_measurements (void);
-static light_return_code_t  _light_sensor_get_samples_averages (void);
+static uSWIFT_return_code_t _light_sensor_self_test (void);
+static uSWIFT_return_code_t _light_sensor_setup_sensor (void);
+static uSWIFT_return_code_t _light_sensor_read_all_channels (void);
+static uSWIFT_return_code_t _light_sensor_start_timer ( uint16_t timeout_in_minutes );
+static uSWIFT_return_code_t _light_sensor_stop_timer ( void );
+static uSWIFT_return_code_t _light_sensor_process_measurements (void);
+static uSWIFT_return_code_t _light_sensor_get_samples_averages (void);
 static void                 _light_sensor_get_raw_measurements (light_raw_counts *buffer);
 static void                 _light_sensor_get_basic_counts (light_basic_counts *buffer);
 static void                 _light_sensor_get_single_measurement (uint16_t *raw_measurement, uint32_t *basic_count, light_channel_index_t which_channel);
@@ -165,11 +165,11 @@ bool light_get_timeout_status ( void )
  * @brief  Test the light sensor. This involves checking the ID, setting up the sensor, and taking
  *         initial measurements.
  * @param  Void
- * @retval light_return_code_t indicating success or specific failure type
+ * @retval uSWIFT_return_code_t indicating success or specific failure type
  */
-static light_return_code_t _light_sensor_self_test ( void )
+static uSWIFT_return_code_t _light_sensor_self_test ( void )
 {
-  light_return_code_t ret = LIGHT_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   as7341_auxid_reg_t aux_id;
   as7341_revid_reg_t rev_id;
   uint8_t id;
@@ -181,19 +181,19 @@ static light_return_code_t _light_sensor_self_test ( void )
                                      light_self->gpio_handle)
        != AS7341_OK )
   {
-    return LIGHT_I2C_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
   {
-    return LIGHT_I2C_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   tx_thread_sleep (20);
 
   if ( as7341_power (&light_self->dev_ctx, true) != AS7341_OK )
   {
-    return LIGHT_I2C_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   light_self->dev_ctx.bus_read (NULL, AS7341_I2C_ADDR, AUXID_REG_ADDR, (uint8_t*) &aux_id, 1);
@@ -202,16 +202,16 @@ static light_return_code_t _light_sensor_self_test ( void )
   // Check the chip ID
   if ( as7341_get_id (&light_self->dev_ctx, &id) != AS7341_OK )
   {
-    return LIGHT_I2C_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   if ( (id != AS7341_ID) || (aux_id.auxid != AS7341_AUXID) || (rev_id.rev_id != AS7341_REVID) )
   {
-    return LIGHT_I2C_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   ret = light_self->setup_sensor ();
-  if ( ret != LIGHT_SUCCESS )
+  if ( ret != uSWIFT_SUCCESS )
   {
     return ret;
   }
@@ -225,24 +225,24 @@ static light_return_code_t _light_sensor_self_test ( void )
 /**
  * @brief  Apply the specific configuration to the sensor
  * @param  Void
- * @retval light_return_code_t indicating success or specific failure type
+ * @retval uSWIFT_return_code_t indicating success or specific failure type
  */
-static light_return_code_t _light_sensor_setup_sensor ( void )
+static uSWIFT_return_code_t _light_sensor_setup_sensor ( void )
 {
-  light_return_code_t ret = LIGHT_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   as7341_az_config_reg_t az_config;
 
   // Make sure we're starting with SP_EN bit cleared
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
   {
-    return LIGHT_I2C_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   // Set ASTEP and ATIME to obtain the integration time from the following formula : t_int = (ATMIE + 1) X (ASTEP + 1) * 2.78us
   // We want an integration time of 182ms, so we'll set ATIME = 0, ASTEP = 65534
   ret = as7341_set_astep (&light_self->dev_ctx, 65534);
   ret |= as7341_set_atime (&light_self->dev_ctx, 0);
-  if ( ret != LIGHT_SUCCESS )
+  if ( ret != uSWIFT_SUCCESS )
   {
     return ret;
   }
@@ -250,14 +250,14 @@ static light_return_code_t _light_sensor_setup_sensor ( void )
   // Disable wait time, though we still need WTIME to be longer than integration time
   ret = as7341_set_wait_time (&light_self->dev_ctx, 250);
   ret |= as7341_wait_config (&light_self->dev_ctx, false);
-  if ( ret != LIGHT_SUCCESS )
+  if ( ret != uSWIFT_SUCCESS )
   {
     return ret;
   }
 
   // Set the gain
   ret = as7341_set_again (&light_self->dev_ctx, light_self->sensor_gain);
-  if ( ret != LIGHT_SUCCESS )
+  if ( ret != uSWIFT_SUCCESS )
   {
     return ret;
   }
@@ -270,7 +270,7 @@ static light_return_code_t _light_sensor_setup_sensor ( void )
   ret = light_self->dev_ctx.bus_read (NULL, AS7341_I2C_ADDR, EDGE_REG_ADDR, (uint8_t*) &edge_reg,
                                       1);
 
-  if ( ret != LIGHT_SUCCESS )
+  if ( ret != uSWIFT_SUCCESS )
   {
     return ret;
   }
@@ -285,9 +285,9 @@ static light_return_code_t _light_sensor_setup_sensor ( void )
 /**
  * @brief  Read all channels, data will be stored in light_self->raw_counts and light_self->basic_counts.
  * @param  Void
- * @retval light_return_code_t indicating success or specific failure type
+ * @retval uSWIFT_return_code_t indicating success or specific failure type
  */
-static light_return_code_t _light_sensor_read_all_channels ( void )
+static uSWIFT_return_code_t _light_sensor_read_all_channels ( void )
 {
   bool data_ready = false;
   uint32_t loop_counter = 0;
@@ -295,26 +295,26 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
   // Integration mode SYNS --> GPIO pin triggers samples to start
   if ( as7341_set_integration_mode (&light_self->dev_ctx, SYNS_MODE) != AS7341_OK )
   {
-    return LIGHT_I2C_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   // Make sure we're starting with SP_EN bit cleared
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
   {
-    return LIGHT_I2C_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   // Set the SMUX to the lower channels
   if ( as7341_config_smux (&light_self->dev_ctx,
                            &(light_self->smux_assignment_low_channels)) != AS7341_OK )
   {
-    return LIGHT_I2C_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   // Enable spectral measurements
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, true) != AS7341_OK )
   {
-    return LIGHT_I2C_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   while ( !data_ready )
@@ -328,7 +328,7 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
 
     if ( as7341_get_data_ready (&light_self->dev_ctx, &data_ready) != AS7341_OK )
     {
-      return LIGHT_I2C_ERROR;
+      return uSWIFT_COMMS_ERROR;
     }
 
     loop_counter++;
@@ -338,24 +338,24 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
       &light_self->dev_ctx, ((as7341_all_channel_data_struct*) &light_self->raw_counts.f1_chan))
        != AS7341_OK )
   {
-    return LIGHT_I2C_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
   {
-    return LIGHT_I2C_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   // Set the SMUX to the upper channels and repeat process
   if ( as7341_config_smux (&light_self->dev_ctx,
                            &(light_self->smux_assignment_high_channels)) != AS7341_OK )
   {
-    return LIGHT_I2C_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, true) != AS7341_OK )
   {
-    return LIGHT_I2C_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   data_ready = false;
@@ -372,7 +372,7 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
 
     if ( as7341_get_data_ready (&light_self->dev_ctx, &data_ready) != AS7341_OK )
     {
-      return LIGHT_I2C_ERROR;
+      return uSWIFT_COMMS_ERROR;
     }
 
     loop_counter++;
@@ -382,39 +382,39 @@ static light_return_code_t _light_sensor_read_all_channels ( void )
       &light_self->dev_ctx, ((as7341_all_channel_data_struct*) &light_self->raw_counts.f7_chan))
        != AS7341_OK )
   {
-    return LIGHT_I2C_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
   {
-    return LIGHT_I2C_ERROR;
+    return uSWIFT_COMMS_ERROR;
   }
 
   // Convert everything to basic counts
   __raw_to_basic_counts ();
 
-  return LIGHT_SUCCESS;
+  return uSWIFT_SUCCESS;
 }
 
 /**
  * @brief  Start the thread timer.
  * @param  timeout_in_minutes:= timeout, in minutes
- * @retval light_return_code_t indicating success or specific failure type
+ * @retval uSWIFT_return_code_t indicating success or specific failure type
  */
-static light_return_code_t _light_sensor_start_timer ( uint16_t timeout_in_minutes )
+static uSWIFT_return_code_t _light_sensor_start_timer ( uint16_t timeout_in_minutes )
 {
   ULONG timeout = TX_TIMER_TICKS_PER_SECOND * 60 * timeout_in_minutes;
-  light_return_code_t ret = LIGHT_SUCCESS;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
   if ( tx_timer_change (light_self->timer, timeout, 0) != TX_SUCCESS )
   {
-    ret = LIGHT_TIMER_ERROR;
+    ret = uSWIFT_TIMER_ERROR;
     return ret;
   }
 
   if ( tx_timer_activate (light_self->timer) != TX_SUCCESS )
   {
-    ret = LIGHT_TIMER_ERROR;
+    ret = uSWIFT_TIMER_ERROR;
   }
 
   return ret;
@@ -423,20 +423,20 @@ static light_return_code_t _light_sensor_start_timer ( uint16_t timeout_in_minut
 /**
  * @brief  Stop the thread timer.
  * @param  void
- * @retval light_return_code_t indicating success or specific failure type
+ * @retval uSWIFT_return_code_t indicating success or specific failure type
  */
-static light_return_code_t _light_sensor_stop_timer ( void )
+static uSWIFT_return_code_t _light_sensor_stop_timer ( void )
 {
   return (tx_timer_deactivate (light_self->timer) == TX_SUCCESS) ?
-      LIGHT_SUCCESS : LIGHT_TIMER_ERROR;
+      uSWIFT_SUCCESS : uSWIFT_TIMER_ERROR;
 }
 
 /**
  * @brief  Process the last round of measurements
  * @param  void
- * @retval light_return_code_t indicating success or specific failure type
+ * @retval uSWIFT_return_code_t indicating success or specific failure type
  */
-static light_return_code_t _light_sensor_process_measurements ( void )
+static uSWIFT_return_code_t _light_sensor_process_measurements ( void )
 {
   uint32_t *basic_count_ptr = &light_self->basic_counts.f1_chan;
   uint32_t *averages_ptr = &light_self->samples_averages_accumulator.f1_chan;
@@ -445,7 +445,7 @@ static light_return_code_t _light_sensor_process_measurements ( void )
 
   if ( light_self->total_samples == light_self->global_config->total_light_samples )
   {
-    return LIGHT_DONE_SAMPLING;
+    return uSWIFT_DONE_SAMPLING;
   }
 
   // Store the most recent samples in the time series
@@ -459,21 +459,21 @@ static light_return_code_t _light_sensor_process_measurements ( void )
 
   light_self->total_samples++;
 
-  return LIGHT_SUCCESS;
+  return uSWIFT_SUCCESS;
 }
 
 /**
  * @brief  Average the samples.
  * @param  void
- * @retval light_return_code_t indicating success or specific failure type
+ * @retval uSWIFT_return_code_t indicating success or specific failure type
  */
-static light_return_code_t _light_sensor_get_samples_averages ( void )
+static uSWIFT_return_code_t _light_sensor_get_samples_averages ( void )
 {
   uint32_t *averages_ptr = &light_self->samples_averages_accumulator.f1_chan;
 
   if ( light_self->total_samples == 0 )
   {
-    return LIGHT_PARAMETERS_INVALID;
+    return uSWIFT_PARAMETERS_INVALID;
   }
 
   for ( int i = 0; i < 12; i++, averages_ptr++ )
@@ -481,7 +481,7 @@ static light_return_code_t _light_sensor_get_samples_averages ( void )
     *averages_ptr /= light_self->total_samples;
   }
 
-  return LIGHT_SUCCESS;
+  return uSWIFT_SUCCESS;
 }
 
 static void _light_sensor_get_raw_measurements ( light_raw_counts *buffer )
@@ -608,13 +608,13 @@ static int32_t _light_sensor_i2c_read ( void *unused_handle, uint16_t bus_addres
                             data_length)
        != HAL_OK )
   {
-    ret = AS7341_ERROR;
+    ret = uSWIFT_COMMS_ERROR;
     return ret;
   }
 
   if ( tx_semaphore_get (light_self->i2c_sema, LIGHT_I2C_TIMEOUT) != TX_SUCCESS )
   {
-    ret = LIGHT_TIMEOUT;
+    ret = uSWIFT_TIMEOUT;
   }
 
   return ret;
@@ -661,13 +661,13 @@ static int32_t _light_sensor_i2c_write ( void *unused_handle, uint16_t bus_addre
                              data_length)
        != HAL_OK )
   {
-    ret = AS7341_ERROR;
+    ret = uSWIFT_COMMS_ERROR;
     return ret;
   }
 
   if ( tx_semaphore_get (light_self->i2c_sema, LIGHT_I2C_TIMEOUT) != TX_SUCCESS )
   {
-    ret = LIGHT_TIMEOUT;
+    ret = uSWIFT_TIMEOUT;
   }
 
   return ret;

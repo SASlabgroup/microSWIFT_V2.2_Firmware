@@ -8,8 +8,8 @@
 #ifndef COMPONENTS_INC_EXT_RTC_H_
 #define COMPONENTS_INC_EXT_RTC_H_
 
+#include <ext_rtc_server.h>
 #include "tx_api.h"
-#include "ext_rtc_api.h"
 #include "spi.h"
 #include "time.h"
 #include "gpio.h"

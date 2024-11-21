@@ -5,6 +5,7 @@
  *      Author: philbush
  */
 
+#include <ext_rtc_server.h>
 #include "logger.h"
 #include "usart.h"
 #include "tx_api.h"
@@ -13,7 +14,6 @@
 #include "time.h"
 #include "string.h"
 #include "stdio.h"
-#include "ext_rtc_api.h"
 
 static uart_logger *logger_self;
 
@@ -23,8 +23,10 @@ static UINT _logger_get_buffer ( log_line_buf **line_buf );
 static void _logger_send_log_line ( log_line_buf *buf, size_t strlen );
 static void _logger_return_buffer ( log_line_buf *buffer );
 
+static void __reset_uart ( void );
+
 void uart_logger_init ( uart_logger *logger, TX_BLOCK_POOL *block_pool, TX_QUEUE *msg_que,
-                        UART_HandleTypeDef *uart_handle )
+                        TX_MUTEX *mutex, UART_HandleTypeDef *uart_handle )
 {
   logger_self = logger;
 
@@ -33,6 +35,7 @@ void uart_logger_init ( uart_logger *logger, TX_BLOCK_POOL *block_pool, TX_QUEUE
 
   logger_self->block_pool = block_pool;
   logger_self->msg_que = msg_que;
+  logger_self->lock = mutex;
   logger_self->uart = uart_handle;
   logger_self->send_log_line = _logger_send_log_line;
   logger_self->return_line_buffer = _logger_return_buffer;
@@ -51,12 +54,15 @@ void uart_logger_init ( uart_logger *logger, TX_BLOCK_POOL *block_pool, TX_QUEUE
 
 void uart_log ( const char *fmt, ... )
 {
+  if ( tx_mutex_get (logger_self->lock, MUTEX_LOCK_TICKS) != TX_SUCCESS )
+  {
+    return;
+  }
+
   log_line_buf *log_buf = TX_NULL;
   logger_message msg;
   size_t str_len = 0;
   size_t bytes_remaining = sizeof(log_line_buf);
-  struct tm time =
-    { 0 };
   va_list args;
   va_start(args, fmt);
 
@@ -64,7 +70,7 @@ void uart_log ( const char *fmt, ... )
 
   tx_ret = _logger_get_buffer (&log_buf);
 
-  if ( (tx_ret != TX_SUCCESS) || !logger_self->logger_enabled )
+  if ( tx_ret != TX_SUCCESS )
   {
     va_end(args);
     return;
@@ -86,6 +92,8 @@ void uart_log ( const char *fmt, ... )
   strcat (&log_buf->line_buf[0], "\n");
 
   (void) tx_queue_send (logger_self->msg_que, (VOID*) &msg, TX_NO_WAIT);
+
+  (void) tx_mutex_put (logger_self->lock);
 }
 
 static UINT _logger_get_buffer ( log_line_buf **line_buf )
@@ -95,7 +103,10 @@ static UINT _logger_get_buffer ( log_line_buf **line_buf )
 
 static void _logger_send_log_line ( log_line_buf *buf, size_t strlen )
 {
-  HAL_UART_Transmit_DMA (logger_self->uart, (uint8_t*) &(buf->line_buf[0]), strlen);
+  if ( logger_self->logger_enabled )
+  {
+    HAL_UART_Transmit_DMA (logger_self->uart, (uint8_t*) &(buf->line_buf[0]), strlen);
+  }
 }
 
 static void _logger_return_buffer ( log_line_buf *buffer )
@@ -103,3 +114,8 @@ static void _logger_return_buffer ( log_line_buf *buffer )
   (void) tx_block_release ((VOID*) buffer);
 }
 
+static void __reset_uart ( void )
+{
+  usart6_deinit ();
+  usart6_init ();
+}

@@ -12,6 +12,7 @@
 #include "tx_api.h"
 #include "i2c.h"
 #include "configuration.h"
+#include "microSWIFT_return_codes.h"
 
 #define LIGHT_I2C_BUF_SIZE 32
 #define LIGHT_I2C_TIMEOUT 50
@@ -20,15 +21,6 @@
 #define LIGHT_SENSOR_BYTE_POOL_BUFFER_SIZE 86400// max size = 30 mins of qty 12 4-byte measurements every second
 
 // @formatter:off
-typedef enum
-{
-  LIGHT_SUCCESS             = 0,
-  LIGHT_I2C_ERROR           = -1,
-  LIGHT_PARAMETERS_INVALID  = -2,
-  LIGHT_TIMEOUT             = -3,
-  LIGHT_TIMER_ERROR         = -4,
-  LIGHT_DONE_SAMPLING       = -5
-} light_return_code_t;
 
 typedef enum
 {
@@ -114,13 +106,13 @@ typedef struct
   light_basic_counts        *samples_series;
 
 
-  light_return_code_t       (*self_test) (void);
-  light_return_code_t       (*setup_sensor) (void);
-  light_return_code_t       (*read_all_channels) (void);
-  light_return_code_t       (*start_timer) ( uint16_t timeout_in_minutes );
-  light_return_code_t       (*stop_timer) ( void );
-  light_return_code_t       (*process_measurements) (void);
-  light_return_code_t       (*get_samples_averages) (void);
+  uSWIFT_return_code_t      (*self_test) (void);
+  uSWIFT_return_code_t      (*setup_sensor) (void);
+  uSWIFT_return_code_t      (*read_all_channels) (void);
+  uSWIFT_return_code_t      (*start_timer) ( uint16_t timeout_in_minutes );
+  uSWIFT_return_code_t      (*stop_timer) ( void );
+  uSWIFT_return_code_t      (*process_measurements) (void);
+  uSWIFT_return_code_t      (*get_samples_averages) (void);
   void                      (*get_raw_measurements) (light_raw_counts *buffer);
   void                      (*get_basic_counts) (light_basic_counts *buffer);
   void                      (*get_single_measurement) (uint16_t *raw_measurement, uint32_t *basic_count, light_channel_index_t which_channel);

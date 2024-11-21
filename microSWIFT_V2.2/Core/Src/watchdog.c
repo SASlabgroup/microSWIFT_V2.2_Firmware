@@ -5,10 +5,10 @@
  *      Author: philbush
  */
 
+#include <ext_rtc_server.h>
 #include "watchdog.h"
 #include "configuration.h"
 #include "threadx_support.h"
-#include "ext_rtc_api.h"
 #include "logger.h"
 
 static watchdog_handle hidden_handle;

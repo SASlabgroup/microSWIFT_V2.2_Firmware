@@ -16,16 +16,15 @@
 
 typedef int32_t (*uart_init_fn) ( void );
 typedef int32_t (*uart_deinit_fn) ( void );
-typedef int32_t (*uart_read_fn) ( void *driver_ptr, uint8_t *read_buf, uint16_t size );
-typedef int32_t (*uart_write_fn) ( void *driver_ptr, uint8_t *write_buf, uint16_t size );
+typedef int32_t (*uart_read_fn) ( void *driver_ptr, uint8_t *read_buf, uint16_t size,
+                                  uint32_t timeout_ticks );
+typedef int32_t (*uart_write_fn) ( void *driver_ptr, uint8_t *write_buf, uint16_t size,
+                                   uint32_t timeout_ticks );
 
 typedef struct
 {
   UART_HandleTypeDef *uart_handle;
   TX_SEMAPHORE *uart_sema;
-
-  ULONG tx_timeout_ticks;
-  ULONG rx_timeout_ticks;
 
   uart_init_fn init;
   uart_deinit_fn deinit;
@@ -38,7 +37,5 @@ void generic_uart_register_io_functions ( generic_uart_driver *driver_ptr,
                                           uart_init_fn init, uart_deinit_fn deinit,
                                           uart_read_fn override_read_fn,
                                           uart_write_fn override_write_fn );
-void generic_uart_set_timeout_ticks ( generic_uart_driver *driver_ptr, ULONG tx_timeout_ticks,
-                                      ULONG rx_timeout_ticks );
 
 #endif /* COMPONENTS_DRIVERS_INC_GENERIC_UART_DRIVER_H_ */

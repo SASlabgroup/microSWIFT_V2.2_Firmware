@@ -20,29 +20,11 @@
 
 // @formatter:off
 
-// Return codes
-typedef enum iridium_error_code
-{
-  IRIDIUM_SUCCESS = 0,
-  IRIDIUM_UNKNOWN_ERROR = -1,
-  IRIDIUM_UART_ERROR = -2,
-  IRIDIUM_TRANSMIT_ERROR = -3,
-  IRIDIUM_COMMAND_RESPONSE_ERROR = -4,
-  IRIDIUM_SELF_TEST_FAILED = -5,
-  IRIDIUM_RECEIVE_ERROR = -6,
-  IRIDIUM_FLASH_STORAGE_ERROR = -7,
-  IRIDIUM_STORAGE_QUEUE_FULL = -8,
-  IRIDIUM_STORAGE_QUEUE_EMPTY = -9,
-  IRIDIUM_TIMER_ERROR = -10,
-  IRIDIUM_TRANSMIT_TIMEOUT = -11,
-  IRIDIUM_TRANSMIT_UNSUCCESSFUL = -12
-} iridium_return_code_t;
-
 // Macros
 #define IRIDIUM_INITIAL_CAP_CHARGE_TIME TX_TIMER_TICKS_PER_SECOND * 15
 #define IRIDIUM_TOP_UP_CAP_CHARGE_TIME TX_TIMER_TICKS_PER_SECOND * 5
-#define IRIDIUM_MAX_UART_TX_TICKS TX_TIMER_TICKS_PER_SECOND
-#define IRIDIUM_MAX_UART_RX_TICKS_NO_TX TX_TIMER_TICKS_PER_SECOND
+#define IRIDIUM_MAX_UART_TX_TICKS (TX_TIMER_TICKS_PER_SECOND)
+#define IRIDIUM_MAX_UART_RX_TICKS_NO_TX (TX_TIMER_TICKS_PER_SECOND)
 #define IRIDIUM_MAX_UART_RX_TICKS_TX (TX_TIMER_TICKS_PER_SECOND * 45)
 #define ACK_MESSAGE_SIZE 9
 #define DISABLE_FLOW_CTRL_SIZE 12
@@ -96,12 +78,11 @@ typedef struct Iridium
 
   bool                      timer_timeout;
 
-  iridium_return_code_t     (*config) ( void );
-  iridium_return_code_t     (*self_test) ( void );
-  iridium_return_code_t     (*start_timer) ( uint16_t timeout_in_minutes );
-  iridium_return_code_t     (*stop_timer) ( void );
-  iridium_return_code_t     (*transmit_message) ( sbd_message_type_52 *msg );
-  iridium_return_code_t     (*transmit_error_message) ( char *error_message );
+  uSWIFT_return_code_t      (*config) ( void );
+  uSWIFT_return_code_t      (*self_test) ( void );
+  uSWIFT_return_code_t      (*start_timer) ( uint16_t timeout_in_minutes );
+  uSWIFT_return_code_t      (*stop_timer) ( void );
+  uSWIFT_return_code_t      (*transmit_message) ( uint8_t *msg, uint32_t msg_size );
   void                      (*charge_caps) ( uint32_t caps_charge_time_ticks );
   void                      (*sleep) ( void );
   void                      (*wake) ( void );

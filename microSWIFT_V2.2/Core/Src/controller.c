@@ -5,11 +5,11 @@
  *      Author: philbush
  */
 
+#include <ext_rtc_server.h>
 #include "controller.h"
 #include "threadx_support.h"
 #include "logger.h"
 #include "persistent_ram.h"
-#include "ext_rtc_api.h"
 #include "NEDWaves/rtwhalf.h"
 #include "ct_sensor.h"
 
@@ -109,6 +109,7 @@ static bool _control_startup_procedure ( void )
   real16_T voltage =
     { 0 };
   bool initial_powerup = is_first_sample_window ();
+  ULONG init_wait_ticks = STARTUP_SEQUENCE_MAX_WAIT_TICKS;
 
   // Start the duty cycle timer
   tx_return = tx_timer_change (
@@ -197,8 +198,21 @@ static bool _control_startup_procedure ( void )
 
   battery_deinit ();
 
-  tx_return = tx_event_flags_get (controller_self->init_flags, init_success_flags, TX_AND_CLEAR,
-                                  &current_flags, STARTUP_SEQUENCE_MAX_WAIT_TICKS);
+  while ( init_wait_ticks > 0 )
+  {
+    tx_return = tx_event_flags_get (controller_self->init_flags, init_success_flags, TX_AND_CLEAR,
+                                    &current_flags, TX_NO_WAIT);
+    controller_self->monitor_and_handle_errors ();
+
+    if ( tx_return == TX_SUCCESS )
+    {
+      break;
+    }
+
+    tx_thread_sleep (1);
+    init_wait_ticks -= 1;
+  }
+
   return (tx_return == TX_SUCCESS);
 }
 
@@ -244,7 +258,7 @@ static void _control_shutdown_procedure ( void )
   persistent_ram_increment_sample_window_counter ();
 
   // Give the logger time to complete
-  tx_thread_sleep (100);
+  tx_thread_sleep (500);
 
   // Deinit all enabled peripherals
   controller_self->shutdown_all_interfaces ();
@@ -429,6 +443,7 @@ static void _control_manage_state ( void )
     ret |= tx_thread_resume (controller_self->thread_handles->waves_thread);
 
     LOG("GNSS thread complete, now terminating.");
+    tx_thread_sleep (10);
   }
 
   // If GNSS thread errors out, do not run waves
@@ -447,6 +462,7 @@ static void _control_manage_state ( void )
     }
 
     LOG("GNSS thread complete, now terminating.");
+    tx_thread_sleep (10);
   }
 
   if ( (current_flags & CT_THREAD_COMPLETED_SUCCESSFULLY)
@@ -455,6 +471,7 @@ static void _control_manage_state ( void )
     controller_self->thread_status.ct_complete = true;
 
     LOG("CT thread complete, now terminating.");
+    tx_thread_sleep (10);
   }
 
   if ( (current_flags & TEMPERATURE_THREAD_COMPLETED_SUCCESSFULLY)
@@ -463,6 +480,7 @@ static void _control_manage_state ( void )
     controller_self->thread_status.temperature_complete = true;
 
     LOG("Temperature thread complete, now terminating.");
+    tx_thread_sleep (10);
   }
 
   if ( (current_flags & TURBIDITY_THREAD_COMPLETED_SUCCESSFULLY)
@@ -471,6 +489,7 @@ static void _control_manage_state ( void )
     controller_self->thread_status.turbidity_complete = true;
 
     LOG("Turbidity thread complete, now terminating.");
+    tx_thread_sleep (10);
   }
 
   if ( (current_flags & LIGHT_THREAD_COMPLETED_SUCCESSFULLY)
@@ -479,6 +498,7 @@ static void _control_manage_state ( void )
     controller_self->thread_status.light_complete = true;
 
     LOG("Light thread complete, now terminating.");
+    tx_thread_sleep (10);
   }
 
   if ( (current_flags & WAVES_THREAD_COMPLETED_SUCCESSFULLY)
@@ -487,6 +507,7 @@ static void _control_manage_state ( void )
     controller_self->thread_status.waves_complete = true;
 
     LOG("NED Waves thread complete, now terminating.");
+    tx_thread_sleep (10);
   }
 
   iridium_ready = controller_self->thread_status.gnss_complete
@@ -701,82 +722,150 @@ static void __handle_gnss_error ( ULONG error_flags )
 
 static void __handle_ct_error ( ULONG error_flag )
 {
-// Shut down CT sensor
+  char *error_str = NULL;
+  // Shut down CT sensor
   HAL_GPIO_WritePin (CT_FET_GPIO_Port, CT_FET_Pin, GPIO_PIN_RESET);
 
   memset (&controller_self->current_message->mean_temp, CT_VALUES_ERROR_CODE, sizeof(real16_T));
   memset (&controller_self->current_message->mean_salinity, CT_VALUES_ERROR_CODE, sizeof(real16_T));
 
-  persistent_ram_log_error_string ("CT error.");
-
-// Set the CT_COMPLETED_WITH_ERRORS flag
+  // Set the CT_COMPLETED_WITH_ERRORS flag
   (void) tx_event_flags_set (controller_self->complete_flags, CT_THREAD_COMPLETED_WITH_ERRORS,
   TX_OR);
 
   (void) tx_thread_suspend (controller_self->thread_handles->ct_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->ct_thread);
 
+  // Handle the error string in the error message
+  switch ( error_flag )
+  {
+    case CT_INIT_FAILED:
+      error_str = "CT init failed";
+      break;
+    case CT_SAMPLING_ERROR:
+      error_str = "CT sampling error";
+      break;
+    case CT_SAMPLE_WINDOW_TIMEOUT:
+      error_str = "CT sample window timed out";
+      break;
+    default:
+      error_str = "Multiple CT errors";
+      break;
+  }
+
+  persistent_ram_log_error_string (error_str);
 }
 
 static void __handle_temperature_error ( ULONG error_flag )
 {
-// Shut down the Temperature sensor
+  char *error_str = NULL;
+  // Shut down the Temperature sensor
   HAL_GPIO_WritePin (TEMP_FET_GPIO_Port, TEMP_FET_Pin, GPIO_PIN_RESET);
 
   memset (&controller_self->current_message->mean_temp, CT_VALUES_ERROR_CODE, sizeof(real16_T));
 
-  persistent_ram_log_error_string ("Temperature error.");
-
-// Set the TEMPERATURE_COMPLETED_WITH_ERRORS flag
+  // Set the TEMPERATURE_COMPLETED_WITH_ERRORS flag
   (void) tx_event_flags_set (controller_self->complete_flags,
                              TEMPERATURE_THREAD_COMPLETED_WITH_ERRORS, TX_OR);
 
   (void) tx_thread_suspend (controller_self->thread_handles->temperature_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->temperature_thread);
 
+  // Handle the error string in the error message
+  switch ( error_flag )
+  {
+    case TEMPERATURE_INIT_FAILED:
+      error_str = "Temperature init failed";
+      break;
+    case TEMPERATURE_SAMPLING_ERROR:
+      error_str = "Temperature sampling error";
+      break;
+    case TEMPERATURE_SAMPLE_WINDOW_TIMEOUT:
+      error_str = "Temperature sample window timed out";
+      break;
+    default:
+      error_str = "Multiple Temperature errors";
+      break;
+  }
+
+  persistent_ram_log_error_string (error_str);
 }
 
 static void __handle_turbidity_error ( ULONG error_flag )
 {
-// Shut down the Turbidity sensor
+  char *error_str = NULL;
+  // Shut down the Turbidity sensor
   HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_RESET);
 
 #warning"Set the turbidity fields to error values here."
 
-  persistent_ram_log_error_string ("Turbidity error.");
-
-// Set the TEMPERATURE_COMPLETED_WITH_ERRORS flag
+  // Set the TEMPERATURE_COMPLETED_WITH_ERRORS flag
   (void) tx_event_flags_set (controller_self->complete_flags,
                              TURBIDITY_THREAD_COMPLETED_WITH_ERRORS,
                              TX_OR);
 
   (void) tx_thread_suspend (controller_self->thread_handles->turbidity_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->turbidity_thread);
+
+  // Handle the error string in the error message
+  switch ( error_flag )
+  {
+    case TURBIDITY_INIT_FAILED:
+      error_str = "OBS init failed";
+      break;
+    case TURBIDITY_SAMPLING_ERROR:
+      error_str = "OBS sampling error";
+      break;
+    case TURBIDITY_SAMPLE_WINDOW_TIMEOUT:
+      error_str = "OBS sample window timed out";
+      break;
+    default:
+      error_str = "Multiple OBS errors";
+      break;
+  }
+
+  persistent_ram_log_error_string (error_str);
 }
 
 static void __handle_light_error ( ULONG error_flag )
 {
-// Shut down the Turbidity sensor
+  char *error_str = NULL;
+  // Shut down the Turbidity sensor
   HAL_GPIO_WritePin (LIGHT_FET_GPIO_Port, LIGHT_FET_Pin, GPIO_PIN_RESET);
 
 #warning"Set the light fields to error values here."
 
-  persistent_ram_log_error_string ("Light error.");
-
-// Set the TEMPERATURE_COMPLETED_WITH_ERRORS flag
+  // Set the TEMPERATURE_COMPLETED_WITH_ERRORS flag
   (void) tx_event_flags_set (controller_self->complete_flags, LIGHT_THREAD_COMPLETED_WITH_ERRORS,
   TX_OR);
 
   (void) tx_thread_suspend (controller_self->thread_handles->light_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->light_thread);
+
+  // Handle the error string in the error message
+  switch ( error_flag )
+  {
+    case LIGHT_INIT_FAILED:
+      error_str = "Light init failed";
+      break;
+    case LIGHT_SAMPLING_ERROR:
+      error_str = "Light sampling error";
+      break;
+    case LIGHT_SAMPLE_WINDOW_TIMEOUT:
+      error_str = "Light sample window timed out";
+      break;
+    default:
+      error_str = "Multiple Light errors";
+      break;
+  }
+
+  persistent_ram_log_error_string (error_str);
 }
 
 static void __handle_waves_error ( void )
 {
-// Set all the fields of the SBD message to error values
+  // Set all the fields of the SBD message to error values
   memset (controller_self->current_message, 0, sizeof(sbd_message_type_52));
-
-  persistent_ram_log_error_string ("Waves memory pool failed to initialize.");
 
   (void) tx_event_flags_set (controller_self->complete_flags, WAVES_THREAD_COMPLETED_WITH_ERRORS,
   TX_OR);
@@ -784,25 +873,48 @@ static void __handle_waves_error ( void )
   (void) tx_thread_suspend (controller_self->thread_handles->waves_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->waves_thread);
 
+  persistent_ram_log_error_string ("Waves memory pool init failed");
 }
+
 static void __handle_iridium_error ( ULONG error_flag )
 {
-// Shut down the modem
+  char *error_str = NULL;
+  // Shut down the modem
   HAL_GPIO_WritePin (IRIDIUM_OnOff_GPIO_Port, IRIDIUM_OnOff_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin (IRIDIUM_FET_GPIO_Port, IRIDIUM_FET_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin (BUS_5V_FET_GPIO_Port, BUS_5V_FET_Pin, GPIO_PIN_RESET);
-
-  persistent_ram_log_error_string ("Modem error detected.");
 
   (void) tx_event_flags_set (controller_self->complete_flags, IRIDIUM_THREAD_COMPLETED_WITH_ERRORS,
   TX_OR);
 
   (void) tx_thread_suspend (controller_self->thread_handles->iridium_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->iridium_thread);
+
+  // This is most likely pointless, but if something fails but then succeeds on a subsequent window,
+  // then at least we will know about it
+  switch ( error_flag )
+  {
+    case IRIDIUM_INIT_ERROR:
+      error_str = "Iridium init failed";
+      break;
+    case IRIDIUM_UART_COMMS_ERROR:
+      error_str = "Iridium UART error";
+      break;
+    default:
+      error_str = "Multiple Iridium errors";
+      break;
+  }
+
+  persistent_ram_log_error_string (error_str);
 }
 static void __handle_file_system_error ( void )
 {
 #warning "figure out how to handle file system errors."
+
+  (void) tx_thread_suspend (controller_self->thread_handles->filex_thread);
+  (void) tx_thread_terminate (controller_self->thread_handles->filex_thread);
+
+  persistent_ram_log_error_string ("SD card error");
 }
 
 static void __handle_misc_error ( ULONG error_flag )

@@ -5,11 +5,11 @@
  *      Author: philbush
  */
 
+#include <ext_rtc_server.h>
 #include "persistent_ram.h"
 #include "math.h"
 #include "string.h"
 #include "time.h"
-#include "ext_rtc_api.h"
 
 // Save the struct in SRAM2 -- NOLOAD section which will be retained in standby mode
 static Persistent_Storage persistent_self __attribute__((section(".sram2")));
@@ -93,8 +93,9 @@ void persistent_ram_log_error_string ( char *error_str )
   uint32_t error_str_len = strlen (error_str);
   struct tm timestamp =
     { 0 };
-  char timestamp_str[32] =
+  char timestamp_str[TIMESTAMP_STR_LEN + 8] =
     { 0 };
+  size_t strftime_len = 0;
 
   // If there is not enough space in the current message, close out the current msg and grab a new one
   if ( (persistent_self.error_storage.char_buf_index + TIMESTAMP_STR_LEN + error_str_len + 2)
@@ -145,8 +146,9 @@ void persistent_ram_log_error_string ( char *error_str )
     return;
   }
   // Convert timestamp to string
-  if ( strftime (&timestamp_str[0], sizeof(timestamp_str), TIMESTAMP_STR_FORMAT,
-                 &timestamp) != TIMESTAMP_STR_LEN )
+  strftime_len = strftime (&timestamp_str[0], sizeof(timestamp_str), TIMESTAMP_STR_FORMAT,
+                           &timestamp);
+  if ( strftime_len > sizeof(timestamp_str) )
   {
     return;
   }
@@ -170,7 +172,7 @@ void persistent_ram_log_error_string ( char *error_str )
           .payload.char_buf[persistent_self.error_storage.char_buf_index],
       "\n", 1);
   // adjust the char buffer index
-  persistent_self.error_storage.char_buf_index += 1;
+  persistent_self.error_storage.char_buf_index++;
 }
 
 sbd_message_type_52* persistent_ram_get_prioritized_unsent_iridium_message ( void )

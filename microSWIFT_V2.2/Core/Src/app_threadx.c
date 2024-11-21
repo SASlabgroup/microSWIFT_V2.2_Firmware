@@ -173,6 +173,8 @@ TX_SEMAPHORE logger_sema;
 TX_SEMAPHORE light_sensor_int_pin_sema;
 // Shared bus locks
 TX_MUTEX core_i2c_mutex;
+// Logger mutex
+TX_MUTEX logger_mutex;
 // Server/client message queue for RTC (including watchdog function)
 TX_QUEUE rtc_messaging_queue;
 TX_QUEUE logger_message_queue;
@@ -582,6 +584,12 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
+  ret = tx_mutex_create(&logger_mutex, "UART Logger mutex", TX_NO_INHERIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
   /************************************************************************************************
    ************************************** Message Queues ******************************************
    ************************************************************************************************/
@@ -831,8 +839,9 @@ static void logger_thread_entry ( ULONG thread_input )
   UINT tx_ret;
   uart_logger logger =
     { 0 };
+  ULONG time_start, time_end, time_elapsed;
 
-  uart_logger_init (&logger, &logger_block_pool, &logger_message_queue,
+  uart_logger_init (&logger, &logger_block_pool, &logger_message_queue, &logger_mutex,
                     device_handles.logger_uart_handle);
 
   while ( 1 )
@@ -840,13 +849,26 @@ static void logger_thread_entry ( ULONG thread_input )
     tx_ret = tx_queue_receive (&logger_message_queue, &msg, TX_WAIT_FOREVER);
     if ( tx_ret == TX_SUCCESS )
     {
+      time_start = tx_time_get ();
+
       logger.send_log_line (&(msg.str_buf[0]), msg.strlen);
+
+#warning "Add call here to pass the line buffer down to the file system to write it to a file. Wait for that to complete before returning the line buffer."
+
       logger.return_line_buffer (msg.str_buf);
 
       // Need to wait until the transmission is complete before grabbing another message
       (void) tx_semaphore_get (&logger_sema, TX_WAIT_FOREVER);
-      // Still need a short delay before sending another UART transmission
-      tx_thread_sleep (35);
+
+      // We only know the DMA complete time, not the time it has completed Tx on the wire
+      time_end = tx_time_get ();
+
+      time_elapsed = (time_end - time_start);
+
+      if ( time_elapsed < LOGGER_MAX_TICKS_TO_TX_MSG )
+      {
+        tx_thread_sleep (LOGGER_MAX_TICKS_TO_TX_MSG - time_elapsed);
+      }
     }
 
   }
@@ -1171,10 +1193,13 @@ static void gnss_thread_entry ( ULONG thread_input )
   gnss.get_location (&last_lat, &last_lon);
   memcpy (&sbd_message.Lat, &last_lat, sizeof(float));
   memcpy (&sbd_message.Lon, &last_lon, sizeof(float));
-  // We're using the "port" field to encode how many samples were averaged divided by 10,
-  // up to the limit of an uint8_t
-  sbd_port = ((gnss.total_samples_averaged / 10) >= 255) ?
-      255 : (gnss.total_samples_averaged / 10);
+
+  //  sbd_port = ((gnss.total_samples_averaged / 10) >= 255) ?
+  //      255 : (gnss.total_samples_averaged / 10);
+
+  // We were using the "port" field to encode how many samples were averaged divided by 10, but
+  // now we are using it to store the firmware version
+  sbd_port = *((uint8_t*) &firmware_version);
   memcpy (&sbd_message.port, &sbd_port, sizeof(uint8_t));
 
   // Deinit -- this will shut down UART port and DMa channels
@@ -1182,6 +1207,9 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   watchdog_check_in (GNSS_THREAD);
   watchdog_deregister_thread (GNSS_THREAD);
+
+  // The logger gets weird if there is no break here...
+  tx_thread_sleep (25);
 
   (void) tx_event_flags_set (&complete_flags, GNSS_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
@@ -1445,7 +1473,7 @@ static void light_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = tx_thread_identify ();
-  light_return_code_t light_ret;
+  uSWIFT_return_code_t light_ret;
   Light_Sensor light =
     { 0 };
   light_raw_counts raw_counts;
@@ -1507,7 +1535,7 @@ static void light_thread_entry ( ULONG thread_input )
 
     light_ret = light.read_all_channels ();
 
-    if ( light_ret != LIGHT_SUCCESS )
+    if ( light_ret != uSWIFT_SUCCESS )
     {
       light_error_out (&light, LIGHT_SAMPLING_ERROR, this_thread,
                        "Error occurred when reading light sensor channels.");
@@ -1521,7 +1549,7 @@ static void light_thread_entry ( ULONG thread_input )
 
     light_ret = light.process_measurements ();
 
-    if ( light_ret == LIGHT_DONE_SAMPLING )
+    if ( light_ret == uSWIFT_DONE_SAMPLING )
     {
       break;
     }
@@ -1740,7 +1768,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   TX_THREAD *this_thread = &iridium_thread;
   Iridium iridium =
     { 0 };
-  iridium_return_code_t iridium_return_code = IRIDIUM_SUCCESS;
+  uSWIFT_return_code_t iridium_return_code = uSWIFT_SUCCESS;
   int32_t iridium_thread_timeout = configuration.iridium_max_transmit_time;
   UINT tx_return;
   char ascii_7 = '7';
@@ -1750,7 +1778,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   struct tm time_struct =
     { 0 };
   time_t time_now = 0;
-  sbd_message_type_52 *msg_ptr = &sbd_message;
+  uint8_t *msg_ptr = (uint8_t*) &sbd_message;
   bool current_message_sent = false;
 
   tx_thread_sleep (10);
@@ -1829,7 +1857,7 @@ static void iridium_thread_entry ( ULONG thread_input )
 
     if ( !current_message_sent )
     {
-      if ( iridium.transmit_message (msg_ptr) == IRIDIUM_SUCCESS )
+      if ( iridium.transmit_message (msg_ptr, sizeof(sbd_message_type_52)) == uSWIFT_SUCCESS )
       {
         current_message_sent = true;
       }
@@ -1837,16 +1865,16 @@ static void iridium_thread_entry ( ULONG thread_input )
       continue;
     }
 
-    msg_ptr = persistent_ram_get_prioritized_unsent_iridium_message ();
+    msg_ptr = (uint8_t*) persistent_ram_get_prioritized_unsent_iridium_message ();
 
     if ( msg_ptr == NULL )
     {
       break;
     }
 
-    if ( iridium.transmit_message (msg_ptr) == IRIDIUM_SUCCESS )
+    if ( iridium.transmit_message (msg_ptr, sizeof(sbd_message_type_52)) == uSWIFT_SUCCESS )
     {
-      persistent_ram_delete_iridium_message_element (msg_ptr);
+      persistent_ram_delete_iridium_message_element ((sbd_message_type_52*) msg_ptr);
     }
   }
 
@@ -1854,7 +1882,7 @@ static void iridium_thread_entry ( ULONG thread_input )
 
   if ( !current_message_sent )
   {
-    persistent_ram_save_iridium_message (msg_ptr);
+    persistent_ram_save_iridium_message ((sbd_message_type_52*) msg_ptr);
   }
 
 #warning "Figure out error message reporting here."

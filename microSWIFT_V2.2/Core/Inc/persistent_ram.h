@@ -16,8 +16,8 @@
 #define PERSISTENT_RAM_MAGIC_DOUBLE_WORD 0x5048494C42555348
 #define MAX_NUM_IRIDIUM_MSGS_STORED (24U * 7U)
 #define MAX_NUM_ERROR_MSGS_STORED   (24U)
-#define TIMESTAMP_STR_FORMAT "%m/%d/%y %H:%M:%S"
-#define TIMESTAMP_STR_LEN (17U)
+#define TIMESTAMP_STR_FORMAT "%m/%d/%y %H:%M:%S: "
+#define TIMESTAMP_STR_LEN (19U)
 // @formatter:off
 typedef struct
 {

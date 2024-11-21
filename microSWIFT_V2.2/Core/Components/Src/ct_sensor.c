@@ -74,8 +74,6 @@ void ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
 
   generic_uart_register_io_functions (&self->uart_driver, ct_uart_handle, uart_sema, uart5_init,
                                       uart5_deinit, NULL, NULL);
-  generic_uart_set_timeout_ticks (&self->uart_driver, CT_UART_TX_TIMEOUT_TICKS,
-  CT_UART_RX_TIMEOUT_TICKS);
 }
 
 /**
@@ -134,7 +132,8 @@ static uSWIFT_return_code_t _ct_parse_sample ( void )
   {
 
     if ( self->uart_driver.read (&self->uart_driver, (uint8_t*) &(self->data_buf[0]),
-    CT_DATA_ARRAY_SIZE)
+    CT_DATA_ARRAY_SIZE,
+                                 CT_UART_RX_TIMEOUT_TICKS)
          != UART_OK )
     {
       self->reset_ct_uart ();
@@ -222,7 +221,8 @@ static uSWIFT_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *opt
   start_time = tx_time_get ();
 
   if ( self->uart_driver.read (&self->uart_driver, (uint8_t*) &(self->data_buf[0]),
-  CT_DATA_ARRAY_SIZE)
+  CT_DATA_ARRAY_SIZE,
+                               CT_UART_RX_TIMEOUT_TICKS)
        != UART_OK )
   {
     self->reset_ct_uart ();

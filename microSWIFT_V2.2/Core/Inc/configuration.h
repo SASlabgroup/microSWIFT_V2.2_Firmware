@@ -12,6 +12,15 @@
 #include "stdbool.h"
 #include "stdint.h"
 
+typedef struct
+{
+  uint8_t major_rev :4;
+  uint8_t minor_rev :4;
+} microSWIFT_firmware_version_t;
+
+static const microSWIFT_firmware_version_t firmware_version =
+  { 0, 0 };
+
 /*
  * Debugging settings
  */
@@ -112,5 +121,4 @@ typedef struct microSWIFT_configuration
   bool turbidity_enabled;
 
 } microSWIFT_configuration;
-
 #endif /* INC_CONFIGURATION_H_ */

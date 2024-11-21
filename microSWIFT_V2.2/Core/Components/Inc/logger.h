@@ -18,6 +18,10 @@
 
 #define LOG_QUEUE_LENGTH 32
 
+#define MUTEX_LOCK_TICKS 5
+
+#define LOGGER_MAX_TICKS_TO_TX_MSG 50 // ~17ms for buffer size 256 bytes @ 115200 baud, we'll add a few ms
+
 #define LOG(fmt, ...) (uart_log(fmt, ##__VA_ARGS__))
 
 typedef struct
@@ -39,6 +43,8 @@ typedef struct
   TX_BLOCK_POOL *block_pool;
   // Message queue
   TX_QUEUE *msg_que;
+  // Mutex
+  TX_MUTEX *lock;
   // UART handle
   UART_HandleTypeDef *uart;
   void (*send_log_line) ( log_line_buf *buf, size_t strlen );
@@ -47,7 +53,7 @@ typedef struct
 } uart_logger;
 
 void uart_logger_init ( uart_logger *logger, TX_BLOCK_POOL *block_pool, TX_QUEUE *msg_que,
-                        UART_HandleTypeDef *uart_handle );
+                        TX_MUTEX *mutex, UART_HandleTypeDef *uart_handle );
 void uart_log ( const char *fmt, ... );
 
 #endif /* COMPONENTS_INC_LOGGER_H_ */

@@ -5,8 +5,8 @@
  *      Author: philbush
  */
 
-#ifndef COMPONENTS_INC_EXT_RTC_API_H_
-#define COMPONENTS_INC_EXT_RTC_API_H_
+#ifndef COMPONENTS_INC_EXT_RTC_SERVER_H_
+#define COMPONENTS_INC_EXT_RTC_SERVER_H_
 
 #include "stddef.h"
 #include "time.h"
@@ -126,4 +126,4 @@ void                 struct_tm_bcd_to_dec ( struct tm *struct_ptr );
 
 // @formatter:on
 
-#endif /* COMPONENTS_INC_EXT_RTC_API_H_ */
+#endif /* COMPONENTS_INC_EXT_RTC_SERVER_H_ */

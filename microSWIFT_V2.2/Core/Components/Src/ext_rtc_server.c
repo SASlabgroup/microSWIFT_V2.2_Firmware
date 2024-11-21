@@ -5,7 +5,7 @@
  *      Author: philbush
  */
 
-#include "ext_rtc_api.h"
+#include <ext_rtc_server.h>
 
 static rtc_server rtc_server_self;
 

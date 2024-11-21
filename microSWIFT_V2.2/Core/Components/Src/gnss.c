@@ -6,6 +6,7 @@
  *
  */
 
+#include <ext_rtc_server.h>
 #include "gnss.h"
 #include "byte_array.h"
 #include "app_threadx.h"
@@ -17,7 +18,6 @@
 #include "stdbool.h"
 #include "u_ubx_protocol.h"
 #include "u_error_common.h"
-#include "ext_rtc_api.h"
 #include "usart.h"
 #include "linked_list.h"
 #include "watchdog.h"
