@@ -139,13 +139,11 @@ static bool _control_startup_procedure ( void )
 
     if ( reset_reason & RCC_RESET_FLAG_PIN )
     {
-      LOG("Watchdog reset occured.");
       tx_event_flags_set (&error_flags, WATCHDOG_RESET, TX_OR);
     }
 
     if ( reset_reason & RCC_RESET_FLAG_SW )
     {
-      LOG("Software reset occured.");
       tx_event_flags_set (&error_flags, SOFTWARE_RESET, TX_OR);
     }
   }
@@ -664,9 +662,6 @@ static void __get_alarm_settings_from_time ( struct tm *time, rtc_alarm_struct *
 
 static void __handle_rtc_error ( void )
 {
-  char *error_str = "RTC error detected.";
-  persistent_ram_log_error_string (error_str);
-
   controller_self->shutdown_all_peripherals ();
   controller_self->shutdown_all_interfaces ();
 
@@ -676,7 +671,6 @@ static void __handle_rtc_error ( void )
 
 static void __handle_gnss_error ( ULONG error_flags )
 {
-  char *error_str = NULL;
   // Shut down CT sensor
   HAL_GPIO_WritePin (GNSS_FET_GPIO_Port, GNSS_FET_Pin, GPIO_PIN_RESET);
   // Set all the fields of the SBD message to error values
@@ -690,39 +684,10 @@ static void __handle_gnss_error ( ULONG error_flags )
   // Terminate the GNSS thread
   (void) tx_thread_suspend (controller_self->thread_handles->gnss_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->gnss_thread);
-
-  // Handle the error string in the error message
-  switch ( error_flags )
-  {
-    case GNSS_INIT_FAILED:
-      error_str = "GNSS init failed";
-      break;
-    case GNSS_CONFIGURATION_FAILED:
-      error_str = "GNSS config failed";
-      break;
-    case GNSS_RESOLUTION_ERROR:
-      error_str = "GNSS resolution error";
-      break;
-    case GNSS_TOO_MANY_PARTIAL_MSGS:
-      error_str = "GNSS too many partial msgs";
-      break;
-    case GNSS_SAMPLE_WINDOW_TIMEOUT:
-      error_str = "GNSS sample window timeout";
-      break;
-    case GNSS_FRAME_SYNC_FAILED:
-      error_str = "GNSS frame sync failed";
-      break;
-    default:
-      error_str = "Multiple GNSS errors";
-      break;
-  }
-
-  persistent_ram_log_error_string (error_str);
 }
 
 static void __handle_ct_error ( ULONG error_flag )
 {
-  char *error_str = NULL;
   // Shut down CT sensor
   HAL_GPIO_WritePin (CT_FET_GPIO_Port, CT_FET_Pin, GPIO_PIN_RESET);
 
@@ -735,30 +700,10 @@ static void __handle_ct_error ( ULONG error_flag )
 
   (void) tx_thread_suspend (controller_self->thread_handles->ct_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->ct_thread);
-
-  // Handle the error string in the error message
-  switch ( error_flag )
-  {
-    case CT_INIT_FAILED:
-      error_str = "CT init failed";
-      break;
-    case CT_SAMPLING_ERROR:
-      error_str = "CT sampling error";
-      break;
-    case CT_SAMPLE_WINDOW_TIMEOUT:
-      error_str = "CT sample window timed out";
-      break;
-    default:
-      error_str = "Multiple CT errors";
-      break;
-  }
-
-  persistent_ram_log_error_string (error_str);
 }
 
 static void __handle_temperature_error ( ULONG error_flag )
 {
-  char *error_str = NULL;
   // Shut down the Temperature sensor
   HAL_GPIO_WritePin (TEMP_FET_GPIO_Port, TEMP_FET_Pin, GPIO_PIN_RESET);
 
@@ -770,30 +715,10 @@ static void __handle_temperature_error ( ULONG error_flag )
 
   (void) tx_thread_suspend (controller_self->thread_handles->temperature_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->temperature_thread);
-
-  // Handle the error string in the error message
-  switch ( error_flag )
-  {
-    case TEMPERATURE_INIT_FAILED:
-      error_str = "Temperature init failed";
-      break;
-    case TEMPERATURE_SAMPLING_ERROR:
-      error_str = "Temperature sampling error";
-      break;
-    case TEMPERATURE_SAMPLE_WINDOW_TIMEOUT:
-      error_str = "Temperature sample window timed out";
-      break;
-    default:
-      error_str = "Multiple Temperature errors";
-      break;
-  }
-
-  persistent_ram_log_error_string (error_str);
 }
 
 static void __handle_turbidity_error ( ULONG error_flag )
 {
-  char *error_str = NULL;
   // Shut down the Turbidity sensor
   HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_RESET);
 
@@ -806,30 +731,10 @@ static void __handle_turbidity_error ( ULONG error_flag )
 
   (void) tx_thread_suspend (controller_self->thread_handles->turbidity_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->turbidity_thread);
-
-  // Handle the error string in the error message
-  switch ( error_flag )
-  {
-    case TURBIDITY_INIT_FAILED:
-      error_str = "OBS init failed";
-      break;
-    case TURBIDITY_SAMPLING_ERROR:
-      error_str = "OBS sampling error";
-      break;
-    case TURBIDITY_SAMPLE_WINDOW_TIMEOUT:
-      error_str = "OBS sample window timed out";
-      break;
-    default:
-      error_str = "Multiple OBS errors";
-      break;
-  }
-
-  persistent_ram_log_error_string (error_str);
 }
 
 static void __handle_light_error ( ULONG error_flag )
 {
-  char *error_str = NULL;
   // Shut down the Turbidity sensor
   HAL_GPIO_WritePin (LIGHT_FET_GPIO_Port, LIGHT_FET_Pin, GPIO_PIN_RESET);
 
@@ -841,25 +746,6 @@ static void __handle_light_error ( ULONG error_flag )
 
   (void) tx_thread_suspend (controller_self->thread_handles->light_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->light_thread);
-
-  // Handle the error string in the error message
-  switch ( error_flag )
-  {
-    case LIGHT_INIT_FAILED:
-      error_str = "Light init failed";
-      break;
-    case LIGHT_SAMPLING_ERROR:
-      error_str = "Light sampling error";
-      break;
-    case LIGHT_SAMPLE_WINDOW_TIMEOUT:
-      error_str = "Light sample window timed out";
-      break;
-    default:
-      error_str = "Multiple Light errors";
-      break;
-  }
-
-  persistent_ram_log_error_string (error_str);
 }
 
 static void __handle_waves_error ( void )
@@ -872,13 +758,10 @@ static void __handle_waves_error ( void )
 
   (void) tx_thread_suspend (controller_self->thread_handles->waves_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->waves_thread);
-
-  persistent_ram_log_error_string ("Waves memory pool init failed");
 }
 
 static void __handle_iridium_error ( ULONG error_flag )
 {
-  char *error_str = NULL;
   // Shut down the modem
   HAL_GPIO_WritePin (IRIDIUM_OnOff_GPIO_Port, IRIDIUM_OnOff_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin (IRIDIUM_FET_GPIO_Port, IRIDIUM_FET_Pin, GPIO_PIN_RESET);
@@ -889,23 +772,6 @@ static void __handle_iridium_error ( ULONG error_flag )
 
   (void) tx_thread_suspend (controller_self->thread_handles->iridium_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->iridium_thread);
-
-  // This is most likely pointless, but if something fails but then succeeds on a subsequent window,
-  // then at least we will know about it
-  switch ( error_flag )
-  {
-    case IRIDIUM_INIT_ERROR:
-      error_str = "Iridium init failed";
-      break;
-    case IRIDIUM_UART_COMMS_ERROR:
-      error_str = "Iridium UART error";
-      break;
-    default:
-      error_str = "Multiple Iridium errors";
-      break;
-  }
-
-  persistent_ram_log_error_string (error_str);
 }
 static void __handle_file_system_error ( void )
 {
@@ -913,32 +779,25 @@ static void __handle_file_system_error ( void )
 
   (void) tx_thread_suspend (controller_self->thread_handles->filex_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->filex_thread);
-
-  persistent_ram_log_error_string ("SD card error");
 }
 
 static void __handle_misc_error ( ULONG error_flag )
 {
-  char *error_str;
-
   if ( error_flag & WATCHDOG_RESET )
   {
-    error_str = "Watchdog reset occured.";
-    persistent_ram_log_error_string (error_str);
+    LOG("Watchdog reset occured.");
     return;
   }
 
   if ( error_flag & SOFTWARE_RESET )
   {
-    error_str = "Software reset occured.";
-    persistent_ram_log_error_string (error_str);
+    LOG("Software reset occured.");
     return;
   }
 
   if ( error_flag & MEMORY_CORRUPTION_ERROR )
   {
-    error_str = "Memory corruption detected.";
-    LOG(error_str);
+    LOG("Memory corruption detected.");
 
     controller_self->shutdown_all_peripherals ();
     controller_self->shutdown_all_interfaces ();

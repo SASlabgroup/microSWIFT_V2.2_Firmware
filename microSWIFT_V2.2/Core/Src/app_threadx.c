@@ -1775,6 +1775,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   uint8_t sbd_type = 52;
   uint16_t sbd_size = 327;
   uint32_t sbd_timestamp = 0;
+  uint32_t error_bits = 0;
   struct tm time_struct =
     { 0 };
   time_t time_now = 0;
@@ -1836,10 +1837,12 @@ static void iridium_thread_entry ( ULONG thread_input )
   rtc_server_get_time (&time_struct, IRIDIUM_REQUEST_COMPLETE);
   time_now = mktime (&time_struct);
   sbd_timestamp = (uint32_t) time_now;
+  error_bits = get_current_flags (&error_flags);
   memcpy (&sbd_message.legacy_number_7, &ascii_7, sizeof(char));
   memcpy (&sbd_message.type, &sbd_type, sizeof(uint8_t));
   memcpy (&sbd_message.size, &sbd_size, sizeof(uint16_t));
   memcpy (&sbd_message.timestamp, &sbd_timestamp, sizeof(float));
+  memcpy (&sbd_message.error_bits, &error_bits, sizeof(uint32_t));
 
   if ( !iridium_apply_config (&iridium) )
   {

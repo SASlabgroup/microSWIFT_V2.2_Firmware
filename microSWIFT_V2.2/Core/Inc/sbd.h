@@ -36,20 +36,10 @@ typedef struct sbd_message_type_52
   __packed  real16_T    mean_salinity;
   __packed  real16_T    mean_voltage;
   __packed  uint32_t    timestamp;
+  __packed  uint32_t    error_bits;
             uint8_t     checksum_a;
             uint8_t     checksum_b;
 } sbd_message_type_52;
-
-typedef struct
-{
-            uint8_t     number_99;
-            char        char_buf[TYPE_99_CHAR_BUF_LEN];
-  __packed  float       lat;
-  __packed  float       lon;
-  __packed  time_t      timetamp;
-            uint8_t     checksum_a;
-            uint8_t     checksum_b;
-} sbd_message_type_99;
 
 // @formatter:on
 #endif /* INC_SBD_H_ */

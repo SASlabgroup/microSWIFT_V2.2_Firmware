@@ -88,93 +88,6 @@ void persistent_ram_save_iridium_message ( sbd_message_type_52 *msg )
   }
 }
 
-void persistent_ram_log_error_string ( char *error_str )
-{
-  uint32_t error_str_len = strlen (error_str);
-  struct tm timestamp =
-    { 0 };
-  char timestamp_str[TIMESTAMP_STR_LEN + 8] =
-    { 0 };
-  size_t strftime_len = 0;
-
-  // If there is not enough space in the current message, close out the current msg and grab a new one
-  if ( (persistent_self.error_storage.char_buf_index + TIMESTAMP_STR_LEN + error_str_len + 2)
-       > TYPE_99_CHAR_BUF_LEN )
-  {
-    // Null terminate the message
-    persistent_self.error_storage.msg_queue[persistent_self.error_storage.current_msg_index].payload
-        .char_buf[persistent_self.error_storage.char_buf_index] = 0;
-    // Mark as full
-    persistent_self.error_storage.msg_queue[persistent_self.error_storage.current_msg_index].state =
-        ERROR_MSG_FULL;
-    // Reset the char buf index
-    persistent_self.error_storage.char_buf_index = 0;
-    // increment the counter
-    persistent_self.error_storage.num_error_msgs_enqueued++;
-
-    if ( persistent_self.error_storage.num_error_msgs_enqueued == MAX_NUM_ERROR_MSGS_STORED )
-    {
-      // No more room, just drop the string and return
-      return;
-    }
-    else
-    {
-      // Find the next available message
-      for ( int i = 0; i < MAX_NUM_ERROR_MSGS_STORED; i++ )
-      {
-        if ( persistent_self.error_storage.msg_queue[i].state == ERROR_MSG_EMPTY )
-        {
-          persistent_self.error_storage.current_msg_index = i;
-          break;
-        }
-
-      }
-    }
-  }
-
-  // Mark the message as in use if it is not already (new message from queue)
-  if ( persistent_self.error_storage.msg_queue[persistent_self.error_storage.current_msg_index]
-      .state
-       == ERROR_MSG_EMPTY )
-  {
-    persistent_self.error_storage.msg_queue[persistent_self.error_storage.current_msg_index].state =
-        ERROR_MSG_IN_USE;
-  }
-  // get a timestamp from rtc
-  if ( rtc_server_get_time (&timestamp, PERSISTENT_RAM_REQUEST_PROCESSED) != uSWIFT_SUCCESS )
-  {
-    return;
-  }
-  // Convert timestamp to string
-  strftime_len = strftime (&timestamp_str[0], sizeof(timestamp_str), TIMESTAMP_STR_FORMAT,
-                           &timestamp);
-  if ( strftime_len > sizeof(timestamp_str) )
-  {
-    return;
-  }
-  // Write the timestamp to the error msg char buf
-  memcpy (
-      &persistent_self.error_storage.msg_queue[persistent_self.error_storage.current_msg_index]
-          .payload.char_buf[persistent_self.error_storage.char_buf_index],
-      &timestamp_str[0], TIMESTAMP_STR_LEN);
-  // adjust the char buffer index
-  persistent_self.error_storage.char_buf_index += TIMESTAMP_STR_LEN;
-  // Write the error str
-  memcpy (
-      &persistent_self.error_storage.msg_queue[persistent_self.error_storage.current_msg_index]
-          .payload.char_buf[persistent_self.error_storage.char_buf_index],
-      error_str, error_str_len);
-  // adjust the char buffer index
-  persistent_self.error_storage.char_buf_index += error_str_len;
-  // Add a breakline
-  memcpy (
-      &persistent_self.error_storage.msg_queue[persistent_self.error_storage.current_msg_index]
-          .payload.char_buf[persistent_self.error_storage.char_buf_index],
-      "\n", 1);
-  // adjust the char buffer index
-  persistent_self.error_storage.char_buf_index++;
-}
-
 sbd_message_type_52* persistent_ram_get_prioritized_unsent_iridium_message ( void )
 {
   float most_significant_wave_height = 0.0;
@@ -222,58 +135,6 @@ sbd_message_type_52* persistent_ram_get_prioritized_unsent_iridium_message ( voi
   return ret_ptr;
 }
 
-sbd_message_type_99* persistent_ram_get_prioritized_unsent_error_message ( void )
-{
-  time_t most_recent = 0, this_msg = 0;
-  sbd_message_type_99 *ret_ptr = NULL;
-  int32_t msg_index = 0;
-
-  // Corruption, lack of initialization check
-  if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
-  {
-    _persistent_ram_clear ();
-    return ret_ptr;
-  }
-
-  // If the current message is in use, send it first
-  if ( persistent_self.error_storage.msg_queue[persistent_self.error_storage.current_msg_index]
-      .state
-       == ERROR_MSG_IN_USE )
-  {
-    ret_ptr = &persistent_self.error_storage.msg_queue[persistent_self.error_storage
-        .current_msg_index].payload;
-    return ret_ptr;
-  }
-  // Empty queue check
-  else if ( persistent_self.error_storage.num_error_msgs_enqueued == 0 )
-  {
-    return ret_ptr;
-  }
-
-  // Otherwise, find the most recent message
-  for ( int i = 0; i < MAX_NUM_ERROR_MSGS_STORED; i++ )
-  {
-    if ( persistent_self.error_storage.msg_queue[i].state == ERROR_MSG_FULL )
-    {
-      this_msg = persistent_self.error_storage.msg_queue[i].payload.timetamp;
-
-      if ( this_msg > most_recent )
-      {
-        most_recent = this_msg;
-        msg_index = i;
-      }
-    }
-  }
-
-  // Make sure we don't go out of bounds
-  if ( (msg_index > 0) && (msg_index < (MAX_NUM_IRIDIUM_MSGS_STORED - 1)) )
-  {
-    ret_ptr = &persistent_self.error_storage.msg_queue[msg_index].payload;
-  }
-
-  return ret_ptr;
-}
-
 void persistent_ram_delete_iridium_message_element ( sbd_message_type_52 *msg_ptr )
 {
   // Corruption, lack of initialization check
@@ -299,36 +160,10 @@ void persistent_ram_delete_iridium_message_element ( sbd_message_type_52 *msg_pt
   }
 }
 
-void persistent_ram_delete_error_message_element ( sbd_message_type_99 *msg_ptr )
-{
-  // Corruption, lack of initialization check
-  if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
-  {
-    _persistent_ram_clear ();
-    return;
-  }
-
-  // Find the pointer
-  for ( int i = 0; i < MAX_NUM_ERROR_MSGS_STORED; i++ )
-  {
-    if ( &persistent_self.error_storage.msg_queue[i].payload == msg_ptr )
-    {
-      // copy the message over
-      memset (&(persistent_self.error_storage.msg_queue[i].payload), 0,
-              sizeof(sbd_message_type_99));
-      // Make the entry valid
-      persistent_self.error_storage.msg_queue[i].state = ERROR_MSG_EMPTY;
-      persistent_self.error_storage.num_error_msgs_enqueued--;
-      return;
-    }
-  }
-}
-
 static void _persistent_ram_clear ( void )
 {
   // Clear everything out
   persistent_self.sample_window_counter = 0;
   memset (&persistent_self.telemetry_storage, 0, sizeof(Telemetry_Message_Storage));
-  memset (&persistent_self.error_storage, 0, sizeof(Error_Message_Storage));
   persistent_self.magic_number = PERSISTENT_RAM_MAGIC_DOUBLE_WORD;
 }
