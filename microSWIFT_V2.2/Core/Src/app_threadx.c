@@ -1779,7 +1779,9 @@ static void iridium_thread_entry ( ULONG thread_input )
   struct tm time_struct =
     { 0 };
   time_t time_now = 0;
-  uint8_t *msg_ptr = (uint8_t*) &sbd_message;
+  uint8_t msg_buffer[IRIDIUM_SBD_MAX_LENGTH + IRIDIUM_CHECKSUM_LENGTH] =
+    { 0 };
+  uint8_t *msg_ptr;
   bool current_message_sent = false;
 
   tx_thread_sleep (10);
@@ -1817,7 +1819,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   watchdog_register_thread (IRIDIUM_THREAD);
   watchdog_check_in (IRIDIUM_THREAD);
 
-#warning "On first window, set the RTC. Do this here after the thread has been resumed."
+#warning "On first window, set the modem's RTC. Do this here after the thread has been resumed."
 
 #warning"Figure out how to bail early here if there is no valid message to send."
 
@@ -1847,10 +1849,13 @@ static void iridium_thread_entry ( ULONG thread_input )
   if ( !iridium_apply_config (&iridium) )
   {
     // Need to save the message
-    persistent_ram_save_iridium_message (&sbd_message);
+    persistent_ram_save_message (WAVES_TELEMETRY, (uint8_t*) &sbd_message);
     iridium_error_out (&iridium, IRIDIUM_UART_COMMS_ERROR, this_thread,
                        "Iridium modem UART communication error.");
   }
+
+  // copy over the message into the buffer
+  memcpy (&(msg_buffer[0]), &sbd_message, sizeof(sbd_message_type_52));
 
   // Send the current message followed by any cached messages, until time runs out
   while ( !iridium_get_timeout_status () )
@@ -1860,7 +1865,8 @@ static void iridium_thread_entry ( ULONG thread_input )
 
     if ( !current_message_sent )
     {
-      if ( iridium.transmit_message (msg_ptr, sizeof(sbd_message_type_52)) == uSWIFT_SUCCESS )
+      if ( iridium.transmit_message (&(msg_buffer[0]), sizeof(sbd_message_type_52))
+           == uSWIFT_SUCCESS )
       {
         current_message_sent = true;
       }
@@ -1868,7 +1874,7 @@ static void iridium_thread_entry ( ULONG thread_input )
       continue;
     }
 
-    msg_ptr = (uint8_t*) persistent_ram_get_prioritized_unsent_iridium_message ();
+    msg_ptr = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
 
     if ( msg_ptr == NULL )
     {
@@ -1877,7 +1883,7 @@ static void iridium_thread_entry ( ULONG thread_input )
 
     if ( iridium.transmit_message (msg_ptr, sizeof(sbd_message_type_52)) == uSWIFT_SUCCESS )
     {
-      persistent_ram_delete_iridium_message_element ((sbd_message_type_52*) msg_ptr);
+      persistent_ram_delete_message_element (WAVES_TELEMETRY, msg_ptr);
     }
   }
 
@@ -1885,10 +1891,12 @@ static void iridium_thread_entry ( ULONG thread_input )
 
   if ( !current_message_sent )
   {
-    persistent_ram_save_iridium_message ((sbd_message_type_52*) msg_ptr);
+    // Update the error bits
+    error_bits = get_current_flags (&error_flags);
+    memcpy (&sbd_message.error_bits, &error_bits, sizeof(uint32_t));
+    // Save the message
+    persistent_ram_save_message (WAVES_TELEMETRY, msg_ptr);
   }
-
-#warning "Figure out error message reporting here."
 
   // Turn off the modem
   iridium.stop_timer ();
