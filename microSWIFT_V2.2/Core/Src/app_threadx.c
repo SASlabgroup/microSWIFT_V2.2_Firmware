@@ -1476,6 +1476,8 @@ static void light_thread_entry ( ULONG thread_input )
   uSWIFT_return_code_t light_ret;
   Light_Sensor light =
     { 0 };
+  sbd_message_type_61_element sbd_msg_element =
+    { 0 };
   light_raw_counts raw_counts;
   light_basic_counts basic_counts;
   int32_t light_thread_timeout = ((configuration.samples_per_window
@@ -1561,6 +1563,8 @@ static void light_thread_entry ( ULONG thread_input )
   light.off ();
 
   light.get_samples_averages ();
+
+#error "Assemble message element here and save it."
 
   watchdog_check_in (LIGHT_THREAD);
   watchdog_deregister_thread (LIGHT_THREAD);
