@@ -630,29 +630,21 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
    ***************************************** Misc init ********************************************
    ************************************************************************************************/
   device_handles.core_spi_handle = &hspi1;
-  device_handles.core_i2c_handle = &hi2c1;
+  device_handles.core_i2c_handle = &hi2c2;
   device_handles.iridium_uart_handle = &huart4;
-  device_handles.gnss_uart_handle = &hlpuart1;
-  device_handles.ct_uart_handle = &huart5;
-  device_handles.logger_uart_handle = &huart6;
-  device_handles.ext_flash_handle = &hospi1;
+  device_handles.gnss_uart_handle = &huart2;
+  device_handles.ct_uart_handle = &huart1;
+  device_handles.logger_uart_handle = &huart3;
+  device_handles.ext_psram_handle = &hospi1;
   device_handles.battery_adc = &hadc1;
-  device_handles.aux_spi_1_handle = &hspi2;
-  device_handles.aux_spi_2_handle = &hspi3;
-  device_handles.aux_i2c_1_handle = &hi2c2;
-  device_handles.aux_i2c_2_handle = &hi2c3;
-  device_handles.aux_uart_1_handle = &huart2;
-  device_handles.aux_uart_2_handle = &huart3;
-  device_handles.gnss_uart_tx_dma_handle = &handle_GPDMA1_Channel1;
-  device_handles.gnss_uart_rx_dma_handle = &handle_GPDMA1_Channel0;
+  device_handles.gnss_uart_tx_dma_handle = &handle_GPDMA1_Channel7;
+  device_handles.gnss_uart_rx_dma_handle = &handle_GPDMA1_Channel6;
   device_handles.iridium_uart_tx_dma_handle = &handle_GPDMA1_Channel9;
   device_handles.iridium_uart_rx_dma_handle = &handle_GPDMA1_Channel8;
   device_handles.ct_uart_tx_dma_handle = &handle_GPDMA1_Channel11;
-  device_handles.ct_uart_tx_dma_handle = &handle_GPDMA1_Channel10;
-  device_handles.aux_uart_1_tx_dma_handle = &handle_GPDMA1_Channel3;
-  device_handles.aux_uart_1_rx_dma_handle = &handle_GPDMA1_Channel2;
-  device_handles.aux_uart_2_tx_dma_handle = &handle_GPDMA1_Channel5;
-  device_handles.aux_uart_2_rx_dma_handle = &handle_GPDMA1_Channel4;
+  device_handles.ct_uart_rx_dma_handle = &handle_GPDMA1_Channel10;
+  device_handles.logger_uart_tx_dma_handle = &handle_GPDMA1_Channel3;
+  device_handles.logger_uart_rx_dma_handle = &handle_GPDMA1_Channel2;
 
   configuration.samples_per_window = TOTAL_SAMPLES_PER_WINDOW;
   configuration.windows_per_hour = SAMPLE_WINDOWS_PER_HOUR;
@@ -693,15 +685,15 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
  */
 void MX_ThreadX_Init ( void )
 {
-  /* USER CODE BEGIN  Before_Kernel_Start */
+  /* USER CODE BEGIN Before_Kernel_Start */
 
-  /* USER CODE END  Before_Kernel_Start */
+  /* USER CODE END Before_Kernel_Start */
 
   tx_kernel_enter ();
 
-  /* USER CODE BEGIN  Kernel_Start_Error */
+  /* USER CODE BEGIN Kernel_Start_Error */
 
-  /* USER CODE END  Kernel_Start_Error */
+  /* USER CODE END Kernel_Start_Error */
 }
 
 /* USER CODE BEGIN 1 */
@@ -1000,7 +992,7 @@ static void gnss_thread_entry ( ULONG thread_input )
       (2 * 60 * configuration.gnss_sampling_rate) - configuration.samples_per_window);
   bool two_mins_out_msg_sent = false;
 
-  if ( lpuart1_init () != UART_OK )
+  if ( usart2_init () != UART_OK )
   {
     gnss_error_out (&gnss, GNSS_INIT_FAILED, this_thread, "GNSS UART port failed to initialize.");
   }
@@ -1241,7 +1233,7 @@ static void ct_thread_entry ( ULONG thread_input )
 
   tx_thread_sleep (10);
 
-  if ( uart5_init () != UART_OK )
+  if ( usart1_init () != UART_OK )
   {
     ct_error_out (&ct, CT_INIT_FAILED, this_thread, "CT UART port failed to initialize.");
   }
@@ -1385,7 +1377,7 @@ static void temperature_thread_entry ( ULONG thread_input )
 
   memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
 
-  temperature_init (&temperature, &configuration, device_handles.aux_i2c_2_handle, &error_flags,
+  temperature_init (&temperature, &configuration, device_handles.core_i2c_handle, &error_flags,
                     &temperature_timer, &core_i2c_mutex, true);
 
   temperature.on ();
@@ -1564,7 +1556,7 @@ static void light_thread_entry ( ULONG thread_input )
 
   light.get_samples_averages ();
 
-#error "Assemble message element here and save it."
+#warning "Assemble message element here and save it."
 
   watchdog_check_in (LIGHT_THREAD);
   watchdog_deregister_thread (LIGHT_THREAD);
@@ -1597,7 +1589,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
                                       / 60)
                                      + GNSS_WINDOW_BUFFER_TIME; // Same timeout as GNSS
 
-  turbidity_sensor_init (&obs, &configuration, device_handles.aux_i2c_1_handle, &turbidity_timer,
+  turbidity_sensor_init (&obs, &configuration, device_handles.core_i2c_handle, &turbidity_timer,
                          &turbidity_sensor_i2c_sema, &turbidity_sensor_ambient_buffer[0],
                          &turbidity_sensor_proximity_buffer[0]);
 
@@ -1660,6 +1652,8 @@ static void turbidity_thread_entry ( ULONG thread_input )
   }
 
   obs.off ();
+
+#warning "Assemble message element here and save it."
 
   watchdog_check_in (TURBIDITY_THREAD);
   watchdog_deregister_thread (TURBIDITY_THREAD);

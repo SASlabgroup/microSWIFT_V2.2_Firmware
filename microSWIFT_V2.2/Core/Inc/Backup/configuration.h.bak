@@ -12,6 +12,15 @@
 #include "stdbool.h"
 #include "stdint.h"
 
+typedef struct
+{
+  uint8_t major_rev :4;
+  uint8_t minor_rev :4;
+} microSWIFT_firmware_version_t;
+
+static const microSWIFT_firmware_version_t firmware_version =
+  { 0, 0 };
+
 /*
  * Debugging settings
  */
@@ -91,9 +100,6 @@
 #define TURBIDITY_SENSOR_ENABLED false
 #define TOTAL_TURBIDITY_SAMPLES (TOTAL_SAMPLES_PER_WINDOW / GNSS_SAMPLING_RATE)
 
-// If there is a fast accelerometer present
-#define ACCELEROMETER_ENABLED false
-
 typedef struct microSWIFT_configuration
 {
   uint32_t samples_per_window;
@@ -113,8 +119,6 @@ typedef struct microSWIFT_configuration
   bool temperature_enabled;
   bool light_enabled;
   bool turbidity_enabled;
-  bool accelerometer_enabled;
 
 } microSWIFT_configuration;
-
 #endif /* INC_CONFIGURATION_H_ */

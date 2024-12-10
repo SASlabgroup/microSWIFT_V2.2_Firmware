@@ -5,11 +5,11 @@
  *      Author: philbush
  */
 
+#include <ext_rtc_server.h>
 #include "controller.h"
 #include "threadx_support.h"
 #include "logger.h"
 #include "persistent_ram.h"
-#include "ext_rtc_api.h"
 #include "NEDWaves/rtwhalf.h"
 #include "ct_sensor.h"
 
@@ -34,7 +34,6 @@ static void     __handle_ct_error( ULONG error_flag );
 static void     __handle_temperature_error( ULONG error_flag );
 static void     __handle_turbidity_error( ULONG error_flag );
 static void     __handle_light_error( ULONG error_flag );
-static void     __handle_accelerometer_error( ULONG error_flag );
 static void     __handle_waves_error( void );
 static void     __handle_iridium_error( ULONG error_flags );
 static void     __handle_file_system_error( void );
@@ -72,8 +71,6 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
   controller_self->thread_status.light_complete = !controller_self->global_config->light_enabled;
   controller_self->thread_status.turbidity_complete = !controller_self->global_config
       ->turbidity_enabled;
-  controller_self->thread_status.accelerometer_complete = !controller_self->global_config
-      ->accelerometer_enabled;
 
   controller_self->startup_procedure = _control_startup_procedure;
   controller_self->shutdown_procedure = _control_shutdown_procedure;
@@ -112,6 +109,7 @@ static bool _control_startup_procedure ( void )
   real16_T voltage =
     { 0 };
   bool initial_powerup = is_first_sample_window ();
+  ULONG init_wait_ticks = STARTUP_SEQUENCE_MAX_WAIT_TICKS;
 
   // Start the duty cycle timer
   tx_return = tx_timer_change (
@@ -141,13 +139,11 @@ static bool _control_startup_procedure ( void )
 
     if ( reset_reason & RCC_RESET_FLAG_PIN )
     {
-      LOG("Watchdog reset occured.");
       tx_event_flags_set (&error_flags, WATCHDOG_RESET, TX_OR);
     }
 
     if ( reset_reason & RCC_RESET_FLAG_SW )
     {
-      LOG("Software reset occured.");
       tx_event_flags_set (&error_flags, SOFTWARE_RESET, TX_OR);
     }
   }
@@ -200,8 +196,21 @@ static bool _control_startup_procedure ( void )
 
   battery_deinit ();
 
-  tx_return = tx_event_flags_get (controller_self->init_flags, init_success_flags, TX_AND_CLEAR,
-                                  &current_flags, STARTUP_SEQUENCE_MAX_WAIT_TICKS);
+  while ( init_wait_ticks > 0 )
+  {
+    tx_return = tx_event_flags_get (controller_self->init_flags, init_success_flags, TX_AND_CLEAR,
+                                    &current_flags, TX_NO_WAIT);
+    controller_self->monitor_and_handle_errors ();
+
+    if ( tx_return == TX_SUCCESS )
+    {
+      break;
+    }
+
+    tx_thread_sleep (1);
+    init_wait_ticks -= 1;
+  }
+
   return (tx_return == TX_SUCCESS);
 }
 
@@ -247,7 +256,7 @@ static void _control_shutdown_procedure ( void )
   persistent_ram_increment_sample_window_counter ();
 
   // Give the logger time to complete
-  tx_thread_sleep (100);
+  tx_thread_sleep (500);
 
   // Deinit all enabled peripherals
   controller_self->shutdown_all_interfaces ();
@@ -432,6 +441,7 @@ static void _control_manage_state ( void )
     ret |= tx_thread_resume (controller_self->thread_handles->waves_thread);
 
     LOG("GNSS thread complete, now terminating.");
+    tx_thread_sleep (10);
   }
 
   // If GNSS thread errors out, do not run waves
@@ -450,6 +460,7 @@ static void _control_manage_state ( void )
     }
 
     LOG("GNSS thread complete, now terminating.");
+    tx_thread_sleep (10);
   }
 
   if ( (current_flags & CT_THREAD_COMPLETED_SUCCESSFULLY)
@@ -458,6 +469,7 @@ static void _control_manage_state ( void )
     controller_self->thread_status.ct_complete = true;
 
     LOG("CT thread complete, now terminating.");
+    tx_thread_sleep (10);
   }
 
   if ( (current_flags & TEMPERATURE_THREAD_COMPLETED_SUCCESSFULLY)
@@ -466,14 +478,16 @@ static void _control_manage_state ( void )
     controller_self->thread_status.temperature_complete = true;
 
     LOG("Temperature thread complete, now terminating.");
+    tx_thread_sleep (10);
   }
 
   if ( (current_flags & TURBIDITY_THREAD_COMPLETED_SUCCESSFULLY)
        | (current_flags & TURBIDITY_THREAD_COMPLETED_WITH_ERRORS) )
   {
-    controller_self->thread_status.temperature_complete = true;
+    controller_self->thread_status.turbidity_complete = true;
 
     LOG("Turbidity thread complete, now terminating.");
+    tx_thread_sleep (10);
   }
 
   if ( (current_flags & LIGHT_THREAD_COMPLETED_SUCCESSFULLY)
@@ -482,14 +496,7 @@ static void _control_manage_state ( void )
     controller_self->thread_status.light_complete = true;
 
     LOG("Light thread complete, now terminating.");
-  }
-
-  if ( (current_flags & ACCELEROMETER_THREAD_COMPLETED_SUCCESSFULLY)
-       | (current_flags & ACCELEROMETER_THREAD_COMPLETED_WITH_ERRORS) )
-  {
-    controller_self->thread_status.accelerometer_complete = true;
-
-    LOG("Accelerometer thread complete, now terminating.");
+    tx_thread_sleep (10);
   }
 
   if ( (current_flags & WAVES_THREAD_COMPLETED_SUCCESSFULLY)
@@ -498,6 +505,7 @@ static void _control_manage_state ( void )
     controller_self->thread_status.waves_complete = true;
 
     LOG("NED Waves thread complete, now terminating.");
+    tx_thread_sleep (10);
   }
 
   iridium_ready = controller_self->thread_status.gnss_complete
@@ -505,7 +513,6 @@ static void _control_manage_state ( void )
                   && controller_self->thread_status.temperature_complete
                   && controller_self->thread_status.light_complete
                   && controller_self->thread_status.turbidity_complete
-                  && controller_self->thread_status.accelerometer_complete
                   && controller_self->thread_status.waves_complete;
 
   if ( iridium_ready )
@@ -538,9 +545,8 @@ static void _control_manage_state ( void )
 static void _control_monitor_and_handle_errors ( void )
 {
   ULONG current_flags;
-  ULONG gnss_errors, ct_errors, temperature_errors, light_errors, turbidity_errors,
-      accelerometer_errors, waves_errors, iridium_errors, file_system_errors, rtc_errors,
-      misc_errors;
+  ULONG gnss_errors, ct_errors, temperature_errors, light_errors, turbidity_errors, waves_errors,
+      iridium_errors, file_system_errors, rtc_errors, misc_errors;
 
   // Get the error flags
   (void) tx_event_flags_get (controller_self->error_flags, ALL_EVENT_FLAGS, TX_OR_CLEAR,
@@ -555,7 +561,7 @@ static void _control_monitor_and_handle_errors ( void )
   gnss_errors = current_flags
                 & (GNSS_INIT_FAILED | GNSS_CONFIGURATION_FAILED | GNSS_RESOLUTION_ERROR
                    | GNSS_TOO_MANY_PARTIAL_MSGS | GNSS_SAMPLE_WINDOW_TIMEOUT
-                   | GNSS_FRAME_SYNC_FAILED | GNSS_SAMPLE_WINDOW_ERROR);
+                   | GNSS_FRAME_SYNC_FAILED);
   ct_errors = current_flags & (CT_INIT_FAILED | CT_SAMPLING_ERROR | CT_SAMPLE_WINDOW_TIMEOUT);
   temperature_errors = current_flags
                        & (TEMPERATURE_INIT_FAILED | TEMPERATURE_SAMPLING_ERROR
@@ -565,9 +571,6 @@ static void _control_monitor_and_handle_errors ( void )
   turbidity_errors = current_flags
                      & (TURBIDITY_INIT_FAILED | TURBIDITY_SAMPLING_ERROR
                         | TURBIDITY_SAMPLE_WINDOW_TIMEOUT);
-  accelerometer_errors = current_flags
-                         & (ACCELEROMETER_INIT_FAILED | ACCELEROMETER_SAMPLING_ERROR
-                            | ACCELEROMETER_SAMPLE_WINDOW_TIMEOUT);
   iridium_errors = current_flags & (IRIDIUM_INIT_ERROR | IRIDIUM_UART_COMMS_ERROR);
   waves_errors = current_flags & (WAVES_INIT_FAILED);
   file_system_errors = current_flags & (FILE_SYSTEM_ERROR);
@@ -607,11 +610,6 @@ static void _control_monitor_and_handle_errors ( void )
   if ( turbidity_errors )
   {
     __handle_turbidity_error (turbidity_errors);
-  }
-
-  if ( accelerometer_errors )
-  {
-    __handle_accelerometer_error (accelerometer_errors);
   }
 
   if ( waves_errors )
@@ -664,9 +662,6 @@ static void __get_alarm_settings_from_time ( struct tm *time, rtc_alarm_struct *
 
 static void __handle_rtc_error ( void )
 {
-  char *error_str = "RTC error detected.";
-  persistent_ram_log_error_string (error_str);
-
   controller_self->shutdown_all_peripherals ();
   controller_self->shutdown_all_interfaces ();
 
@@ -676,6 +671,8 @@ static void __handle_rtc_error ( void )
 
 static void __handle_gnss_error ( ULONG error_flags )
 {
+  // Shut down CT sensor
+  HAL_GPIO_WritePin (GNSS_FET_GPIO_Port, GNSS_FET_Pin, GPIO_PIN_RESET);
   // Set all the fields of the SBD message to error values
   memset (controller_self->current_message, 0, sizeof(sbd_message_type_52));
 
@@ -697,16 +694,14 @@ static void __handle_ct_error ( ULONG error_flag )
   memset (&controller_self->current_message->mean_temp, CT_VALUES_ERROR_CODE, sizeof(real16_T));
   memset (&controller_self->current_message->mean_salinity, CT_VALUES_ERROR_CODE, sizeof(real16_T));
 
-  persistent_ram_log_error_string ("CT error.");
-
   // Set the CT_COMPLETED_WITH_ERRORS flag
   (void) tx_event_flags_set (controller_self->complete_flags, CT_THREAD_COMPLETED_WITH_ERRORS,
   TX_OR);
 
   (void) tx_thread_suspend (controller_self->thread_handles->ct_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->ct_thread);
-
 }
+
 static void __handle_temperature_error ( ULONG error_flag )
 {
   // Shut down the Temperature sensor
@@ -714,74 +709,63 @@ static void __handle_temperature_error ( ULONG error_flag )
 
   memset (&controller_self->current_message->mean_temp, CT_VALUES_ERROR_CODE, sizeof(real16_T));
 
-  persistent_ram_log_error_string ("Temperature error.");
-
   // Set the TEMPERATURE_COMPLETED_WITH_ERRORS flag
   (void) tx_event_flags_set (controller_self->complete_flags,
                              TEMPERATURE_THREAD_COMPLETED_WITH_ERRORS, TX_OR);
 
   (void) tx_thread_suspend (controller_self->thread_handles->temperature_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->temperature_thread);
-
 }
+
 static void __handle_turbidity_error ( ULONG error_flag )
 {
-  /*
-   * TODO:
-   *    [ ] Turn off the turbidity sensor
-   *    [ ] Set fields in the SBD message to error values
-   *    [ ] Log the error in the error message buffer
-   *    [ ] Set the TURBIDITY_THREAD_COMPLETED_WITH_ERORRS flag
-   *    [ ] Terminate the turbidity thread
-   *    [ ] Continue application logic
-   */
+  // Shut down the Turbidity sensor
+  HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_RESET);
+
+#warning"Set the turbidity fields to error values here."
+
+  // Set the TEMPERATURE_COMPLETED_WITH_ERRORS flag
+  (void) tx_event_flags_set (controller_self->complete_flags,
+                             TURBIDITY_THREAD_COMPLETED_WITH_ERRORS,
+                             TX_OR);
+
+  (void) tx_thread_suspend (controller_self->thread_handles->turbidity_thread);
+  (void) tx_thread_terminate (controller_self->thread_handles->turbidity_thread);
 }
+
 static void __handle_light_error ( ULONG error_flag )
 {
-  /*
-   * TODO:
-   *    [ ] Turn off the light sensor
-   *    [ ] Set fields in the SBD message to error values
-   *    [ ] Log the error in the error message buffer
-   *    [ ] Set the LIGHT_THREAD_COMPLETED_WITH_ERORRS flag
-   *    [ ] Terminate the light thread
-   *    [ ] Continue application logic
-   */
+  // Shut down the Turbidity sensor
+  HAL_GPIO_WritePin (LIGHT_FET_GPIO_Port, LIGHT_FET_Pin, GPIO_PIN_RESET);
+
+#warning"Set the light fields to error values here."
+
+  // Set the TEMPERATURE_COMPLETED_WITH_ERRORS flag
+  (void) tx_event_flags_set (controller_self->complete_flags, LIGHT_THREAD_COMPLETED_WITH_ERRORS,
+  TX_OR);
+
+  (void) tx_thread_suspend (controller_self->thread_handles->light_thread);
+  (void) tx_thread_terminate (controller_self->thread_handles->light_thread);
 }
-static void __handle_accelerometer_error ( ULONG error_flag )
-{
-  /*
-   * TODO:
-   *    [ ] Turn off the accelerometer sensor
-   *    [ ] Set fields in the SBD message to error values
-   *    [ ] Log the error in the error message buffer
-   *    [ ] Set the ACCELEROMETER_THREAD_COMPLETED_WITH_ERORRS flag
-   *    [ ] Terminate the accelerometer thread
-   *    [ ] Continue application logic
-   */
-}
+
 static void __handle_waves_error ( void )
 {
   // Set all the fields of the SBD message to error values
   memset (controller_self->current_message, 0, sizeof(sbd_message_type_52));
-
-  persistent_ram_log_error_string ("Waves memory pool failed to initialize.");
 
   (void) tx_event_flags_set (controller_self->complete_flags, WAVES_THREAD_COMPLETED_WITH_ERRORS,
   TX_OR);
 
   (void) tx_thread_suspend (controller_self->thread_handles->waves_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->waves_thread);
-
 }
+
 static void __handle_iridium_error ( ULONG error_flag )
 {
   // Shut down the modem
   HAL_GPIO_WritePin (IRIDIUM_OnOff_GPIO_Port, IRIDIUM_OnOff_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin (IRIDIUM_FET_GPIO_Port, IRIDIUM_FET_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin (BUS_5V_FET_GPIO_Port, BUS_5V_FET_Pin, GPIO_PIN_RESET);
-
-  persistent_ram_log_error_string ("Modem error detected.");
 
   (void) tx_event_flags_set (controller_self->complete_flags, IRIDIUM_THREAD_COMPLETED_WITH_ERRORS,
   TX_OR);
@@ -791,33 +775,29 @@ static void __handle_iridium_error ( ULONG error_flag )
 }
 static void __handle_file_system_error ( void )
 {
-  /*
-   * TODO:
-   *    [ ] Unknown
-   */
+#warning "figure out how to handle file system errors."
+
+  (void) tx_thread_suspend (controller_self->thread_handles->filex_thread);
+  (void) tx_thread_terminate (controller_self->thread_handles->filex_thread);
 }
+
 static void __handle_misc_error ( ULONG error_flag )
 {
-  char *error_str;
-
   if ( error_flag & WATCHDOG_RESET )
   {
-    error_str = "Watchdog reset occured.";
-    persistent_ram_log_error_string (error_str);
+    LOG("Watchdog reset occured.");
     return;
   }
 
   if ( error_flag & SOFTWARE_RESET )
   {
-    error_str = "Software reset occured.";
-    persistent_ram_log_error_string (error_str);
+    LOG("Software reset occured.");
     return;
   }
 
   if ( error_flag & MEMORY_CORRUPTION_ERROR )
   {
-    error_str = "Memory corruption detected.";
-    LOG(error_str);
+    LOG("Memory corruption detected.");
 
     controller_self->shutdown_all_peripherals ();
     controller_self->shutdown_all_interfaces ();

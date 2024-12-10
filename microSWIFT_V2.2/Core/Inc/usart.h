@@ -36,19 +36,13 @@ extern "C" {
 
 /* USER CODE END Includes */
 
-extern UART_HandleTypeDef hlpuart1;
-
 extern UART_HandleTypeDef huart4;
-
-extern UART_HandleTypeDef huart5;
 
 extern UART_HandleTypeDef huart1;
 
 extern UART_HandleTypeDef huart2;
 
 extern UART_HandleTypeDef huart3;
-
-extern UART_HandleTypeDef huart6;
 
 /* USER CODE BEGIN Private defines */
 extern DMA_HandleTypeDef handle_GPDMA1_Channel0;
@@ -72,26 +66,23 @@ extern DMA_HandleTypeDef handle_GPDMA1_Channel11;
 #define LOGGER_UART USART6
 /* USER CODE END Private defines */
 
-void MX_LPUART1_UART_Init(void);
-void MX_UART4_Init(void);
-void MX_UART5_Init(void);
-void MX_USART1_UART_Init(void);
-void MX_USART2_UART_Init(void);
-void MX_USART3_UART_Init(void);
-void MX_USART6_UART_Init(void);
+void MX_UART4_Init ( void );
+void MX_USART1_UART_Init ( void );
+void MX_USART2_UART_Init ( void );
+void MX_USART3_UART_Init ( void );
 
 /* USER CODE BEGIN Prototypes */
-int32_t lpuart1_init ( void );
+//int32_t lpuart1_init ( void );
 int32_t uart4_init ( void );
-int32_t uart5_init ( void );
+//int32_t uart5_init ( void );
 int32_t usart1_init ( void );
 int32_t usart2_init ( void );
 int32_t usart3_init ( void );
 int32_t usart6_init ( void );
 
-int32_t lpuart1_deinit ( void );
+//int32_t lpuart1_deinit ( void );
 int32_t uart4_deinit ( void );
-int32_t uart5_deinit ( void );
+//int32_t uart5_deinit ( void );
 int32_t usart1_deinit ( void );
 int32_t usart2_deinit ( void );
 int32_t usart3_deinit ( void );

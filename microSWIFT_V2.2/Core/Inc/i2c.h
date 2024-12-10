@@ -32,35 +32,26 @@ extern "C" {
 #include "stdbool.h"
 /* USER CODE END Includes */
 
-extern I2C_HandleTypeDef hi2c1;
-
 extern I2C_HandleTypeDef hi2c2;
-
-extern I2C_HandleTypeDef hi2c3;
-
-extern I2C_HandleTypeDef hi2c4;
 
 /* USER CODE BEGIN Private defines */
 #define I2C_OK 0
 #define I2C_ERROR -1
 
-#define LIGHT_SENSOR_I2C I2C1
+#define LIGHT_SENSOR_I2C I2C2
 #define TURBIDITY_SENSOR_I2C I2C2
 /* USER CODE END Private defines */
 
-void MX_I2C1_Init(void);
-void MX_I2C2_Init(void);
-void MX_I2C3_Init(void);
-void MX_I2C4_Init(void);
+void MX_I2C2_Init ( void );
 
 /* USER CODE BEGIN Prototypes */
-int32_t i2c1_init ( void );
+//int32_t i2c1_init ( void );
 int32_t i2c2_init ( void );
-int32_t i2c3_init ( void );
+//int32_t i2c3_init ( void );
 
-int32_t i2c1_deinit ( void );
+//int32_t i2c1_deinit ( void );
 int32_t i2c2_deinit ( void );
-int32_t i2c3_deinit ( void );
+//int32_t i2c3_deinit ( void );
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

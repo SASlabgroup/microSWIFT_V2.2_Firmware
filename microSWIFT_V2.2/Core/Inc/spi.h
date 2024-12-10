@@ -34,10 +34,6 @@ extern "C" {
 
 extern SPI_HandleTypeDef hspi1;
 
-extern SPI_HandleTypeDef hspi2;
-
-extern SPI_HandleTypeDef hspi3;
-
 /* USER CODE BEGIN Private defines */
 #define SPI_OK 0
 #define SPI_ERROR -1
@@ -47,18 +43,16 @@ extern SPI_HandleTypeDef hspi3;
 #define AUX_SPI_2 SPI3
 /* USER CODE END Private defines */
 
-void MX_SPI1_Init(void);
-void MX_SPI2_Init(void);
-void MX_SPI3_Init(void);
+void MX_SPI1_Init ( void );
 
 /* USER CODE BEGIN Prototypes */
 int32_t spi1_init ( void );
-int32_t spi2_init ( void );
-int32_t spi3_init ( void );
+//int32_t spi2_init ( void );
+//int32_t spi3_init ( void );
 
 int32_t spi1_deinit ( void );
-int32_t spi2_deinit ( void );
-int32_t spi3_deinit ( void );
+//int32_t spi2_deinit ( void );
+//int32_t spi3_deinit ( void );
 
 bool spi_bus_init_status ( SPI_TypeDef *instance );
 /* USER CODE END Prototypes */

@@ -322,15 +322,17 @@ static void _control_shutdown_all_peripherals ( void )
 static void _control_shutdown_all_interfaces ( void )
 {
   uart4_deinit ();
-  uart5_deinit ();
+//  uart5_deinit ();
   usart1_deinit ();
   usart2_deinit ();
   usart3_deinit ();
-  usart6_deinit ();
+//  usart6_deinit ();
 
   spi1_deinit ();
-  spi2_deinit ();
-  spi3_deinit ();
+//  spi2_deinit ();
+//  spi3_deinit ();
+
+  i2c2_deinit ();
 
   battery_deinit ();
 }
@@ -705,7 +707,7 @@ static void __handle_ct_error ( ULONG error_flag )
 static void __handle_temperature_error ( ULONG error_flag )
 {
   // Shut down the Temperature sensor
-  HAL_GPIO_WritePin (TEMP_FET_GPIO_Port, TEMP_FET_Pin, GPIO_PIN_RESET);
+//  HAL_GPIO_WritePin (TEMP_FET_GPIO_Port, TEMP_FET_Pin, GPIO_PIN_RESET);
 
   memset (&controller_self->current_message->mean_temp, CT_VALUES_ERROR_CODE, sizeof(real16_T));
 
@@ -720,7 +722,7 @@ static void __handle_temperature_error ( ULONG error_flag )
 static void __handle_turbidity_error ( ULONG error_flag )
 {
   // Shut down the Turbidity sensor
-  HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_RESET);
+//  HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_RESET);
 
 #warning"Set the turbidity fields to error values here."
 
@@ -736,7 +738,7 @@ static void __handle_turbidity_error ( ULONG error_flag )
 static void __handle_light_error ( ULONG error_flag )
 {
   // Shut down the Turbidity sensor
-  HAL_GPIO_WritePin (LIGHT_FET_GPIO_Port, LIGHT_FET_Pin, GPIO_PIN_RESET);
+//  HAL_GPIO_WritePin (LIGHT_FET_GPIO_Port, LIGHT_FET_Pin, GPIO_PIN_RESET);
 
 #warning"Set the light fields to error values here."
 

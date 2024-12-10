@@ -229,12 +229,12 @@ static uSWIFT_return_code_t _turbidity_sensor_stop_timer ( void )
 
 static void _turbidity_sensor_on ( void )
 {
-  HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_SET);
+//  HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_SET);
 }
 
 static void _turbidity_sensor_off ( void )
 {
-  HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_RESET);
+//  HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_RESET);
 }
 
 static int32_t _turbidity_sensor_i2c_init ( void )

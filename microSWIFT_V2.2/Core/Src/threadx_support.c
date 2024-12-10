@@ -371,7 +371,7 @@ void filex_error_out ( TX_THREAD *filex_thread, const char *fmt, ... )
   va_start(args, fmt);
   char tmp_fmt[128];
 
-  HAL_SD_DeInit (&hsd1);
+  HAL_SD_DeInit (&hsd2);
 
   vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
   va_end(args);

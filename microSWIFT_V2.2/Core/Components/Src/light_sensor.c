@@ -95,8 +95,8 @@ void light_sensor_init ( Light_Sensor *struct_ptr, microSWIFT_configuration *glo
   light_self->gpio_handle->set_int_pin_state = __set_as7341_int_pin_state;
   light_self->gpio_handle->set_gpio_pin_state = __set_as7341_gpio_pin_state;
 
-  light_self->fet.port = LIGHT_FET_GPIO_Port;
-  light_self->fet.pin = LIGHT_FET_Pin;
+//  light_self->fet.port = LIGHT_FET_GPIO_Port;
+//  light_self->fet.pin = LIGHT_FET_Pin;
 
   memset (&(light_self->raw_counts), 0, sizeof(light_self->raw_counts));
   memset (&(light_self->basic_counts), 0, sizeof(light_self->basic_counts));
@@ -513,12 +513,12 @@ static void _light_sensor_get_single_measurement ( uint16_t *raw_measurement, ui
 
 static void _light_sensor_on ( void )
 {
-  HAL_GPIO_WritePin (light_self->fet.port, light_self->fet.pin, GPIO_PIN_SET);
+//  HAL_GPIO_WritePin (light_self->fet.port, light_self->fet.pin, GPIO_PIN_SET);
 }
 
 static void _light_sensor_off ( void )
 {
-  HAL_GPIO_WritePin (light_self->fet.port, light_self->fet.pin, GPIO_PIN_RESET);
+//  HAL_GPIO_WritePin (light_self->fet.port, light_self->fet.pin, GPIO_PIN_RESET);
 }
 
 static bool __as7341_wait_on_int ( uint32_t timeout_ms )
@@ -559,12 +559,12 @@ void __set_as7341_gpio_pin_state ( GPIO_PinState state )
 
 static int32_t _light_sensor_i2c_init ( void )
 {
-  return i2c1_init ();
+  return i2c2_init ();
 }
 
 static int32_t _light_sensor_i2c_deinit ( void )
 {
-  return i2c1_deinit ();
+  return i2c2_deinit ();
 }
 
 static int32_t _light_sensor_i2c_read ( void *unused_handle, uint16_t bus_address,

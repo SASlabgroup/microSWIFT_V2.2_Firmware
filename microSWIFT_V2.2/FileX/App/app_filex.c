@@ -142,44 +142,45 @@ void fx_app_thread_entry ( ULONG thread_input )
 
   tx_thread_sleep (10);
 
-  if ( !sdmmc1_init () )
+  if ( !sdmmc2_init () )
   {
-    filex_error_out (this_thread, "SDMMC1 failed to initialize.");
+    filex_error_out (this_thread, "SDMMC2 failed to initialize.");
   }
 
   LOG("SD card peripheral initialization successful.");
 
-  if ( HAL_SD_GetCardInfo (&hsd1, &sd_info) != HAL_OK )
+  if ( HAL_SD_GetCardInfo (&hsd2, &sd_info) != HAL_OK )
   {
-    filex_error_out (this_thread, "SDMMC1 failed to initialize.");
+    filex_error_out (this_thread, "SDMMC2 failed to initialize.");
   }
 
   pCardInfoSD = &sd_info;
-  if ( is_first_sample_window () )
-  {
-    sd_status = fx_media_format (&sdio_disk,                          // SD_Disk pointer
-        fx_stm32_sd_driver,                  // Driver entry
-        (VOID*) FX_NULL,                     // Device info pointer
-        (UCHAR*) fx_sd_media_memory,        // Media buffer pointer
-        sizeof(fx_sd_media_memory),          // Media buffer size
-        FX_SD_VOLUME_NAME,                   // Volume Name
-        FX_SD_NUMBER_OF_FATS,                // Number of FATs
-        32,                                  // Directory Entries
-        FX_SD_HIDDEN_SECTORS,                // Hidden sectors
-        pCardInfoSD->BlockNbr,                 // Total sectors
-        FX_STM32_SD_DEFAULT_SECTOR_SIZE,     // Sector size
-        8,                                   // Sectors per cluster
-        1,                                   // Heads
-        1);                                  // Sectors per track
 
-    /* Check the format sd_status */
-    if ( sd_status != FX_SUCCESS )
-    {
-      filex_error_out (this_thread, "SD card format failed.");
-    }
-
-    LOG("SD card formatted.");
-  }
+//   if ( is_first_sample_window () )
+//   {
+//     sd_status = fx_media_format (&sdio_disk,                          // SD_Disk pointer
+//         fx_stm32_sd_driver,                  // Driver entry
+//         (VOID*) FX_NULL,                     // Device info pointer
+//         (UCHAR*) fx_sd_media_memory,        // Media buffer pointer
+//         sizeof(fx_sd_media_memory),          // Media buffer size
+//         FX_SD_VOLUME_NAME,                   // Volume Name
+//         FX_SD_NUMBER_OF_FATS,                // Number of FATs
+//         32,                                  // Directory Entries
+//         FX_SD_HIDDEN_SECTORS,                // Hidden sectors
+//         pCardInfoSD->BlockNbr,                 // Total sectors
+//         FX_STM32_SD_DEFAULT_SECTOR_SIZE,     // Sector size
+//         8,                                   // Sectors per cluster
+//         1,                                   // Heads
+//         1);                                  // Sectors per track
+//
+//     /* Check the format sd_status */
+//     if ( sd_status != FX_SUCCESS )
+//     {
+//       filex_error_out (this_thread, "SD card format failed.");
+//     }
+//
+//     LOG("SD card formatted.");
+//   }
 
   /* Open the SD disk driver */
   sd_status = fx_media_open(&sdio_disk, FX_SD_VOLUME_NAME, fx_stm32_sd_driver, (VOID *)FX_NULL,

@@ -72,8 +72,8 @@ void ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
   self->on = _ct_on;
   self->off = _ct_off;
 
-  generic_uart_register_io_functions (&self->uart_driver, ct_uart_handle, uart_sema, uart5_init,
-                                      uart5_deinit, NULL, NULL);
+  generic_uart_register_io_functions (&self->uart_driver, ct_uart_handle, uart_sema, usart1_init,
+                                      usart1_deinit, NULL, NULL);
 }
 
 /**

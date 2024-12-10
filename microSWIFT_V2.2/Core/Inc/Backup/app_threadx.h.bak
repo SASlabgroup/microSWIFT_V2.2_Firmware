@@ -23,7 +23,7 @@
 #define __APP_THREADX_H
 
 #ifdef __cplusplus
- extern "C" {
+extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
@@ -113,27 +113,23 @@ typedef enum error_flags
   GNSS_TOO_MANY_PARTIAL_MSGS            = ((ULONG) 1 << 3),
   GNSS_SAMPLE_WINDOW_TIMEOUT            = ((ULONG) 1 << 4),
   GNSS_FRAME_SYNC_FAILED                = ((ULONG) 1 << 5),
-  GNSS_SAMPLE_WINDOW_ERROR              = ((ULONG) 1 << 6),
-  CT_INIT_FAILED                        = ((ULONG) 1 << 7),
-  CT_SAMPLING_ERROR                     = ((ULONG) 1 << 8),
-  CT_SAMPLE_WINDOW_TIMEOUT              = ((ULONG) 1 << 9),
-  TEMPERATURE_INIT_FAILED               = ((ULONG) 1 << 10),
-  TEMPERATURE_SAMPLING_ERROR            = ((ULONG) 1 << 11),
-  TEMPERATURE_SAMPLE_WINDOW_TIMEOUT     = ((ULONG) 1 << 12),
-  LIGHT_INIT_FAILED                     = ((ULONG) 1 << 13),
-  LIGHT_SAMPLING_ERROR                  = ((ULONG) 1 << 14),
-  LIGHT_SAMPLE_WINDOW_TIMEOUT           = ((ULONG) 1 << 15),
-  TURBIDITY_INIT_FAILED                 = ((ULONG) 1 << 16),
-  TURBIDITY_SAMPLING_ERROR              = ((ULONG) 1 << 17),
-  TURBIDITY_SAMPLE_WINDOW_TIMEOUT       = ((ULONG) 1 << 18),
-  ACCELEROMETER_INIT_FAILED             = ((ULONG) 1 << 19),
-  ACCELEROMETER_SAMPLING_ERROR          = ((ULONG) 1 << 20),
-  ACCELEROMETER_SAMPLE_WINDOW_TIMEOUT   = ((ULONG) 1 << 21),
-  IRIDIUM_INIT_ERROR                    = ((ULONG) 1 << 22),
-  IRIDIUM_UART_COMMS_ERROR              = ((ULONG) 1 << 23),
-  FILE_SYSTEM_ERROR                     = ((ULONG) 1 << 24),
-  RTC_ERROR                             = ((ULONG) 1 << 25),
-  WAVES_INIT_FAILED                     = ((ULONG) 1 << 26),
+  CT_INIT_FAILED                        = ((ULONG) 1 << 6),
+  CT_SAMPLING_ERROR                     = ((ULONG) 1 << 7),
+  CT_SAMPLE_WINDOW_TIMEOUT              = ((ULONG) 1 << 8),
+  TEMPERATURE_INIT_FAILED               = ((ULONG) 1 << 9),
+  TEMPERATURE_SAMPLING_ERROR            = ((ULONG) 1 << 10),
+  TEMPERATURE_SAMPLE_WINDOW_TIMEOUT     = ((ULONG) 1 << 11),
+  LIGHT_INIT_FAILED                     = ((ULONG) 1 << 12),
+  LIGHT_SAMPLING_ERROR                  = ((ULONG) 1 << 13),
+  LIGHT_SAMPLE_WINDOW_TIMEOUT           = ((ULONG) 1 << 14),
+  TURBIDITY_INIT_FAILED                 = ((ULONG) 1 << 15),
+  TURBIDITY_SAMPLING_ERROR              = ((ULONG) 1 << 16),
+  TURBIDITY_SAMPLE_WINDOW_TIMEOUT       = ((ULONG) 1 << 17),
+  IRIDIUM_INIT_ERROR                    = ((ULONG) 1 << 18),
+  IRIDIUM_UART_COMMS_ERROR              = ((ULONG) 1 << 19),
+  FILE_SYSTEM_ERROR                     = ((ULONG) 1 << 20),
+  RTC_ERROR                             = ((ULONG) 1 << 21),
+  WAVES_INIT_FAILED                     = ((ULONG) 1 << 22),
   // Misc errors
   WATCHDOG_RESET                        = ((ULONG) 1 << 29),
   SOFTWARE_RESET                        = ((ULONG) 1 << 30),
@@ -152,15 +148,15 @@ typedef struct
   UART_HandleTypeDef    *gnss_uart_handle;
   UART_HandleTypeDef    *ct_uart_handle;
   UART_HandleTypeDef    *logger_uart_handle;
-  OSPI_HandleTypeDef    *ext_flash_handle;
+  OSPI_HandleTypeDef    *ext_psram_handle;
   ADC_HandleTypeDef     *battery_adc;
   // Expansion/ spares
-  SPI_HandleTypeDef     *aux_spi_1_handle;
-  SPI_HandleTypeDef     *aux_spi_2_handle;
-  I2C_HandleTypeDef     *aux_i2c_1_handle;
-  I2C_HandleTypeDef     *aux_i2c_2_handle;
-  UART_HandleTypeDef    *aux_uart_1_handle;
-  UART_HandleTypeDef    *aux_uart_2_handle;
+//  SPI_HandleTypeDef     *aux_spi_1_handle;
+//  SPI_HandleTypeDef     *aux_spi_2_handle;
+//  I2C_HandleTypeDef     *aux_i2c_1_handle;
+//  I2C_HandleTypeDef     *aux_i2c_2_handle;
+//  UART_HandleTypeDef    *aux_uart_1_handle;
+//  UART_HandleTypeDef    *aux_uart_2_handle;
   // DMA handles
   DMA_HandleTypeDef     *gnss_uart_tx_dma_handle;
   DMA_HandleTypeDef     *gnss_uart_rx_dma_handle;
@@ -168,10 +164,8 @@ typedef struct
   DMA_HandleTypeDef     *iridium_uart_rx_dma_handle;
   DMA_HandleTypeDef     *ct_uart_tx_dma_handle;
   DMA_HandleTypeDef     *ct_uart_rx_dma_handle;
-  DMA_HandleTypeDef     *aux_uart_1_tx_dma_handle;
-  DMA_HandleTypeDef     *aux_uart_1_rx_dma_handle;
-  DMA_HandleTypeDef     *aux_uart_2_tx_dma_handle;
-  DMA_HandleTypeDef     *aux_uart_2_rx_dma_handle;
+  DMA_HandleTypeDef     *logger_uart_tx_dma_handle;
+  DMA_HandleTypeDef     *logger_uart_rx_dma_handle;
 } Device_Handles;
 
 typedef struct
@@ -255,4 +249,4 @@ void MX_ThreadX_Init(void);
 #ifdef __cplusplus
 }
 #endif
-#endif /* __APP_THREADX_H__ */
+#endif /* __APP_THREADX_H */

@@ -46,8 +46,8 @@ void temperature_init ( Temperature *struct_ptr, microSWIFT_configuration *globa
   temperature_self->error_flags = error_flags;
   temperature_self->i2c_handle = i2c_handle;
   temperature_self->timer = timer;
-  temperature_self->pwr_gpio.port = TEMP_FET_GPIO_Port;
-  temperature_self->pwr_gpio.pin = TEMP_FET_Pin;
+//  temperature_self->pwr_gpio.port = TEMP_FET_GPIO_Port;
+//  temperature_self->pwr_gpio.pin = TEMP_FET_Pin;
   temperature_self->timer_timeout = false;
 
   temperature_self->self_test = _temperature_self_test;
@@ -172,14 +172,14 @@ static uSWIFT_return_code_t _temperature_stop_timer ( void )
 
 static void _temperature_on ( void )
 {
-  HAL_GPIO_WritePin (temperature_self->pwr_gpio.port, temperature_self->pwr_gpio.pin, GPIO_PIN_SET);
+//  HAL_GPIO_WritePin (temperature_self->pwr_gpio.port, temperature_self->pwr_gpio.pin, GPIO_PIN_SET);
   tx_thread_sleep (1);
 }
 
 static void _temperature_off ( void )
 {
-  HAL_GPIO_WritePin (temperature_self->pwr_gpio.port, temperature_self->pwr_gpio.pin,
-                     GPIO_PIN_RESET);
+//  HAL_GPIO_WritePin (temperature_self->pwr_gpio.port, temperature_self->pwr_gpio.pin,
+//                     GPIO_PIN_RESET);
 }
 
 static uSWIFT_return_code_t __init_sensor ( void )
@@ -189,7 +189,7 @@ static uSWIFT_return_code_t __init_sensor ( void )
   uint8_t read_data[2] =
     { 0 };
 
-  if ( i2c3_init () != I2C_OK )
+  if ( i2c2_init () != I2C_OK )
   {
     return false;
   }

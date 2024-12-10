@@ -45,7 +45,6 @@ typedef struct
     bool temperature_complete;
     bool light_complete;
     bool turbidity_complete;
-    bool accelerometer_complete;
     bool waves_complete;
     bool iridium_complete;
   } thread_status;

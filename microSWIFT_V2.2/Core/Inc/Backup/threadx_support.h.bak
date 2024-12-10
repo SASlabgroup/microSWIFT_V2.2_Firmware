@@ -49,6 +49,8 @@ void        iridium_error_out(Iridium* iridium, ULONG error_flag, TX_THREAD *iri
 void        rtc_error_out(TX_THREAD *rtc_thread, const char *fmt, ...);
 void        filex_error_out (TX_THREAD *filex_thread, const char *fmt, ...);
 
+bool        get_next_telemetry_message (uint8_t* msg_buffer, microSWIFT_configuration config);
+
 bool        is_first_sample_window ( void );
 
 ULONG       get_current_flags ( TX_EVENT_FLAGS_GROUP *event_flags );

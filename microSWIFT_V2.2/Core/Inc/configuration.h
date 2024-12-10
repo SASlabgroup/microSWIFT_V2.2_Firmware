@@ -89,15 +89,15 @@ static const microSWIFT_firmware_version_t firmware_version =
 #define TOTAL_CT_SAMPLES 10
 
 // If there is a Blue Robotics I2C temperature sensor presen
-#define TEMPERATURE_ENABLED true
+#define TEMPERATURE_ENABLED false
 #define TOTAL_TEMPERATURE_SAMPLES 10
 
 // If there is a light sensor present
-#define LIGHT_SENSOR_ENABLED true
+#define LIGHT_SENSOR_ENABLED false
 #define TOTAL_LIGHT_SAMPLES (TOTAL_SAMPLES_PER_WINDOW / GNSS_SAMPLING_RATE)
 
 // If there is a turbidity sensor present
-#define TURBIDITY_SENSOR_ENABLED true
+#define TURBIDITY_SENSOR_ENABLED false
 #define TOTAL_TURBIDITY_SAMPLES (TOTAL_SAMPLES_PER_WINDOW / GNSS_SAMPLING_RATE)
 
 typedef struct microSWIFT_configuration

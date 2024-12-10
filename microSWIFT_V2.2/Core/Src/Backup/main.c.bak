@@ -21,6 +21,9 @@
 #include "main.h"
 #include "gpdma.h"
 #include "memorymap.h"
+#include "rtc.h"
+#include "sdmmc.h"
+#include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -82,11 +85,11 @@ int main ( void )
 
   /* USER CODE END Init */
 
-  /* Configure the system clock */
-  SystemClock_Config ();
-
   /* Configure the System Power */
   SystemPower_Config ();
+
+  /* Configure the system clock */
+  SystemClock_Config ();
 
   /* USER CODE BEGIN SysInit */
   HAL_PWREx_DisablePullUpPullDownConfig ();
@@ -95,6 +98,9 @@ int main ( void )
   /* Initialize all configured peripherals */
   MX_GPIO_Init ();
   MX_GPDMA1_Init ();
+  MX_RTC_Init ();
+  MX_SDMMC2_SD_Init ();
+  MX_USART2_UART_Init ();
   /* USER CODE BEGIN 2 */
 
   tests_init ();
@@ -147,11 +153,10 @@ void SystemClock_Config ( void )
 
   /** Initializes the CPU, AHB and APB buses clocks
    */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI | RCC_OSCILLATORTYPE_LSE
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_LSE
                                      | RCC_OSCILLATORTYPE_MSIK;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.LSEState = RCC_LSE_ON;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.MSICalibrationValue = RCC_MSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.MSIKClockRange = RCC_MSIKRANGE_2;
   RCC_OscInitStruct.MSIKState = RCC_MSIK_ON;
@@ -165,13 +170,13 @@ void SystemClock_Config ( void )
    */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1
                                 | RCC_CLOCKTYPE_PCLK2 | RCC_CLOCKTYPE_PCLK3;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB3CLKDivider = RCC_HCLK_DIV1;
 
-  if ( HAL_RCC_ClockConfig (&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK )
+  if ( HAL_RCC_ClockConfig (&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK )
   {
     Error_Handler ();
   }
@@ -181,9 +186,9 @@ void SystemClock_Config ( void )
   HAL_RCCEx_EnableMSIPLLModeSelection (RCC_MSIKPLL_MODE_SEL);
   HAL_RCCEx_EnableMSIPLLMode ();
 
-  /** Enable the force of HSI in stop mode
+  /** Enables the Clock Security System
    */
-  __HAL_RCC_HSISTOP_ENABLE();
+  HAL_RCC_EnableCSS ();
 }
 
 /**

@@ -44,7 +44,7 @@ void uart_logger_init ( uart_logger *logger, TX_BLOCK_POOL *block_pool, TX_QUEUE
   if ( HAL_GPIO_ReadPin (logger_self->enable_pin.port, logger_self->enable_pin.pin)
        == GPIO_PIN_RESET )
   {
-    logger_self->logger_enabled = usart6_init () == UART_OK;
+    logger_self->logger_enabled = usart3_init () == UART_OK;
   }
   else
   {
