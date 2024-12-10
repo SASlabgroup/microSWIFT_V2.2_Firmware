@@ -47,8 +47,6 @@ typedef struct
 // Message definition for turbidity (OBS) measurements
 typedef struct
 {
-            char        legacy_number_7;
-            uint8_t     type;
   __packed  int32_t     start_lat;
   __packed  int32_t     start_lon;
   __packed  int32_t     end_lat;
@@ -64,6 +62,8 @@ typedef struct
 // Definition for the SBD message with multiple sample windows
 typedef struct
 {
+  char                        legacy_number_7;
+  uint8_t                     type;
   sbd_message_type_60_element elements[TURBIDITY_MSGS_PER_SBD];
   uint8_t                     checksum_a;
   uint8_t                     checksum_b;
@@ -72,8 +72,6 @@ typedef struct
 // Message definition for light measurements
 typedef struct
 {
-            char        legacy_number_7;
-            uint8_t     type;
   __packed  int32_t     start_lat;
   __packed  int32_t     start_lon;
   __packed  int32_t     end_lat;
@@ -98,6 +96,8 @@ typedef struct
 // Definition for the SBD message with multiple sample windows
 typedef struct
 {
+  char                        legacy_number_7;
+  uint8_t                     type;
   sbd_message_type_61_element elements[LIGHT_MSGS_PER_SBD];
   uint8_t                     checksum_a;
   uint8_t                     checksum_b;
