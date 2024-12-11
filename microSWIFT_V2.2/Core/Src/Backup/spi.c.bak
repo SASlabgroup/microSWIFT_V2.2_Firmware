@@ -204,107 +204,107 @@ int32_t spi1_init ( void )
   return ret;
 }
 
-int32_t spi2_init ( void )
-{
-  int32_t ret = SPI_OK;
-  SPI_AutonomousModeConfTypeDef HAL_SPI_AutonomousMode_Cfg_Struct =
-    { 0 };
-
-  hspi2.Instance = SPI2;
-  hspi2.Init.Mode = SPI_MODE_MASTER;
-  hspi2.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi2.Init.NSS = SPI_NSS_SOFT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
-  hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
-  hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
-  hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-  hspi2.Init.CRCPolynomial = 0x7;
-  hspi2.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
-  hspi2.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
-  hspi2.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
-  hspi2.Init.MasterSSIdleness = SPI_MASTER_SS_IDLENESS_00CYCLE;
-  hspi2.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_00CYCLE;
-  hspi2.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
-  hspi2.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
-  hspi2.Init.IOSwap = SPI_IO_SWAP_DISABLE;
-  hspi2.Init.ReadyMasterManagement = SPI_RDY_MASTER_MANAGEMENT_INTERNALLY;
-  hspi2.Init.ReadyPolarity = SPI_RDY_POLARITY_HIGH;
-
-  if ( HAL_SPI_Init (&hspi2) != HAL_OK )
-  {
-    ret = SPI_ERROR;
-    spi2_init_status = false;
-    return ret;
-  }
-  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerState = SPI_AUTO_MODE_DISABLE;
-  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerSelection = SPI_GRP1_GPDMA_CH0_TCF_TRG;
-  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerPolarity = SPI_TRIG_POLARITY_RISING;
-  if ( HAL_SPIEx_SetConfigAutonomousMode (&hspi2, &HAL_SPI_AutonomousMode_Cfg_Struct) != HAL_OK )
-  {
-    ret = SPI_ERROR;
-    spi2_init_status = false;
-    return ret;
-  }
-
-  spi2_init_status = true;
-
-  return ret;
-}
-
-int32_t spi3_init ( void )
-{
-  int32_t ret = SPI_OK;
-  SPI_AutonomousModeConfTypeDef HAL_SPI_AutonomousMode_Cfg_Struct =
-    { 0 };
-
-  hspi3.Instance = SPI3;
-  hspi3.Init.Mode = SPI_MODE_MASTER;
-  hspi3.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi3.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi3.Init.NSS = SPI_NSS_SOFT;
-  hspi3.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
-  hspi3.Init.FirstBit = SPI_FIRSTBIT_MSB;
-  hspi3.Init.TIMode = SPI_TIMODE_DISABLE;
-  hspi3.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-  hspi3.Init.CRCPolynomial = 0x7;
-  hspi3.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
-  hspi3.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
-  hspi3.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
-  hspi3.Init.MasterSSIdleness = SPI_MASTER_SS_IDLENESS_00CYCLE;
-  hspi3.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_00CYCLE;
-  hspi3.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
-  hspi3.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
-  hspi3.Init.IOSwap = SPI_IO_SWAP_DISABLE;
-  hspi3.Init.ReadyMasterManagement = SPI_RDY_MASTER_MANAGEMENT_INTERNALLY;
-  hspi3.Init.ReadyPolarity = SPI_RDY_POLARITY_HIGH;
-
-  if ( HAL_SPI_Init (&hspi3) != HAL_OK )
-  {
-    ret = SPI_ERROR;
-    spi3_init_status = false;
-    return ret;
-  }
-
-  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerState = SPI_AUTO_MODE_DISABLE;
-  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerSelection = SPI_GRP2_LPDMA_CH0_TCF_TRG;
-  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerPolarity = SPI_TRIG_POLARITY_RISING;
-
-  if ( HAL_SPIEx_SetConfigAutonomousMode (&hspi3, &HAL_SPI_AutonomousMode_Cfg_Struct) != HAL_OK )
-  {
-    ret = SPI_ERROR;
-    spi3_init_status = false;
-    return ret;
-  }
-
-  spi3_init_status = true;
-
-  return ret;
-}
+//int32_t spi2_init ( void )
+//{
+//  int32_t ret = SPI_OK;
+//  SPI_AutonomousModeConfTypeDef HAL_SPI_AutonomousMode_Cfg_Struct =
+//    { 0 };
+//
+//  hspi2.Instance = SPI2;
+//  hspi2.Init.Mode = SPI_MODE_MASTER;
+//  hspi2.Init.Direction = SPI_DIRECTION_2LINES;
+//  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
+//  hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
+//  hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
+//  hspi2.Init.NSS = SPI_NSS_SOFT;
+//  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+//  hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
+//  hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
+//  hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+//  hspi2.Init.CRCPolynomial = 0x7;
+//  hspi2.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+//  hspi2.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
+//  hspi2.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
+//  hspi2.Init.MasterSSIdleness = SPI_MASTER_SS_IDLENESS_00CYCLE;
+//  hspi2.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_00CYCLE;
+//  hspi2.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
+//  hspi2.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
+//  hspi2.Init.IOSwap = SPI_IO_SWAP_DISABLE;
+//  hspi2.Init.ReadyMasterManagement = SPI_RDY_MASTER_MANAGEMENT_INTERNALLY;
+//  hspi2.Init.ReadyPolarity = SPI_RDY_POLARITY_HIGH;
+//
+//  if ( HAL_SPI_Init (&hspi2) != HAL_OK )
+//  {
+//    ret = SPI_ERROR;
+//    spi2_init_status = false;
+//    return ret;
+//  }
+//  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerState = SPI_AUTO_MODE_DISABLE;
+//  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerSelection = SPI_GRP1_GPDMA_CH0_TCF_TRG;
+//  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerPolarity = SPI_TRIG_POLARITY_RISING;
+//  if ( HAL_SPIEx_SetConfigAutonomousMode (&hspi2, &HAL_SPI_AutonomousMode_Cfg_Struct) != HAL_OK )
+//  {
+//    ret = SPI_ERROR;
+//    spi2_init_status = false;
+//    return ret;
+//  }
+//
+//  spi2_init_status = true;
+//
+//  return ret;
+//}
+//
+//int32_t spi3_init ( void )
+//{
+//  int32_t ret = SPI_OK;
+//  SPI_AutonomousModeConfTypeDef HAL_SPI_AutonomousMode_Cfg_Struct =
+//    { 0 };
+//
+//  hspi3.Instance = SPI3;
+//  hspi3.Init.Mode = SPI_MODE_MASTER;
+//  hspi3.Init.Direction = SPI_DIRECTION_2LINES;
+//  hspi3.Init.DataSize = SPI_DATASIZE_8BIT;
+//  hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
+//  hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
+//  hspi3.Init.NSS = SPI_NSS_SOFT;
+//  hspi3.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+//  hspi3.Init.FirstBit = SPI_FIRSTBIT_MSB;
+//  hspi3.Init.TIMode = SPI_TIMODE_DISABLE;
+//  hspi3.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+//  hspi3.Init.CRCPolynomial = 0x7;
+//  hspi3.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+//  hspi3.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
+//  hspi3.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
+//  hspi3.Init.MasterSSIdleness = SPI_MASTER_SS_IDLENESS_00CYCLE;
+//  hspi3.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_00CYCLE;
+//  hspi3.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
+//  hspi3.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
+//  hspi3.Init.IOSwap = SPI_IO_SWAP_DISABLE;
+//  hspi3.Init.ReadyMasterManagement = SPI_RDY_MASTER_MANAGEMENT_INTERNALLY;
+//  hspi3.Init.ReadyPolarity = SPI_RDY_POLARITY_HIGH;
+//
+//  if ( HAL_SPI_Init (&hspi3) != HAL_OK )
+//  {
+//    ret = SPI_ERROR;
+//    spi3_init_status = false;
+//    return ret;
+//  }
+//
+//  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerState = SPI_AUTO_MODE_DISABLE;
+//  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerSelection = SPI_GRP2_LPDMA_CH0_TCF_TRG;
+//  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerPolarity = SPI_TRIG_POLARITY_RISING;
+//
+//  if ( HAL_SPIEx_SetConfigAutonomousMode (&hspi3, &HAL_SPI_AutonomousMode_Cfg_Struct) != HAL_OK )
+//  {
+//    ret = SPI_ERROR;
+//    spi3_init_status = false;
+//    return ret;
+//  }
+//
+//  spi3_init_status = true;
+//
+//  return ret;
+//}
 
 int32_t spi1_deinit ( void )
 {
@@ -322,40 +322,40 @@ int32_t spi1_deinit ( void )
 
   return ret;
 }
-
-int32_t spi2_deinit ( void )
-{
-  int32_t ret = SPI_OK;
-
-  if ( spi2_init_status )
-  {
-    if ( HAL_SPI_DeInit (&hspi2) != HAL_OK )
-    {
-      ret = SPI_ERROR;
-    }
-
-    spi2_init_status = false;
-  }
-
-  return ret;
-}
-
-int32_t spi3_deinit ( void )
-{
-  int32_t ret = SPI_OK;
-
-  if ( spi3_init_status )
-  {
-    if ( HAL_SPI_DeInit (&hspi3) != HAL_OK )
-    {
-      ret = SPI_ERROR;
-    }
-
-    spi3_init_status = false;
-  }
-
-  return ret;
-}
+//
+//int32_t spi2_deinit ( void )
+//{
+//  int32_t ret = SPI_OK;
+//
+//  if ( spi2_init_status )
+//  {
+//    if ( HAL_SPI_DeInit (&hspi2) != HAL_OK )
+//    {
+//      ret = SPI_ERROR;
+//    }
+//
+//    spi2_init_status = false;
+//  }
+//
+//  return ret;
+//}
+//
+//int32_t spi3_deinit ( void )
+//{
+//  int32_t ret = SPI_OK;
+//
+//  if ( spi3_init_status )
+//  {
+//    if ( HAL_SPI_DeInit (&hspi3) != HAL_OK )
+//    {
+//      ret = SPI_ERROR;
+//    }
+//
+//    spi3_init_status = false;
+//  }
+//
+//  return ret;
+//}
 
 bool spi_bus_init_status ( SPI_TypeDef *instance )
 {

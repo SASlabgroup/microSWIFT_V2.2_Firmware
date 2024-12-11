@@ -42,7 +42,7 @@ extern I2C_HandleTypeDef hi2c2;
 #define TURBIDITY_SENSOR_I2C I2C2
 /* USER CODE END Private defines */
 
-void MX_I2C2_Init ( void );
+void MX_I2C2_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 //int32_t i2c1_init ( void );

@@ -54,6 +54,7 @@
 #include "controller.h"
 #include "persistent_ram.h"
 #include "sbd.h"
+#include "lptim.h"
 
 // Waves files
 #include "NEDWaves/NEDwaves_memlight.h"
@@ -217,11 +218,11 @@ static void turbidity_thread_entry ( ULONG thread_input );
 /* USER CODE END PFP */
 
 /**
- * @brief  Application ThreadX Initialization.
- * @param memory_ptr: memory pointer
- * @retval int
- */
-UINT App_ThreadX_Init ( VOID *memory_ptr )
+  * @brief  Application ThreadX Initialization.
+  * @param memory_ptr: memory pointer
+  * @retval int
+  */
+UINT App_ThreadX_Init(VOID *memory_ptr)
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -678,18 +679,18 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   return ret;
 }
 
-/**
- * @brief  Function that implements the kernel's initialization.
- * @param  None
- * @retval None
- */
-void MX_ThreadX_Init ( void )
+  /**
+  * @brief  Function that implements the kernel's initialization.
+  * @param  None
+  * @retval None
+  */
+void MX_ThreadX_Init(void)
 {
   /* USER CODE BEGIN Before_Kernel_Start */
 
   /* USER CODE END Before_Kernel_Start */
 
-  tx_kernel_enter ();
+  tx_kernel_enter();
 
   /* USER CODE BEGIN Kernel_Start_Error */
 
@@ -749,6 +750,9 @@ static void rtc_thread_entry ( ULONG thread_input )
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
     rtc_error_out (this_thread, "RTC failed to initialize.");
   }
+
+  MX_LPTIM1_Init ();
+  HAL_LPTIM_Counter_Start_IT (&hlptim1);
 
   (void) tx_event_flags_set (&initialization_flags, RTC_INIT_SUCCESS, TX_OR);
 
@@ -1779,7 +1783,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   time_t time_now = 0;
   uint8_t msg_buffer[IRIDIUM_SBD_MAX_LENGTH + IRIDIUM_CHECKSUM_LENGTH] =
     { 0 };
-  uint8_t *msg_ptr;
+  uint8_t *msg_ptr = (uint8_t*) &sbd_message;
   bool current_message_sent = false;
 
   tx_thread_sleep (10);
@@ -1843,6 +1847,8 @@ static void iridium_thread_entry ( ULONG thread_input )
   memcpy (&sbd_message.size, &sbd_size, sizeof(uint16_t));
   memcpy (&sbd_message.timestamp, &sbd_timestamp, sizeof(float));
   memcpy (&sbd_message.error_bits, &error_bits, sizeof(uint32_t));
+
+  msg_ptr = (uint8_t*) &sbd_message;
 
   if ( !iridium_apply_config (&iridium) )
   {

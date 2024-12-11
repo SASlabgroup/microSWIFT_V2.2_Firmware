@@ -8,13 +8,14 @@
 #include "testing_hooks.h"
 #include "stddef.h"
 #include "ext_rtc.h"
+#include "lptim.h"
 
 testing_hooks tests;
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*################################## Test Declarations ###########################################*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
+bool test_lptim_crytstal ( void *unused );
 /**************************************************************************************************/
 /*********************************** Init --> Assign Tests ****************************************/
 /**************************************************************************************************/
@@ -39,3 +40,43 @@ void tests_init ( void )
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*################################## Test Definitions ############################################*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+bool test_lptim_crytstal ( void *unused )
+{
+  HAL_LPTIM_Counter_Start_IT (&hlptim1);
+  return true;
+}
+
+void HAL_LPTIM_CompareMatchCallback ( LPTIM_HandleTypeDef *hlptim )
+{
+
+  static bool toggle = false;
+
+  HAL_GPIO_WritePin (GPIOF, GPIO_PIN_13, toggle);
+  toggle = !toggle;
+
+  HAL_LPTIM_Counter_Start_IT (&hlptim1);
+
+}
+
+void HAL_LPTIM_AutoReloadMatchCallback ( LPTIM_HandleTypeDef *hlptim )
+{
+
+  static bool toggle = false;
+
+  HAL_GPIO_WritePin (GPIOF, GPIO_PIN_13, toggle);
+  toggle = !toggle;
+
+  HAL_LPTIM_Counter_Start_IT (&hlptim1);
+}
+
+void HAL_LPTIM_TriggerCallback ( LPTIM_HandleTypeDef *hlptim )
+{
+
+  static bool toggle = false;
+
+  HAL_GPIO_WritePin (GPIOF, GPIO_PIN_13, toggle);
+  toggle = !toggle;
+
+  HAL_LPTIM_Counter_Start_IT (&hlptim1);
+}

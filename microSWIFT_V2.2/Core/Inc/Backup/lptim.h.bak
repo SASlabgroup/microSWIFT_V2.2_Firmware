@@ -1,9 +1,9 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    lpdma.h
+  * @file    lptim.h
   * @brief   This file contains all the function prototypes for
-  *          the lpdma.c file
+  *          the lptim.c file
   ******************************************************************************
   * @attention
   *
@@ -18,8 +18,8 @@
   */
 /* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __LPDMA_H__
-#define __LPDMA_H__
+#ifndef __LPTIM_H__
+#define __LPTIM_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,11 +32,15 @@ extern "C" {
 
 /* USER CODE END Includes */
 
+extern LPTIM_HandleTypeDef hlptim1;
+
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
 
-void MX_LPDMA1_Init(void);
+void MX_LPTIM1_Init(void);
+
+void HAL_LPTIM_MspPostInit(LPTIM_HandleTypeDef *hlptim);
 
 /* USER CODE BEGIN Prototypes */
 
@@ -46,5 +50,5 @@ void MX_LPDMA1_Init(void);
 }
 #endif
 
-#endif /* __LPDMA_H__ */
+#endif /* __LPTIM_H__ */
 

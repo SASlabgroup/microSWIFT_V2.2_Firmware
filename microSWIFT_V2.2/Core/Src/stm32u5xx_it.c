@@ -57,10 +57,9 @@
 /* External variables --------------------------------------------------------*/
 extern ADC_HandleTypeDef hadc1;
 extern I2C_HandleTypeDef hi2c2;
-extern DMA_HandleTypeDef handle_GPDMA1_Channel15;
-extern OSPI_HandleTypeDef hospi1;
-extern SD_HandleTypeDef hsd2;
-extern SPI_HandleTypeDef hspi1;
+extern LPTIM_HandleTypeDef hlptim1;
+extern DMA_HandleTypeDef handle_LPDMA1_Channel0;
+extern DMA_HandleTypeDef handle_LPDMA1_Channel1;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel9;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel8;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel11;
@@ -75,6 +74,10 @@ extern UART_HandleTypeDef huart4;
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel15;
+extern OSPI_HandleTypeDef hospi1;
+extern SD_HandleTypeDef hsd2;
+extern SPI_HandleTypeDef hspi1;
 extern TIM_HandleTypeDef htim6;
 
 /* USER CODE BEGIN EV */
@@ -203,20 +206,6 @@ void EXTI0_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles EXTI Line1 interrupt.
-  */
-void EXTI1_IRQHandler(void)
-{
-  /* USER CODE BEGIN EXTI1_IRQn 0 */
-
-  /* USER CODE END EXTI1_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(AS7341_INT_Pin);
-  /* USER CODE BEGIN EXTI1_IRQn 1 */
-
-  /* USER CODE END EXTI1_IRQn 1 */
-}
-
-/**
   * @brief This function handles EXTI Line2 interrupt.
   */
 void EXTI2_IRQHandler(void)
@@ -228,20 +217,6 @@ void EXTI2_IRQHandler(void)
   /* USER CODE BEGIN EXTI2_IRQn 1 */
 
   /* USER CODE END EXTI2_IRQn 1 */
-}
-
-/**
-  * @brief This function handles EXTI Line12 interrupt.
-  */
-void EXTI12_IRQHandler(void)
-{
-  /* USER CODE BEGIN EXTI12_IRQn 0 */
-
-  /* USER CODE END EXTI12_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(RTC_INT_A_Pin);
-  /* USER CODE BEGIN EXTI12_IRQn 1 */
-
-  /* USER CODE END EXTI12_IRQn 1 */
 }
 
 /**
@@ -441,6 +416,20 @@ void UART4_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles LPTIM1 global interrupt.
+  */
+void LPTIM1_IRQHandler(void)
+{
+  /* USER CODE BEGIN LPTIM1_IRQn 0 */
+
+  /* USER CODE END LPTIM1_IRQn 0 */
+  HAL_LPTIM_IRQHandler(&hlptim1);
+  /* USER CODE BEGIN LPTIM1_IRQn 1 */
+
+  /* USER CODE END LPTIM1_IRQn 1 */
+}
+
+/**
   * @brief This function handles OCTOSPI1 global interrupt.
   */
 void OCTOSPI1_IRQHandler(void)
@@ -536,6 +525,34 @@ void GPDMA1_Channel15_IRQHandler(void)
   /* USER CODE BEGIN GPDMA1_Channel15_IRQn 1 */
 
   /* USER CODE END GPDMA1_Channel15_IRQn 1 */
+}
+
+/**
+  * @brief This function handles LPDMA1 SmartRun Channel 0 global interrupt.
+  */
+void LPDMA1_Channel0_IRQHandler(void)
+{
+  /* USER CODE BEGIN LPDMA1_Channel0_IRQn 0 */
+
+  /* USER CODE END LPDMA1_Channel0_IRQn 0 */
+  HAL_DMA_IRQHandler(&handle_LPDMA1_Channel0);
+  /* USER CODE BEGIN LPDMA1_Channel0_IRQn 1 */
+
+  /* USER CODE END LPDMA1_Channel0_IRQn 1 */
+}
+
+/**
+  * @brief This function handles LPDMA1 SmartRun Channel 1 global interrupt.
+  */
+void LPDMA1_Channel1_IRQHandler(void)
+{
+  /* USER CODE BEGIN LPDMA1_Channel1_IRQn 0 */
+
+  /* USER CODE END LPDMA1_Channel1_IRQn 0 */
+  HAL_DMA_IRQHandler(&handle_LPDMA1_Channel1);
+  /* USER CODE BEGIN LPDMA1_Channel1_IRQn 1 */
+
+  /* USER CODE END LPDMA1_Channel1_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

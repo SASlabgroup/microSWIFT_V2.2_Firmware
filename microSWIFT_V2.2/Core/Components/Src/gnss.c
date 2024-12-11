@@ -252,16 +252,6 @@ static uSWIFT_return_code_t _gnss_config ( void )
 
   tx_thread_sleep (20);
 
-  //
-  //
-  // Testing
-  uint8_t test_payload[12] =
-    { 224, 161, 251, 14, 232, 7, 11, 12, 21, 49, 14, 243 };
-
-  gnss_self->set_rtc (&test_payload[0]);  //
-  //
-  // End Testing
-
   return return_code;
 }
 
@@ -274,12 +264,12 @@ static uSWIFT_return_code_t _gnss_sync_and_start_reception ( void )
 {
   uSWIFT_return_code_t return_code = uSWIFT_SUCCESS;
   ULONG actual_flags;
-  uint8_t msg_buf[INITIAL_STAGES_BUFFER_SIZE];
+  uint8_t msg_buf[INITIAL_STAGES_BUFFER_SIZE + 10];
   int max_ticks_to_get_message = round (
       (((float) ((float) INITIAL_STAGES_BUFFER_SIZE / (float) UBX_NAV_PVT_MESSAGE_LENGTH))
        * ((float) ((float) TX_TIMER_TICKS_PER_SECOND
                    / (float) gnss_self->global_config->gnss_sampling_rate)))
-      + 10);
+      + 50);
   uint32_t watchdog_counter = 0;
 
   // Zero out the message buffer
@@ -295,7 +285,8 @@ static uSWIFT_return_code_t _gnss_sync_and_start_reception ( void )
       watchdog_counter = 0;
     }
     // Grab 5 UBX_NAV_PVT messages
-    HAL_UART_Receive_DMA (gnss_self->gnss_uart_handle, &(msg_buf[0]), INITIAL_STAGES_BUFFER_SIZE);
+    HAL_UART_Receive_DMA (gnss_self->gnss_uart_handle, &(msg_buf[0]),
+    INITIAL_STAGES_BUFFER_SIZE);
 
     if ( tx_event_flags_get (gnss_self->irq_flags, GNSS_CONFIG_RECVD, TX_OR_CLEAR, &actual_flags,
                              max_ticks_to_get_message)
@@ -304,7 +295,7 @@ static uSWIFT_return_code_t _gnss_sync_and_start_reception ( void )
       // If we didn't receive the needed messaged in time, cycle the GNSS sensor
       __cycle_power ();
       HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
-      tx_thread_sleep (27);
+      tx_thread_sleep (3);
       gnss_self->reset_uart ();
       continue;
     }
@@ -312,8 +303,9 @@ static uSWIFT_return_code_t _gnss_sync_and_start_reception ( void )
     __process_frame_sync_messages (msg_buf);
     // this both ensures we have frame sync'd with the GNSS sensor and are safe
     // to kick off circular DMA receive
-    if ( gnss_self->messages_processed == 5 && gnss_self->number_cycles_without_data == 0
-         && gnss_self->total_samples == 5 )
+    if ( gnss_self->messages_processed == gnss_self->global_config->gnss_sampling_rate
+         && gnss_self->number_cycles_without_data == 0
+         && gnss_self->total_samples == gnss_self->global_config->gnss_sampling_rate )
     {
       return_code = uSWIFT_SUCCESS;
       break;

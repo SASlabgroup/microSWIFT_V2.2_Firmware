@@ -65,8 +65,6 @@ void Error_Handler(void);
 #define RTC_TIMESTAMP_4_GPIO_Port GPIOC
 #define RTC_TIMESTAMP_2_Pin GPIO_PIN_3
 #define RTC_TIMESTAMP_2_GPIO_Port GPIOC
-#define RTC_TIMESTAMP_1_Pin GPIO_PIN_2
-#define RTC_TIMESTAMP_1_GPIO_Port GPIOA
 #define RTC_TIMESTAMP_3_Pin GPIO_PIN_0
 #define RTC_TIMESTAMP_3_GPIO_Port GPIOB
 #define SPI2_CSn1_Pin GPIO_PIN_1
@@ -78,7 +76,6 @@ void Error_Handler(void);
 #define SPI1_CSn1_GPIO_Port GPIOF
 #define RTC_INT_A_Pin GPIO_PIN_12
 #define RTC_INT_A_GPIO_Port GPIOF
-#define RTC_INT_A_EXTI_IRQn EXTI12_IRQn
 #define AS7341_GPIO_Pin GPIO_PIN_13
 #define AS7341_GPIO_GPIO_Port GPIOF
 #define SPI1_CSn3_Pin GPIO_PIN_14
@@ -87,7 +84,6 @@ void Error_Handler(void);
 #define SPI2_CSn3_GPIO_Port GPIOF
 #define AS7341_INT_Pin GPIO_PIN_1
 #define AS7341_INT_GPIO_Port GPIOG
-#define AS7341_INT_EXTI_IRQn EXTI1_IRQn
 #define SPARE_GPIO2_Pin GPIO_PIN_7
 #define SPARE_GPIO2_GPIO_Port GPIOE
 #define SPARE_GPIO3_Pin GPIO_PIN_8
@@ -110,15 +106,17 @@ void Error_Handler(void);
 #define EXT_LED_RED_GPIO_Port GPIOD
 #define EXT_LED_GREEN_Pin GPIO_PIN_10
 #define EXT_LED_GREEN_GPIO_Port GPIOD
+#define RTC_TIMESTAMP_1_Pin GPIO_PIN_13
+#define RTC_TIMESTAMP_1_GPIO_Port GPIOD
 #define RTC_SPI_CS_Pin GPIO_PIN_14
 #define RTC_SPI_CS_GPIO_Port GPIOD
 #define IRIDIUM_FET_Pin GPIO_PIN_2
 #define IRIDIUM_FET_GPIO_Port GPIOG
+#define IRIDIUM_OnOff_Pin GPIO_PIN_3
+#define IRIDIUM_OnOff_GPIO_Port GPIOG
 #define IRIDIUM_RI_N_Pin GPIO_PIN_0
 #define IRIDIUM_RI_N_GPIO_Port GPIOD
 #define IRIDIUM_RI_N_EXTI_IRQn EXTI0_IRQn
-#define IRIDIUM_OnOff_Pin GPIO_PIN_3
-#define IRIDIUM_OnOff_GPIO_Port GPIOD
 #define BUS_5V_FET_Pin GPIO_PIN_4
 #define BUS_5V_FET_GPIO_Port GPIOD
 #define GNSS_FET_Pin GPIO_PIN_4

@@ -20,10 +20,8 @@
 #include "app_threadx.h"
 #include "main.h"
 #include "gpdma.h"
+#include "lpdma.h"
 #include "memorymap.h"
-#include "rtc.h"
-#include "sdmmc.h"
-#include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -98,9 +96,7 @@ int main ( void )
   /* Initialize all configured peripherals */
   MX_GPIO_Init ();
   MX_GPDMA1_Init ();
-  MX_RTC_Init ();
-  MX_SDMMC2_SD_Init ();
-  MX_USART2_UART_Init ();
+  MX_LPDMA1_Init ();
   /* USER CODE BEGIN 2 */
 
   tests_init ();
@@ -146,17 +142,12 @@ void SystemClock_Config ( void )
     Error_Handler ();
   }
 
-  /** Configure LSE Drive Capability
-   */
-  HAL_PWR_EnableBkUpAccess ();
-  __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
-
   /** Initializes the CPU, AHB and APB buses clocks
    */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_LSE
                                      | RCC_OSCILLATORTYPE_MSIK;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
+  RCC_OscInitStruct.LSEState = RCC_LSE_BYPASS;
   RCC_OscInitStruct.MSICalibrationValue = RCC_MSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.MSIKClockRange = RCC_MSIKRANGE_2;
   RCC_OscInitStruct.MSIKState = RCC_MSIK_ON;

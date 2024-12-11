@@ -10,6 +10,7 @@
 #include "usart.h"
 #include "gpio.h"
 #include "gnss.h"
+#include "lptim.h"
 #include "battery.h"
 
 /**
@@ -97,14 +98,14 @@ void HAL_UART_TxCpltCallback ( UART_HandleTypeDef *huart )
   {
     (void) tx_event_flags_set (&irq_flags, GNSS_TX_COMPLETE, TX_OR);
   }
-  else if ( huart->Instance == AUX_UART_1 )
-  {
-    (void) tx_semaphore_put (&aux_uart_1_sema);
-  }
-  else if ( huart->Instance == AUX_UART_2 )
-  {
-    (void) tx_semaphore_put (&aux_uart_2_sema);
-  }
+//  else if ( huart->Instance == AUX_UART_1 )
+//  {
+//    (void) tx_semaphore_put (&aux_uart_1_sema);
+//  }
+//  else if ( huart->Instance == AUX_UART_2 )
+//  {
+//    (void) tx_semaphore_put (&aux_uart_2_sema);
+//  }
   else if ( huart->Instance == LOGGER_UART )
   {
     (void) tx_semaphore_put (&logger_sema);
@@ -137,14 +138,14 @@ void HAL_UART_RxCpltCallback ( UART_HandleTypeDef *huart )
       (void) tx_event_flags_set (&irq_flags, GNSS_CONFIG_RECVD, TX_OR);
     }
   }
-  else if ( huart->Instance == AUX_UART_1 )
-  {
-    (void) tx_semaphore_put (&aux_uart_1_sema);
-  }
-  else if ( huart->Instance == AUX_UART_2 )
-  {
-    (void) tx_semaphore_put (&aux_uart_2_sema);
-  }
+//  else if ( huart->Instance == AUX_UART_1 )
+//  {
+//    (void) tx_semaphore_put (&aux_uart_1_sema);
+//  }
+//  else if ( huart->Instance == AUX_UART_2 )
+//  {
+//    (void) tx_semaphore_put (&aux_uart_2_sema);
+//  }
 }
 
 /**
@@ -196,14 +197,14 @@ void HAL_UARTEx_RxEventCallback ( UART_HandleTypeDef *huart, uint16_t Size )
       (void) tx_event_flags_set (&irq_flags, GNSS_MSG_RECEIVED, TX_OR);
     }
   }
-  else if ( huart->Instance == AUX_UART_1 )
-  {
-    (void) tx_semaphore_put (&aux_uart_1_sema);
-  }
-  else if ( huart->Instance == AUX_UART_2 )
-  {
-    (void) tx_semaphore_put (&aux_uart_2_sema);
-  }
+//  else if ( huart->Instance == AUX_UART_1 )
+//  {
+//    (void) tx_semaphore_put (&aux_uart_1_sema);
+//  }
+//  else if ( huart->Instance == AUX_UART_2 )
+//  {
+//    (void) tx_semaphore_put (&aux_uart_2_sema);
+//  }
 }
 
 /**

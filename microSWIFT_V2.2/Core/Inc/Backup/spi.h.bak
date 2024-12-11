@@ -47,12 +47,12 @@ void MX_SPI1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 int32_t spi1_init ( void );
-int32_t spi2_init ( void );
-int32_t spi3_init ( void );
+//int32_t spi2_init ( void );
+//int32_t spi3_init ( void );
 
 int32_t spi1_deinit ( void );
-int32_t spi2_deinit ( void );
-int32_t spi3_deinit ( void );
+//int32_t spi2_deinit ( void );
+//int32_t spi3_deinit ( void );
 
 bool spi_bus_init_status ( SPI_TypeDef *instance );
 /* USER CODE END Prototypes */

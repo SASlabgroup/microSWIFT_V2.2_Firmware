@@ -369,7 +369,7 @@ static void _control_enter_processor_standby_mode ( void )
   HAL_PWREx_EnableGPIOPullUp (PWR_GPIO_B, RTC_INT_B_Pin);
 
   // Configure the sleep pin for the modem
-  HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_D, IRIDIUM_OnOff_Pin);
+  HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_G, IRIDIUM_OnOff_Pin);
 
   // PWR_WAKEUP_PIN1_LOW_1 = PB2 --> RTC INT_B Low Polarity
   HAL_PWR_EnableWakeUpPin (PWR_WAKEUP_PIN1_LOW_1);
@@ -640,6 +640,8 @@ static void __get_alarm_settings_from_time ( struct tm *time, rtc_alarm_struct *
   alarm->weekday_alarm_en = false;
   alarm->alarm_second = 0;
 
+  //
+  //
   // Testing
   alarm->alarm_second = (time->tm_sec + 20) % 60;
   alarm->alarm_minute = (alarm->alarm_second < time->tm_sec) ?
@@ -647,8 +649,11 @@ static void __get_alarm_settings_from_time ( struct tm *time, rtc_alarm_struct *
   alarm->alarm_hour = (alarm->alarm_minute == 0) ?
       (time->tm_hour + 1) % 24 : time->tm_hour;
   return;
+  //
+  //
+  // End Testing
 
-  if ( controller_self->global_config->windows_per_hour == 0 )
+  if ( controller_self->global_config->windows_per_hour == 1 )
   {
     alarm->alarm_minute = 0;
     alarm->alarm_hour = (time->tm_hour + 1) % 24;

@@ -322,15 +322,17 @@ static void _control_shutdown_all_peripherals ( void )
 static void _control_shutdown_all_interfaces ( void )
 {
   uart4_deinit ();
-  uart5_deinit ();
+//  uart5_deinit ();
   usart1_deinit ();
   usart2_deinit ();
   usart3_deinit ();
-  usart6_deinit ();
+//  usart6_deinit ();
 
   spi1_deinit ();
-  spi2_deinit ();
-  spi3_deinit ();
+//  spi2_deinit ();
+//  spi3_deinit ();
+
+  i2c2_deinit ();
 
   battery_deinit ();
 }
@@ -367,7 +369,7 @@ static void _control_enter_processor_standby_mode ( void )
   HAL_PWREx_EnableGPIOPullUp (PWR_GPIO_B, RTC_INT_B_Pin);
 
   // Configure the sleep pin for the modem
-  HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_D, IRIDIUM_OnOff_Pin);
+  HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_G, IRIDIUM_OnOff_Pin);
 
   // PWR_WAKEUP_PIN1_LOW_1 = PB2 --> RTC INT_B Low Polarity
   HAL_PWR_EnableWakeUpPin (PWR_WAKEUP_PIN1_LOW_1);
@@ -638,6 +640,8 @@ static void __get_alarm_settings_from_time ( struct tm *time, rtc_alarm_struct *
   alarm->weekday_alarm_en = false;
   alarm->alarm_second = 0;
 
+  //
+  //
   // Testing
   alarm->alarm_second = (time->tm_sec + 20) % 60;
   alarm->alarm_minute = (alarm->alarm_second < time->tm_sec) ?
@@ -645,8 +649,11 @@ static void __get_alarm_settings_from_time ( struct tm *time, rtc_alarm_struct *
   alarm->alarm_hour = (alarm->alarm_minute == 0) ?
       (time->tm_hour + 1) % 24 : time->tm_hour;
   return;
+  //
+  //
+  // End Testing
 
-  if ( controller_self->global_config->windows_per_hour == 0 )
+  if ( controller_self->global_config->windows_per_hour == 1 )
   {
     alarm->alarm_minute = 0;
     alarm->alarm_hour = (time->tm_hour + 1) % 24;
@@ -705,7 +712,7 @@ static void __handle_ct_error ( ULONG error_flag )
 static void __handle_temperature_error ( ULONG error_flag )
 {
   // Shut down the Temperature sensor
-  HAL_GPIO_WritePin (TEMP_FET_GPIO_Port, TEMP_FET_Pin, GPIO_PIN_RESET);
+//  HAL_GPIO_WritePin (TEMP_FET_GPIO_Port, TEMP_FET_Pin, GPIO_PIN_RESET);
 
   memset (&controller_self->current_message->mean_temp, CT_VALUES_ERROR_CODE, sizeof(real16_T));
 
@@ -720,7 +727,7 @@ static void __handle_temperature_error ( ULONG error_flag )
 static void __handle_turbidity_error ( ULONG error_flag )
 {
   // Shut down the Turbidity sensor
-  HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_RESET);
+//  HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_RESET);
 
 #warning"Set the turbidity fields to error values here."
 
@@ -736,7 +743,7 @@ static void __handle_turbidity_error ( ULONG error_flag )
 static void __handle_light_error ( ULONG error_flag )
 {
   // Shut down the Turbidity sensor
-  HAL_GPIO_WritePin (LIGHT_FET_GPIO_Port, LIGHT_FET_Pin, GPIO_PIN_RESET);
+//  HAL_GPIO_WritePin (LIGHT_FET_GPIO_Port, LIGHT_FET_Pin, GPIO_PIN_RESET);
 
 #warning"Set the light fields to error values here."
 
