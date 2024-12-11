@@ -106,8 +106,10 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PF2 PF3 PF4 PF5 */
-  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5;
+  /*Configure GPIO pins : PF2 PF3 PF4 PF5
+                           PF12 */
+  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5
+                          |GPIO_PIN_12;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
@@ -147,18 +149,12 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : RTC_INT_A_Pin */
-  GPIO_InitStruct.Pin = RTC_INT_A_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(RTC_INT_A_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pins : PG0 PG4 PG5 PG6
                            PG9 PG10 PG12 PG13
-                           PG15 */
+                           PG14 PG15 */
   GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6
                           |GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_12|GPIO_PIN_13
-                          |GPIO_PIN_15;
+                          |GPIO_PIN_14|GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
@@ -193,13 +189,19 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PD11 PD12 PD15 PD1
-                           PD2 PD3 */
-  GPIO_InitStruct.Pin = GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_15|GPIO_PIN_1
-                          |GPIO_PIN_2|GPIO_PIN_3;
+  /*Configure GPIO pins : PD11 PD15 PD1 PD2
+                           PD3 */
+  GPIO_InitStruct.Pin = GPIO_PIN_11|GPIO_PIN_15|GPIO_PIN_1|GPIO_PIN_2
+                          |GPIO_PIN_3;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : RTC_INT_A_Pin */
+  GPIO_InitStruct.Pin = RTC_INT_A_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(RTC_INT_A_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : IRIDIUM_FET_Pin IRIDIUM_OnOff_Pin */
   GPIO_InitStruct.Pin = IRIDIUM_FET_Pin|IRIDIUM_OnOff_Pin;

@@ -21,10 +21,7 @@
 #include "main.h"
 #include "gpdma.h"
 #include "lpdma.h"
-#include "lptim.h"
-#include "usart.h"
 #include "memorymap.h"
-#include "sdmmc.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -100,9 +97,6 @@ int main(void)
   MX_GPIO_Init();
   MX_GPDMA1_Init();
   MX_LPDMA1_Init();
-  MX_LPUART1_UART_Init();
-  MX_SDMMC2_SD_Init();
-  MX_LPTIM1_Init();
   /* USER CODE BEGIN 2 */
 
   tests_init ();

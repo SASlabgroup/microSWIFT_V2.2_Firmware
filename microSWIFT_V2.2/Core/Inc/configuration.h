@@ -85,11 +85,11 @@ static const microSWIFT_firmware_version_t firmware_version =
 #define GNSS_WINDOW_BUFFER_TIME 2
 
 // If there is a CT sensor present
-#define CT_ENABLED false
+#define CT_ENABLED true
 #define TOTAL_CT_SAMPLES 10
 
 // If there is a Blue Robotics I2C temperature sensor presen
-#define TEMPERATURE_ENABLED false
+#define TEMPERATURE_ENABLED true
 #define TOTAL_TEMPERATURE_SAMPLES 10
 
 // If there is a light sensor present

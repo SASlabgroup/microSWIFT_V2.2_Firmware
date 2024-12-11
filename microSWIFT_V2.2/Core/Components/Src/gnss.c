@@ -264,13 +264,15 @@ static uSWIFT_return_code_t _gnss_sync_and_start_reception ( void )
 {
   uSWIFT_return_code_t return_code = uSWIFT_SUCCESS;
   ULONG actual_flags;
-  uint8_t msg_buf[INITIAL_STAGES_BUFFER_SIZE + 10];
+  uint8_t msg_buf[INITIAL_STAGES_BUFFER_SIZE + 50];
   int max_ticks_to_get_message = round (
       (((float) ((float) INITIAL_STAGES_BUFFER_SIZE / (float) UBX_NAV_PVT_MESSAGE_LENGTH))
        * ((float) ((float) TX_TIMER_TICKS_PER_SECOND
                    / (float) gnss_self->global_config->gnss_sampling_rate)))
       + 50);
   uint32_t watchdog_counter = 0;
+
+  __HAL_UART_ENABLE_IT(&huart2, UART_IT_ERR);
 
   // Zero out the message buffer
   memset (&(msg_buf[0]), 0, INITIAL_STAGES_BUFFER_SIZE);
@@ -295,7 +297,7 @@ static uSWIFT_return_code_t _gnss_sync_and_start_reception ( void )
       // If we didn't receive the needed messaged in time, cycle the GNSS sensor
       __cycle_power ();
       HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
-      tx_thread_sleep (3);
+      tx_thread_sleep (13);
       gnss_self->reset_uart ();
       continue;
     }

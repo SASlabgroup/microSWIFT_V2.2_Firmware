@@ -54,7 +54,6 @@
 #include "controller.h"
 #include "persistent_ram.h"
 #include "sbd.h"
-#include "lptim.h"
 
 // Waves files
 #include "NEDWaves/NEDwaves_memlight.h"
@@ -218,11 +217,11 @@ static void turbidity_thread_entry ( ULONG thread_input );
 /* USER CODE END PFP */
 
 /**
-  * @brief  Application ThreadX Initialization.
-  * @param memory_ptr: memory pointer
-  * @retval int
-  */
-UINT App_ThreadX_Init(VOID *memory_ptr)
+ * @brief  Application ThreadX Initialization.
+ * @param memory_ptr: memory pointer
+ * @retval int
+ */
+UINT App_ThreadX_Init ( VOID *memory_ptr )
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -679,18 +678,18 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   return ret;
 }
 
-  /**
-  * @brief  Function that implements the kernel's initialization.
-  * @param  None
-  * @retval None
-  */
-void MX_ThreadX_Init(void)
+/**
+ * @brief  Function that implements the kernel's initialization.
+ * @param  None
+ * @retval None
+ */
+void MX_ThreadX_Init ( void )
 {
   /* USER CODE BEGIN Before_Kernel_Start */
 
   /* USER CODE END Before_Kernel_Start */
 
-  tx_kernel_enter();
+  tx_kernel_enter ();
 
   /* USER CODE BEGIN Kernel_Start_Error */
 
@@ -750,9 +749,6 @@ static void rtc_thread_entry ( ULONG thread_input )
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
     rtc_error_out (this_thread, "RTC failed to initialize.");
   }
-
-  MX_LPTIM1_Init ();
-  HAL_LPTIM_Counter_Start_IT (&hlptim1);
 
   (void) tx_event_flags_set (&initialization_flags, RTC_INIT_SUCCESS, TX_OR);
 

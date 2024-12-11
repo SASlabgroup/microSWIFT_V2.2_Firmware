@@ -74,8 +74,6 @@ void Error_Handler(void);
 #define RTC_INT_B_EXTI_IRQn EXTI2_IRQn
 #define SPI1_CSn1_Pin GPIO_PIN_11
 #define SPI1_CSn1_GPIO_Port GPIOF
-#define RTC_INT_A_Pin GPIO_PIN_12
-#define RTC_INT_A_GPIO_Port GPIOF
 #define AS7341_GPIO_Pin GPIO_PIN_13
 #define AS7341_GPIO_GPIO_Port GPIOF
 #define SPI1_CSn3_Pin GPIO_PIN_14
@@ -106,6 +104,8 @@ void Error_Handler(void);
 #define EXT_LED_RED_GPIO_Port GPIOD
 #define EXT_LED_GREEN_Pin GPIO_PIN_10
 #define EXT_LED_GREEN_GPIO_Port GPIOD
+#define RTC_INT_A_Pin GPIO_PIN_12
+#define RTC_INT_A_GPIO_Port GPIOD
 #define RTC_TIMESTAMP_1_Pin GPIO_PIN_13
 #define RTC_TIMESTAMP_1_GPIO_Port GPIOD
 #define RTC_SPI_CS_Pin GPIO_PIN_14

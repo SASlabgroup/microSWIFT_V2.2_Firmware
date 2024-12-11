@@ -364,14 +364,14 @@ static void _control_enter_processor_standby_mode ( void )
   // Clear the backup ram retention bit
   CLEAR_BIT(PWR->BDCR1, PWR_BDCR1_BREN);
 
-  // Make sure the RTC INT_B pin is being pulled up (open drain on RTC)
+  // Make sure the RTC INT_A pin (alarm function) is being pulled up (open drain on RTC)
   HAL_PWREx_EnablePullUpPullDownConfig ();
-  HAL_PWREx_EnableGPIOPullUp (PWR_GPIO_B, RTC_INT_B_Pin);
+  HAL_PWREx_EnableGPIOPullUp (PWR_GPIO_D, RTC_INT_A_Pin);
 
   // Configure the sleep pin for the modem
   HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_G, IRIDIUM_OnOff_Pin);
 
-  // PWR_WAKEUP_PIN1_LOW_1 = PB2 --> RTC INT_B Low Polarity
+  // Enable wakeup on the RTC alarm pin
   HAL_PWR_EnableWakeUpPin (PWR_WAKEUP_PIN1_LOW_1);
 
   // Clear the stop mode and standby mode flags

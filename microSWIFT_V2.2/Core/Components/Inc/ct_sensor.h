@@ -25,7 +25,7 @@
 #define WARMUP_TIME                     20000
 #endif
 // The total length of a response sentence from the sensor
-#define CT_DATA_ARRAY_SIZE              291
+#define CT_DATA_ARRAY_SIZE              290
 #define TEMP_MEASUREMENT_START_INDEX    70
 #define TEMP_OFFSET_FROM_UNITS          6
 #define SALINITY_OFFSET_FROM_UNITS      4

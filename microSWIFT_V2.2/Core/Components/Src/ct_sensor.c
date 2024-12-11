@@ -21,7 +21,7 @@
 
 // @formatter:off
 // Object instance pointer
-CT *self;
+CT *ct_self;
 
 static uSWIFT_return_code_t _ct_parse_sample ( void );
 static uSWIFT_return_code_t _ct_get_averages ( ct_sample *readings );
@@ -53,26 +53,26 @@ void ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
                TX_EVENT_FLAGS_GROUP *error_flags, TX_TIMER *timer )
 {
   // Assign object pointer
-  self = struct_ptr;
+  ct_self = struct_ptr;
 
   __reset_ct_struct_fields ();
-  self->global_config = global_config;
-  self->error_flags = error_flags;
-  self->timer = timer;
-  self->uart_handle = ct_uart_handle;
-  self->tx_dma_handle = ct_tx_dma_handle;
-  self->rx_dma_handle = ct_rx_dma_handle;
-  self->parse_sample = _ct_parse_sample;
-  self->get_averages = _ct_get_averages;
-  self->self_test = _ct_self_test;
-  self->uart_init = _ct_uart_init;
-  self->reset_ct_uart = _ct_reset_uart;
-  self->start_timer = _ct_start_timer;
-  self->stop_timer = _ct_stop_timer;
-  self->on = _ct_on;
-  self->off = _ct_off;
+  ct_self->global_config = global_config;
+  ct_self->error_flags = error_flags;
+  ct_self->timer = timer;
+  ct_self->uart_handle = ct_uart_handle;
+  ct_self->tx_dma_handle = ct_tx_dma_handle;
+  ct_self->rx_dma_handle = ct_rx_dma_handle;
+  ct_self->parse_sample = _ct_parse_sample;
+  ct_self->get_averages = _ct_get_averages;
+  ct_self->self_test = _ct_self_test;
+  ct_self->uart_init = _ct_uart_init;
+  ct_self->reset_ct_uart = _ct_reset_uart;
+  ct_self->start_timer = _ct_start_timer;
+  ct_self->stop_timer = _ct_stop_timer;
+  ct_self->on = _ct_on;
+  ct_self->off = _ct_off;
 
-  generic_uart_register_io_functions (&self->uart_driver, ct_uart_handle, uart_sema, usart1_init,
+  generic_uart_register_io_functions (&ct_self->uart_driver, ct_uart_handle, uart_sema, usart1_init,
                                       usart1_deinit, NULL, NULL);
 }
 
@@ -83,9 +83,9 @@ void ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
  */
 void ct_deinit ( void )
 {
-  self->uart_driver.deinit ();
-  HAL_DMA_DeInit (self->tx_dma_handle);
-  HAL_DMA_DeInit (self->rx_dma_handle);
+  ct_self->uart_driver.deinit ();
+  HAL_DMA_DeInit (ct_self->tx_dma_handle);
+  HAL_DMA_DeInit (ct_self->rx_dma_handle);
 }
 
 /**
@@ -96,7 +96,7 @@ void ct_deinit ( void )
 void ct_timer_expired ( ULONG expiration_input )
 {
   (void) expiration_input;
-  self->timer_timeout = true;
+  ct_self->timer_timeout = true;
 }
 
 /**
@@ -106,7 +106,7 @@ void ct_timer_expired ( ULONG expiration_input )
  */
 bool ct_get_timeout_status ( void )
 {
-  return self->timer_timeout;
+  return ct_self->timer_timeout;
 }
 
 /**
@@ -122,7 +122,7 @@ static uSWIFT_return_code_t _ct_parse_sample ( void )
   char *index;
 
   // Samples array overflow safety check
-  if ( self->total_samples >= self->global_config->total_ct_samples )
+  if ( ct_self->total_samples >= ct_self->global_config->total_ct_samples )
   {
     return_code = uSWIFT_DONE_SAMPLING;
     return return_code;
@@ -131,19 +131,19 @@ static uSWIFT_return_code_t _ct_parse_sample ( void )
   while ( ++fail_counter < max_retries )
   {
 
-    if ( self->uart_driver.read (&self->uart_driver, (uint8_t*) &(self->data_buf[0]),
+    if ( ct_self->uart_driver.read (&ct_self->uart_driver, (uint8_t*) &(ct_self->data_buf[0]),
     CT_DATA_ARRAY_SIZE,
-                                 CT_UART_RX_TIMEOUT_TICKS)
+                                    CT_UART_RX_TIMEOUT_TICKS)
          != UART_OK )
     {
-      self->reset_ct_uart ();
+      ct_self->reset_ct_uart ();
       return_code = uSWIFT_COMMS_ERROR;
       continue;
     }
 
-    index = strstr (self->data_buf, temp_units);
+    index = strstr (ct_self->data_buf, temp_units);
     // Make the message was received in the right alignment
-    if ( index == NULL || index > &(self->data_buf[0]) + TEMP_MEASUREMENT_START_INDEX )
+    if ( index == NULL || index > &(ct_self->data_buf[0]) + TEMP_MEASUREMENT_START_INDEX )
     {
       // If this evaluates to true, we're out of sync. Insert a short delay
       return_code = uSWIFT_PROCESSING_ERROR;
@@ -158,7 +158,7 @@ static uSWIFT_return_code_t _ct_parse_sample ( void )
       continue;
     }
 
-    char *index = strstr (self->data_buf, salinity_units);
+    char *index = strstr (ct_self->data_buf, salinity_units);
     if ( index == NULL )
     {
       continue;
@@ -172,10 +172,10 @@ static uSWIFT_return_code_t _ct_parse_sample ( void )
       continue;
     }
 
-    self->samples_accumulator.salinity += salinity;
-    self->samples_accumulator.temp += temperature;
+    ct_self->samples_accumulator.salinity += salinity;
+    ct_self->samples_accumulator.temp += temperature;
 
-    self->total_samples++;
+    ct_self->total_samples++;
 
     return_code = uSWIFT_SUCCESS;
     break;
@@ -192,16 +192,18 @@ static uSWIFT_return_code_t _ct_parse_sample ( void )
  */
 static uSWIFT_return_code_t _ct_get_averages ( ct_sample *readings )
 {
-  if ( self->total_samples < self->global_config->total_ct_samples )
+  if ( ct_self->total_samples < ct_self->global_config->total_ct_samples )
   {
     return uSWIFT_NO_SAMPLES_ERROR;
   }
 
-  self->samples_averages.temp = self->samples_accumulator.salinity / ((double) self->total_samples);
-  self->samples_averages.salinity = self->samples_accumulator.temp / ((double) self->total_samples);
+  ct_self->samples_averages.temp = ct_self->samples_accumulator.salinity
+                                   / ((double) ct_self->total_samples);
+  ct_self->samples_averages.salinity = ct_self->samples_accumulator.temp
+                                       / ((double) ct_self->total_samples);
 
-  readings->temp = self->samples_averages.temp;
-  readings->salinity = self->samples_averages.salinity;
+  readings->temp = ct_self->samples_averages.temp;
+  readings->salinity = ct_self->samples_averages.salinity;
 
   return uSWIFT_SUCCESS;
 }
@@ -220,19 +222,19 @@ static uSWIFT_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *opt
 
   start_time = tx_time_get ();
 
-  if ( self->uart_driver.read (&self->uart_driver, (uint8_t*) &(self->data_buf[0]),
+  if ( ct_self->uart_driver.read (&ct_self->uart_driver, (uint8_t*) &(ct_self->data_buf[0]),
   CT_DATA_ARRAY_SIZE,
-                               CT_UART_RX_TIMEOUT_TICKS)
+                                  CT_UART_RX_TIMEOUT_TICKS)
        != UART_OK )
   {
-    self->reset_ct_uart ();
+    ct_self->reset_ct_uart ();
     return_code = uSWIFT_COMMS_ERROR;
     return return_code;
   }
 
-  index = strstr (self->data_buf, temp_units);
+  index = strstr (ct_self->data_buf, temp_units);
   // Make the message was received in the right alignment
-  if ( index == NULL || index > &(self->data_buf[0]) + TEMP_MEASUREMENT_START_INDEX )
+  if ( index == NULL || index > &(ct_self->data_buf[0]) + TEMP_MEASUREMENT_START_INDEX )
   {
     return_code = uSWIFT_PROCESSING_ERROR;
     return return_code;
@@ -246,7 +248,7 @@ static uSWIFT_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *opt
     return return_code;
   }
 
-  index = strstr (self->data_buf, salinity_units);
+  index = strstr (ct_self->data_buf, salinity_units);
   if ( index == NULL )
   {
     return_code = uSWIFT_PROCESSING_ERROR;
@@ -286,7 +288,7 @@ static uSWIFT_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *opt
 
 static uSWIFT_return_code_t _ct_uart_init ( void )
 {
-  return (self->uart_driver.init () == UART_OK) ?
+  return (ct_self->uart_driver.init () == UART_OK) ?
       uSWIFT_SUCCESS : uSWIFT_COMMS_ERROR;
 }
 
@@ -298,7 +300,7 @@ static uSWIFT_return_code_t _ct_uart_init ( void )
  */
 static uSWIFT_return_code_t _ct_reset_uart ( void )
 {
-  if ( self->uart_driver.deinit () != UART_OK )
+  if ( ct_self->uart_driver.deinit () != UART_OK )
   {
     return uSWIFT_COMMS_ERROR;
   }
@@ -319,13 +321,13 @@ static uSWIFT_return_code_t _ct_start_timer ( uint16_t timeout_in_minutes )
   ULONG timeout = TX_TIMER_TICKS_PER_SECOND * 60 * timeout_in_minutes;
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
-  if ( tx_timer_change (self->timer, timeout, 0) != TX_SUCCESS )
+  if ( tx_timer_change (ct_self->timer, timeout, 0) != TX_SUCCESS )
   {
     ret = uSWIFT_TIMER_ERROR;
     return ret;
   }
 
-  if ( tx_timer_activate (self->timer) != TX_SUCCESS )
+  if ( tx_timer_activate (ct_self->timer) != TX_SUCCESS )
   {
     ret = uSWIFT_TIMER_ERROR;
   }
@@ -340,7 +342,7 @@ static uSWIFT_return_code_t _ct_start_timer ( uint16_t timeout_in_minutes )
  */
 static uSWIFT_return_code_t _ct_stop_timer ( void )
 {
-  return (tx_timer_deactivate (self->timer) == TX_SUCCESS) ?
+  return (tx_timer_deactivate (ct_self->timer) == TX_SUCCESS) ?
       uSWIFT_SUCCESS : uSWIFT_TIMER_ERROR;
 }
 
@@ -366,16 +368,16 @@ static void _ct_off ( void )
 
 static void __reset_ct_struct_fields ( void )
 {
-  self->timer_timeout = false;
+  ct_self->timer_timeout = false;
 
-  self->samples_accumulator.salinity = 0.0f;
-  self->samples_accumulator.temp = 0.0f;
+  ct_self->samples_accumulator.salinity = 0.0f;
+  ct_self->samples_accumulator.temp = 0.0f;
   // We will know if the CT sensor fails by the value 9999 in the iridium message
-  self->samples_averages.salinity = CT_VALUES_ERROR_CODE;
-  self->samples_averages.temp = CT_VALUES_ERROR_CODE;
+  ct_self->samples_averages.salinity = CT_VALUES_ERROR_CODE;
+  ct_self->samples_averages.temp = CT_VALUES_ERROR_CODE;
 
-  self->total_samples = 0;
+  ct_self->total_samples = 0;
 
   // zero out the buffer
-  memset (&(self->data_buf[0]), 0, CT_DATA_ARRAY_SIZE);
+  memset (&(ct_self->data_buf[0]), 0, CT_DATA_ARRAY_SIZE);
 }
