@@ -14,13 +14,14 @@ testing_hooks tests;
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*################################## Test Declarations ###########################################*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
+#include "ext_psram.h"
+bool test_psram ( void *unused );
 /**************************************************************************************************/
 /*********************************** Init --> Assign Tests ****************************************/
 /**************************************************************************************************/
 void tests_init ( void )
 {
-  tests.main_test = NULL;
+  tests.main_test = test_psram;
   tests.threadx_init_test = NULL;
   tests.control_test = NULL;
   tests.gnss_thread_test = NULL;
@@ -40,3 +41,30 @@ void tests_init ( void )
 /*################################## Test Definitions ############################################*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
+bool test_psram ( void *unused )
+{
+  const uint8_t test_str[] = "This is a test of the external PSRAM chip.";
+  uint8_t read_buf[64] =
+    { 0 };
+  uint8_t data_len = strlen (test_str);
+  uint8_t *psram_addr = (uint8_t*) OCTOSPI1_BASE;
+
+  if ( !initialize_psram () )
+  {
+    return false;
+  }
+
+  // Test write
+  for ( int i = 0; i < data_len; i++ )
+  {
+    psram_addr[i] = test_str[i];
+  }
+
+  // Test read
+  for ( int i = 0; i < data_len; i++ )
+  {
+    read_buf[i] = psram_addr[i];
+  }
+
+  return (strcmp (test_str, read_buf) == 0);
+}
