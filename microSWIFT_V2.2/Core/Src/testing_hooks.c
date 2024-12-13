@@ -16,6 +16,9 @@ testing_hooks tests;
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 #include "ext_psram.h"
 bool test_psram ( void *unused );
+
+bool test_rtc_int_mcu_reset ( void *unused );
+static void __get_alarm_settings_from_time ( struct tm *time, rtc_alarm_struct *alarm );
 /**************************************************************************************************/
 /*********************************** Init --> Assign Tests ****************************************/
 /**************************************************************************************************/
@@ -23,7 +26,7 @@ void tests_init ( void )
 {
   tests.main_test = NULL;
   tests.threadx_init_test = NULL;
-  tests.control_test = NULL;
+  tests.control_test = test_rtc_int_mcu_reset;
   tests.gnss_thread_test = NULL;
   tests.ct_thread_test = NULL;
   tests.light_thread_test = NULL;
@@ -69,4 +72,49 @@ bool test_psram ( void *unused )
   }
 
   return (strcmp (test_str, read_buf) == 0);
+}
+
+bool test_rtc_int_mcu_reset ( void *unused )
+{
+  rtc_alarm_struct alarm_settings;
+  struct tm time_now;
+  uint8_t dummy;
+
+  // Set the GPIO pin low for the OR logic gate
+  HAL_GPIO_WritePin (GPIOF, GPIO_PIN_13, GPIO_PIN_RESET);
+
+  tx_thread_sleep (100);
+  // Get the time so we can set the alarm
+  if ( rtc_server_get_time (&time_now, CONTROL_REQUEST_COMPLETE) != uSWIFT_SUCCESS )
+  {
+    HAL_NVIC_SystemReset ();
+  }
+
+  // Set the alarm
+  __get_alarm_settings_from_time (&time_now, &alarm_settings);
+  if ( rtc_server_set_alarm (alarm_settings, CONTROL_REQUEST_COMPLETE) != uSWIFT_SUCCESS )
+  {
+    HAL_NVIC_SystemReset ();
+  }
+
+  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 60);
+
+  dummy = 0;
+}
+
+static void __get_alarm_settings_from_time ( struct tm *time, rtc_alarm_struct *alarm )
+{
+  alarm->day_alarm_en = false;
+  alarm->hour_alarm_en = true;
+  alarm->minute_alarm_en = true;
+  alarm->second_alarm_en = true;
+  alarm->weekday_alarm_en = false;
+  alarm->alarm_second = 0;
+
+  alarm->alarm_second = (time->tm_sec + 10) % 60;
+  alarm->alarm_minute = (alarm->alarm_second < time->tm_sec) ?
+      (time->tm_min + 1) % 60 : time->tm_min;
+  alarm->alarm_hour = (alarm->alarm_minute == 0) ?
+      (time->tm_hour + 1) % 24 : time->tm_hour;
+  return;
 }
