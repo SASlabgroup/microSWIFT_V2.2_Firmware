@@ -13,6 +13,8 @@
 #include "NEDWaves/rtwhalf.h"
 #include "ct_sensor.h"
 
+#error "Make sure new threads are handled where needed in here."
+
 // @formatter:off
 static Control  *controller_self;
 

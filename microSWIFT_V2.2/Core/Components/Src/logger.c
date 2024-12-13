@@ -73,6 +73,7 @@ void uart_log ( const char *fmt, ... )
   if ( tx_ret != TX_SUCCESS )
   {
     va_end(args);
+    (void) tx_mutex_put (logger_self->lock);
     return;
   }
 

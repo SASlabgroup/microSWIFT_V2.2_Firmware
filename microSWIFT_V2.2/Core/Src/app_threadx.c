@@ -112,9 +112,9 @@ TX_BYTE_POOL *byte_pool;
 // Our threads
 TX_THREAD control_thread;
 TX_THREAD rtc_thread;
-TX_THREAD logger_thread;
 TX_THREAD led_thread;
 TX_THREAD i2c_bus_thread;
+TX_THREAD logger_thread;
 TX_THREAD gnss_thread;
 TX_THREAD ct_thread;
 TX_THREAD temperature_thread;
@@ -127,9 +127,9 @@ Thread_Handles thread_handles =
   {
     &control_thread,
     &rtc_thread,
-    &logger_thread,
     &led_thread,
     &i2c_bus_thread,
+    &logger_thread,
     &gnss_thread,
     &ct_thread,
     &temperature_thread,
@@ -167,8 +167,6 @@ TX_SEMAPHORE core_i2c_sema;
 TX_SEMAPHORE iridium_uart_sema;
 TX_SEMAPHORE ct_uart_sema;
 TX_SEMAPHORE logger_sema;
-// Shared bus locks
-TX_MUTEX core_i2c_mutex;
 // Logger mutex
 TX_MUTEX logger_mutex;
 // Server/client message queue for RTC (including watchdog function)
@@ -268,22 +266,6 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
 
   //
-  // Allocate stack for the logger thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK,
-  TX_NO_WAIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-  // Create the logger thread. Low priority priority level and no preemption possible
-  ret = tx_thread_create(&logger_thread, "logger thread", logger_thread_entry, 0, pointer, M_STACK,
-                         LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  //
   // Allocate stack for the LED thread
   ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XS_STACK,
   TX_NO_WAIT);
@@ -293,7 +275,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   // Create the logger thread. Low priority priority level and no preemption possible
   ret = tx_thread_create(&led_thread, "LED thread", led_thread_entry, 0, pointer, XS_STACK,
-                         LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
+                         VERY_HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -310,6 +292,22 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   // Create the logger thread. Low priority priority level and no preemption possible
   ret = tx_thread_create(&i2c_bus_thread, "I2C bus thread", i2c_bus_thread_entry, 0, pointer,
                          M_STACK, LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  //
+  // Allocate stack for the logger thread
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK,
+  TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+  // Create the logger thread. Low priority priority level and no preemption possible
+  ret = tx_thread_create(&logger_thread, "logger thread", logger_thread_entry, 0, pointer, M_STACK,
+                         LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -569,13 +567,6 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   /************************************************************************************************
    **************************************** Mutexes ***********************************************
    ************************************************************************************************/
-  //
-  // Mutexes for shared communication busses
-  ret = tx_mutex_create(&core_i2c_mutex, "Core I2C mutex", TX_NO_INHERIT);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
 
   ret = tx_mutex_create(&logger_mutex, "UART Logger mutex", TX_NO_INHERIT);
   if ( ret != TX_SUCCESS )
@@ -618,6 +609,8 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
+
+#error "Make the queues for the LED and I2C threads."
 
   /************************************************************************************************
    ***************************************** Misc init ********************************************
@@ -808,6 +801,38 @@ static void rtc_thread_entry ( ULONG thread_input )
     }
 
   }
+}
+
+/***************************************************************************************************
+ ***************************************************************************************************
+ *************************************    LED Thread    ********************************************
+ ***************************************************************************************************
+ ***************************************************************************************************
+ *************************************************************************************************** 
+ * @brief  LED thread entry
+ *         Manages LED status
+ * @param  ULONG thread_input - unused
+ * @retval void
+ */
+static void led_thread_entry ( ULONG thread_input )
+{
+#error "Fill this out."
+}
+
+/***************************************************************************************************
+ ***************************************************************************************************
+ ***********************************    I2C Bus Thread    ******************************************
+ ***************************************************************************************************
+ ***************************************************************************************************
+ *************************************************************************************************** 
+ * @brief  I2C Bus thread entry
+ *         Manages the shared I2C bus
+ * @param  ULONG thread_input - unused
+ * @retval void
+ */
+static void i2c_bus_thread_entry ( ULONG thread_input )
+{
+#error "Fill this out."
 }
 
 /***************************************************************************************************

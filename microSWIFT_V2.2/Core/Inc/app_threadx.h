@@ -151,13 +151,6 @@ typedef struct
   UART_HandleTypeDef    *logger_uart_handle;
   OSPI_HandleTypeDef    *ext_psram_handle;
   ADC_HandleTypeDef     *battery_adc;
-  // Expansion/ spares
-//  SPI_HandleTypeDef     *aux_spi_1_handle;
-//  SPI_HandleTypeDef     *aux_spi_2_handle;
-//  I2C_HandleTypeDef     *aux_i2c_1_handle;
-//  I2C_HandleTypeDef     *aux_i2c_2_handle;
-//  UART_HandleTypeDef    *aux_uart_1_handle;
-//  UART_HandleTypeDef    *aux_uart_2_handle;
   // DMA handles
   DMA_HandleTypeDef     *gnss_uart_tx_dma_handle;
   DMA_HandleTypeDef     *gnss_uart_rx_dma_handle;
@@ -173,9 +166,9 @@ typedef struct
 {
   TX_THREAD *control_thread;
   TX_THREAD *rtc_thread;
-  TX_THREAD *logger_thread;
   TX_THREAD *led_thread;
   TX_THREAD *i2c_bus_thread;
+  TX_THREAD *logger_thread;
   TX_THREAD *gnss_thread;
   TX_THREAD *ct_thread;
   TX_THREAD *temperature_thread;
