@@ -179,7 +179,7 @@ uSWIFT_return_code_t gnss_get_current_lat_lon ( int32_t *lat, int32_t *lon )
 {
   if ( !gnss_self->all_resolution_stages_complete )
   {
-    return uSWIFT_return_code_t;
+    return uSWIFT_LOCATION_ERROR;
   }
 
   *lat = gnss_self->current_latitude;

@@ -1570,6 +1570,7 @@ static void light_thread_entry ( ULONG thread_input )
 
     if ( light_ret == uSWIFT_DONE_SAMPLING )
     {
+      light.get_samples_averages ();
       break;
     }
 
@@ -1583,8 +1584,6 @@ static void light_thread_entry ( ULONG thread_input )
   rtc_server_get_time (&time_struct, LIGHT_REQUEST_COMPLETE);
   time_now = mktime (&time_struct);
   light.end_timestamp = (uint32_t) time_now;
-
-  light.get_samples_averages ();
 
   light.assemble_telemetry_message_element (&sbd_msg_element);
   persistent_ram_save_message (LIGHT_TELEMETRY, (uint8_t*) &sbd_msg_element);

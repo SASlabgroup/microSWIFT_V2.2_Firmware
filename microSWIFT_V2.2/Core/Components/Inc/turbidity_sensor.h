@@ -11,6 +11,7 @@
 #include "vcnl4010_reg.h"
 #include "microSWIFT_return_codes.h"
 #include "configuration.h"
+#include "sbd.h"
 #include "i2c.h"
 #include "tx_api.h"
 #include "gpio.h"
@@ -55,6 +56,7 @@ typedef struct
   uSWIFT_return_code_t      (*process_measurements) (void);
   uSWIFT_return_code_t      (*start_timer) (uint16_t timeout_in_minutes);
   uSWIFT_return_code_t      (*stop_timer) (void);
+  void                      (*assemble_telemetry_message_element) (sbd_message_type_60_element *msg);
   void                      (*on) (void);
   void                      (*off) (void);
 } Turbidity_Sensor;

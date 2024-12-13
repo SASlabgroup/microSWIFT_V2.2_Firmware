@@ -62,8 +62,9 @@ General
 ****************************************************************************************************
 Control
 *******
-[ ] Figure out the control flow if GNSS is unable to get a fix
-	[ ] Probably still get the other sensors?
+[ ] !!!!Figure out the control flow if GNSS is unable to get a fix
+	[ ] Light and OBS won't be able to complete their messages
+	[ ] Most likely just want to quit at this point...
 [x] Figure out how to identify first time power on and subsequent power on.
 [x] Remove all thread control and sys reset calls from threads other than control_thread
 [x] Implement Error_Handler() that checks error flags and acts accordingly

@@ -18,6 +18,7 @@ static uSWIFT_return_code_t _turbidity_sensor_get_most_recent_measurement ( uint
 static uSWIFT_return_code_t _turbidity_sensor_process_measurements (void);
 static uSWIFT_return_code_t _turbidity_sensor_start_timer ( uint16_t timeout_in_minutes );
 static uSWIFT_return_code_t _turbidity_sensor_stop_timer (void);
+static void                 _turbidity_sensor_assemble_telemetry_message_element (sbd_message_type_60_element *msg);
 static void                 _turbidity_sensor_on (void);
 static void                 _turbidity_sensor_off (void);
 // I/O functions for the sensor
@@ -225,6 +226,21 @@ static uSWIFT_return_code_t _turbidity_sensor_stop_timer ( void )
 {
   return (tx_timer_deactivate (turbidity_self->timer) == TX_SUCCESS) ?
       uSWIFT_SUCCESS : uSWIFT_TIMER_ERROR;
+}
+
+static void _turbidity_sensor_assemble_telemetry_message_element (
+    sbd_message_type_60_element *msg )
+{
+  memcpy (&msg->start_lat, &turbidity_self->start_lat, sizeof(int32_t));
+  memcpy (&msg->start_lon, &turbidity_self->start_lon, sizeof(int32_t));
+  memcpy (&msg->end_lat, &turbidity_self->end_lat, sizeof(int32_t));
+  memcpy (&msg->end_lon, &turbidity_self->end_lon, sizeof(int32_t));
+  memcpy (&msg->start_timestamp, &turbidity_self->start_timestamp, sizeof(int32_t));
+  memcpy (&msg->end_timestamp, &turbidity_self->end_timestamp, sizeof(int32_t));
+  memcpy (&msg->backscatter_avgs, &turbidity_self->proximity_averages_series[0],
+          sizeof(msg->backscatter_avgs));
+  memcpy (&msg->ambient_avgs, &turbidity_self->ambient_averages_series[0],
+          sizeof(msg->backscatter_avgs));
 }
 
 static void _turbidity_sensor_on ( void )
