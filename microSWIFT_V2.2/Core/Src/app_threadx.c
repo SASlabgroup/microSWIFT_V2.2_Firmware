@@ -1389,8 +1389,6 @@ static void temperature_thread_entry ( ULONG thread_input )
   temperature_init (&temperature, &configuration, device_handles.core_i2c_handle, &error_flags,
                     &temperature_timer, &core_i2c_mutex, true);
 
-  temperature.on ();
-
   //
   // Run tests if needed
   if ( tests.temperature_thread_test != NULL )
@@ -1408,11 +1406,9 @@ static void temperature_thread_entry ( ULONG thread_input )
       ((self_test_reading * 9) / 5) + 32);
   (void) tx_event_flags_set (&initialization_flags, TEMPERATURE_INIT_SUCCESS, TX_OR);
 
-  temperature.off ();
   tx_thread_suspend (this_thread);
 
   /******************************* Control thread resumes this thread *****************************/
-  temperature.on ();
   temperature.start_timer (temperature_thread_timeout);
   watchdog_register_thread (TEMPERATURE_THREAD);
   watchdog_check_in (TEMPERATURE_THREAD);
@@ -1448,7 +1444,6 @@ static void temperature_thread_entry ( ULONG thread_input )
   half_temp = floatToHalf (sampling_reading);
 
   temperature.stop_timer ();
-  temperature.off ();
 
   memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
 

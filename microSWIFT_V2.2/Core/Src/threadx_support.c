@@ -242,7 +242,6 @@ void temperature_error_out ( Temperature *temperature, ULONG error_flag,
   va_start(args, fmt);
   char tmp_fmt[128];
 
-  temperature->off ();
   temperature->stop_timer ();
   temperature_deinit ();
 
@@ -264,7 +263,7 @@ void light_error_out ( Light_Sensor *light, ULONG error_flag, TX_THREAD *light_t
   va_start(args, fmt);
   char tmp_fmt[128];
 
-  light->off ();
+  light->idle ();
   light->stop_timer ();
   light_deinit ();
 
@@ -286,7 +285,7 @@ void turbidity_error_out ( Turbidity_Sensor *turbidity, ULONG error_flag,
   va_start(args, fmt);
   char tmp_fmt[128];
 
-  turbidity->off ();
+  turbidity->idle ();
   turbidity->stop_timer ();
   turbidity_deinit ();
 

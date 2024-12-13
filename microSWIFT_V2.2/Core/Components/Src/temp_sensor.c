@@ -25,8 +25,6 @@ static uSWIFT_return_code_t _temperature_self_test ( float *optional_reading );
 static uSWIFT_return_code_t _temperature_get_readings ( bool get_single_reading, float *temperature );
 static uSWIFT_return_code_t _temperature_start_timer ( uint16_t timeout_in_minutes );
 static uSWIFT_return_code_t _temperature_stop_timer ( void );
-static void                 _temperature_on ( void );
-static void                 _temperature_off ( void );
 // Interface IO functions
 static uSWIFT_return_code_t _temperature_i2c_read ( uint8_t dev_addr, uint8_t reg_addr, uint8_t *read_buf, uint16_t size );
 static uSWIFT_return_code_t _temperature_i2c_write( uint8_t dev_addr, uint8_t reg_addr, uint8_t *write_buf, uint16_t size );
@@ -54,8 +52,6 @@ void temperature_init ( Temperature *struct_ptr, microSWIFT_configuration *globa
   temperature_self->get_readings = _temperature_get_readings;
   temperature_self->start_timer = _temperature_start_timer;
   temperature_self->stop_timer = _temperature_stop_timer;
-  temperature_self->on = _temperature_on;
-  temperature_self->off = _temperature_off;
 
   __reset_struct_fields (clear_calibration_data);
 }
@@ -121,11 +117,6 @@ static uSWIFT_return_code_t _temperature_get_readings ( bool get_single_reading,
     tx_thread_sleep (10);
 
     command = TSYS01_ADC_READ;
-//    return_code = _temperature_i2c_write (TSYS01_ADDR, &command, sizeof(command));
-//    if ( return_code != uSWIFT_SUCCESS )
-//    {
-//      return return_code;
-//    }
 
     return_code = _temperature_i2c_read (TSYS01_ADDR, command, &(read_data[0]), sizeof(read_data));
     if ( return_code != uSWIFT_SUCCESS )
@@ -170,18 +161,6 @@ static uSWIFT_return_code_t _temperature_stop_timer ( void )
       uSWIFT_SUCCESS : uSWIFT_TIMER_ERROR;
 }
 
-static void _temperature_on ( void )
-{
-//  HAL_GPIO_WritePin (temperature_self->pwr_gpio.port, temperature_self->pwr_gpio.pin, GPIO_PIN_SET);
-  tx_thread_sleep (1);
-}
-
-static void _temperature_off ( void )
-{
-//  HAL_GPIO_WritePin (temperature_self->pwr_gpio.port, temperature_self->pwr_gpio.pin,
-//                     GPIO_PIN_RESET);
-}
-
 static uSWIFT_return_code_t __init_sensor ( void )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
@@ -206,11 +185,6 @@ static uSWIFT_return_code_t __init_sensor ( void )
   for ( uint8_t i = 0; i < 8; i++ )
   {
     command = TSYS01_PROM_READ + (i * 2);
-//    ret = _temperature_i2c_write (TSYS01_ADDR, &command, sizeof(command));
-//    if ( ret != uSWIFT_SUCCESS )
-//    {
-//      return ret;
-//    }
 
     ret = _temperature_i2c_read ( TSYS01_ADDR, command, &(read_data[0]), sizeof(read_data));
     if ( ret != uSWIFT_SUCCESS )

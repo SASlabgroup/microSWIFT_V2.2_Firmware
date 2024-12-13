@@ -45,8 +45,6 @@ typedef struct Temperature
   uSWIFT_return_code_t      (*get_readings) ( bool get_single_reading, float *temperature );
   uSWIFT_return_code_t      (*start_timer) ( uint16_t timeout_in_minutes );
   uSWIFT_return_code_t      (*stop_timer) ( void );
-  void                      (*on) ( void );
-  void                      (*off) ( void );
 
   float                     converted_temp;
   float                     C[8]; // Cal data array
