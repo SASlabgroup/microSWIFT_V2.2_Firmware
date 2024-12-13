@@ -174,6 +174,8 @@ typedef struct
   TX_THREAD *control_thread;
   TX_THREAD *rtc_thread;
   TX_THREAD *logger_thread;
+  TX_THREAD *led_thread;
+  TX_THREAD *i2c_bus_thread;
   TX_THREAD *gnss_thread;
   TX_THREAD *ct_thread;
   TX_THREAD *temperature_thread;
@@ -188,18 +190,10 @@ extern Thread_Handles thread_handles;
 extern Device_Handles device_handles;
 
 extern TX_SEMAPHORE ext_rtc_spi_sema;
-extern TX_SEMAPHORE aux_spi_1_spi_sema;
-extern TX_SEMAPHORE aux_spi_2_spi_sema;
-extern TX_SEMAPHORE light_sensor_i2c_sema;
-extern TX_SEMAPHORE turbidity_sensor_i2c_sema;
-extern TX_SEMAPHORE aux_i2c_1_sema;
-extern TX_SEMAPHORE aux_i2c_2_sema;
+extern TX_SEMAPHORE core_i2c_sema;
 extern TX_SEMAPHORE iridium_uart_sema;
 extern TX_SEMAPHORE ct_uart_sema;
-extern TX_SEMAPHORE aux_uart_1_sema;
-extern TX_SEMAPHORE aux_uart_2_sema;
 extern TX_SEMAPHORE logger_sema;
-extern TX_SEMAPHORE light_sensor_int_pin_sema;
 
 extern TX_EVENT_FLAGS_GROUP initialization_flags;
 extern TX_EVENT_FLAGS_GROUP irq_flags;

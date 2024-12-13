@@ -12,6 +12,8 @@
 #include "gnss.h"
 #include "battery.h"
 
+#error"Ensure all synchronization primitives are correct!"
+
 /**
  * @brief Tx Transfer completed callback.
  * @param  hspi: pointer to a SPI_HandleTypeDef structure that contains
@@ -23,14 +25,6 @@ void HAL_SPI_TxCpltCallback ( SPI_HandleTypeDef *hspi )
   if ( hspi->Instance == RTC_SPI )
   {
     (void) tx_semaphore_put (&ext_rtc_spi_sema);
-  }
-  else if ( hspi->Instance == AUX_SPI_1 )
-  {
-    (void) tx_semaphore_put (&aux_spi_1_spi_sema);
-  }
-  else if ( hspi->Instance == AUX_SPI_2 )
-  {
-    (void) tx_semaphore_put (&aux_spi_2_spi_sema);
   }
 }
 
@@ -46,14 +40,6 @@ void HAL_SPI_RxCpltCallback ( SPI_HandleTypeDef *hspi )
   {
     (void) tx_semaphore_put (&ext_rtc_spi_sema);
   }
-  else if ( hspi->Instance == AUX_SPI_1 )
-  {
-    (void) tx_semaphore_put (&aux_spi_1_spi_sema);
-  }
-  else if ( hspi->Instance == AUX_SPI_2 )
-  {
-    (void) tx_semaphore_put (&aux_spi_2_spi_sema);
-  }
 }
 
 /**
@@ -67,14 +53,6 @@ void HAL_SPI_TxRxCpltCallback ( SPI_HandleTypeDef *hspi )
   if ( hspi->Instance == RTC_SPI )
   {
     (void) tx_semaphore_put (&ext_rtc_spi_sema);
-  }
-  else if ( hspi->Instance == AUX_SPI_1 )
-  {
-    (void) tx_semaphore_put (&aux_spi_1_spi_sema);
-  }
-  else if ( hspi->Instance == AUX_SPI_2 )
-  {
-    (void) tx_semaphore_put (&aux_spi_2_spi_sema);
   }
 }
 
@@ -97,14 +75,6 @@ void HAL_UART_TxCpltCallback ( UART_HandleTypeDef *huart )
   {
     (void) tx_event_flags_set (&irq_flags, GNSS_TX_COMPLETE, TX_OR);
   }
-//  else if ( huart->Instance == AUX_UART_1 )
-//  {
-//    (void) tx_semaphore_put (&aux_uart_1_sema);
-//  }
-//  else if ( huart->Instance == AUX_UART_2 )
-//  {
-//    (void) tx_semaphore_put (&aux_uart_2_sema);
-//  }
   else if ( huart->Instance == LOGGER_UART )
   {
     (void) tx_semaphore_put (&logger_sema);
@@ -137,14 +107,6 @@ void HAL_UART_RxCpltCallback ( UART_HandleTypeDef *huart )
       (void) tx_event_flags_set (&irq_flags, GNSS_CONFIG_RECVD, TX_OR);
     }
   }
-//  else if ( huart->Instance == AUX_UART_1 )
-//  {
-//    (void) tx_semaphore_put (&aux_uart_1_sema);
-//  }
-//  else if ( huart->Instance == AUX_UART_2 )
-//  {
-//    (void) tx_semaphore_put (&aux_uart_2_sema);
-//  }
 }
 
 /**
@@ -154,43 +116,45 @@ void HAL_UART_RxCpltCallback ( UART_HandleTypeDef *huart )
  */
 void HAL_UART_ErrorCallback ( UART_HandleTypeDef *huart )
 {
-  uint32_t error_flag = 0;
-  UNUSED(huart);
-#warning "Add a call to set an error flag here. Probably best to try to manage the error in Control\
-          Thread."
-
-  error_flag = HAL_UART_GetError (huart);
-
-  switch ( error_flag )
-  {
-    case HAL_UART_ERROR_NONE:
-      goto not_problem;
-
-    case HAL_UART_ERROR_PE:
-      goto problem;
-
-    case HAL_UART_ERROR_NE:
-      goto problem;
-
-    case HAL_UART_ERROR_FE:
-      goto problem;
-
-    case HAL_UART_ERROR_ORE:
-      goto not_problem;
-
-    case HAL_UART_ERROR_DMA:
-      goto problem;
-
-    case HAL_UART_ERROR_RTO:
-      goto problem;
-  }
-
-problem:
-  error_flag = 0;
-
-not_problem:
-  return;
+#warning "Figure this out."
 }
+//  uint32_t error_flag = 0;
+//  UNUSED(huart);
+//#warning "Add a call to set an error flag here. Probably best to try to manage the error in Control\
+//          Thread."
+//
+//  error_flag = HAL_UART_GetError (huart);
+//
+//  switch ( error_flag )
+//  {
+//    case HAL_UART_ERROR_NONE:
+//      goto not_problem;
+//
+//    case HAL_UART_ERROR_PE:
+//      goto problem;
+//
+//    case HAL_UART_ERROR_NE:
+//      goto problem;
+//
+//    case HAL_UART_ERROR_FE:
+//      goto problem;
+//
+//    case HAL_UART_ERROR_ORE:
+//      goto not_problem;
+//
+//    case HAL_UART_ERROR_DMA:
+//      goto problem;
+//
+//    case HAL_UART_ERROR_RTO:
+//      goto problem;
+//  }
+//
+//problem:
+//  error_flag = 0;
+//
+//not_problem:
+//  return;
+//}
 
 /**
  * @brief  Reception Event Callback (Rx event notification called after use of advanced reception service).
@@ -229,14 +193,6 @@ void HAL_UARTEx_RxEventCallback ( UART_HandleTypeDef *huart, uint16_t Size )
       (void) tx_event_flags_set (&irq_flags, GNSS_MSG_RECEIVED, TX_OR);
     }
   }
-//  else if ( huart->Instance == AUX_UART_1 )
-//  {
-//    (void) tx_semaphore_put (&aux_uart_1_sema);
-//  }
-//  else if ( huart->Instance == AUX_UART_2 )
-//  {
-//    (void) tx_semaphore_put (&aux_uart_2_sema);
-//  }
 }
 
 /**
@@ -310,6 +266,7 @@ void HAL_GPIO_EXTI_Rising_Callback ( uint16_t GPIO_Pin )
  */
 void HAL_GPIO_EXTI_Falling_Callback ( uint16_t GPIO_Pin )
 {
+#warning "Probably remove these?"
   if ( GPIO_Pin == RTC_INT_A_Pin )
   {
 #ifdef DEBUG
@@ -322,11 +279,6 @@ void HAL_GPIO_EXTI_Falling_Callback ( uint16_t GPIO_Pin )
     __asm__("BKPT");
 #endif
   }
-
-  if ( GPIO_Pin == AS7341_INT_Pin )
-  {
-    (void) tx_semaphore_put (&light_sensor_int_pin_sema);
-  }
 }
 
 /**
@@ -337,14 +289,9 @@ void HAL_GPIO_EXTI_Falling_Callback ( uint16_t GPIO_Pin )
  */
 void HAL_I2C_MemTxCpltCallback ( I2C_HandleTypeDef *hi2c )
 {
-  if ( hi2c->Instance == LIGHT_SENSOR_I2C )
+  if ( hi2c->Instance == CORE_I2C_BUS )
   {
-    (void) tx_semaphore_put (&light_sensor_i2c_sema);
-    (void) tx_semaphore_put (&turbidity_sensor_i2c_sema);
-  }
-  else if ( hi2c->Instance == TURBIDITY_SENSOR_I2C )
-  {
-    (void) tx_semaphore_put (&turbidity_sensor_i2c_sema);
+    (void) tx_semaphore_put (&core_i2c_sema);
   }
 }
 
@@ -356,13 +303,8 @@ void HAL_I2C_MemTxCpltCallback ( I2C_HandleTypeDef *hi2c )
  */
 void HAL_I2C_MemRxCpltCallback ( I2C_HandleTypeDef *hi2c )
 {
-  if ( hi2c->Instance == LIGHT_SENSOR_I2C )
+  if ( hi2c->Instance == CORE_I2C_BUS )
   {
-    (void) tx_semaphore_put (&light_sensor_i2c_sema);
-    (void) tx_semaphore_put (&turbidity_sensor_i2c_sema);
-  }
-  else if ( hi2c->Instance == TURBIDITY_SENSOR_I2C )
-  {
-    (void) tx_semaphore_put (&turbidity_sensor_i2c_sema);
+    (void) tx_semaphore_put (&core_i2c_sema);
   }
 }

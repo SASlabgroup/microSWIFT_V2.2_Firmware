@@ -89,6 +89,8 @@ typedef struct
   __packed  uint16_t    avg_f6;
   __packed  uint16_t    avg_f7;
   __packed  uint16_t    avg_f8;
+  __packed  uint16_t    avg_dark;
+  __packed  uint16_t    avg_nir;
 } sbd_message_type_61_element;
 
 #define LIGHT_MSGS_PER_SBD (IRIDIUM_SBD_MAX_LENGTH / sizeof(sbd_message_type_61_element))

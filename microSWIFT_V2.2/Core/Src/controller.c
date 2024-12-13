@@ -661,7 +661,7 @@ static void __get_alarm_settings_from_time ( struct tm *time, rtc_alarm_struct *
   alarm->alarm_second = (time->tm_sec + 20) % 60;
   alarm->alarm_minute = (alarm->alarm_second < time->tm_sec) ?
       (time->tm_min + 1) % 60 : time->tm_min;
-  alarm->alarm_hour = (alarm->alarm_minute == 0) ?
+  alarm->alarm_hour = ((alarm->alarm_minute == 0) && (alarm->alarm_second < time->tm_sec)) ?
       (time->tm_hour + 1) % 24 : time->tm_hour;
   return;
   //

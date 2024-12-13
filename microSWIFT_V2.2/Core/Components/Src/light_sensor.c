@@ -86,10 +86,10 @@ void light_sensor_init ( Light_Sensor *struct_ptr, microSWIFT_configuration *glo
   light_self->smux_assignment_high_channels.adc_assignments[4] = DARK;
   light_self->smux_assignment_high_channels.adc_assignments[5] = ADC_DISABLE;
 
-  light_self->gpio_handle->int_pin.port = AS7341_INT_GPIO_Port;
-  light_self->gpio_handle->int_pin.pin = AS7341_INT_Pin;
-  light_self->gpio_handle->gpio_pin.port = AS7341_GPIO_GPIO_Port;
-  light_self->gpio_handle->gpio_pin.pin = AS7341_GPIO_Pin;
+//  light_self->gpio_handle->int_pin.port = AS7341_INT_GPIO_Port;
+//  light_self->gpio_handle->int_pin.pin = AS7341_INT_Pin;
+//  light_self->gpio_handle->gpio_pin.port = AS7341_GPIO_GPIO_Port;
+//  light_self->gpio_handle->gpio_pin.pin = AS7341_GPIO_Pin;
   light_self->gpio_handle->wait_on_int = __as7341_wait_on_int;
   light_self->gpio_handle->get_int_pin_state = __get_as7341_int_pin_state;
   light_self->gpio_handle->get_gpio_pin_state = __get_as7341_gpio_pin_state;

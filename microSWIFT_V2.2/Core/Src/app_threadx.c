@@ -113,6 +113,8 @@ TX_BYTE_POOL *byte_pool;
 TX_THREAD control_thread;
 TX_THREAD rtc_thread;
 TX_THREAD logger_thread;
+TX_THREAD led_thread;
+TX_THREAD i2c_bus_thread;
 TX_THREAD gnss_thread;
 TX_THREAD ct_thread;
 TX_THREAD temperature_thread;
@@ -126,6 +128,8 @@ Thread_Handles thread_handles =
     &control_thread,
     &rtc_thread,
     &logger_thread,
+    &led_thread,
+    &i2c_bus_thread,
     &gnss_thread,
     &ct_thread,
     &temperature_thread,
@@ -157,27 +161,24 @@ TX_TIMER light_timer;
 TX_TIMER turbidity_timer;
 TX_TIMER waves_timer;
 TX_TIMER iridium_timer;
-// Comms buses semaphores
+// Comms buses semaphores !! No GNSS UART sema as it uses event flags instead
 TX_SEMAPHORE ext_rtc_spi_sema;
-TX_SEMAPHORE aux_spi_1_spi_sema;
-TX_SEMAPHORE aux_spi_2_spi_sema;
-TX_SEMAPHORE light_sensor_i2c_sema;
-TX_SEMAPHORE turbidity_sensor_i2c_sema;
-TX_SEMAPHORE aux_i2c_1_sema;
-TX_SEMAPHORE aux_i2c_2_sema;
+TX_SEMAPHORE core_i2c_sema;
 TX_SEMAPHORE iridium_uart_sema;
 TX_SEMAPHORE ct_uart_sema;
-TX_SEMAPHORE aux_uart_1_sema;
-TX_SEMAPHORE aux_uart_2_sema;
 TX_SEMAPHORE logger_sema;
-TX_SEMAPHORE light_sensor_int_pin_sema;
 // Shared bus locks
 TX_MUTEX core_i2c_mutex;
 // Logger mutex
 TX_MUTEX logger_mutex;
 // Server/client message queue for RTC (including watchdog function)
 TX_QUEUE rtc_messaging_queue;
+// Logger message passing queue
 TX_QUEUE logger_message_queue;
+// Queue for LED thread
+TX_QUEUE led_queue;
+// Shared I2C bus queue
+TX_QUEUE i2c_bus_queue;
 
 __ALIGN_BEGIN UCHAR waves_byte_pool_buffer[WAVES_MEM_POOL_SIZE] __attribute__((section(".ram1")))__ALIGN_END;
 TX_BYTE_POOL waves_byte_pool;
@@ -206,6 +207,8 @@ TX_BLOCK_POOL logger_block_pool;
 static void rtc_thread_entry ( ULONG thread_input );
 static void logger_thread_entry ( ULONG thread_input );
 static void control_thread_entry ( ULONG thread_input );
+static void led_thread_entry ( ULONG thread_input );
+static void i2c_bus_thread_entry ( ULONG thread_input );
 static void gnss_thread_entry ( ULONG thread_input );
 static void waves_thread_entry ( ULONG thread_input );
 static void iridium_thread_entry ( ULONG thread_input );
@@ -275,6 +278,38 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   // Create the logger thread. Low priority priority level and no preemption possible
   ret = tx_thread_create(&logger_thread, "logger thread", logger_thread_entry, 0, pointer, M_STACK,
                          LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  //
+  // Allocate stack for the LED thread
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XS_STACK,
+  TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+  // Create the logger thread. Low priority priority level and no preemption possible
+  ret = tx_thread_create(&led_thread, "LED thread", led_thread_entry, 0, pointer, XS_STACK,
+                         LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  //
+  // Allocate stack for the LED thread
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK,
+  TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+  // Create the logger thread. Low priority priority level and no preemption possible
+  ret = tx_thread_create(&i2c_bus_thread, "I2C bus thread", i2c_bus_thread_entry, 0, pointer,
+                         M_STACK, LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -507,37 +542,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
-  ret = tx_semaphore_create(&aux_spi_1_spi_sema, "Aux SPI 1 sema", 0);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_semaphore_create(&aux_spi_2_spi_sema, "Aux SPI 2 sema", 0);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_semaphore_create(&light_sensor_i2c_sema, "AS7341 I2C sema", 0);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_semaphore_create(&turbidity_sensor_i2c_sema, "VCNL4010 I2C sema", 0);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_semaphore_create(&aux_i2c_1_sema, "Aux I2C 1 sema", 0);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_semaphore_create(&aux_i2c_2_sema, "Aux I2C 2 sema", 0);
+  ret = tx_semaphore_create(&core_i2c_sema, "Core I2C sema", 0);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -555,19 +560,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
-  ret = tx_semaphore_create(&aux_uart_1_sema, "Aux UART 1 sema", 0);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_semaphore_create(&aux_uart_2_sema, "Aux UART 2 sema", 0);
-  if ( ret != TX_SUCCESS )
-  {
-    return ret;
-  }
-
-  ret = tx_semaphore_create(&light_sensor_int_pin_sema, "AS7341 Int pin sema", 0);
+  ret = tx_semaphore_create(&logger_sema, "Logger UART sema", 0);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -749,6 +742,9 @@ static void rtc_thread_entry ( ULONG thread_input )
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
     rtc_error_out (this_thread, "RTC failed to initialize.");
   }
+
+  // Set the GPIO pin low for the OR logic gate
+  HAL_GPIO_WritePin (WDOG_OR_INPUT_GPIO_Port, WDOG_OR_INPUT_Pin, GPIO_PIN_RESET);
 
   (void) tx_event_flags_set (&initialization_flags, RTC_INIT_SUCCESS, TX_OR);
 

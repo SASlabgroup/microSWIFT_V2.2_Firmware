@@ -165,6 +165,13 @@ static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
+  // Clear any interrupts present
+  ret = rtc_self->clear_flag (ALL_RTC_FLAGS);
+  if ( ret != uSWIFT_SUCCESS )
+  {
+    return ret;
+  }
+
   // Clock output
   ret = pcf2131_set_clkout_freq (&(rtc_self->dev_ctx), FREQ_32768);
   if ( ret != PCF2131_OK )
