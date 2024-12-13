@@ -94,9 +94,6 @@ bool temperature_self_test ( Temperature *temperature, float *self_test_temp )
       break;
     }
 
-    temperature->off ();
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    temperature->on ();
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
 
     fail_counter++;
@@ -119,9 +116,6 @@ bool turbidity_self_test ( Turbidity_Sensor *obs )
       break;
     }
 
-    obs->off ();
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    obs->on ();
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
 
     fail_counter++;
@@ -144,9 +138,6 @@ bool light_self_test ( Light_Sensor *light )
       break;
     }
 
-    light->off ();
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    light->on ();
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
 
     fail_counter++;

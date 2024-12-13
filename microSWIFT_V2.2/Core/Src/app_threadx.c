@@ -1493,8 +1493,6 @@ static void light_thread_entry ( ULONG thread_input )
                      device_handles.core_i2c_handle, &light_timer, &light_sensor_int_pin_sema,
                      &light_sensor_i2c_sema);
 
-  light.on ();
-
   tx_thread_sleep (10);
 
   //
@@ -1528,7 +1526,7 @@ static void light_thread_entry ( ULONG thread_input )
 
   (void) tx_event_flags_set (&initialization_flags, LIGHT_INIT_SUCCESS, TX_OR);
 
-  light.off ();
+  light.idle ();
   tx_thread_suspend (this_thread);
 
   /******************************* Control thread resumes this thread *****************************/
@@ -1538,7 +1536,7 @@ static void light_thread_entry ( ULONG thread_input )
 
   gnss_get_current_lat_lon (&light.start_lat, &light.start_lon);
 
-  light.on ();
+  light.standby ();
 
   rtc_server_get_time (&time_struct, LIGHT_REQUEST_COMPLETE);
   time_now = mktime (&time_struct);
@@ -1578,7 +1576,7 @@ static void light_thread_entry ( ULONG thread_input )
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND - (tx_time_get () % TX_TIMER_TICKS_PER_SECOND));
   }
 
-  light.off ();
+  light.idle ();
 
   gnss_get_current_lat_lon (&light.end_lat, &light.end_lon);
   rtc_server_get_time (&time_struct, LIGHT_REQUEST_COMPLETE);
@@ -1628,8 +1626,6 @@ static void turbidity_thread_entry ( ULONG thread_input )
                          &turbidity_sensor_i2c_sema, &turbidity_sensor_ambient_buffer[0],
                          &turbidity_sensor_proximity_buffer[0]);
 
-  obs.on ();
-
   tx_thread_sleep (10);
 
   //
@@ -1652,7 +1648,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
 
   (void) tx_event_flags_set (&initialization_flags, TURBIDITY_INIT_SUCCESS, TX_OR);
 
-  obs.off ();
+  obs.idle ();
   tx_thread_suspend (this_thread);
 
   /******************************* Control thread resumes this thread *****************************/
@@ -1662,7 +1658,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
 
   gnss_get_current_lat_lon (&obs.start_lat, &obs.start_lon);
 
-  obs.on ();
+  obs.standby ();
 
   rtc_server_get_time (&time_struct, TURBIDITY_REQUEST_COMPLETE);
   time_now = mktime (&time_struct);
@@ -1699,7 +1695,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND - (tx_time_get () % TX_TIMER_TICKS_PER_SECOND));
   }
 
-  obs.off ();
+  obs.idle ();
 
   gnss_get_current_lat_lon (&obs.end_lat, &obs.end_lon);
   rtc_server_get_time (&time_struct, TURBIDITY_REQUEST_COMPLETE);

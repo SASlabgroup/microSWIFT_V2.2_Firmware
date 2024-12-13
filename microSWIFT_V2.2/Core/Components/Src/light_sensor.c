@@ -26,8 +26,8 @@ static void                 _light_sensor_assemble_telemetry_message_element (sb
 static void                 _light_sensor_get_raw_measurements (light_raw_counts *buffer);
 static void                 _light_sensor_get_basic_counts (light_basic_counts *buffer);
 static void                 _light_sensor_get_single_measurement (uint16_t *raw_measurement, uint32_t *basic_count, light_channel_index_t which_channel);
-static void                 _light_sensor_on (void);
-static void                 _light_sensor_off (void);
+static void                 _light_sensor_standby (void);
+static void                 _light_sensor_idle (void);
 // Functions neccessary for the AS7341 pins
 static bool                 __as7341_wait_on_int (uint32_t timeout_ms);
 static GPIO_PinState        __get_as7341_int_pin_state ( void );
@@ -96,9 +96,6 @@ void light_sensor_init ( Light_Sensor *struct_ptr, microSWIFT_configuration *glo
   light_self->gpio_handle->set_int_pin_state = __set_as7341_int_pin_state;
   light_self->gpio_handle->set_gpio_pin_state = __set_as7341_gpio_pin_state;
 
-//  light_self->fet.port = LIGHT_FET_GPIO_Port;
-//  light_self->fet.pin = LIGHT_FET_Pin;
-
   memset (&(light_self->raw_counts), 0, sizeof(light_self->raw_counts));
   memset (&(light_self->basic_counts), 0, sizeof(light_self->basic_counts));
 
@@ -125,8 +122,8 @@ void light_sensor_init ( Light_Sensor *struct_ptr, microSWIFT_configuration *glo
   light_self->get_raw_measurements = _light_sensor_get_raw_measurements;
   light_self->get_basic_counts = _light_sensor_get_basic_counts;
   light_self->get_single_measurement = _light_sensor_get_single_measurement;
-  light_self->on = _light_sensor_on;
-  light_self->off = _light_sensor_off;
+  light_self->standby = _light_sensor_standby;
+  light_self->idle = _light_sensor_idle;
 }
 
 /**
@@ -271,7 +268,6 @@ static uSWIFT_return_code_t _light_sensor_setup_sensor ( void )
 
   ret = light_self->dev_ctx.bus_read (NULL, AS7341_I2C_ADDR, EDGE_REG_ADDR, (uint8_t*) &edge_reg,
                                       1);
-
   if ( ret != uSWIFT_SUCCESS )
   {
     return ret;
@@ -280,6 +276,13 @@ static uSWIFT_return_code_t _light_sensor_setup_sensor ( void )
   // Setup auto-zero to occur every cycle
   az_config.az_nth_iteration.nth_iteration = 1;
   ret = as7341_auto_zero_config (&light_self->dev_ctx, az_config.az_nth_iteration);
+  if ( ret != uSWIFT_SUCCESS )
+  {
+    return ret;
+  }
+
+  // Set low power idle mode
+  ret = as7341_low_power_config (&light_self->dev_ctx, true);
 
   return ret;
 }
@@ -537,14 +540,15 @@ static void _light_sensor_get_single_measurement ( uint16_t *raw_measurement, ui
   *basic_count = *(basic + which_channel);
 }
 
-static void _light_sensor_on ( void )
+static void _light_sensor_standby ( void )
 {
-//  HAL_GPIO_WritePin (light_self->fet.port, light_self->fet.pin, GPIO_PIN_SET);
+  as7341_power (&light_self->dev_ctx, true);
 }
 
-static void _light_sensor_off ( void )
+static void _light_sensor_idle ( void )
 {
-//  HAL_GPIO_WritePin (light_self->fet.port, light_self->fet.pin, GPIO_PIN_RESET);
+  as7341_spectral_meas_config (&light_self->dev_ctx, false);
+  as7341_power (&light_self->dev_ctx, false);
 }
 
 static bool __as7341_wait_on_int ( uint32_t timeout_ms )

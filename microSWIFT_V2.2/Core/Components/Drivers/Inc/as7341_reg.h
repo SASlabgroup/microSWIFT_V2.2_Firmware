@@ -1218,6 +1218,7 @@ int32_t as7341_set_integration_mode     (dev_ctx_t *dev_handle, as7341_int_mode_
 int32_t as7341_config_smux              (dev_ctx_t *dev_handle, as7341_smux_assignment *smux_assignment);
 int32_t as7341_validate_smux_config     (dev_ctx_t *dev_handle, as7341_smux_assignment *smux_assignment, bool *validated);
 int32_t as7341_power                    (dev_ctx_t *dev_handle, bool on);
+int32_t as7341_low_power_config         (dev_ctx_t *dev_handle, bool enable);
 int32_t as7341_smux_enable              (dev_ctx_t *dev_handle);
 int32_t as7341_send_smux_command        (dev_ctx_t *dev_handle, as7341_smux_cmd_t cmd);
 int32_t as7341_config_smux_interrupt    (dev_ctx_t *dev_handle, bool enable);

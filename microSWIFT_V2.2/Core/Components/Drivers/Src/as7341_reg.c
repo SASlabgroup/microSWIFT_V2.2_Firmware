@@ -328,6 +328,20 @@ int32_t as7341_power ( dev_ctx_t *dev_handle, bool on )
   return ret;
 }
 
+int32_t as7341_low_power_config ( dev_ctx_t *dev_handle, bool enable )
+{
+  int32_t ret = AS7341_OK;
+  as7341_cfg0_reg_t cfg0_reg;
+
+  ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, CFG0_REG_ADDR, (uint8_t*) &cfg0_reg, 1);
+
+  cfg0_reg.low_power = enable;
+
+  ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, CFG0_REG_ADDR, (uint8_t*) &cfg0_reg, 1);
+
+  return ret;
+}
+
 int32_t as7341_smux_enable ( dev_ctx_t *dev_handle )
 {
   int32_t ret = AS7341_OK;

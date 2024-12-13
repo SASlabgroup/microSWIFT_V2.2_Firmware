@@ -88,8 +88,6 @@ typedef struct
 
   as7341_gpio_handle        gpio_handle;
 
-  gpio_pin_struct           fet;
-
   light_raw_counts          raw_counts;
 
   light_basic_counts        basic_counts;
@@ -124,8 +122,8 @@ typedef struct
   void                      (*get_raw_measurements) (light_raw_counts *buffer);
   void                      (*get_basic_counts) (light_basic_counts *buffer);
   void                      (*get_single_measurement) (uint16_t *raw_measurement, uint32_t *basic_count, light_channel_index_t which_channel);
-  void                      (*on) (void);
-  void                      (*off) (void);
+  void                      (*standby) (void);
+  void                      (*idle) (void);
 
 } Light_Sensor;
 

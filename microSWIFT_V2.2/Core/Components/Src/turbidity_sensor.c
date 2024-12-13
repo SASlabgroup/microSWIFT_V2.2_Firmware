@@ -19,8 +19,8 @@ static uSWIFT_return_code_t _turbidity_sensor_process_measurements (void);
 static uSWIFT_return_code_t _turbidity_sensor_start_timer ( uint16_t timeout_in_minutes );
 static uSWIFT_return_code_t _turbidity_sensor_stop_timer (void);
 static void                 _turbidity_sensor_assemble_telemetry_message_element (sbd_message_type_60_element *msg);
-static void                 _turbidity_sensor_on (void);
-static void                 _turbidity_sensor_off (void);
+static void                 _turbidity_sensor_standby (void);
+static void                 _turbidity_sensor_idle (void);
 // I/O functions for the sensor
 static int32_t              _turbidity_sensor_i2c_init ( void );
 static int32_t              _turbidity_sensor_i2c_deinit ( void );
@@ -67,8 +67,10 @@ void turbidity_sensor_init ( Turbidity_Sensor *struct_ptr, microSWIFT_configurat
   turbidity_self->process_measurements = _turbidity_sensor_process_measurements;
   turbidity_self->start_timer = _turbidity_sensor_start_timer;
   turbidity_self->stop_timer = _turbidity_sensor_stop_timer;
-  turbidity_self->on = _turbidity_sensor_on;
-  turbidity_self->off = _turbidity_sensor_off;
+  turbidity_self->assemble_telemetry_message_element =
+      _turbidity_sensor_assemble_telemetry_message_element;
+  turbidity_self->standby = _turbidity_sensor_standby;
+  turbidity_self->idle = _turbidity_sensor_idle;
 }
 
 void turbidity_deinit ( void )
@@ -243,14 +245,15 @@ static void _turbidity_sensor_assemble_telemetry_message_element (
           sizeof(msg->backscatter_avgs));
 }
 
-static void _turbidity_sensor_on ( void )
+static void _turbidity_sensor_standby ( void )
 {
-//  HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_SET);
+  vcnl4010_set_led_current (&turbidity_self->dev_ctx, _50_MA);
 }
 
-static void _turbidity_sensor_off ( void )
+static void _turbidity_sensor_idle ( void )
 {
-//  HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_RESET);
+  vcnl4010_set_led_current (&turbidity_self->dev_ctx, _0_MA);
+  vcnl4010_cont_conv_config (&turbidity_self->dev_ctx, false);
 }
 
 static int32_t _turbidity_sensor_i2c_init ( void )
