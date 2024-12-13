@@ -140,21 +140,23 @@ typedef struct GNSS
   void                      (*on) ( void );
   void                      (*off)( void );
 } GNSS;
-// @formatter:on
+
 
 /* Function declarations */
-void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
-                 UART_HandleTypeDef *gnss_uart_handle, DMA_HandleTypeDef *gnss_tx_dma_handle,
-                 DMA_HandleTypeDef *gnss_rx_dma_handle, TX_EVENT_FLAGS_GROUP *irq_flags,
-                 TX_EVENT_FLAGS_GROUP *error_flags, TX_TIMER *timer, uint8_t *ubx_process_buf,
-                 uint8_t *config_response_buffer, float *GNSS_N_Array, float *GNSS_E_Array,
-                 float *GNSS_D_Array );
-void gnss_deinit ( void );
-void gnss_timer_expired ( ULONG expiration_input );
-bool gnss_get_timer_timeout_status ( void );
-bool gnss_get_configured_status ( void );
-bool gnss_get_sample_window_complete ( void );
-uint32_t gnss_get_samples_processed ( void );
-double gnss_get_sample_window_frequency ( void );
+void                    gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
+                                   UART_HandleTypeDef *gnss_uart_handle, DMA_HandleTypeDef *gnss_tx_dma_handle,
+                                   DMA_HandleTypeDef *gnss_rx_dma_handle, TX_EVENT_FLAGS_GROUP *irq_flags,
+                                   TX_EVENT_FLAGS_GROUP *error_flags, TX_TIMER *timer, uint8_t *ubx_process_buf,
+                                   uint8_t *config_response_buffer, float *GNSS_N_Array, float *GNSS_E_Array,
+                                   float *GNSS_D_Array );
+void                    gnss_deinit ( void );
+void                    gnss_timer_expired ( ULONG expiration_input );
+bool                    gnss_get_timer_timeout_status ( void );
+bool                    gnss_get_configured_status ( void );
+bool                    gnss_get_sample_window_complete ( void );
+uSWIFT_return_code_t    gnss_get_current_lat_lon (int32_t *lat, int32_t *lon);
+uint32_t                gnss_get_samples_processed ( void );
+double                  gnss_get_sample_window_frequency ( void );
 
+// @formatter:on
 #endif /* SRC_GPS_H_ */

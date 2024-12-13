@@ -21,7 +21,7 @@ bool test_psram ( void *unused );
 /**************************************************************************************************/
 void tests_init ( void )
 {
-  tests.main_test = test_psram;
+  tests.main_test = NULL;
   tests.threadx_init_test = NULL;
   tests.control_test = NULL;
   tests.gnss_thread_test = NULL;
@@ -55,15 +55,17 @@ bool test_psram ( void *unused )
   }
 
   // Test write
-  for ( int i = 0; i < data_len; i++ )
+  for ( int i = 0; i < data_len; i++, psram_addr++ )
   {
-    psram_addr[i] = test_str[i];
+    *psram_addr = test_str[i];
   }
+
+  psram_addr = (uint8_t*) OCTOSPI1_BASE;
 
   // Test read
   for ( int i = 0; i < data_len; i++ )
   {
-    read_buf[i] = psram_addr[i];
+    read_buf[i] = *psram_addr;
   }
 
   return (strcmp (test_str, read_buf) == 0);

@@ -170,6 +170,25 @@ bool gnss_get_sample_window_complete ( void )
 }
 
 /**
+ * Get current Latitude and Longitude. If a fix has not yet been resolved
+ * and sampling has not started, will return uSWIFT_LOCATION_ERROR.
+ *
+ * @return uSWIFT_SUCCESS or uSWIFT_LOCATION_ERROR
+ */
+uSWIFT_return_code_t gnss_get_current_lat_lon ( int32_t *lat, int32_t *lon )
+{
+  if ( !gnss_self->all_resolution_stages_complete )
+  {
+    return uSWIFT_return_code_t;
+  }
+
+  *lat = gnss_self->current_latitude;
+  *lon = gnss_self->current_longitude;
+
+  return uSWIFT_SUCCESS;
+}
+
+/**
  * Get the number of samples that have been processed.
  *
  * @return no. samples processed

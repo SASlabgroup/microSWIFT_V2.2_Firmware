@@ -90,6 +90,8 @@ RTC
 GNSS
 ****
 
+[ ] Make globally visible function to return current lat/lon
+[ ] Create some kind of signalling mechanism for Light/OBS that the GNSS sampling has started
 [x] Move buffers to inside GNSS struct
 	[x] Still as pointers in the struct, but the buffers live in the GNSS thread and are passed from there
 [x] Give GNSS a FIFO for messages
@@ -117,6 +119,9 @@ Iridium
 *******
 
 [ ] When the thread is resumed, first check if there is anything to send before wasting energy charging the caps
+[ ] Figure out message Tx scheme with the new telemetry formats
+	[ ] Probably some kind of round-robin deal. Remember that Light/OBS messages happen much less often and can
+	    be sent AFTER the waves telemetry
 [x] Move buffers to inside Iridium struct
 [x] Use a TX_TIMER instead of a hardware timer
 [x] Switch UART over to using a generic uart driver
@@ -130,19 +135,34 @@ CT
 [ ] Switch over to generic UART driver
 
 ****************************************************************************************************
-Termperature
+Temperature
 ************
 
 [ ] Move buffers to inside Temperature struct
-[ ] Rework I2C driver
+[ ] Rework I2C and figure out how to share bus
+[ ] Remove FET pin and change on/off to software shutdown/idle/watever
 
 ****************************************************************************************************
 Light
 *****
 
+[ ] Remove GPIO requirements -- do everything via polling on I2C
 [ ] Rework I2C and figure out how to share bus
-	[ ] generic_i2c_driver is a start... The core I2C bus might well be shared between several sensors
-[ ] Give 2 timestamps to the light thread which can be used for tracking min/max for the clear channel
+[ ] Track timestamps for start/stop times
+[ ] Figure out how to get locations for start/stop
+[ ] Make function for assembling telemetry message element -- store it after creation
+[ ] Remove FET pin and change on/off to software shutdown/idle/watever
+
+****************************************************************************************************
+OBS
+***
+
+[ ] Remove GPIO requirements -- do everything via polling on I2C
+[ ] Rework I2C and figure out how to share bus
+[ ] Track timestamps for start/stop times
+[ ] Figure out how to get locations for start/stop
+[ ] Make function for assembling telemetry message element -- store it after creation
+[ ] Remove FET pin and change on/off to software shutdown/idle/watever
 
 ****************************************************************************************************
 ThreadX
@@ -157,8 +177,6 @@ ThreadX
 [x] Make a control thread
     [x] Move startup and end-of-cycle thread functions inside
     [x] make event loop handler type deal to look for error flags or something
-[ ] Fill out Tx low power functions and see if things work with Stop1 mode
-    [ ] Non-critical, if it makes everything fall apart, ditch it
 [x] Figure out how to get threads running concurrently: i.e. CT sampling while GNSS wrapping up
     [x] Should be easy with control thread
     
@@ -181,3 +199,6 @@ FileX
 	[ ] Control is not tracking this thread
 	[ ] Watchdog needs this thread added
 	[ ] Etcetera
+[ ] Make functions to save:
+	[ ] All logs -- these should save as generated
+	[ ] All raw data -- CSV format prefered

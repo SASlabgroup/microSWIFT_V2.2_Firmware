@@ -990,7 +990,8 @@ static void gnss_thread_entry ( ULONG thread_input )
   int32_t gnss_max_acq_time = 0;
   uint32_t two_mins_remaining_sample_count = abs (
       (2 * 60 * configuration.gnss_sampling_rate) - configuration.samples_per_window);
-  bool two_mins_out_msg_sent = false;
+  bool two_mins_out_msg_sent = false, start_flag_sent = false;
+  uint32_t total_samples = 0;
 
   if ( usart2_init () != UART_OK )
   {
@@ -1118,9 +1119,17 @@ static void gnss_thread_entry ( ULONG thread_input )
   // Process messages until complete
   while ( !gnss_get_sample_window_complete () )
   {
-    if ( gnss_get_samples_processed () % (configuration.gnss_sampling_rate * 10) == 0 )
+    total_samples = gnss_get_samples_processed ();
+
+    if ( total_samples % (configuration.gnss_sampling_rate * 10) == 0 )
     {
       watchdog_check_in (GNSS_THREAD);
+    }
+
+    if ( (total_samples > 0) && (!start_flag_sent) && gnss.current_fix_is_good )
+    {
+      (void) tx_event_flags_set (&complete_flags, GNSS_SAMPLING_STARTED_FIX_GOOD, TX_OR);
+      start_flag_sent = true;
     }
 
     tx_return = tx_event_flags_get (&irq_flags, (GNSS_MSG_RECEIVED | GNSS_MSG_INCOMPLETE),
@@ -1476,6 +1485,9 @@ static void light_thread_entry ( ULONG thread_input )
                                    / configuration.gnss_sampling_rate)
                                   / 60)
                                  + GNSS_WINDOW_BUFFER_TIME; // Same timeout as GNSS
+  struct tm time_struct =
+    { 0 };
+  time_t time_now = 0;
 
   light_sensor_init (&light, &configuration, &(light_sensor_sample_buffer[0]),
                      device_handles.core_i2c_handle, &light_timer, &light_sensor_int_pin_sema,
@@ -1516,8 +1528,21 @@ static void light_thread_entry ( ULONG thread_input )
 
   (void) tx_event_flags_set (&initialization_flags, LIGHT_INIT_SUCCESS, TX_OR);
 
+  light.off ();
+  tx_thread_suspend (this_thread);
+
+  /******************************* Control thread resumes this thread *****************************/
+
   watchdog_register_thread (LIGHT_THREAD);
   watchdog_check_in (LIGHT_THREAD);
+
+  gnss_get_current_lat_lon (&light.start_lat, &light.start_lon);
+
+  light.on ();
+
+  rtc_server_get_time (&time_struct, LIGHT_REQUEST_COMPLETE);
+  time_now = mktime (&time_struct);
+  light.start_timestamp = (uint32_t) time_now;
 
   light.start_timer (light_thread_timeout);
 
@@ -1554,9 +1579,15 @@ static void light_thread_entry ( ULONG thread_input )
 
   light.off ();
 
+  gnss_get_current_lat_lon (&light.end_lat, &light.end_lon);
+  rtc_server_get_time (&time_struct, LIGHT_REQUEST_COMPLETE);
+  time_now = mktime (&time_struct);
+  light.end_timestamp = (uint32_t) time_now;
+
   light.get_samples_averages ();
 
-#warning "Assemble message element here and save it."
+  light.assemble_telemetry_message_element (&sbd_msg_element);
+  persistent_ram_save_message (LIGHT_TELEMETRY, (uint8_t*) &sbd_msg_element);
 
   watchdog_check_in (LIGHT_THREAD);
   watchdog_deregister_thread (LIGHT_THREAD);
@@ -1584,10 +1615,15 @@ static void turbidity_thread_entry ( ULONG thread_input )
     { 0 };
   uint16_t amb, prox;
   uSWIFT_return_code_t ret;
+  sbd_message_type_60_element sbd_msg_element =
+    { 0 };
   int32_t turbidity_thread_timeout = ((configuration.samples_per_window
                                        / configuration.gnss_sampling_rate)
                                       / 60)
                                      + GNSS_WINDOW_BUFFER_TIME; // Same timeout as GNSS
+  struct tm time_struct =
+    { 0 };
+  time_t time_now = 0;
 
   turbidity_sensor_init (&obs, &configuration, device_handles.core_i2c_handle, &turbidity_timer,
                          &turbidity_sensor_i2c_sema, &turbidity_sensor_ambient_buffer[0],
@@ -1617,8 +1653,21 @@ static void turbidity_thread_entry ( ULONG thread_input )
 
   (void) tx_event_flags_set (&initialization_flags, TURBIDITY_INIT_SUCCESS, TX_OR);
 
+  obs.off ();
+  tx_thread_suspend (this_thread);
+
+  /******************************* Control thread resumes this thread *****************************/
+
   watchdog_register_thread (TURBIDITY_THREAD);
   watchdog_check_in (TURBIDITY_THREAD);
+
+  gnss_get_current_lat_lon (&obs.start_lat, &obs.start_lon);
+
+  obs.on ();
+
+  rtc_server_get_time (&time_struct, TURBIDITY_REQUEST_COMPLETE);
+  time_now = mktime (&time_struct);
+  obs.start_timestamp = (uint32_t) time_now;
 
   obs.start_timer (turbidity_thread_timeout);
 
@@ -1653,7 +1702,13 @@ static void turbidity_thread_entry ( ULONG thread_input )
 
   obs.off ();
 
-#warning "Assemble message element here and save it."
+  gnss_get_current_lat_lon (&obs.end_lat, &obs.end_lon);
+  rtc_server_get_time (&time_struct, TURBIDITY_REQUEST_COMPLETE);
+  time_now = mktime (&time_struct);
+  obs.end_timestamp = (uint32_t) time_now;
+
+  obs.assemble_telemetry_message_element (&sbd_msg_element);
+  persistent_ram_save_message (LIGHT_TELEMETRY, (uint8_t*) &sbd_msg_element);
 
   watchdog_check_in (TURBIDITY_THREAD);
   watchdog_deregister_thread (TURBIDITY_THREAD);

@@ -8,20 +8,20 @@
 #include "testing_hooks.h"
 #include "stddef.h"
 #include "ext_rtc.h"
-#include "lptim.h"
 
 testing_hooks tests;
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*################################## Test Declarations ###########################################*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-bool test_lptim_crytstal ( void *unused );
+#include "ext_psram.h"
+bool test_psram ( void *unused );
 /**************************************************************************************************/
 /*********************************** Init --> Assign Tests ****************************************/
 /**************************************************************************************************/
 void tests_init ( void )
 {
-  tests.main_test = NULL;
+  tests.main_test = test_psram;
   tests.threadx_init_test = NULL;
   tests.control_test = NULL;
   tests.gnss_thread_test = NULL;
@@ -41,42 +41,32 @@ void tests_init ( void )
 /*################################## Test Definitions ############################################*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
-bool test_lptim_crytstal ( void *unused )
+bool test_psram ( void *unused )
 {
-  HAL_LPTIM_Counter_Start_IT (&hlptim1);
-  return true;
-}
+  const uint8_t test_str[] = "This is a test of the external PSRAM chip.";
+  uint8_t read_buf[64] =
+    { 0 };
+  uint8_t data_len = strlen (test_str);
+  uint8_t *psram_addr = (uint8_t*) OCTOSPI1_BASE;
 
-void HAL_LPTIM_CompareMatchCallback ( LPTIM_HandleTypeDef *hlptim )
-{
+  if ( !initialize_psram () )
+  {
+    return false;
+  }
 
-  static bool toggle = false;
+  // Test write
+  for ( int i = 0; i < data_len; i++, psram_addr++ )
+  {
+    *psram_addr = test_str[i];
+  }
 
-  HAL_GPIO_WritePin (GPIOF, GPIO_PIN_13, toggle);
-  toggle = !toggle;
+  psram_addr = (uint8_t*) OCTOSPI1_BASE;
 
-  HAL_LPTIM_Counter_Start_IT (&hlptim1);
+  // Test read
+  for ( int i = 0; i < data_len; i++ )
+  {
+    read_buf[i] = *psram_addr;
+  }
 
-}
-
-void HAL_LPTIM_AutoReloadMatchCallback ( LPTIM_HandleTypeDef *hlptim )
-{
-
-  static bool toggle = false;
-
-  HAL_GPIO_WritePin (GPIOF, GPIO_PIN_13, toggle);
-  toggle = !toggle;
-
-  HAL_LPTIM_Counter_Start_IT (&hlptim1);
-}
-
-void HAL_LPTIM_TriggerCallback ( LPTIM_HandleTypeDef *hlptim )
-{
-
-  static bool toggle = false;
-
-  HAL_GPIO_WritePin (GPIOF, GPIO_PIN_13, toggle);
-  toggle = !toggle;
-
-  HAL_LPTIM_Counter_Start_IT (&hlptim1);
+  return (strcmp (test_str, read_buf) == 0);
 }

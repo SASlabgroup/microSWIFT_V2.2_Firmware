@@ -13,6 +13,14 @@ static bool __enable_memory_mapped_mode ( void );
 
 bool initialize_psram ( void )
 {
+  if ( !octospi1_init () )
+  {
+    return false;
+  }
+
+  // Give time for PSRAM to boot
+  HAL_Delay (1);
+
   if ( !__setup_psram () )
   {
     return false;
@@ -37,11 +45,12 @@ static bool __setup_psram ( void )
   cmd.AddressSize = HAL_OSPI_ADDRESS_24_BITS;
   cmd.AddressDtrMode = HAL_OSPI_ADDRESS_DTR_DISABLE;
   cmd.AlternateBytesMode = HAL_OSPI_ALTERNATE_BYTES_NONE;
-  cmd.DataMode = HAL_OSPI_DATA_NONE;
+  cmd.DataMode = HAL_OSPI_DATA_1_LINE;
   cmd.DataDtrMode = HAL_OSPI_DATA_DTR_DISABLE;
+  cmd.NbData = 1;
   cmd.DummyCycles = DUMMY_CYCLES_WRITE;
   cmd.DQSMode = HAL_OSPI_DQS_DISABLE;
-  cmd.SIOOMode = HAL_OSPI_SIOO_INST_EVERY_CMD;
+  cmd.SIOOMode = HAL_OSPI_SIOO_INST_ONLY_FIRST_CMD;
 
   // Config the command
   if ( HAL_OSPI_Command (&hospi1, &cmd, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK )
@@ -77,7 +86,7 @@ static bool __enable_memory_mapped_mode ( void )
   cmd.DataMode = HAL_OSPI_DATA_4_LINES;
   cmd.DataDtrMode = HAL_OSPI_DATA_DTR_DISABLE;
   cmd.DummyCycles = DUMMY_CYCLES_WRITE;
-  cmd.DQSMode = HAL_OSPI_DQS_DISABLE;
+  cmd.DQSMode = HAL_OSPI_DQS_ENABLE;
   cmd.SIOOMode = HAL_OSPI_SIOO_INST_EVERY_CMD;
 
   if ( HAL_OSPI_Command (&hospi1, &cmd, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK )
@@ -86,8 +95,9 @@ static bool __enable_memory_mapped_mode ( void )
   }
 
   cmd.OperationType = HAL_OSPI_OPTYPE_READ_CFG;
-  cmd.Instruction = PSRAM_FAST_READ;
+  cmd.Instruction = PSRAM_FAST_READ_QUAD;
   cmd.DummyCycles = DUMMY_CYCLES_FAST_READ_QUAD;
+  cmd.DQSMode = HAL_OSPI_DQS_DISABLE;
 
   if ( HAL_OSPI_Command (&hospi1, &cmd, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK )
   {

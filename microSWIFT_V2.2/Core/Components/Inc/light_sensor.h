@@ -13,6 +13,7 @@
 #include "i2c.h"
 #include "configuration.h"
 #include "microSWIFT_return_codes.h"
+#include "sbd.h"
 
 #define LIGHT_I2C_BUF_SIZE 32
 #define LIGHT_I2C_TIMEOUT 50
@@ -104,6 +105,12 @@ typedef struct
   light_basic_counts        samples_min;
   light_basic_counts        samples_averages_accumulator;
   light_basic_counts        *samples_series;
+  int32_t                   start_lat;
+  int32_t                   start_lon;
+  int32_t                   end_lat;
+  int32_t                   end_lon;
+  uint32_t                  start_timestamp;
+  uint32_t                  end_timestamp;
 
 
   uSWIFT_return_code_t      (*self_test) (void);
@@ -113,6 +120,7 @@ typedef struct
   uSWIFT_return_code_t      (*stop_timer) ( void );
   uSWIFT_return_code_t      (*process_measurements) (void);
   uSWIFT_return_code_t      (*get_samples_averages) (void);
+  void                      (*assemble_telemetry_message_element) (sbd_message_type_61_element *msg);
   void                      (*get_raw_measurements) (light_raw_counts *buffer);
   void                      (*get_basic_counts) (light_basic_counts *buffer);
   void                      (*get_single_measurement) (uint16_t *raw_measurement, uint32_t *basic_count, light_channel_index_t which_channel);

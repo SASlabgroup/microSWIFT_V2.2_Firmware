@@ -33,6 +33,8 @@ typedef enum
   uSWIFT_NO_SAMPLES_ERROR       = -17,
   uSWIFT_DONE_SAMPLING          = -18,
   uSWIFT_SYNC_ERROR             = -19,
+  uSWIFT_LOCATION_ERROR         = -20,
+  uSWIFT_TIME_ERROR             = -21,
 
   uSWIFT_OBJECT_SPECIFIC_1      = -90,
   uSWIFT_OBJECT_SPECIFIC_2      = -91,

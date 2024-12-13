@@ -73,7 +73,6 @@ extern UART_HandleTypeDef huart4;
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
-extern DMA_HandleTypeDef handle_GPDMA1_Channel15;
 extern OSPI_HandleTypeDef hospi1;
 extern SD_HandleTypeDef hsd2;
 extern SPI_HandleTypeDef hspi1;
@@ -94,7 +93,6 @@ void NMI_Handler(void)
   /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
   HAL_NVIC_SystemReset ();
   /* USER CODE END NonMaskableInt_IRQn 0 */
-  HAL_RCC_NMI_IRQHandler();
   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
   while ( 1 )
   {
@@ -496,20 +494,6 @@ void GPDMA1_Channel11_IRQHandler(void)
   /* USER CODE BEGIN GPDMA1_Channel11_IRQn 1 */
 
   /* USER CODE END GPDMA1_Channel11_IRQn 1 */
-}
-
-/**
-  * @brief This function handles GPDMA1 Channel 15 global interrupt.
-  */
-void GPDMA1_Channel15_IRQHandler(void)
-{
-  /* USER CODE BEGIN GPDMA1_Channel15_IRQn 0 */
-
-  /* USER CODE END GPDMA1_Channel15_IRQn 0 */
-  HAL_DMA_IRQHandler(&handle_GPDMA1_Channel15);
-  /* USER CODE BEGIN GPDMA1_Channel15_IRQn 1 */
-
-  /* USER CODE END GPDMA1_Channel15_IRQn 1 */
 }
 
 /**

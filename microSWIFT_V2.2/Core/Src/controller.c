@@ -421,6 +421,21 @@ static void _control_manage_state ( void )
     return;
   }
 
+  // When the GNSS has resolved time, has a fix, and has started sampling, signal the light
+  // and/or turbidity threads to start
+  if ( current_flags & GNSS_SAMPLING_STARTED_FIX_GOOD )
+  {
+    if ( !controller_self->thread_status.light_complete )
+    {
+      ret |= tx_thread_resume (controller_self->thread_handles->light_thread);
+    }
+
+    if ( !controller_self->thread_status.turbidity_complete )
+    {
+      ret |= tx_thread_resume (controller_self->thread_handles->turbidity_thread);
+    }
+  }
+
   // When the GNSS sample window is close to being done, kick off CT or Temperature sensor sampling
   // Either of these (or both) will complete in less than 2 mins
   if ( current_flags & GNSS_TWO_MINS_OUT_FROM_COMPLETION )

@@ -22,6 +22,7 @@ static uSWIFT_return_code_t _light_sensor_start_timer ( uint16_t timeout_in_minu
 static uSWIFT_return_code_t _light_sensor_stop_timer ( void );
 static uSWIFT_return_code_t _light_sensor_process_measurements (void);
 static uSWIFT_return_code_t _light_sensor_get_samples_averages (void);
+static void                 _light_sensor_assemble_telemetry_message_element (sbd_message_type_61_element *msg);
 static void                 _light_sensor_get_raw_measurements (light_raw_counts *buffer);
 static void                 _light_sensor_get_basic_counts (light_basic_counts *buffer);
 static void                 _light_sensor_get_single_measurement (uint16_t *raw_measurement, uint32_t *basic_count, light_channel_index_t which_channel);
@@ -120,6 +121,7 @@ void light_sensor_init ( Light_Sensor *struct_ptr, microSWIFT_configuration *glo
   light_self->stop_timer = _light_sensor_stop_timer;
   light_self->process_measurements = _light_sensor_process_measurements;
   light_self->get_samples_averages = _light_sensor_get_samples_averages;
+  light_self->assemble_telemetry_message_element = _light_sensor_assemble_telemetry_message_element;
   light_self->get_raw_measurements = _light_sensor_get_raw_measurements;
   light_self->get_basic_counts = _light_sensor_get_basic_counts;
   light_self->get_single_measurement = _light_sensor_get_single_measurement;
@@ -482,6 +484,30 @@ static uSWIFT_return_code_t _light_sensor_get_samples_averages ( void )
   }
 
   return uSWIFT_SUCCESS;
+}
+
+static void _light_sensor_assemble_telemetry_message_element ( sbd_message_type_61_element *msg )
+{
+  // Packed elements necessitate using memcpy, lest a crash
+  memcpy (&msg->start_lat, &light_self->start_lat, sizeof(int32_t));
+  memcpy (&msg->start_lon, &light_self->start_lon, sizeof(int32_t));
+  memcpy (&msg->end_lat, &light_self->end_lat, sizeof(int32_t));
+  memcpy (&msg->end_lon, &light_self->end_lon, sizeof(int32_t));
+  memcpy (&msg->start_timestamp, &light_self->start_timestamp, sizeof(uint32_t));
+  memcpy (&msg->end_timestamp, &light_self->end_timestamp, sizeof(uint32_t));
+  memcpy (&msg->max_reading_clear, &light_self->samples_max.clear_chan, sizeof(uint16_t));
+  memcpy (&msg->min_reading_clear, &light_self->samples_min.clear_chan, sizeof(uint16_t));
+  memcpy (&msg->avg_clear, &light_self->samples_averages_accumulator.clear_chan, sizeof(uint16_t));
+  memcpy (&msg->avg_f1, &light_self->samples_averages_accumulator.f1_chan, sizeof(uint16_t));
+  memcpy (&msg->avg_f2, &light_self->samples_averages_accumulator.f2_chan, sizeof(uint16_t));
+  memcpy (&msg->avg_f3, &light_self->samples_averages_accumulator.f3_chan, sizeof(uint16_t));
+  memcpy (&msg->avg_f4, &light_self->samples_averages_accumulator.f4_chan, sizeof(uint16_t));
+  memcpy (&msg->avg_f5, &light_self->samples_averages_accumulator.f5_chan, sizeof(uint16_t));
+  memcpy (&msg->avg_f6, &light_self->samples_averages_accumulator.f6_chan, sizeof(uint16_t));
+  memcpy (&msg->avg_f7, &light_self->samples_averages_accumulator.f7_chan, sizeof(uint16_t));
+  memcpy (&msg->avg_f8, &light_self->samples_averages_accumulator.f8_chan, sizeof(uint16_t));
+  memcpy (&msg->avg_dark, &light_self->samples_averages_accumulator.dark_chan, sizeof(uint16_t));
+  memcpy (&msg->avg_nir, &light_self->samples_averages_accumulator.nir_chan, sizeof(uint16_t));
 }
 
 static void _light_sensor_get_raw_measurements ( light_raw_counts *buffer )

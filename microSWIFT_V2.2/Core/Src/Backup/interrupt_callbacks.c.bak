@@ -10,7 +10,6 @@
 #include "usart.h"
 #include "gpio.h"
 #include "gnss.h"
-#include "lptim.h"
 #include "battery.h"
 
 /**

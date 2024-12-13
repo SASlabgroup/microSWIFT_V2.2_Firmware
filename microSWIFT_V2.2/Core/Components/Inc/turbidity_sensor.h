@@ -35,6 +35,12 @@ typedef struct
 
   uint16_t                  ambient_averages_series[60]; // more than we would ever need
   uint16_t                  proximity_averages_series[60]; // more than we would ever need
+  int32_t                   start_lat;
+  int32_t                   start_lon;
+  int32_t                   end_lat;
+  int32_t                   end_lon;
+  uint32_t                  start_timestamp;
+  uint32_t                  end_timestamp;
 
   uint32_t                  samples_counter;
 

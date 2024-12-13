@@ -74,7 +74,6 @@ void GPDMA1_Channel8_IRQHandler(void);
 void GPDMA1_Channel9_IRQHandler(void);
 void GPDMA1_Channel10_IRQHandler(void);
 void GPDMA1_Channel11_IRQHandler(void);
-void GPDMA1_Channel15_IRQHandler(void);
 void LPDMA1_Channel0_IRQHandler(void);
 void LPDMA1_Channel1_IRQHandler(void);
 /* USER CODE BEGIN EFP */
