@@ -14,6 +14,7 @@
 #include "ct_sensor.h"
 
 #error "Make sure new threads are handled where needed in here."
+#error "Signal to the LED thread instead of managing them in here"
 
 // @formatter:off
 static Control  *controller_self;

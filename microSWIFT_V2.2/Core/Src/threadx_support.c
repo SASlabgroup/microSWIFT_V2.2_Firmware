@@ -372,6 +372,11 @@ void filex_error_out ( TX_THREAD *filex_thread, const char *fmt, ... )
   tx_thread_suspend (filex_thread);
 }
 
+bool get_next_telemetry_message ( uint8_t *msg_buffer, microSWIFT_configuration config )
+{
+#error "Figure this out."
+}
+
 bool is_first_sample_window ( void )
 {
   return (persistent_ram_get_sample_window_counter () == 0);
@@ -398,59 +403,5 @@ uint32_t ticks_from_milliseconds ( uint32_t milliseconds )
   }
 
   return ((uint32_t) (ceil (((float) milliseconds) / ((1.0f / TX_TIMER_TICKS_PER_SECOND) * 1000.0f))));
-}
-
-/**
- * @brief  Static function to flash a sequence of onboard LEDs to indicate
- * success or failure of self-test.
- *
- * @param  sequence:   INITIAL_LED_SEQUENCE
- *                                     TEST_PASSED_LED_SEQUENCE
- *                                     TEST_NON_CIRTICAL_FAULT_LED_SEQUENCE
- *                                     TEST_CRITICAL_FAULT_LED_SEQUENCE
- *
- * @retval Void
- */
-void led_sequence ( led_sequence_t sequence )
-{
-  switch ( sequence )
-  {
-    case INITIAL_LED_SEQUENCE:
-      for ( int i = 0; i < 10; i++ )
-      {
-        HAL_GPIO_WritePin (EXT_LED_RED_GPIO_Port, EXT_LED_RED_Pin, GPIO_PIN_SET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-        HAL_GPIO_WritePin (EXT_LED_GREEN_GPIO_Port, EXT_LED_GREEN_Pin, GPIO_PIN_SET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-        HAL_GPIO_WritePin (EXT_LED_RED_GPIO_Port, EXT_LED_RED_Pin, GPIO_PIN_RESET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-        HAL_GPIO_WritePin (EXT_LED_GREEN_GPIO_Port, EXT_LED_GREEN_Pin, GPIO_PIN_RESET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-      }
-      break;
-
-    case TEST_PASSED_LED_SEQUENCE:
-      for ( int i = 0; i < 5; i++ )
-      {
-        HAL_GPIO_WritePin (EXT_LED_GREEN_GPIO_Port, EXT_LED_GREEN_Pin, GPIO_PIN_RESET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
-        HAL_GPIO_WritePin (EXT_LED_GREEN_GPIO_Port, EXT_LED_GREEN_Pin, GPIO_PIN_SET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
-      }
-      break;
-
-    case TEST_FAILED_LED_SEQUENCE:
-      for ( int i = 0; i < 10; i++ )
-      {
-        HAL_GPIO_WritePin (EXT_LED_RED_GPIO_Port, EXT_LED_RED_Pin, GPIO_PIN_RESET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 2);
-        HAL_GPIO_WritePin (EXT_LED_RED_GPIO_Port, EXT_LED_RED_Pin, GPIO_PIN_SET);
-        tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 2);
-      }
-      break;
-
-    default:
-      break;
-  }
 }
 

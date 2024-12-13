@@ -54,6 +54,8 @@
 #include "controller.h"
 #include "persistent_ram.h"
 #include "sbd.h"
+#include "leds.h"
+#include "shared_i2c_bus.h"
 
 // Waves files
 #include "NEDWaves/NEDwaves_memlight.h"
@@ -153,6 +155,7 @@ TX_EVENT_FLAGS_GROUP rtc_complete_flags;
 // Flags for which thread is checkin in with watchdog
 TX_EVENT_FLAGS_GROUP watchdog_check_in_flags;
 // Timers for threads
+TX_TIMER led_duration_timer;
 TX_TIMER control_timer;
 TX_TIMER gnss_timer;
 TX_TIMER ct_timer;
@@ -481,6 +484,13 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   /************************************************************************************************
    **************************************** Timers ************************************************
    ************************************************************************************************/
+  ret = tx_timer_create(&led_duration_timer, "LED duration timer", led_timer_expired, 0, 1, 0,
+                        TX_NO_ACTIVATE);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
   ret = tx_timer_create(&control_timer, "Control thread timer", control_timer_expired, 0, 1, 0,
                         TX_NO_ACTIVATE);
   if ( ret != TX_SUCCESS )

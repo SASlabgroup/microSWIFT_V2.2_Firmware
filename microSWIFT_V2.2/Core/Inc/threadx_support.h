@@ -25,13 +25,6 @@
 #define ALL_EVENT_FLAGS (0xFFFFFFFF)
 #define NO_ERROR_FLAG 0U
 
-typedef enum led_sequence
-{
-  INITIAL_LED_SEQUENCE      = 1,
-  TEST_PASSED_LED_SEQUENCE  = 2,
-  TEST_FAILED_LED_SEQUENCE  = 3
-} led_sequence_t;
-
 bool        gnss_apply_config ( GNSS *gnss );
 bool        ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings );
 bool        temperature_self_test ( Temperature *temperature, float *self_test_temp );
@@ -57,8 +50,6 @@ ULONG       get_current_flags ( TX_EVENT_FLAGS_GROUP *event_flags );
 void        clear_event_flags ( TX_EVENT_FLAGS_GROUP *event_flags );
 
 uint32_t    ticks_from_milliseconds ( uint32_t milliseconds );
-
-void        led_sequence ( led_sequence_t sequence );
 
 // @formatter:on
 #endif /* INC_THREADX_SUPPORT_H_ */
