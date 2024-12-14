@@ -270,15 +270,15 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
 
   //
   // Allocate stack for the LED thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XS_STACK,
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XXS_STACK,
   TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the logger thread. Low priority priority level and no preemption possible
-  ret = tx_thread_create(&led_thread, "LED thread", led_thread_entry, 0, pointer, XS_STACK,
-                         VERY_HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
+  ret = tx_thread_create(&led_thread, "LED thread", led_thread_entry, 0, pointer, XXS_STACK,
+                         LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -286,15 +286,16 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
 
   //
   // Allocate stack for the LED thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, M_STACK,
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XS_STACK,
   TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
-  // Create the logger thread. Low priority priority level and no preemption possible
+  // Create the I2C thread, VERY_HIGH_PRIORITY level and no preemption possible
   ret = tx_thread_create(&i2c_bus_thread, "I2C bus thread", i2c_bus_thread_entry, 0, pointer,
-                         M_STACK, LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
+                         XS_STACK, VERY_HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
+                         TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -620,7 +621,14 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
-#error "Make the queues for the LED and I2C threads."
+  ret = tx_queue_create(&led_queue, "LED queue", sizeof(led_message) / sizeof(uint32_t), pointer,
+                        sizeof(led_message) * LED_MESSAGE_QUEUE_LENGTH);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+#error "Make the queue for I2C thread."
 
   /************************************************************************************************
    ***************************************** Misc init ********************************************
@@ -818,7 +826,7 @@ static void rtc_thread_entry ( ULONG thread_input )
  *************************************    LED Thread    ********************************************
  ***************************************************************************************************
  ***************************************************************************************************
- *************************************************************************************************** 
+ ***************************************************************************************************
  * @brief  LED thread entry
  *         Manages LED status
  * @param  ULONG thread_input - unused
@@ -826,7 +834,19 @@ static void rtc_thread_entry ( ULONG thread_input )
  */
 static void led_thread_entry ( ULONG thread_input )
 {
-#error "Fill this out."
+  UINT tx_ret;
+  led_message msg;
+
+  leds_init (&led_duration_timer);
+
+  while ( 1 )
+  {
+    tx_ret = tx_queue_receive (&led_queue, &msg, TX_WAIT_FOREVER);
+    if ( tx_ret == TX_SUCCESS )
+    {
+      led_light_sequence (msg.sequence, msg.duration_sec);
+    }
+  }
 }
 
 /***************************************************************************************************
@@ -834,7 +854,7 @@ static void led_thread_entry ( ULONG thread_input )
  ***********************************    I2C Bus Thread    ******************************************
  ***************************************************************************************************
  ***************************************************************************************************
- *************************************************************************************************** 
+ ***************************************************************************************************
  * @brief  I2C Bus thread entry
  *         Manages the shared I2C bus
  * @param  ULONG thread_input - unused
@@ -893,7 +913,6 @@ static void logger_thread_entry ( ULONG thread_input )
         tx_thread_sleep (LOGGER_MAX_TICKS_TO_TX_MSG - time_elapsed);
       }
     }
-
   }
 }
 
