@@ -47,20 +47,6 @@ typedef enum
   ALL_RTC_FLAGS             = 9
 } rtc_flag_t;
 
-// Event group flags for signaling completion
-typedef enum
-{
-  CONTROL_THREAD_REQUEST_PROCESSED      = ((ULONG) 1 << 1),
-  GNSS_REQUEST_PROCESSED                = ((ULONG) 1 << 2),
-  CT_REQUEST_PROCESSED                  = ((ULONG) 1 << 3),
-  TEMPERATURE_REQUEST_PROCESSED         = ((ULONG) 1 << 4),
-  LIGHT_REQUEST_PROCESSED               = ((ULONG) 1 << 5),
-  TURBIDITY_REQUEST_PROCESSED           = ((ULONG) 1 << 6),
-  IRIDIUM_REQUEST_PROCESSED             = ((ULONG) 1 << 7),
-  LOGGER_REQUEST_PROCESSED              = ((ULONG) 1 << 8),
-  PERSISTENT_RAM_REQUEST_PROCESSED      = ((ULONG) 1 << 9)
-} rtc_complete_flags_t;
-
 // Message struct for GET_TIME request
 typedef struct
 {

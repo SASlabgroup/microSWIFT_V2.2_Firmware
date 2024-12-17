@@ -152,6 +152,8 @@ TX_EVENT_FLAGS_GROUP irq_flags;
 TX_EVENT_FLAGS_GROUP error_flags;
 // RTC complete flags
 TX_EVENT_FLAGS_GROUP rtc_complete_flags;
+// I2C complete flags
+TX_EVENT_FLAGS_GROUP i2c_complete_flags;
 // Flags for which thread is checkin in with watchdog
 TX_EVENT_FLAGS_GROUP watchdog_check_in_flags;
 // Timers for threads
@@ -475,6 +477,13 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
   //
+  // Create the I2C complete flags we'll use for tracking I2C function completion
+  ret = tx_event_flags_create(&i2c_complete_flags, "I2C complete flags");
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+  //
   // Create watchdog check in flags -- used to track which thread has checked in
   ret = tx_event_flags_create(&watchdog_check_in_flags, "watchdog check-in flags");
   if ( ret != TX_SUCCESS )
@@ -621,6 +630,13 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer,
+                          sizeof(led_message) * LED_MESSAGE_QUEUE_LENGTH, TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
   ret = tx_queue_create(&led_queue, "LED queue", sizeof(led_message) / sizeof(uint32_t), pointer,
                         sizeof(led_message) * LED_MESSAGE_QUEUE_LENGTH);
   if ( ret != TX_SUCCESS )
@@ -628,7 +644,20 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
-#error "Make the queue for I2C thread."
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer,
+                          sizeof(i2c_queue_message) * I2C_QUEUE_LENGTH, TX_NO_WAIT);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
+
+  ret = tx_queue_create(&i2c_bus_queue, "I2C Bus queue",
+                        sizeof(i2c_queue_message) / sizeof(uint32_t), pointer,
+                        sizeof(i2c_queue_message) * I2C_QUEUE_LENGTH);
+  if ( ret != TX_SUCCESS )
+  {
+    return ret;
+  }
 
   /************************************************************************************************
    ***************************************** Misc init ********************************************
@@ -817,7 +846,6 @@ static void rtc_thread_entry ( ULONG thread_input )
       }
       (void) tx_event_flags_set (&rtc_complete_flags, req.complete_flag, TX_OR);
     }
-
   }
 }
 
@@ -836,15 +864,16 @@ static void led_thread_entry ( ULONG thread_input )
 {
   UINT tx_ret;
   led_message msg;
+  LEDs leds;
 
-  leds_init (&led_duration_timer);
+  leds_init (&leds, &led_duration_timer, &led_queue);
 
   while ( 1 )
   {
     tx_ret = tx_queue_receive (&led_queue, &msg, TX_WAIT_FOREVER);
     if ( tx_ret == TX_SUCCESS )
     {
-      led_light_sequence (msg.sequence, msg.duration_sec);
+      leds.play_sequence (msg.sequence, msg.duration_sec);
     }
   }
 }
@@ -862,7 +891,59 @@ static void led_thread_entry ( ULONG thread_input )
  */
 static void i2c_bus_thread_entry ( ULONG thread_input )
 {
-#error "Fill this out."
+  TX_THREAD *this_thread = tx_thread_identify ();
+  Shared_I2C_Bus shared_bus;
+  i2c_queue_message incoming_msg =
+    { 0 };
+  uSWIFT_return_code_t ret;
+  UINT tx_ret;
+
+  if ( !shared_i2c_init (&shared_bus, &hi2c2, &core_i2c_sema) )
+  {
+    i2c_error_out (this_thread, "Core I2C Bus failed to initialize.");
+  }
+
+  shared_i2c_server_init (&i2c_bus_queue, &i2c_complete_flags);
+
+  while ( 1 )
+  {
+    // See if we have any requests on the queue
+    tx_ret = tx_queue_receive (&i2c_bus_queue, &incoming_msg, TX_WAIT_FOREVER);
+    if ( tx_ret == TX_SUCCESS )
+    {
+      switch ( incoming_msg.operation_type )
+      {
+        case I2C_READ:
+          ret = shared_bus.read (incoming_msg.dev_addr, incoming_msg.dev_reg,
+                                 incoming_msg.input_output_buffer, incoming_msg.data_len,
+                                 I2C_OP_WAIT_TICKS);
+          break;
+
+        case I2C_WRITE:
+          ret = shared_bus.write (incoming_msg.dev_addr, incoming_msg.dev_reg,
+                                  incoming_msg.input_output_buffer, incoming_msg.data_len,
+                                  I2C_OP_WAIT_TICKS);
+          break;
+
+        default:
+          ret = uSWIFT_PARAMETERS_INVALID;
+          break;
+      }
+
+      if ( ret != uSWIFT_SUCCESS )
+      {
+        i2c_error_out (this_thread, "I2C Bus failed to service request %d, returning code %d.",
+                       (int) incoming_msg.operation_type, (int) ret);
+      }
+
+      if ( incoming_msg.return_code != NULL )
+      {
+        *incoming_msg.return_code = ret;
+      }
+
+      (void) tx_event_flags_set (&i2c_complete_flags, incoming_msg.complete_flag, TX_OR);
+    }
+  }
 }
 
 /***************************************************************************************************
@@ -932,8 +1013,9 @@ static void control_thread_entry ( ULONG thread_input )
   Control control =
     { 0 };
   struct watchdog_t watchdog;
-  bool first_window = is_first_sample_window ();
+  bool first_window = is_first_sample_window (), heartbeat_started = false;
   uint32_t watchdog_counter = 0;
+  ULONG start_time = 0;
 
   // Run tests if needed
   if ( tests.control_test != NULL )
@@ -962,12 +1044,9 @@ static void control_thread_entry ( ULONG thread_input )
     if ( first_window )
     {
       control.shutdown_all_peripherals ();
-      // Stay stuck here for a minute
-      for ( int i = 0; i < 10; i++ )
-      {
-        watchdog_check_in (CONTROL_THREAD);
-        led_sequence (TEST_FAILED_LED_SEQUENCE);
-      }
+
+      led_light_sequence (TEST_FAILED_LED_SEQUENCE, LED_SEQUENCE_FOREVER);
+      tx_thread_sleep (30);
 
       HAL_NVIC_SystemReset ();
     }
@@ -977,8 +1056,15 @@ static void control_thread_entry ( ULONG thread_input )
 
   if ( first_window )
   {
-    led_sequence (TEST_PASSED_LED_SEQUENCE);
+    led_light_sequence (TEST_PASSED_LED_SEQUENCE, 10);
   }
+  else
+  {
+    led_light_sequence (HEARTBEAT_SEQUENCE, LED_SEQUENCE_FOREVER);
+    heartbeat_started = true;
+  }
+
+  start_time = tx_time_get ();
 
   while ( 1 )
   {
@@ -996,6 +1082,12 @@ static void control_thread_entry ( ULONG thread_input )
       LOG("Duty cycle timeout. Starting shutdown sequence.");
       tx_thread_sleep (1);
       control.shutdown_procedure ();
+    }
+
+    if ( ((tx_time_get () - start_time) > (TX_TIMER_TICKS_PER_SECOND * 10)) && !heartbeat_started )
+    {
+      led_light_sequence (HEARTBEAT_SEQUENCE, LED_SEQUENCE_FOREVER);
+      heartbeat_started = true;
     }
 
     tx_thread_sleep (1);
@@ -1436,8 +1528,7 @@ static void temperature_thread_entry ( ULONG thread_input )
 
   memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
 
-  temperature_init (&temperature, &configuration, device_handles.core_i2c_handle, &error_flags,
-                    &temperature_timer, &core_i2c_mutex, true);
+  temperature_init (&temperature, &configuration, &error_flags, &temperature_timer, true);
 
   //
   // Run tests if needed
@@ -1522,7 +1613,7 @@ static void light_thread_entry ( ULONG thread_input )
   uSWIFT_return_code_t light_ret;
   Light_Sensor light =
     { 0 };
-  sbd_message_type_61_element sbd_msg_element =
+  sbd_message_type_54_element sbd_msg_element =
     { 0 };
   light_raw_counts raw_counts;
   light_basic_counts basic_counts;
@@ -1534,9 +1625,7 @@ static void light_thread_entry ( ULONG thread_input )
     { 0 };
   time_t time_now = 0;
 
-  light_sensor_init (&light, &configuration, &(light_sensor_sample_buffer[0]),
-                     device_handles.core_i2c_handle, &light_timer, &light_sensor_int_pin_sema,
-                     &light_sensor_i2c_sema);
+  light_sensor_init (&light, &configuration, &(light_sensor_sample_buffer[0]), &light_timer);
 
   tx_thread_sleep (10);
 
@@ -1657,7 +1746,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
     { 0 };
   uint16_t amb, prox;
   uSWIFT_return_code_t ret;
-  sbd_message_type_60_element sbd_msg_element =
+  sbd_message_type_53_element sbd_msg_element =
     { 0 };
   int32_t turbidity_thread_timeout = ((configuration.samples_per_window
                                        / configuration.gnss_sampling_rate)
@@ -1667,8 +1756,8 @@ static void turbidity_thread_entry ( ULONG thread_input )
     { 0 };
   time_t time_now = 0;
 
-  turbidity_sensor_init (&obs, &configuration, device_handles.core_i2c_handle, &turbidity_timer,
-                         &turbidity_sensor_i2c_sema, &turbidity_sensor_ambient_buffer[0],
+  turbidity_sensor_init (&obs, &configuration, &turbidity_timer,
+                         &turbidity_sensor_ambient_buffer[0],
                          &turbidity_sensor_proximity_buffer[0]);
 
   tx_thread_sleep (10);

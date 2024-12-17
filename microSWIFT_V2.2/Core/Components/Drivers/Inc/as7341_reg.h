@@ -1210,8 +1210,7 @@ typedef enum
 
 int32_t as7341_register_io_functions    ( dev_ctx_t *dev_handle, dev_init_ptr init_fn,
                                           dev_deinit_ptr deinit_fn, dev_write_ptr bus_write_fn,
-                                          dev_read_ptr bus_read_fn, dev_ms_delay_ptr delay,
-                                          as7341_gpio_handle gpio_handle );
+                                          dev_read_ptr bus_read_fn, dev_ms_delay_ptr delay );
 int32_t as7341_set_register_bank        (dev_ctx_t *dev_handle, as7341_reg_bank_t bank);
 int32_t as7341_get_id                   (dev_ctx_t *dev_handle, uint8_t *id);
 int32_t as7341_set_integration_mode     (dev_ctx_t *dev_handle, as7341_int_mode_t mode);

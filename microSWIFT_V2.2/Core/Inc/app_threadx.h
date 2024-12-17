@@ -131,11 +131,26 @@ typedef enum error_flags
   FILE_SYSTEM_ERROR                     = ((ULONG) 1 << 20),
   RTC_ERROR                             = ((ULONG) 1 << 21),
   WAVES_INIT_FAILED                     = ((ULONG) 1 << 22),
+  CORE_I2C_BUS_ERROR                    = ((ULONG) 1 << 23),
   // Misc errors
   WATCHDOG_RESET                        = ((ULONG) 1 << 29),
   SOFTWARE_RESET                        = ((ULONG) 1 << 30),
   MEMORY_CORRUPTION_ERROR               = ((ULONG) 1 << 31)
 } error_flags_t;
+
+// Event group flags for signaling completion (RTC thread, I2C thread, etc)
+typedef enum
+{
+  CONTROL_THREAD_REQUEST_PROCESSED      = ((ULONG) 1 << 1),
+  GNSS_REQUEST_PROCESSED                = ((ULONG) 1 << 2),
+  CT_REQUEST_PROCESSED                  = ((ULONG) 1 << 3),
+  TEMPERATURE_REQUEST_PROCESSED         = ((ULONG) 1 << 4),
+  LIGHT_REQUEST_PROCESSED               = ((ULONG) 1 << 5),
+  TURBIDITY_REQUEST_PROCESSED           = ((ULONG) 1 << 6),
+  IRIDIUM_REQUEST_PROCESSED             = ((ULONG) 1 << 7),
+  LOGGER_REQUEST_PROCESSED              = ((ULONG) 1 << 8),
+  PERSISTENT_RAM_REQUEST_PROCESSED      = ((ULONG) 1 << 9)
+} process_complete_flags_t;
 
 typedef struct
 {

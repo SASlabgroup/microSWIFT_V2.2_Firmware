@@ -59,31 +59,7 @@ uSWIFT_return_code_t rtc_server_get_time ( struct tm *return_time_struct, UINT c
 
 uSWIFT_return_code_t rtc_server_set_time ( struct tm *input_time_struct, UINT complete_flag )
 {
-  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
-  rtc_request_message queue_msg =
-    { 0 };
-  ULONG event_flags;
 
-  queue_msg.request = SET_TIME;
-  queue_msg.input_output_struct.get_set_time.time_struct = input_time_struct;
-  queue_msg.complete_flag = complete_flag;
-  queue_msg.return_code = &ret;
-
-  if ( tx_queue_send (rtc_server_self.request_queue, &queue_msg,
-  RTC_QUEUE_MAX_WAIT_TICKS)
-       != TX_SUCCESS )
-  {
-    return uSWIFT_MESSAGE_QUEUE_ERROR;
-  }
-
-  if ( tx_event_flags_get (rtc_server_self.complete_flags, complete_flag, TX_OR_CLEAR, &event_flags,
-  RTC_FLAG_MAX_WAIT_TICKS)
-       != TX_SUCCESS )
-  {
-    return uSWIFT_TIMEOUT;
-  }
-
-  return ret;
 }
 
 uSWIFT_return_code_t rtc_server_set_timestamp ( pcf2131_timestamp_t which_timestamp,

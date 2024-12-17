@@ -14,7 +14,8 @@
 #include "stdbool.h"
 #include "stm32u5xx_hal.h"
 #include "configuration.h"
-#include "i2c.h"
+#include "shared_i2c_bus.h"
+#include "app_threadx.h"
 
 // @formatter:off
 // Object instance pointer
@@ -35,17 +36,14 @@ static void                 __reset_struct_fields ( bool reset_calibration );
 // @formatter:on
 
 void temperature_init ( Temperature *struct_ptr, microSWIFT_configuration *global_config,
-                        I2C_HandleTypeDef *i2c_handle, TX_EVENT_FLAGS_GROUP *error_flags,
-                        TX_TIMER *timer, TX_MUTEX *i2c_mutex, bool clear_calibration_data )
+                        TX_EVENT_FLAGS_GROUP *error_flags, TX_TIMER *timer,
+                        bool clear_calibration_data )
 {
   temperature_self = struct_ptr;
 
   temperature_self->global_config = global_config;
   temperature_self->error_flags = error_flags;
-  temperature_self->i2c_handle = i2c_handle;
   temperature_self->timer = timer;
-//  temperature_self->pwr_gpio.port = TEMP_FET_GPIO_Port;
-//  temperature_self->pwr_gpio.pin = TEMP_FET_Pin;
   temperature_self->timer_timeout = false;
 
   temperature_self->self_test = _temperature_self_test;
@@ -54,11 +52,6 @@ void temperature_init ( Temperature *struct_ptr, microSWIFT_configuration *globa
   temperature_self->stop_timer = _temperature_stop_timer;
 
   __reset_struct_fields (clear_calibration_data);
-}
-
-void temperature_deinit ( void )
-{
-//  temperature_self->i2c_driver.deinit ();
 }
 
 void temperature_timer_expired ( ULONG expiration_input )
@@ -226,45 +219,13 @@ static void __reset_struct_fields ( bool reset_calibration )
 static uSWIFT_return_code_t _temperature_i2c_read ( uint8_t dev_addr, uint8_t reg_addr,
                                                     uint8_t *read_buf, uint16_t size )
 {
-  UINT tx_ret;
-  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
-
-  if ( HAL_I2C_Mem_Read (temperature_self->i2c_handle, dev_addr, reg_addr, 1, read_buf, size,
-  TEMPERATURE_SENSOR_I2C_TIMEOUT)
-       != HAL_OK )
-  {
-    ret = uSWIFT_COMMS_ERROR;
-  }
-
-  return ret;
+  return shared_i2c_read (dev_addr, reg_addr, read_buf, size, TEMPERATURE_REQUEST_PROCESSED);
 }
 
 static uSWIFT_return_code_t _temperature_i2c_write ( uint8_t dev_addr, uint8_t reg_addr,
                                                      uint8_t *write_buf, uint16_t size )
 {
-  UINT tx_ret;
-  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
-
-  if ( size == 0 )
-  {
-    if ( HAL_I2C_Master_Transmit (temperature_self->i2c_handle, dev_addr, &reg_addr, 1,
-    TEMPERATURE_SENSOR_I2C_TIMEOUT)
-         != HAL_OK )
-    {
-      ret = uSWIFT_COMMS_ERROR;
-    }
-  }
-  else
-  {
-    if ( HAL_I2C_Mem_Write (temperature_self->i2c_handle, dev_addr, reg_addr, 1, write_buf, size,
-    TEMPERATURE_SENSOR_I2C_TIMEOUT)
-         != HAL_OK )
-    {
-      ret = uSWIFT_COMMS_ERROR;
-    }
-  }
-
-  return ret;
+  return shared_i2c_write (dev_addr, reg_addr, write_buf, size, TEMPERATURE_REQUEST_PROCESSED);
 }
 
 // @formatter:on

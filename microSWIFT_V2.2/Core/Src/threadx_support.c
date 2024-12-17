@@ -243,7 +243,6 @@ void temperature_error_out ( Temperature *temperature, ULONG error_flag,
   char tmp_fmt[128];
 
   temperature->stop_timer ();
-  temperature_deinit ();
 
   vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
   va_end(args);
@@ -265,7 +264,6 @@ void light_error_out ( Light_Sensor *light, ULONG error_flag, TX_THREAD *light_t
 
   light->idle ();
   light->stop_timer ();
-  light_deinit ();
 
   vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
   va_end(args);
@@ -287,7 +285,6 @@ void turbidity_error_out ( Turbidity_Sensor *turbidity, ULONG error_flag,
 
   turbidity->idle ();
   turbidity->stop_timer ();
-  turbidity_deinit ();
 
   vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
   va_end(args);
@@ -355,6 +352,21 @@ void rtc_error_out ( TX_THREAD *rtc_thread, const char *fmt, ... )
   tx_thread_suspend (rtc_thread);
 }
 
+void i2c_error_out ( TX_THREAD *i2c_thread, const char *fmt, ... )
+{
+  va_list args;
+  va_start(args, fmt);
+  char tmp_fmt[128];
+
+  vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
+  va_end(args);
+  LOG(&(tmp_fmt[0]));
+
+  (void) tx_event_flags_set (&error_flags, CORE_I2C_BUS_ERROR, TX_OR);
+
+  tx_thread_suspend (i2c_thread);
+}
+
 void filex_error_out ( TX_THREAD *filex_thread, const char *fmt, ... )
 {
   va_list args;
@@ -374,7 +386,7 @@ void filex_error_out ( TX_THREAD *filex_thread, const char *fmt, ... )
 
 bool get_next_telemetry_message ( uint8_t *msg_buffer, microSWIFT_configuration config )
 {
-#error "Figure this out."
+#warning "Figure this out."
 }
 
 bool is_first_sample_window ( void )

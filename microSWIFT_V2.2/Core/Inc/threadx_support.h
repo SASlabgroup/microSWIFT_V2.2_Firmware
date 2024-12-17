@@ -40,6 +40,7 @@ void        turbidity_error_out(Turbidity_Sensor* turbidity, ULONG error_flag, T
 void        waves_error_out(ULONG error_flag, TX_THREAD *waves_thread, const char *fmt, ...);
 void        iridium_error_out(Iridium* iridium, ULONG error_flag, TX_THREAD *iridium_thread, const char *fmt, ...);
 void        rtc_error_out(TX_THREAD *rtc_thread, const char *fmt, ...);
+void        i2c_error_out(TX_THREAD *i2c_thread, const char *fmt, ...);
 void        filex_error_out (TX_THREAD *filex_thread, const char *fmt, ...);
 
 bool        get_next_telemetry_message (uint8_t* msg_buffer, microSWIFT_configuration config);

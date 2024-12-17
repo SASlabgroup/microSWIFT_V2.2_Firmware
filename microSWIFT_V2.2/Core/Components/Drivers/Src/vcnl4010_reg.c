@@ -18,7 +18,8 @@ int32_t vcnl4010_register_io_functions ( dev_ctx_t *dev_handle, dev_init_ptr ini
   dev_handle->handle = (void*) NULL;
   dev_handle->delay = delay_fn;
 
-  return dev_handle->init ();
+  return (dev_handle->init != NULL) ?
+      dev_handle->init () : VCNL4010_OK;
 }
 
 int32_t vcnl4010_get_id ( dev_ctx_t *dev_handle, uint8_t *id )

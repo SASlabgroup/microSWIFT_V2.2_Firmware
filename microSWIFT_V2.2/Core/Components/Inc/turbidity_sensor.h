@@ -25,10 +25,6 @@ typedef struct
 {
   microSWIFT_configuration  *global_config;
 
-  I2C_HandleTypeDef         *i2c_handle;
-
-  TX_SEMAPHORE              *i2c_sema;
-
   TX_TIMER                  *timer;
 
   uint16_t                  *ambient_series;
@@ -56,16 +52,13 @@ typedef struct
   uSWIFT_return_code_t      (*process_measurements) (void);
   uSWIFT_return_code_t      (*start_timer) (uint16_t timeout_in_minutes);
   uSWIFT_return_code_t      (*stop_timer) (void);
-  void                      (*assemble_telemetry_message_element) (sbd_message_type_60_element *msg);
+  void                      (*assemble_telemetry_message_element) (sbd_message_type_53_element *msg);
   void                      (*standby) (void);
   void                      (*idle) (void);
 } Turbidity_Sensor;
 
 void turbidity_sensor_init          ( Turbidity_Sensor *struct_ptr, microSWIFT_configuration *global_config,
-                                      I2C_HandleTypeDef *i2c_handle, TX_TIMER *timer,
-                                      TX_SEMAPHORE *sensor_i2c_sema, uint16_t *ambient_buffer,
-                                      uint16_t *proximity_buffer );
-void turbidity_deinit               ( void );
+                                      TX_TIMER *timer, uint16_t *ambient_buffer, uint16_t *proximity_buffer );
 void turbidity_timer_expired        ( ULONG expiration_input );
 bool turbidity_get_timeout_status   ( void );
 // @formatter:on

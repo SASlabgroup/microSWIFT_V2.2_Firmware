@@ -24,13 +24,13 @@ typedef struct
 
 typedef struct
 {
-  sbd_message_type_60       payload;
+  sbd_message_type_53       payload;
   bool                      valid[TURBIDITY_MSGS_PER_SBD];
 } Turbidity_Message_Storage_Element_t;
 
 typedef struct
 {
-  sbd_message_type_61       payload;
+  sbd_message_type_54       payload;
   bool                      valid[LIGHT_MSGS_PER_SBD];
 } Light_Message_Storage_Element_t;
 

@@ -36,7 +36,6 @@ typedef struct Temperature
 {
   microSWIFT_configuration  *global_config;
   TX_EVENT_FLAGS_GROUP      *error_flags;
-  I2C_HandleTypeDef         *i2c_handle;
   TX_TIMER                  *timer;
 
   bool                      timer_timeout;
@@ -55,9 +54,8 @@ typedef struct Temperature
 } Temperature;
 
 void temperature_init ( Temperature *struct_ptr, microSWIFT_configuration *global_config,
-                        I2C_HandleTypeDef *i2c_handle, TX_EVENT_FLAGS_GROUP *error_flags,
-                        TX_TIMER *timer, TX_MUTEX *i2c_mutex, bool clear_calibration_data );
-void temperature_deinit ( void );
+                        TX_EVENT_FLAGS_GROUP *error_flags, TX_TIMER *timer,
+                        bool clear_calibration_data );
 void temperature_timer_expired ( ULONG expiration_input );
 bool temperature_get_timeout_status ( void );
 

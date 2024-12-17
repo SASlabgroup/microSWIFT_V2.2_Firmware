@@ -74,19 +74,12 @@ typedef struct
 {
   microSWIFT_configuration  *global_config;
 
-  I2C_HandleTypeDef         *i2c_handle;
-
-  TX_SEMAPHORE              *int_pin_sema;
-  TX_SEMAPHORE              *i2c_sema;
-
   TX_TIMER                  *timer;
 
   dev_ctx_t                 dev_ctx;
 
   as7341_smux_assignment    smux_assignment_low_channels;
   as7341_smux_assignment    smux_assignment_high_channels;
-
-  as7341_gpio_handle        gpio_handle;
 
   light_raw_counts          raw_counts;
 
@@ -118,7 +111,7 @@ typedef struct
   uSWIFT_return_code_t      (*stop_timer) ( void );
   uSWIFT_return_code_t      (*process_measurements) (void);
   uSWIFT_return_code_t      (*get_samples_averages) (void);
-  void                      (*assemble_telemetry_message_element) (sbd_message_type_61_element *msg);
+  void                      (*assemble_telemetry_message_element) (sbd_message_type_54_element *msg);
   void                      (*get_raw_measurements) (light_raw_counts *buffer);
   void                      (*get_basic_counts) (light_basic_counts *buffer);
   void                      (*get_single_measurement) (uint16_t *raw_measurement, uint32_t *basic_count, light_channel_index_t which_channel);
@@ -128,10 +121,7 @@ typedef struct
 } Light_Sensor;
 
 void light_sensor_init          ( Light_Sensor *struct_ptr, microSWIFT_configuration *global_config,
-                                  light_basic_counts *samples_series_buffer, I2C_HandleTypeDef *i2c_handle,
-                                  TX_TIMER *timer, TX_SEMAPHORE *int_pin_sema,
-                                  TX_SEMAPHORE *light_sensor_i2c_sema );
-void light_deinit               ( void );
+                                  light_basic_counts *samples_series_buffer, TX_TIMER *timer );
 void light_timer_expired        ( ULONG expiration_input );
 bool light_get_timeout_status   ( void );
 

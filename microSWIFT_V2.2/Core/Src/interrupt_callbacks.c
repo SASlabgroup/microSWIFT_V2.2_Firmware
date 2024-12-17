@@ -12,8 +12,6 @@
 #include "gnss.h"
 #include "battery.h"
 
-#error"Ensure all synchronization primitives are correct!"
-
 /**
  * @brief Tx Transfer completed callback.
  * @param  hspi: pointer to a SPI_HandleTypeDef structure that contains
@@ -302,6 +300,34 @@ void HAL_I2C_MemTxCpltCallback ( I2C_HandleTypeDef *hi2c )
  * @retval None
  */
 void HAL_I2C_MemRxCpltCallback ( I2C_HandleTypeDef *hi2c )
+{
+  if ( hi2c->Instance == CORE_I2C_BUS )
+  {
+    (void) tx_semaphore_put (&core_i2c_sema);
+  }
+}
+
+/**
+ * @brief  Master Tx Transfer completed callback.
+ * @param  hi2c Pointer to a I2C_HandleTypeDef structure that contains
+ *                the configuration information for the specified I2C.
+ * @retval None
+ */
+void HAL_I2C_MasterTxCpltCallback ( I2C_HandleTypeDef *hi2c )
+{
+  if ( hi2c->Instance == CORE_I2C_BUS )
+  {
+    (void) tx_semaphore_put (&core_i2c_sema);
+  }
+}
+
+/**
+ * @brief  Master Rx Transfer completed callback.
+ * @param  hi2c Pointer to a I2C_HandleTypeDef structure that contains
+ *                the configuration information for the specified I2C.
+ * @retval None
+ */
+void HAL_I2C_MasterRxCpltCallback ( I2C_HandleTypeDef *hi2c )
 {
   if ( hi2c->Instance == CORE_I2C_BUS )
   {

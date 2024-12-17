@@ -11,17 +11,17 @@
 
 int32_t as7341_register_io_functions ( dev_ctx_t *dev_handle, dev_init_ptr init_fn,
                                        dev_deinit_ptr deinit_fn, dev_write_ptr bus_write_fn,
-                                       dev_read_ptr bus_read_fn, dev_ms_delay_ptr delay,
-                                       as7341_gpio_handle gpio_handle )
+                                       dev_read_ptr bus_read_fn, dev_ms_delay_ptr delay )
 {
   dev_handle->init = init_fn;
   dev_handle->deinit = deinit_fn;
   dev_handle->bus_read = bus_read_fn;
   dev_handle->bus_write = bus_write_fn;
-  dev_handle->handle = (void*) gpio_handle;
+  dev_handle->handle = NULL;
   dev_handle->delay = delay;
 
-  return dev_handle->init ();
+  return (dev_handle->init != NULL) ?
+      dev_handle->init () : AS7341_OK;
 }
 
 int32_t as7341_set_register_bank ( dev_ctx_t *dev_handle, as7341_reg_bank_t bank )
@@ -72,9 +72,11 @@ int32_t as7341_config_smux ( dev_ctx_t *dev_handle, as7341_smux_assignment *smux
     { SMUX_ASSIGNMENT_DISABLE };
   as7341_smux_assignment_t adc_assignment;
   as7341_smux_channels_t channel_assignment;
+  as7341_enable_reg_t enable_reg =
+    { 0 };
   uint8_t *smux_mem_ptr = (uint8_t*) &smux_memory;
-  bool validated = false;
-  uint8_t fail_counter = 0, max_retries = 5;
+  uint8_t timeout = 100, counter = 0;
+  bool success = false;
 
   for ( int i = 0; i < AS7341_NUM_ADCS; i++ )
   {
@@ -156,51 +158,49 @@ int32_t as7341_config_smux ( dev_ctx_t *dev_handle, as7341_smux_assignment *smux
     }
   }
 
-//  while ( (!validated) && (fail_counter < max_retries) && (ret != AS7341_ERROR) )
-//  {
-  // Enable spectral interrupt so we can check when the smux command has completed
-  ret |= as7341_config_smux_interrupt (dev_handle, true);
+//  // Enable spectral interrupt so we can check when the smux command has completed
+//  ret |= as7341_config_smux_interrupt (dev_handle, true);
+//
+//  // Enable system interrupts so the SMUX int will actually fire
+//  ret |= as7341_config_sys_interrupts (dev_handle, true);
 
-  // Enable system interrupts so the SMUX int will actually fire
-  ret |= as7341_config_sys_interrupts (dev_handle, true);
-
-  // Send SMUX command to write to SMUX memory
+// Send SMUX command to write to SMUX memory
   ret |= as7341_send_smux_command (dev_handle, SMUX_WRITE_CONFIG_FROM_RAM);
 
   ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, SMUX_MEMORY_ADDR_LOW, smux_mem_ptr,
   SMUX_MEMORY_SIZE);
 
-//    for ( int i = SMUX_MEMORY_ADDR_LOW; i <= SMUX_MEMORY_ADDR_HIGH; i++, smux_mem_ptr++ )
-//    {
-//      // Write to SMUX RAM
-//      ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, i, smux_mem_ptr, 1);
-//    }
-
-// Enable the SMUX
+  // Enable the SMUX
   ret |= as7341_smux_enable (dev_handle);
 
-  // Wait until the interrupt fires to let us know the SMUX has completed (INT pin is active low)
-  if ( !((as7341_gpio_handle) dev_handle->handle)->wait_on_int (1000) )
+  // Wait for the SMUX enable bit to clear to indicate command has completed
+  while ( counter++ < timeout )
   {
-    ret |= AS7341_ERROR;
+    ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, ENABLE_REG_ADDR, &enable_reg, 1);
+
+    if ( enable_reg.smuxen == 0 )
+    {
+      success = true;
+      break;
+    }
   }
 
-  // Clear SMUX interrupt
-  ret |= as7341_config_smux_interrupt (dev_handle, false);
+  if ( (counter == timeout) && !success )
+  {
+    ret = AS7341_ERROR;
+  }
 
-  // Clear system interrupts
-  ret |= as7341_config_sys_interrupts (dev_handle, false);
-
-//    ret |= as7341_validate_smux_config (dev_handle, smux_assignment, &validated);
-//
-//    fail_counter++;
-//
-//  }
-//
-//  if ( fail_counter == max_retries )
+//  // Wait until the interrupt fires to let us know the SMUX has completed (INT pin is active low)
+//  if ( !((as7341_gpio_handle) dev_handle->handle)->wait_on_int (1000) )
 //  {
-//    ret = AS7341_ERROR;
+//    ret |= AS7341_ERROR;
 //  }
+
+//  // Clear SMUX interrupt
+//  ret |= as7341_config_smux_interrupt (dev_handle, false);
+//
+//  // Clear system interrupts
+//  ret |= as7341_config_sys_interrupts (dev_handle, false);
 
   return ret;
 }

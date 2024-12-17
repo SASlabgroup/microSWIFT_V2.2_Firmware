@@ -6,6 +6,8 @@
  */
 
 #include "turbidity_sensor.h"
+#include "app_threadx.h"
+#include "shared_i2c_bus.h"
 
 // @formatter:off
 static Turbidity_Sensor *turbidity_self;
@@ -18,12 +20,10 @@ static uSWIFT_return_code_t _turbidity_sensor_get_most_recent_measurement ( uint
 static uSWIFT_return_code_t _turbidity_sensor_process_measurements (void);
 static uSWIFT_return_code_t _turbidity_sensor_start_timer ( uint16_t timeout_in_minutes );
 static uSWIFT_return_code_t _turbidity_sensor_stop_timer (void);
-static void                 _turbidity_sensor_assemble_telemetry_message_element (sbd_message_type_60_element *msg);
+static void                 _turbidity_sensor_assemble_telemetry_message_element (sbd_message_type_53_element *msg);
 static void                 _turbidity_sensor_standby (void);
 static void                 _turbidity_sensor_idle (void);
 // I/O functions for the sensor
-static int32_t              _turbidity_sensor_i2c_init ( void );
-static int32_t              _turbidity_sensor_i2c_deinit ( void );
 static int32_t              _turbidity_sensor_i2c_read ( void *unused_handle, uint16_t bus_address,
                                                           uint16_t reg_address, uint8_t *read_data,
                                                           uint16_t data_length );
@@ -37,25 +37,22 @@ static uSWIFT_return_code_t __turbidity_sensor_get_ambient_reading (uint16_t *re
 // @formatter:on
 
 void turbidity_sensor_init ( Turbidity_Sensor *struct_ptr, microSWIFT_configuration *global_config,
-                             I2C_HandleTypeDef *i2c_handle, TX_TIMER *timer,
-                             TX_SEMAPHORE *sensor_i2c_sema, uint16_t *ambient_buffer,
-                             uint16_t *proximity_buffer )
+                             TX_TIMER *timer, uint16_t *ambient_buffer, uint16_t *proximity_buffer )
 {
   turbidity_self = struct_ptr;
 
   turbidity_self->global_config = global_config;
 
-  turbidity_self->i2c_handle = i2c_handle;
-  turbidity_self->i2c_sema = sensor_i2c_sema;
-
   turbidity_self->timer = timer;
 
   turbidity_self->ambient_series = ambient_buffer;
   turbidity_self->proximity_series = proximity_buffer;
+
   memset (&(turbidity_self->ambient_averages_series[0]), 0,
           sizeof(turbidity_self->ambient_averages_series));
   memset (&(turbidity_self->proximity_averages_series[0]), 0,
           sizeof(turbidity_self->proximity_averages_series));
+
   turbidity_self->samples_counter = 0;
 
   turbidity_self->timer_timeout = false;
@@ -73,14 +70,6 @@ void turbidity_sensor_init ( Turbidity_Sensor *struct_ptr, microSWIFT_configurat
   turbidity_self->idle = _turbidity_sensor_idle;
 }
 
-void turbidity_deinit ( void )
-{
-  if ( turbidity_self->dev_ctx.deinit != NULL )
-  {
-    turbidity_self->dev_ctx.deinit ();
-  }
-}
-
 void turbidity_timer_expired ( ULONG expiration_input )
 {
   turbidity_self->timer_timeout = true;
@@ -96,9 +85,10 @@ static uSWIFT_return_code_t _turbidity_sensor_self_test ( void )
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   uint8_t id = 0;
 
-  if ( vcnl4010_register_io_functions (&turbidity_self->dev_ctx, _turbidity_sensor_i2c_init,
-                                       _turbidity_sensor_i2c_deinit, _turbidity_sensor_i2c_write,
-                                       _turbidity_sensor_i2c_read, _turbidity_sensor_ms_delay)
+  if ( vcnl4010_register_io_functions (&turbidity_self->dev_ctx, NULL,
+  NULL,
+                                       _turbidity_sensor_i2c_write, _turbidity_sensor_i2c_read,
+                                       _turbidity_sensor_ms_delay)
        != uSWIFT_SUCCESS )
   {
     return uSWIFT_INITIALIZATION_ERROR;
@@ -231,7 +221,7 @@ static uSWIFT_return_code_t _turbidity_sensor_stop_timer ( void )
 }
 
 static void _turbidity_sensor_assemble_telemetry_message_element (
-    sbd_message_type_60_element *msg )
+    sbd_message_type_53_element *msg )
 {
   memcpy (&msg->start_lat, &turbidity_self->start_lat, sizeof(int32_t));
   memcpy (&msg->start_lon, &turbidity_self->start_lon, sizeof(int32_t));
@@ -256,37 +246,13 @@ static void _turbidity_sensor_idle ( void )
   vcnl4010_cont_conv_config (&turbidity_self->dev_ctx, false);
 }
 
-static int32_t _turbidity_sensor_i2c_init ( void )
-{
-  return i2c2_init ();
-}
-
-static int32_t _turbidity_sensor_i2c_deinit ( void )
-{
-  return i2c2_deinit ();
-}
-
 static int32_t _turbidity_sensor_i2c_read ( void *unused_handle, uint16_t bus_address,
                                             uint16_t reg_address, uint8_t *read_data,
                                             uint16_t data_length )
 {
   (void) unused_handle;
-  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
-
-  if ( HAL_I2C_Mem_Read_IT (turbidity_self->i2c_handle, bus_address, reg_address, 1, read_data,
-                            data_length)
-       != HAL_OK )
-  {
-    ret = uSWIFT_COMMS_ERROR;
-    return ret;
-  }
-
-  if ( tx_semaphore_get (turbidity_self->i2c_sema, TURBIDITY_I2C_TIMEOUT) != TX_SUCCESS )
-  {
-    ret = uSWIFT_TIMEOUT;
-  }
-
-  return ret;
+  return shared_i2c_read (bus_address, reg_address, read_data, data_length,
+                          TURBIDITY_REQUEST_PROCESSED);
 }
 
 static int32_t _turbidity_sensor_i2c_write ( void *unused_handle, uint16_t bus_address,
@@ -294,22 +260,8 @@ static int32_t _turbidity_sensor_i2c_write ( void *unused_handle, uint16_t bus_a
                                              uint16_t data_length )
 {
   (void) unused_handle;
-  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
-
-  if ( HAL_I2C_Mem_Write_IT (turbidity_self->i2c_handle, bus_address, reg_address, 1, write_data,
-                             data_length)
-       != HAL_OK )
-  {
-    ret = uSWIFT_COMMS_ERROR;
-    return ret;
-  }
-
-  if ( tx_semaphore_get (turbidity_self->i2c_sema, TURBIDITY_I2C_TIMEOUT) != TX_SUCCESS )
-  {
-    ret = uSWIFT_TIMEOUT;
-  }
-
-  return ret;
+  return shared_i2c_write (bus_address, reg_address, write_data, data_length,
+                           TURBIDITY_REQUEST_PROCESSED);
 }
 
 static void _turbidity_sensor_ms_delay ( uint32_t delay )
