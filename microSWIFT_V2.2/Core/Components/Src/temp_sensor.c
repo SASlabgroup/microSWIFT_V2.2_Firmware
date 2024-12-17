@@ -100,7 +100,7 @@ static uSWIFT_return_code_t _temperature_get_readings ( bool get_single_reading,
   {
 
     command = TSYS01_ADC_TEMP_CONV;
-    return_code = _temperature_i2c_write (TSYS01_ADDR, command, NULL, 0);
+    return_code = _temperature_i2c_write (TSYS01_ADDR, 0, &command, 0);
     if ( return_code != uSWIFT_SUCCESS )
     {
       return return_code;
@@ -167,7 +167,7 @@ static uSWIFT_return_code_t __init_sensor ( void )
   }
 
   // Reset the TSYS01
-  ret = _temperature_i2c_write (TSYS01_ADDR, command, NULL, 0);
+  ret = _temperature_i2c_write (TSYS01_ADDR, 0, &command, 0);
   if ( ret != uSWIFT_SUCCESS )
   {
     return ret;

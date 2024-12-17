@@ -80,6 +80,11 @@ bool turbidity_get_timeout_status ( void )
   return turbidity_self->timer_timeout;
 }
 
+void turbidity_reset_sample_counter ( void )
+{
+  turbidity_self->samples_counter = 0;
+}
+
 static uSWIFT_return_code_t _turbidity_sensor_self_test ( void )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;

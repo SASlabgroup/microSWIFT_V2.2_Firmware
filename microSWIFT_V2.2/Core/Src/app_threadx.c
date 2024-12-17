@@ -1046,7 +1046,7 @@ static void control_thread_entry ( ULONG thread_input )
       control.shutdown_all_peripherals ();
 
       led_light_sequence (TEST_FAILED_LED_SEQUENCE, LED_SEQUENCE_FOREVER);
-      tx_thread_sleep (30);
+      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 30);
 
       HAL_NVIC_SystemReset ();
     }
@@ -1789,6 +1789,8 @@ static void turbidity_thread_entry ( ULONG thread_input )
 
   watchdog_register_thread (TURBIDITY_THREAD);
   watchdog_check_in (TURBIDITY_THREAD);
+
+  turbidity_reset_sample_counter ();
 
   gnss_get_current_lat_lon (&obs.start_lat, &obs.start_lon);
 

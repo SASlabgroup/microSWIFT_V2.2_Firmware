@@ -61,5 +61,6 @@ void turbidity_sensor_init          ( Turbidity_Sensor *struct_ptr, microSWIFT_c
                                       TX_TIMER *timer, uint16_t *ambient_buffer, uint16_t *proximity_buffer );
 void turbidity_timer_expired        ( ULONG expiration_input );
 bool turbidity_get_timeout_status   ( void );
+void turbidity_reset_sample_counter ( void );
 // @formatter:on
 #endif /* COMPONENTS_INC_TURBIDITY_SENSOR_H_ */

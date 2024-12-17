@@ -31,8 +31,8 @@ Busses
 General
 *******
 
-[ ] Make a common return code for EVERYTHING.
-	[ ] Ensure all functions return an uSWIFT_return_code_t
+[x] Make a common return code for EVERYTHING (close enough).
+	[x] Ensure all functions return an uSWIFT_return_code_t
 [x] !!!! Fix all timing instances of TX calls to use 
 	[ ] Looks like everything is good and stable, keep an eye out for more
 [ ] Consider adding error interrupts for interfaces to identify issues early

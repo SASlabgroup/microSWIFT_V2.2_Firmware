@@ -283,7 +283,7 @@ static uSWIFT_return_code_t _gnss_sync_and_start_reception ( void )
 {
   uSWIFT_return_code_t return_code = uSWIFT_SUCCESS;
   ULONG actual_flags;
-  uint8_t msg_buf[INITIAL_STAGES_BUFFER_SIZE + 50];
+  uint8_t msg_buf[INITIAL_STAGES_BUFFER_SIZE];
   int max_ticks_to_get_message = round (
       (((float) ((float) INITIAL_STAGES_BUFFER_SIZE / (float) UBX_NAV_PVT_MESSAGE_LENGTH))
        * ((float) ((float) TX_TIMER_TICKS_PER_SECOND
