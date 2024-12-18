@@ -12,6 +12,7 @@
 #include "persistent_ram.h"
 #include "NEDWaves/rtwhalf.h"
 #include "ct_sensor.h"
+#include "leds.h"
 
 // @formatter:off
 static Control  *controller_self;
@@ -37,7 +38,8 @@ static void     __handle_light_error( ULONG error_flag );
 static void     __handle_waves_error( void );
 static void     __handle_iridium_error( ULONG error_flags );
 static void     __handle_file_system_error( void );
-static void     __handle_misc_error ( ULONG error_flag  );
+static void     __handle_i2c_error ( void );
+static void     __handle_misc_error ( ULONG error_flag );
 
 // Static helper functions
 
@@ -117,14 +119,17 @@ static bool _control_startup_procedure ( void )
       (controller_self->global_config->duty_cycle * TX_TIMER_TICKS_PER_SECOND * 60), 0);
   if ( tx_return != TX_SUCCESS )
   {
-    led_sequence (TEST_FAILED_LED_SEQUENCE);
+
+    led_light_sequence (TEST_FAILED_LED_SEQUENCE, LED_SEQUENCE_FOREVER);
+    tx_thread_sleep (30);
     HAL_NVIC_SystemReset ();
   }
 
   tx_return = tx_timer_activate (controller_self->timer);
   if ( tx_return != TX_SUCCESS )
   {
-    led_sequence (TEST_FAILED_LED_SEQUENCE);
+    led_light_sequence (TEST_FAILED_LED_SEQUENCE, LED_SEQUENCE_FOREVER);
+    tx_thread_sleep (30);
     HAL_NVIC_SystemReset ();
   }
 
@@ -187,7 +192,7 @@ static bool _control_startup_procedure ( void )
   // Flash power up sequence (this will also give threads time to execute their init procedures)
   if ( initial_powerup )
   {
-    led_sequence (INITIAL_LED_SEQUENCE);
+    led_light_sequence (INITIAL_LED_SEQUENCE, 10);
   }
 
   // Grab the battery voltage
@@ -218,6 +223,8 @@ static void _control_shutdown_procedure ( void )
 {
   rtc_alarm_struct alarm_settings;
   struct tm time_now;
+
+  led_light_sequence (LIGHTS_OFF, LED_SEQUENCE_FOREVER);
 
   // Make sure everything is shut down
   controller_self->shutdown_all_peripherals ();
@@ -322,15 +329,11 @@ static void _control_shutdown_all_peripherals ( void )
 static void _control_shutdown_all_interfaces ( void )
 {
   uart4_deinit ();
-//  uart5_deinit ();
   usart1_deinit ();
   usart2_deinit ();
   usart3_deinit ();
-//  usart6_deinit ();
 
   spi1_deinit ();
-//  spi2_deinit ();
-//  spi3_deinit ();
 
   i2c2_deinit ();
 
@@ -466,6 +469,8 @@ static void _control_manage_state ( void )
   {
     controller_self->thread_status.gnss_complete = true;
 
+#warning "Figure out how to error out all sensors when this happens."
+
     if ( !controller_self->thread_status.ct_complete )
     {
       ret |= tx_thread_resume (controller_self->thread_handles->ct_thread);
@@ -563,7 +568,7 @@ static void _control_monitor_and_handle_errors ( void )
 {
   ULONG current_flags;
   ULONG gnss_errors, ct_errors, temperature_errors, light_errors, turbidity_errors, waves_errors,
-      iridium_errors, file_system_errors, rtc_errors, misc_errors;
+      iridium_errors, file_system_errors, i2c_errors, rtc_errors, misc_errors;
 
   // Get the error flags
   (void) tx_event_flags_get (controller_self->error_flags, ALL_EVENT_FLAGS, TX_OR_CLEAR,
@@ -591,6 +596,7 @@ static void _control_monitor_and_handle_errors ( void )
   iridium_errors = current_flags & (IRIDIUM_INIT_ERROR | IRIDIUM_UART_COMMS_ERROR);
   waves_errors = current_flags & (WAVES_INIT_FAILED);
   file_system_errors = current_flags & (FILE_SYSTEM_ERROR);
+  i2c_errors = current_flags & (CORE_I2C_BUS_ERROR);
   rtc_errors = current_flags & (RTC_ERROR);
   misc_errors = current_flags & (WATCHDOG_RESET | SOFTWARE_RESET | MEMORY_CORRUPTION_ERROR);
 
@@ -637,6 +643,11 @@ static void _control_monitor_and_handle_errors ( void )
   if ( file_system_errors )
   {
     __handle_file_system_error ();
+  }
+
+  if ( i2c_errors )
+  {
+    __handle_i2c_error ();
   }
 
   if ( misc_errors )
@@ -741,12 +752,6 @@ static void __handle_temperature_error ( ULONG error_flag )
 
 static void __handle_turbidity_error ( ULONG error_flag )
 {
-  // Shut down the Turbidity sensor
-//  HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_RESET);
-
-#warning"Set the turbidity fields to error values here."
-
-  // Set the TEMPERATURE_COMPLETED_WITH_ERRORS flag
   (void) tx_event_flags_set (controller_self->complete_flags,
                              TURBIDITY_THREAD_COMPLETED_WITH_ERRORS,
                              TX_OR);
@@ -757,12 +762,6 @@ static void __handle_turbidity_error ( ULONG error_flag )
 
 static void __handle_light_error ( ULONG error_flag )
 {
-  // Shut down the Turbidity sensor
-//  HAL_GPIO_WritePin (LIGHT_FET_GPIO_Port, LIGHT_FET_Pin, GPIO_PIN_RESET);
-
-#warning"Set the light fields to error values here."
-
-  // Set the TEMPERATURE_COMPLETED_WITH_ERRORS flag
   (void) tx_event_flags_set (controller_self->complete_flags, LIGHT_THREAD_COMPLETED_WITH_ERRORS,
   TX_OR);
 
@@ -801,6 +800,11 @@ static void __handle_file_system_error ( void )
 
   (void) tx_thread_suspend (controller_self->thread_handles->filex_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->filex_thread);
+}
+
+static void __handle_i2c_error ( void )
+{
+#warning "figure out how to handle I2C system errors."
 }
 
 static void __handle_misc_error ( ULONG error_flag )

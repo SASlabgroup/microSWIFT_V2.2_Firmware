@@ -34,6 +34,8 @@ typedef struct
   TX_TIMER                  *timer;
 
   sbd_message_type_52       *current_message;
+  
+  ULONG                     accumulated_error_flags;
 
   bool                      timer_timeout;
 
@@ -68,5 +70,6 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
 
 void control_timer_expired ( ULONG expiration_input );
 bool control_get_timeout_status ( void );
+ULONG control_get_accumulated_error_flags ( void );
 
 #endif /* INC_CONTROLLER_H_ */

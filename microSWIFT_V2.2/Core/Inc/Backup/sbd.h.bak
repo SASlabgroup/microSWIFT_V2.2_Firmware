@@ -55,19 +55,19 @@ typedef struct
   __packed  uint32_t    end_timestamp;
   __packed  uint16_t    backscatter_avgs[17];
   __packed  uint16_t    ambient_avgs[17];
-} sbd_message_type_60_element;
+} sbd_message_type_53_element;
 
-#define TURBIDITY_MSGS_PER_SBD (IRIDIUM_SBD_MAX_LENGTH / sizeof(sbd_message_type_60_element))
+#define TURBIDITY_MSGS_PER_SBD (IRIDIUM_SBD_MAX_LENGTH / sizeof(sbd_message_type_53_element))
 
 // Definition for the SBD message with multiple sample windows
 typedef struct
 {
   char                        legacy_number_7;
   uint8_t                     type;
-  sbd_message_type_60_element elements[TURBIDITY_MSGS_PER_SBD];
+  sbd_message_type_53_element elements[TURBIDITY_MSGS_PER_SBD];
   uint8_t                     checksum_a;
   uint8_t                     checksum_b;
-} sbd_message_type_60;
+} sbd_message_type_53;
 
 // Message definition for light measurements
 typedef struct
@@ -91,18 +91,18 @@ typedef struct
   __packed  uint16_t    avg_f8;
   __packed  uint16_t    avg_dark;
   __packed  uint16_t    avg_nir;
-} sbd_message_type_61_element;
+} sbd_message_type_54_element;
 
-#define LIGHT_MSGS_PER_SBD (IRIDIUM_SBD_MAX_LENGTH / sizeof(sbd_message_type_61_element))
+#define LIGHT_MSGS_PER_SBD (IRIDIUM_SBD_MAX_LENGTH / sizeof(sbd_message_type_54_element))
 
 // Definition for the SBD message with multiple sample windows
 typedef struct
 {
   char                        legacy_number_7;
   uint8_t                     type;
-  sbd_message_type_61_element elements[LIGHT_MSGS_PER_SBD];
+  sbd_message_type_54_element elements[LIGHT_MSGS_PER_SBD];
   uint8_t                     checksum_a;
   uint8_t                     checksum_b;
-} sbd_message_type_61;
+} sbd_message_type_54;
 // @formatter:on
 #endif /* INC_SBD_H_ */

@@ -25,13 +25,6 @@
 #define ALL_EVENT_FLAGS (0xFFFFFFFF)
 #define NO_ERROR_FLAG 0U
 
-typedef enum led_sequence
-{
-  INITIAL_LED_SEQUENCE      = 1,
-  TEST_PASSED_LED_SEQUENCE  = 2,
-  TEST_FAILED_LED_SEQUENCE  = 3
-} led_sequence_t;
-
 bool        gnss_apply_config ( GNSS *gnss );
 bool        ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings );
 bool        temperature_self_test ( Temperature *temperature, float *self_test_temp );
@@ -47,6 +40,7 @@ void        turbidity_error_out(Turbidity_Sensor* turbidity, ULONG error_flag, T
 void        waves_error_out(ULONG error_flag, TX_THREAD *waves_thread, const char *fmt, ...);
 void        iridium_error_out(Iridium* iridium, ULONG error_flag, TX_THREAD *iridium_thread, const char *fmt, ...);
 void        rtc_error_out(TX_THREAD *rtc_thread, const char *fmt, ...);
+void        i2c_error_out(TX_THREAD *i2c_thread, const char *fmt, ...);
 void        filex_error_out (TX_THREAD *filex_thread, const char *fmt, ...);
 
 bool        get_next_telemetry_message (uint8_t* msg_buffer, microSWIFT_configuration config);
@@ -57,8 +51,6 @@ ULONG       get_current_flags ( TX_EVENT_FLAGS_GROUP *event_flags );
 void        clear_event_flags ( TX_EVENT_FLAGS_GROUP *event_flags );
 
 uint32_t    ticks_from_milliseconds ( uint32_t milliseconds );
-
-void        led_sequence ( led_sequence_t sequence );
 
 // @formatter:on
 #endif /* INC_THREADX_SUPPORT_H_ */

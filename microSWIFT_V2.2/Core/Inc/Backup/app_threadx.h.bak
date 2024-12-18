@@ -131,11 +131,26 @@ typedef enum error_flags
   FILE_SYSTEM_ERROR                     = ((ULONG) 1 << 20),
   RTC_ERROR                             = ((ULONG) 1 << 21),
   WAVES_INIT_FAILED                     = ((ULONG) 1 << 22),
+  CORE_I2C_BUS_ERROR                    = ((ULONG) 1 << 23),
   // Misc errors
   WATCHDOG_RESET                        = ((ULONG) 1 << 29),
   SOFTWARE_RESET                        = ((ULONG) 1 << 30),
   MEMORY_CORRUPTION_ERROR               = ((ULONG) 1 << 31)
 } error_flags_t;
+
+// Event group flags for signaling completion (RTC thread, I2C thread, etc)
+typedef enum
+{
+  CONTROL_THREAD_REQUEST_PROCESSED      = ((ULONG) 1 << 1),
+  GNSS_REQUEST_PROCESSED                = ((ULONG) 1 << 2),
+  CT_REQUEST_PROCESSED                  = ((ULONG) 1 << 3),
+  TEMPERATURE_REQUEST_PROCESSED         = ((ULONG) 1 << 4),
+  LIGHT_REQUEST_PROCESSED               = ((ULONG) 1 << 5),
+  TURBIDITY_REQUEST_PROCESSED           = ((ULONG) 1 << 6),
+  IRIDIUM_REQUEST_PROCESSED             = ((ULONG) 1 << 7),
+  LOGGER_REQUEST_PROCESSED              = ((ULONG) 1 << 8),
+  PERSISTENT_RAM_REQUEST_PROCESSED      = ((ULONG) 1 << 9)
+} process_complete_flags_t;
 
 typedef struct
 {
@@ -151,13 +166,6 @@ typedef struct
   UART_HandleTypeDef    *logger_uart_handle;
   OSPI_HandleTypeDef    *ext_psram_handle;
   ADC_HandleTypeDef     *battery_adc;
-  // Expansion/ spares
-//  SPI_HandleTypeDef     *aux_spi_1_handle;
-//  SPI_HandleTypeDef     *aux_spi_2_handle;
-//  I2C_HandleTypeDef     *aux_i2c_1_handle;
-//  I2C_HandleTypeDef     *aux_i2c_2_handle;
-//  UART_HandleTypeDef    *aux_uart_1_handle;
-//  UART_HandleTypeDef    *aux_uart_2_handle;
   // DMA handles
   DMA_HandleTypeDef     *gnss_uart_tx_dma_handle;
   DMA_HandleTypeDef     *gnss_uart_rx_dma_handle;
@@ -173,6 +181,8 @@ typedef struct
 {
   TX_THREAD *control_thread;
   TX_THREAD *rtc_thread;
+  TX_THREAD *led_thread;
+  TX_THREAD *i2c_bus_thread;
   TX_THREAD *logger_thread;
   TX_THREAD *gnss_thread;
   TX_THREAD *ct_thread;
@@ -188,18 +198,10 @@ extern Thread_Handles thread_handles;
 extern Device_Handles device_handles;
 
 extern TX_SEMAPHORE ext_rtc_spi_sema;
-extern TX_SEMAPHORE aux_spi_1_spi_sema;
-extern TX_SEMAPHORE aux_spi_2_spi_sema;
-extern TX_SEMAPHORE light_sensor_i2c_sema;
-extern TX_SEMAPHORE turbidity_sensor_i2c_sema;
-extern TX_SEMAPHORE aux_i2c_1_sema;
-extern TX_SEMAPHORE aux_i2c_2_sema;
+extern TX_SEMAPHORE core_i2c_sema;
 extern TX_SEMAPHORE iridium_uart_sema;
 extern TX_SEMAPHORE ct_uart_sema;
-extern TX_SEMAPHORE aux_uart_1_sema;
-extern TX_SEMAPHORE aux_uart_2_sema;
 extern TX_SEMAPHORE logger_sema;
-extern TX_SEMAPHORE light_sensor_int_pin_sema;
 
 extern TX_EVENT_FLAGS_GROUP initialization_flags;
 extern TX_EVENT_FLAGS_GROUP irq_flags;

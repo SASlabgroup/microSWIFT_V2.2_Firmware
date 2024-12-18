@@ -288,7 +288,7 @@ static uSWIFT_return_code_t _gnss_sync_and_start_reception ( void )
       (((float) ((float) INITIAL_STAGES_BUFFER_SIZE / (float) UBX_NAV_PVT_MESSAGE_LENGTH))
        * ((float) ((float) TX_TIMER_TICKS_PER_SECOND
                    / (float) gnss_self->global_config->gnss_sampling_rate)))
-      + 50);
+      + 100);
   uint32_t watchdog_counter = 0;
 
   __HAL_UART_ENABLE_IT(&huart2, UART_IT_ERR);
@@ -316,7 +316,7 @@ static uSWIFT_return_code_t _gnss_sync_and_start_reception ( void )
       // If we didn't receive the needed messaged in time, cycle the GNSS sensor
       __cycle_power ();
       HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
-      tx_thread_sleep (13);
+      tx_thread_sleep (23);
       gnss_self->reset_uart ();
       continue;
     }
@@ -335,7 +335,7 @@ static uSWIFT_return_code_t _gnss_sync_and_start_reception ( void )
     {
       // Short delay to help get the frame sync'd
       HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
-      tx_thread_sleep (13);
+      tx_thread_sleep (23);
       gnss_self->reset_uart ();
     }
   }
@@ -1232,10 +1232,10 @@ static uSWIFT_return_code_t __start_GNSS_UART_DMA ( uint8_t *buffer, size_t msg_
 {
   uSWIFT_return_code_t return_code = uSWIFT_SUCCESS;
   HAL_StatusTypeDef hal_return_code = HAL_OK;
+  uint32_t counter = 0;
 
   memset (&(buffer[0]), 0, UBX_MESSAGE_SIZE * 2);
 
-  gnss_self->reset_uart ();
   HAL_DMA_Abort (gnss_self->gnss_rx_dma_handle);
   HAL_DMA_Abort (gnss_self->gnss_tx_dma_handle);
 
@@ -1254,19 +1254,28 @@ static uSWIFT_return_code_t __start_GNSS_UART_DMA ( uint8_t *buffer, size_t msg_
     return_code = uSWIFT_COMMS_ERROR;
   }
 
-  __HAL_DMA_DISABLE_IT(gnss_self->gnss_tx_dma_handle, DMA_IT_HT);
-  __HAL_DMA_DISABLE_IT(gnss_self->gnss_rx_dma_handle, DMA_IT_HT);
+  tx_thread_sleep (25);
 
+//  while ( counter++ < 25 )
+//  {
   hal_return_code = HAL_UARTEx_ReceiveToIdle_DMA (gnss_self->gnss_uart_handle,
                                                   (uint8_t*) &(buffer[0]), msg_size);
-
-  __HAL_DMA_DISABLE_IT(gnss_self->gnss_tx_dma_handle, DMA_IT_HT);
-  __HAL_DMA_DISABLE_IT(gnss_self->gnss_rx_dma_handle, DMA_IT_HT);
 
   if ( hal_return_code != HAL_OK )
   {
     return_code = uSWIFT_COMMS_ERROR;
+//      gnss_self->reset_uart ();
   }
+//    else if ( hal_return_code == HAL_OK )
+//    {
+//      __HAL_DMA_DISABLE_IT(gnss_self->gnss_tx_dma_handle, DMA_IT_HT);
+//      __HAL_DMA_DISABLE_IT(gnss_self->gnss_rx_dma_handle, DMA_IT_HT);
+//      return_code = uSWIFT_SUCCESS;
+//      break;
+//    }
+
+//    tx_thread_sleep (3);
+//  }
 
   return return_code;
 }

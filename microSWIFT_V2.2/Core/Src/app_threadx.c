@@ -1994,7 +1994,6 @@ static void iridium_thread_entry ( ULONG thread_input )
   LOG("Iridium modem initialized successfully.");
   (void) tx_event_flags_set (&initialization_flags, IRIDIUM_INIT_SUCCESS, TX_OR);
 
-  iridium.charge_caps (IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
   iridium.sleep ();
 
   tx_thread_suspend (this_thread);
@@ -2023,7 +2022,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   rtc_server_get_time (&time_struct, IRIDIUM_REQUEST_COMPLETE);
   time_now = mktime (&time_struct);
   sbd_timestamp = (uint32_t) time_now;
-  error_bits = get_current_flags (&error_flags);
+  error_bits = control_get_accumulated_error_flags ();
   memcpy (&sbd_message.legacy_number_7, &ascii_7, sizeof(char));
   memcpy (&sbd_message.type, &sbd_type, sizeof(uint8_t));
   memcpy (&sbd_message.size, &sbd_size, sizeof(uint16_t));
@@ -2082,6 +2081,8 @@ static void iridium_thread_entry ( ULONG thread_input )
     memcpy (&sbd_message.error_bits, &error_bits, sizeof(uint32_t));
     // Save the message
     persistent_ram_save_message (WAVES_TELEMETRY, msg_ptr);
+
+    tx_thread_sleep (10);
   }
 
   // Turn off the modem

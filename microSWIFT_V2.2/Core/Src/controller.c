@@ -101,6 +101,11 @@ bool control_get_timeout_status ( void )
   return controller_self->timer_timeout;
 }
 
+ULONG control_get_accumulated_error_flags ( void )
+{
+  return controller_self->accumulated_error_flags;
+}
+
 static bool _control_startup_procedure ( void )
 {
   UINT tx_return;
@@ -580,6 +585,8 @@ static void _control_monitor_and_handle_errors ( void )
     return;
   }
 
+  controller_self->accumulated_error_flags |= current_flags;
+
   gnss_errors = current_flags
                 & (GNSS_INIT_FAILED | GNSS_CONFIGURATION_FAILED | GNSS_RESOLUTION_ERROR
                    | GNSS_TOO_MANY_PARTIAL_MSGS | GNSS_SAMPLE_WINDOW_TIMEOUT
@@ -704,15 +711,25 @@ static void __handle_rtc_error ( void )
 
 static void __handle_gnss_error ( ULONG error_flags )
 {
+  ULONG flags = GNSS_THREAD_COMPLETED_WITH_ERRORS | WAVES_THREAD_COMPLETED_WITH_ERRORS;
+
+  if ( controller_self->global_config->turbidity_enabled )
+  {
+    flags |= TURBIDITY_THREAD_COMPLETED_WITH_ERRORS;
+  }
+
+  if ( controller_self->global_config->light_enabled )
+  {
+    flags |= LIGHT_THREAD_COMPLETED_WITH_ERRORS;
+  }
+
   // Shut down CT sensor
   HAL_GPIO_WritePin (GNSS_FET_GPIO_Port, GNSS_FET_Pin, GPIO_PIN_RESET);
   // Set all the fields of the SBD message to error values
   memset (controller_self->current_message, 0, sizeof(sbd_message_type_52));
 
   // Set the GNSS_THREAD_COMPLETED_WITH_ERRORS and WAVES_THREAD_COMPLETED_WITH_ERRORS flags to prevent waves thread from running
-  (void) tx_event_flags_set (
-      controller_self->complete_flags,
-      (GNSS_THREAD_COMPLETED_WITH_ERRORS | WAVES_THREAD_COMPLETED_WITH_ERRORS), TX_OR);
+  (void) tx_event_flags_set (controller_self->complete_flags, flags, TX_OR);
 
   // Terminate the GNSS thread
   (void) tx_thread_suspend (controller_self->thread_handles->gnss_thread);

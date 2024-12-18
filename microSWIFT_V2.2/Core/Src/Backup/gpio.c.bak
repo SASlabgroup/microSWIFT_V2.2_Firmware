@@ -70,7 +70,7 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOF, SPI1_CSn1_Pin|SPI1_CSn3_Pin|SPI2_CSn3_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(SPI1_CSn2_GPIO_Port, SPI1_CSn2_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(WDOG_OR_INPUT_GPIO_Port, WDOG_OR_INPUT_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, EXT_LED_RED_Pin|EXT_LED_GREEN_Pin|RTC_TIMESTAMP_1_Pin|BUS_5V_FET_Pin, GPIO_PIN_RESET);
@@ -144,8 +144,8 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(RTC_INT_B_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SPI1_CSn1_Pin SPI1_CSn2_Pin SPI1_CSn3_Pin SPI2_CSn3_Pin */
-  GPIO_InitStruct.Pin = SPI1_CSn1_Pin|SPI1_CSn2_Pin|SPI1_CSn3_Pin|SPI2_CSn3_Pin;
+  /*Configure GPIO pins : SPI1_CSn1_Pin WDOG_OR_INPUT_Pin SPI1_CSn3_Pin SPI2_CSn3_Pin */
+  GPIO_InitStruct.Pin = SPI1_CSn1_Pin|WDOG_OR_INPUT_Pin|SPI1_CSn3_Pin|SPI2_CSn3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;

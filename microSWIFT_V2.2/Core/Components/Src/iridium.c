@@ -240,6 +240,7 @@ static uSWIFT_return_code_t _iridium_transmit_message ( uint8_t *msg, uint32_t m
   if ( return_code == uSWIFT_COMMS_ERROR )
   {
     __cycle_power ();
+    return_code = iridium_self->config ();
   }
 
   return return_code;
@@ -363,8 +364,7 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
     __get_checksum ((uint8_t*) payload, payload_size);
 
     // Tell the modem we want to send a message
-    for ( fail_counter = 0; fail_counter < max_retries && !iridium_self->timer_timeout;
-        fail_counter++ )
+    for ( fail_counter = 0; fail_counter < max_retries; fail_counter++ )
     {
       watchdog_check_in (IRIDIUM_THREAD);
 
@@ -403,8 +403,7 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
     }
 
     // Send over the payload + checksum
-    for ( fail_counter = 0; fail_counter < max_retries && !iridium_self->timer_timeout;
-        fail_counter++ )
+    for ( fail_counter = 0; fail_counter < max_retries; fail_counter++ )
     {
       watchdog_check_in (IRIDIUM_THREAD);
 
@@ -488,9 +487,21 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
 
     // If message Tx failed, put the modem to sleep and delay for a total of 30 seconds
     iridium_self->sleep ();
+
+    if ( iridium_self->timer_timeout )
+    {
+      break;
+    }
+
     watchdog_check_in (IRIDIUM_THREAD);
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 25);
     watchdog_check_in (IRIDIUM_THREAD);
+
+    if ( iridium_self->timer_timeout )
+    {
+      break;
+    }
+
     iridium_self->wake ();
     iridium_self->charge_caps (TX_TIMER_TICKS_PER_SECOND * 5);
     watchdog_check_in (IRIDIUM_THREAD);
@@ -510,9 +521,11 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
 static void __cycle_power ( void )
 {
   iridium_self->off ();
-  tx_thread_sleep (1);
+  iridium_self->sleep ();
+  tx_thread_sleep (3);
   iridium_self->on ();
-  tx_thread_sleep (1);
+  iridium_self->wake ();
+  tx_thread_sleep (3);
 }
 
 /**
