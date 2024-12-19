@@ -43,7 +43,7 @@ void        rtc_error_out(TX_THREAD *rtc_thread, const char *fmt, ...);
 void        i2c_error_out(TX_THREAD *i2c_thread, const char *fmt, ...);
 void        filex_error_out (TX_THREAD *filex_thread, const char *fmt, ...);
 
-bool        get_next_telemetry_message (uint8_t* msg_buffer, microSWIFT_configuration config);
+bool        get_next_telemetry_message (uint8_t* msg_buffer, microSWIFT_configuration *config);
 
 bool        is_first_sample_window ( void );
 

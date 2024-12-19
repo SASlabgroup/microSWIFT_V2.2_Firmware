@@ -73,13 +73,15 @@ typedef enum
 {
   WAVES_TELEMETRY       = 0,
   TURBIDITY_TELEMETRY   = 1,
-  LIGHT_TELEMETRY       = 2
+  LIGHT_TELEMETRY       = 2,
+  NO_MESSAGE            = 3
 } telemetry_type_t;
 
 void                    persistent_ram_init ( void );
 void                    persistent_ram_deinit ( void );
 void                    persistent_ram_increment_sample_window_counter ( void );
-int32_t                 persistent_ram_get_sample_window_counter ( void );
+uint32_t                persistent_ram_get_sample_window_counter ( void );
+uint32_t                persistent_ram_get_num_msgs_enqueued ( telemetry_type_t msg_type );
 void                    persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t* msg );
 uint8_t*                persistent_ram_get_prioritized_unsent_message ( telemetry_type_t msg_type );
 void                    persistent_ram_delete_message_element ( telemetry_type_t msg_type, uint8_t *msg_ptr );

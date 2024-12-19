@@ -474,8 +474,6 @@ static void _control_manage_state ( void )
   {
     controller_self->thread_status.gnss_complete = true;
 
-#warning "Figure out how to error out all sensors when this happens."
-
     if ( !controller_self->thread_status.ct_complete )
     {
       ret |= tx_thread_resume (controller_self->thread_handles->ct_thread);

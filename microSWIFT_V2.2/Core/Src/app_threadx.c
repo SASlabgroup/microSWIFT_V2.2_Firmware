@@ -1967,6 +1967,8 @@ static void iridium_thread_entry ( ULONG thread_input )
     { 0 };
   uint8_t *msg_ptr = (uint8_t*) &sbd_message;
   bool current_message_sent = false;
+  telemetry_type_t next_message_type;
+  uint32_t next_message_size = 0;
 
   tx_thread_sleep (10);
 
@@ -2059,16 +2061,25 @@ static void iridium_thread_entry ( ULONG thread_input )
       continue;
     }
 
-    msg_ptr = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
-
-    if ( msg_ptr == NULL )
+    next_message_type = get_next_telemetry_message (msg_ptr, &configuration);
+    if ( next_message_type == NO_MESSAGE )
     {
       break;
     }
 
-    if ( iridium.transmit_message (msg_ptr, sizeof(sbd_message_type_52)) == uSWIFT_SUCCESS )
+    next_message_size = (next_message_type == WAVES_TELEMETRY) ?
+        sizeof(sbd_message_type_52) :
+                        (next_message_type == TURBIDITY_TELEMETRY) ?
+                            sizeof(sbd_message_type_53) :
+                        (next_message_type == LIGHT_TELEMETRY) ?
+                            sizeof(sbd_message_type_54) : 0;
+
+    if ( next_message_size > 0 )
     {
-      persistent_ram_delete_message_element (WAVES_TELEMETRY, msg_ptr);
+      if ( iridium.transmit_message (msg_ptr, next_message_size) == uSWIFT_SUCCESS )
+      {
+        persistent_ram_delete_message_element (next_message_type, msg_ptr);
+      }
     }
   }
 
@@ -2085,7 +2096,7 @@ static void iridium_thread_entry ( ULONG thread_input )
     tx_thread_sleep (10);
   }
 
-  // Turn off the modem
+// Turn off the modem
   iridium.stop_timer ();
   iridium.sleep ();
   iridium.off ();

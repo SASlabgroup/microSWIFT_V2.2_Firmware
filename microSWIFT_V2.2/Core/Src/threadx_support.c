@@ -384,9 +384,83 @@ void filex_error_out ( TX_THREAD *filex_thread, const char *fmt, ... )
   tx_thread_suspend (filex_thread);
 }
 
-bool get_next_telemetry_message ( uint8_t *msg_buffer, microSWIFT_configuration config )
+telemetry_type_t get_next_telemetry_message ( uint8_t *msg_buffer,
+                                              microSWIFT_configuration *config )
 {
-#warning "Figure this out."
+  uint32_t num_waves_msgs = persistent_ram_get_num_msgs_enqueued (WAVES_TELEMETRY);
+  uint32_t num_turbidity_msgs = persistent_ram_get_num_msgs_enqueued (TURBIDITY_TELEMETRY);
+  uint32_t num_light_msgs = persistent_ram_get_num_msgs_enqueued (LIGHT_TELEMETRY);
+
+  // Put simply, we're going to grab from whichever message queue has the most elements,
+  // considering which sensors are enabled. In case of a tie, Waves telemetry messages
+  // have priority as they produce a full SBD message every sample window.
+
+  if ( (num_waves_msgs == 0) && (num_turbidity_msgs == 0) && (num_light_msgs == 0) )
+  {
+    msg_buffer = NULL;
+    return NO_MESSAGE;
+  }
+
+  // First case, both light and turbidity sensors are enabled
+  if ( config->turbidity_enabled && config->light_enabled )
+  {
+    if ( (num_waves_msgs >= num_turbidity_msgs) && (num_waves_msgs >= num_light_msgs) )
+    {
+      msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
+      return (msg_buffer == NULL) ?
+          NO_MESSAGE : WAVES_TELEMETRY;
+    }
+    // Second priority is turbidity as there are fewer elements per message than light
+    else if ( (num_turbidity_msgs >= num_light_msgs) )
+    {
+      msg_buffer = persistent_ram_get_prioritized_unsent_message (TURBIDITY_TELEMETRY);
+      return (msg_buffer == NULL) ?
+          NO_MESSAGE : TURBIDITY_TELEMETRY;
+    }
+    else
+    {
+      msg_buffer = persistent_ram_get_prioritized_unsent_message (LIGHT_TELEMETRY);
+      return (msg_buffer == NULL) ?
+          NO_MESSAGE : LIGHT_TELEMETRY;
+    }
+  }
+  else if ( config->turbidity_enabled )
+  {
+    if ( (num_waves_msgs >= num_turbidity_msgs) )
+    {
+      msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
+      return (msg_buffer == NULL) ?
+          NO_MESSAGE : WAVES_TELEMETRY;
+    }
+    else
+    {
+      msg_buffer = persistent_ram_get_prioritized_unsent_message (TURBIDITY_TELEMETRY);
+      return (msg_buffer == NULL) ?
+          NO_MESSAGE : TURBIDITY_TELEMETRY;
+    }
+  }
+  else if ( config->light_enabled )
+  {
+    if ( (num_waves_msgs >= num_light_msgs) )
+    {
+      msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
+      return (msg_buffer == NULL) ?
+          NO_MESSAGE : WAVES_TELEMETRY;
+    }
+    else
+    {
+      msg_buffer = persistent_ram_get_prioritized_unsent_message (TURBIDITY_TELEMETRY);
+      return (msg_buffer == NULL) ?
+          NO_MESSAGE : TURBIDITY_TELEMETRY;
+    }
+  }
+  else
+  {
+    // Neither sensor enabled, only waves
+    msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
+    return (msg_buffer == NULL) ?
+        NO_MESSAGE : WAVES_TELEMETRY;
+  }
 }
 
 bool is_first_sample_window ( void )
