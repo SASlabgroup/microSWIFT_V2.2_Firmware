@@ -158,13 +158,7 @@ int32_t as7341_config_smux ( dev_ctx_t *dev_handle, as7341_smux_assignment *smux
     }
   }
 
-//  // Enable spectral interrupt so we can check when the smux command has completed
-//  ret |= as7341_config_smux_interrupt (dev_handle, true);
-//
-//  // Enable system interrupts so the SMUX int will actually fire
-//  ret |= as7341_config_sys_interrupts (dev_handle, true);
-
-// Send SMUX command to write to SMUX memory
+  // Send SMUX command to write to SMUX memory
   ret |= as7341_send_smux_command (dev_handle, SMUX_WRITE_CONFIG_FROM_RAM);
 
   ret |= dev_handle->bus_write (NULL, AS7341_I2C_ADDR, SMUX_MEMORY_ADDR_LOW, smux_mem_ptr,
@@ -173,10 +167,10 @@ int32_t as7341_config_smux ( dev_ctx_t *dev_handle, as7341_smux_assignment *smux
   // Enable the SMUX
   ret |= as7341_smux_enable (dev_handle);
 
-  // Wait for the SMUX enable bit to clear to indicate command has completed
+  // Poll the SMUX enable bit until it clears to indicate command has completed
   while ( counter++ < timeout )
   {
-    ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, ENABLE_REG_ADDR, &enable_reg, 1);
+    ret |= dev_handle->bus_read (NULL, AS7341_I2C_ADDR, ENABLE_REG_ADDR, (uint8_t*) &enable_reg, 1);
 
     if ( enable_reg.smuxen == 0 )
     {
@@ -189,18 +183,6 @@ int32_t as7341_config_smux ( dev_ctx_t *dev_handle, as7341_smux_assignment *smux
   {
     ret = AS7341_ERROR;
   }
-
-//  // Wait until the interrupt fires to let us know the SMUX has completed (INT pin is active low)
-//  if ( !((as7341_gpio_handle) dev_handle->handle)->wait_on_int (1000) )
-//  {
-//    ret |= AS7341_ERROR;
-//  }
-
-//  // Clear SMUX interrupt
-//  ret |= as7341_config_smux_interrupt (dev_handle, false);
-//
-//  // Clear system interrupts
-//  ret |= as7341_config_sys_interrupts (dev_handle, false);
 
   return ret;
 }

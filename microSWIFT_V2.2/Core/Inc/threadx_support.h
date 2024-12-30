@@ -19,38 +19,45 @@
 #include "light_sensor.h"
 #include "iridium.h"
 #include "stdarg.h"
+#include "sbd.h"
+#include "persistent_ram.h"
 
 // @formatter:off
 
 #define ALL_EVENT_FLAGS (0xFFFFFFFF)
 #define NO_ERROR_FLAG 0U
 
-bool        gnss_apply_config ( GNSS *gnss );
-bool        ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings );
-bool        temperature_self_test ( Temperature *temperature, float *self_test_temp );
-bool        turbidity_self_test ( Turbidity_Sensor *obs );
-bool        light_self_test ( Light_Sensor *light);
-bool        iridium_apply_config ( Iridium *iridium );
+bool                gnss_apply_config ( GNSS *gnss );
+bool                ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings );
+bool                temperature_self_test ( Temperature *temperature, float *self_test_temp );
+bool                turbidity_self_test ( Turbidity_Sensor *obs );
+bool                light_self_test ( Light_Sensor *light);
+bool                iridium_apply_config ( Iridium *iridium );
 
-void        gnss_error_out(GNSS *gnss, ULONG error_flag, TX_THREAD *gnss_thread, const char *fmt, ...);
-void        ct_error_out(CT* ct, ULONG error_flag, TX_THREAD *ct_thread, const char *fmt, ...);
-void        temperature_error_out(Temperature* temperature, ULONG error_flag, TX_THREAD *temperature_thread, const char *fmt, ...);
-void        light_error_out (Light_Sensor* light, ULONG error_flag, TX_THREAD* light_thread, const char *fmt, ...);
-void        turbidity_error_out(Turbidity_Sensor* turbidity, ULONG error_flag, TX_THREAD *turbidity_thread, const char *fmt, ...);
-void        waves_error_out(ULONG error_flag, TX_THREAD *waves_thread, const char *fmt, ...);
-void        iridium_error_out(Iridium* iridium, ULONG error_flag, TX_THREAD *iridium_thread, const char *fmt, ...);
-void        rtc_error_out(TX_THREAD *rtc_thread, const char *fmt, ...);
-void        i2c_error_out(TX_THREAD *i2c_thread, const char *fmt, ...);
-void        filex_error_out (TX_THREAD *filex_thread, const char *fmt, ...);
+void                gnss_error_out(GNSS *gnss, ULONG error_flag, TX_THREAD *gnss_thread, const char *fmt, ...);
+void                ct_error_out(CT* ct, ULONG error_flag, TX_THREAD *ct_thread, const char *fmt, ...);
+void                temperature_error_out(Temperature* temperature, ULONG error_flag, TX_THREAD *temperature_thread, const char *fmt, ...);
+void                light_error_out (Light_Sensor* light, ULONG error_flag, TX_THREAD* light_thread, const char *fmt, ...);
+void                turbidity_error_out(Turbidity_Sensor* turbidity, ULONG error_flag, TX_THREAD *turbidity_thread, const char *fmt, ...);
+void                waves_error_out(ULONG error_flag, TX_THREAD *waves_thread, const char *fmt, ...);
+void                iridium_error_out(Iridium* iridium, ULONG error_flag, TX_THREAD *iridium_thread, const char *fmt, ...);
+void                rtc_error_out(TX_THREAD *rtc_thread, const char *fmt, ...);
+void                i2c_error_out(TX_THREAD *i2c_thread, const char *fmt, ...);
+void                filex_error_out (TX_THREAD *filex_thread, const char *fmt, ...);
 
-bool        get_next_telemetry_message (uint8_t* msg_buffer, microSWIFT_configuration *config);
+ULONG               get_gnss_acquisition_timeout (microSWIFT_configuration *config);
+ULONG               get_gnss_sample_window_timeout (microSWIFT_configuration *config);
 
-bool        is_first_sample_window ( void );
+telemetry_type_t    get_next_telemetry_message (uint8_t* msg_buffer, microSWIFT_configuration *config);
 
-ULONG       get_current_flags ( TX_EVENT_FLAGS_GROUP *event_flags );
-void        clear_event_flags ( TX_EVENT_FLAGS_GROUP *event_flags );
+bool                is_first_sample_window ( void );
 
-uint32_t    ticks_from_milliseconds ( uint32_t milliseconds );
+ULONG               get_current_flags ( TX_EVENT_FLAGS_GROUP *event_flags );
+void                clear_event_flags ( TX_EVENT_FLAGS_GROUP *event_flags );
+
+ULONG               get_timer_remaining_ticks (TX_TIMER *timer);
+
+uint32_t            ticks_from_milliseconds ( uint32_t milliseconds );
 
 // @formatter:on
 #endif /* INC_THREADX_SUPPORT_H_ */

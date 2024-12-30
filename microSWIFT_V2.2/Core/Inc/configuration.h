@@ -12,15 +12,6 @@
 #include "stdbool.h"
 #include "stdint.h"
 
-typedef struct
-{
-  uint8_t major_rev :4;
-  uint8_t minor_rev :4;
-} microSWIFT_firmware_version_t;
-
-static const microSWIFT_firmware_version_t firmware_version =
-  { 0, 0 };
-
 /*
  * Debugging settings
  */
@@ -51,21 +42,11 @@ static const microSWIFT_firmware_version_t firmware_version =
 // The version of RckBlock 9603 modem
 #define IRIDIUM_V3F false
 
-// The max time in MINUTES without good data from GNSS before commanding to sleep
-// !! Must be greater than 0
-// **** In the case of SAMPLE_WINDOWS_PER_HOUR > 1, this will only apply to the very
-//      first sample window. Subsequent windows will calculate the GNSS acq time
-#define GNSS_MAX_ACQUISITION_WAIT_TIME 2
-
-#warning "Convert this to duty cycle, where the input is the number of minutes for a full cycle."
-// Are we doing 1 or two sample windows per hour
-#define SAMPLE_WINDOWS_PER_HOUR 2
-
 // Mins for a full sample, process, transmit period
 #define DUTY_CYCLE_PERIOD 30
 
 #ifdef DEBUG
-#define WATCHDOG_PERIOD 600000 // 1 min (in ms)
+#define WATCHDOG_PERIOD 120000 // 2 min (in ms)
 #else
 #define WATCHDOG_PERIOD 60000 // 1 min (in ms)
 #endif
@@ -103,7 +84,6 @@ static const microSWIFT_firmware_version_t firmware_version =
 typedef struct microSWIFT_configuration
 {
   uint32_t samples_per_window;
-  uint32_t windows_per_hour;
   uint32_t duty_cycle;
   uint32_t iridium_max_transmit_time;
   uint32_t gnss_max_acquisition_wait_time;

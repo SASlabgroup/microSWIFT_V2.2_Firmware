@@ -41,7 +41,16 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-extern bool initial_config_complete;
+typedef struct
+{
+  uint8_t major_rev :4;
+  uint8_t minor_rev :4;
+} microSWIFT_firmware_version_t;
+
+extern microSWIFT_firmware_version_t firmware_version;
+extern const char *compile_date;
+extern const char *compile_time;
+/* USER CODE END PV */
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -50,7 +59,7 @@ extern bool initial_config_complete;
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-void Error_Handler(void);
+void Error_Handler ( void );
 
 /* USER CODE BEGIN EFP */
 

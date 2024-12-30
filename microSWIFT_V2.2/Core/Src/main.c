@@ -49,6 +49,18 @@
 
 /* USER CODE BEGIN PV */
 
+// Compiled in
+const microSWIFT_firmware_version_t firmware_version_flash __attribute__ ((section (".uservars.VERSION_NUMBER")))
+=
+  { 0, 0 };
+char compile_date_flash[] __attribute__ ((section (".uservars.COMPILATION_DATE"))) = __DATE__;
+char compile_time_flash[] __attribute__ ((section (".uservars.COMPILATION_TIME"))) = __TIME__;
+
+// Globally available
+microSWIFT_firmware_version_t firmware_version;
+const char *compile_date;
+const char *compile_time;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -71,7 +83,6 @@ int main ( void )
 {
 
   /* USER CODE BEGIN 1 */
-
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -80,7 +91,13 @@ int main ( void )
   HAL_Init ();
 
   /* USER CODE BEGIN Init */
-
+  // Copy over the compiled in variables from the top of Flash
+  firmware_version.major_rev = firmware_version_flash.major_rev;
+  firmware_version.minor_rev = firmware_version_flash.minor_rev;
+  compile_date = (char*) &compile_date_flash[0];
+  compile_time = (char*) &compile_time_flash[0];
+  // Shut down flash bank 2 -- no longer required
+  HAL_FLASHEx_EnablePowerDown (FLASH_BANK_2);
   /* USER CODE END Init */
 
   /* Configure the System Power */

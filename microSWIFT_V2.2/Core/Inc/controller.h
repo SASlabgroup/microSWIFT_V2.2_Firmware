@@ -71,5 +71,6 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
 void control_timer_expired ( ULONG expiration_input );
 bool control_get_timeout_status ( void );
 ULONG control_get_accumulated_error_flags ( void );
+ULONG control_get_gnss_acquisition_time ( void );
 
 #endif /* INC_CONTROLLER_H_ */

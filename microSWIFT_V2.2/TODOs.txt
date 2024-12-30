@@ -31,6 +31,8 @@ Busses
 General
 *******
 
+[ ] Ensure nothing calls Error_Handler();
+[ ] Ensure all interrupt handlers are covered, including default_handler
 [x] Make a common return code for EVERYTHING (close enough).
 	[x] Ensure all functions return an uSWIFT_return_code_t
 [x] !!!! Fix all timing instances of TX calls to use 
@@ -62,9 +64,9 @@ General
 ****************************************************************************************************
 Control
 *******
-[ ] !!!!Figure out the control flow if GNSS is unable to get a fix
-	[ ] Light and OBS won't be able to complete their messages
-	[ ] Most likely just want to quit at this point...
+[x] !!!!Figure out the control flow if GNSS is unable to get a fix
+	[x] Light and OBS won't be able to complete their messages
+	[x] Most likely just want to quit at this point...
 [x] Figure out how to identify first time power on and subsequent power on.
 [x] Remove all thread control and sys reset calls from threads other than control_thread
 [x] Implement Error_Handler() that checks error flags and acts accordingly
@@ -85,14 +87,14 @@ Control
 ****************************************************************************************************
 RTC
 ***
-[ ] Ensure the timestamps are setup to overwrite -- this needs to be added to 
+[ ] Ensure the timestamps are setup to overwrite -- this needs to be added to setup
 
 ****************************************************************************************************
 GNSS
 ****
 
-[ ] Make globally visible function to return current lat/lon
-[ ] Create some kind of signalling mechanism for Light/OBS that the GNSS sampling has started
+[x] Make globally visible function to return current lat/lon
+[x] Create some kind of signalling mechanism for Light/OBS that the GNSS sampling has started
 [x] Move buffers to inside GNSS struct
 	[x] Still as pointers in the struct, but the buffers live in the GNSS thread and are passed from there
 [x] Give GNSS a FIFO for messages
@@ -110,18 +112,19 @@ GNSS
 [x] Generalize UART to a better degree
 	[x] Only so much you can do with GNSS...
 [x] Move the callback function for setting up DMA to inside gnss.c
-[ ] See if initialization and configuration can be improved -- there has to be a better way to
+[x] See if initialization and configuration can be improved -- there has to be a better way to
     get the config done
-    [ ] Just added a thing to power cycle the GNSS every 5 failed retries. We'll see if that fixes the intermittent config failure.
-[ ] Reorg functions and clean up comments
+    [x] Just added a thing to power cycle the GNSS every 5 failed retries. We'll see if that fixes the intermittent config failure.
+[x] Reorg functions and clean up comments
 
 ****************************************************************************************************
 Iridium
 *******
 
 [ ] When the thread is resumed, first check if there is anything to send before wasting energy charging the caps
-[ ] Figure out message Tx scheme with the new telemetry formats
-	[ ] Probably some kind of round-robin deal. Remember that Light/OBS messages happen much less often and can
+	[ ] Probably still want to send waves message as it can indicate errors
+[x] Figure out message Tx scheme with the new telemetry formats
+	[x] Probably some kind of round-robin deal. Remember that Light/OBS messages happen much less often and can
 	    be sent AFTER the waves telemetry
 [x] Move buffers to inside Iridium struct
 [x] Use a TX_TIMER instead of a hardware timer
@@ -132,38 +135,38 @@ Iridium
 CT
 **
 
-[ ] Move buffers to inside CT struct
-[ ] Switch over to generic UART driver
+[x] Move buffers to inside CT struct
+[x] Switch over to generic UART driver
 
 ****************************************************************************************************
 Temperature
 ************
 
-[ ] Move buffers to inside Temperature struct
-[ ] Rework I2C and figure out how to share bus
-[ ] Remove FET pin and change on/off to software shutdown/idle/watever
+[x] Move buffers to inside Temperature struct
+[x] Rework I2C and figure out how to share bus
+[x] Remove FET pin and change on/off to software shutdown/idle/watever
 
 ****************************************************************************************************
 Light
 *****
 
-[ ] Remove GPIO requirements -- do everything via polling on I2C
-[ ] Rework I2C and figure out how to share bus
-[ ] Track timestamps for start/stop times
-[ ] Figure out how to get locations for start/stop
-[ ] Make function for assembling telemetry message element -- store it after creation
-[ ] Remove FET pin and change on/off to software shutdown/idle/watever
+[x] Remove GPIO requirements -- do everything via polling on I2C
+[x] Rework I2C and figure out how to share bus
+[x] Track timestamps for start/stop times
+[x] Figure out how to get locations for start/stop
+[x] Make function for assembling telemetry message element -- store it after creation
+[x] Remove FET pin and change on/off to software shutdown/idle/watever
 
 ****************************************************************************************************
 OBS
 ***
 
-[ ] Remove GPIO requirements -- do everything via polling on I2C
-[ ] Rework I2C and figure out how to share bus
-[ ] Track timestamps for start/stop times
-[ ] Figure out how to get locations for start/stop
-[ ] Make function for assembling telemetry message element -- store it after creation
-[ ] Remove FET pin and change on/off to software shutdown/idle/watever
+[x] Remove GPIO requirements -- do everything via polling on I2C
+[x] Rework I2C and figure out how to share bus
+[x] Track timestamps for start/stop times
+[x] Figure out how to get locations for start/stop
+[x] Make function for assembling telemetry message element -- store it after creation
+[x] Remove FET pin and change on/off to software shutdown/idle/watever
 
 ****************************************************************************************************
 ThreadX
@@ -174,7 +177,7 @@ ThreadX
 [x] Find a new way to identify subsequent windows since we will go into shutdown mode after the end
     of the sample window
 [x] Change all non-threadx objects to static allocation -- remove from App_ThreadX_Init()
-	[ ] Threads now own object that only they should modify/ control
+	[x] Threads now own object that only they should modify/ control
 [x] Make a control thread
     [x] Move startup and end-of-cycle thread functions inside
     [x] make event loop handler type deal to look for error flags or something

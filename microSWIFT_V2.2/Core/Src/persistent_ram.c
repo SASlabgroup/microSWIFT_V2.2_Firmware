@@ -73,15 +73,15 @@ uint32_t persistent_ram_get_num_msgs_enqueued ( telemetry_type_t msg_type )
   switch ( msg_type )
   {
     case WAVES_TELEMETRY:
-      return persistent_self->waves_storage.num_telemetry_msgs_enqueued;
+      return persistent_self.waves_storage.num_telemetry_msgs_enqueued;
       break;
 
     case TURBIDITY_TELEMETRY:
-      return persistent_self->turbidity_storage.num_msg_elements_enqueued / TURBIDITY_MSGS_PER_SBD;
+      return persistent_self.turbidity_storage.num_msg_elements_enqueued / TURBIDITY_MSGS_PER_SBD;
       break;
 
     case LIGHT_TELEMETRY:
-      return persistent_self->light_storage.num_msg_elements_enqueued / LIGHT_MSGS_PER_SBD;
+      return persistent_self.light_storage.num_msg_elements_enqueued / LIGHT_MSGS_PER_SBD;
       break;
 
     default:

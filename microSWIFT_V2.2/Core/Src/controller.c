@@ -118,23 +118,36 @@ static bool _control_startup_procedure ( void )
   bool initial_powerup = is_first_sample_window ();
   ULONG init_wait_ticks = STARTUP_SEQUENCE_MAX_WAIT_TICKS;
 
+  // Invalid acquisition time case
+  if ( controller_self->global_config->gnss_max_acquisition_wait_time == 0 )
+  {
+    LOG("Invalid calculated GNSS max acquisition time. Check settings.");
+
+    led_light_sequence (TEST_FAILED_LED_SEQUENCE, LED_SEQUENCE_FOREVER);
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 30);
+    HAL_NVIC_SystemReset ();
+  }
+
   // Start the duty cycle timer
   tx_return = tx_timer_change (
       controller_self->timer,
       (controller_self->global_config->duty_cycle * TX_TIMER_TICKS_PER_SECOND * 60), 0);
   if ( tx_return != TX_SUCCESS )
   {
+    LOG("Unable to set controller duty cycle timer.");
 
     led_light_sequence (TEST_FAILED_LED_SEQUENCE, LED_SEQUENCE_FOREVER);
-    tx_thread_sleep (30);
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 30);
     HAL_NVIC_SystemReset ();
   }
 
   tx_return = tx_timer_activate (controller_self->timer);
   if ( tx_return != TX_SUCCESS )
   {
+    LOG("Unable to set controller duty cycle timer.");
+
     led_light_sequence (TEST_FAILED_LED_SEQUENCE, LED_SEQUENCE_FOREVER);
-    tx_thread_sleep (30);
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 30);
     HAL_NVIC_SystemReset ();
   }
 
@@ -664,38 +677,30 @@ static void _control_monitor_and_handle_errors ( void )
 
 static void __get_alarm_settings_from_time ( struct tm *time, rtc_alarm_struct *alarm )
 {
+  int i = 0;
   alarm->day_alarm_en = false;
   alarm->hour_alarm_en = true;
   alarm->minute_alarm_en = true;
   alarm->second_alarm_en = true;
   alarm->weekday_alarm_en = false;
   alarm->alarm_second = 0;
+  alarm->alarm_minute = i;
 
-  //
-  //
-  // Testing
-  alarm->alarm_second = (time->tm_sec + 20) % 60;
-  alarm->alarm_minute = (alarm->alarm_second < time->tm_sec) ?
-      (time->tm_min + 1) % 60 : time->tm_min;
-  alarm->alarm_hour = ((alarm->alarm_minute == 0) && (alarm->alarm_second < time->tm_sec)) ?
-      (time->tm_hour + 1) % 24 : time->tm_hour;
-  return;
-  //
-  //
-  // End Testing
+  for ( i = controller_self->global_config->duty_cycle; i < 60;
+      i += controller_self->global_config->duty_cycle )
+  {
+    if ( time->tm_min < i )
+    {
+      alarm->alarm_minute = i;
+      break;
+    }
+  }
 
-  if ( controller_self->global_config->windows_per_hour == 1 )
-  {
-    alarm->alarm_minute = 0;
-    alarm->alarm_hour = (time->tm_hour + 1) % 24;
-  }
-  else
-  {
-    alarm->alarm_minute = (time->tm_min > 30) ?
-        0 : 30;
-    alarm->alarm_hour = (alarm->alarm_minute == 0) ?
-        (time->tm_hour + 1) % 24 : time->tm_hour;
-  }
+  alarm->alarm_hour =
+      (alarm->alarm_minute < time->tm_min) ?
+          (time->tm_hour + (controller_self->global_config->duty_cycle / 60) + 1) % 24 :
+          (time->tm_hour + (controller_self->global_config->duty_cycle / 60)) % 24;
+
 }
 
 static void __handle_rtc_error ( void )

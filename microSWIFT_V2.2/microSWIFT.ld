@@ -44,11 +44,12 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
 /* Memories definition */
 MEMORY
 {
-  RAM1  (xrw) : ORIGIN = 0x20000000, LENGTH = 768K
-  SRAM2 (xrw) : ORIGIN = 0x200C0000, LENGTH = 64K
-  RAM2  (xrw) : ORIGIN = 0x200D0000, LENGTH = 1664K
-  SRAM4 (xrw) : ORIGIN = 0x28000000, LENGTH = 16K
-  FLASH (rx)  : ORIGIN = 0x08000000, LENGTH = 4096K
+  RAM1  (xrw) 	: ORIGIN = 0x20000000, LENGTH = 768K
+  SRAM2 (xrw) 	: ORIGIN = 0x200C0000, LENGTH = 64K
+  RAM2  (xrw) 	: ORIGIN = 0x200D0000, LENGTH = 1664K
+  SRAM4 (xrw) 	: ORIGIN = 0x28000000, LENGTH = 16K
+  FLASH (rx)  	: ORIGIN = 0x08000000, LENGTH = 4095K
+  USERVARS (rx)	: ORIGIN = 0x08000000 + 4095K, LENGTH = 1K
 }
 
 /* Sections */
@@ -59,6 +60,15 @@ SECTIONS
   {
     KEEP(*(.isr_vector)) /* Startup code */
   } >FLASH
+  
+  /* Custom variables (firmware version, compile date/time, etc) */
+  .uservars :
+  {
+  	KEEP(*(.uservars.VERSION_NUMBER))
+  	KEEP(*(.uservars.COMPILATION_DATE))
+  	KEEP(*(.uservars.COMPILATION_TIME))
+  	*(.uservars*);
+  } > USERVARS
 
   /* The program code and other data into "FLASH" Rom type memory */
   .text :

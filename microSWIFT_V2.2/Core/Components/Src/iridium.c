@@ -492,9 +492,15 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
     {
       break;
     }
+    // Make sure we've got enough time left to try again
+    else if ( get_timer_remaining_ticks (iridium_self->timer)
+              < (MODEM_SLEEP_TIME + IRIDIUM_TOP_UP_CAP_CHARGE_TIME + (TX_TIMER_TICKS_PER_SECOND * 5)) )
+    {
+      break;
+    }
 
     watchdog_check_in (IRIDIUM_THREAD);
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 25);
+    tx_thread_sleep (MODEM_SLEEP_TIME);
     watchdog_check_in (IRIDIUM_THREAD);
 
     if ( iridium_self->timer_timeout )
@@ -503,7 +509,7 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
     }
 
     iridium_self->wake ();
-    iridium_self->charge_caps (TX_TIMER_TICKS_PER_SECOND * 5);
+    iridium_self->charge_caps (IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
     watchdog_check_in (IRIDIUM_THREAD);
 
     memset (&(iridium_self->response_buffer[0]), 0, IRIDIUM_MAX_RESPONSE_SIZE);

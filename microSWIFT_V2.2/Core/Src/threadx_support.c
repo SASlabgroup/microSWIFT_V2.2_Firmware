@@ -384,6 +384,37 @@ void filex_error_out ( TX_THREAD *filex_thread, const char *fmt, ... )
   tx_thread_suspend (filex_thread);
 }
 
+ULONG get_gnss_acquisition_timeout ( microSWIFT_configuration *config )
+{
+  int32_t max_acq_time = 10;
+
+  if ( config->duty_cycle <= 60U )
+  {
+    max_acq_time = config->duty_cycle - config->iridium_max_transmit_time
+                   - get_gnss_sample_window_timeout (config) - 1;
+
+    if ( max_acq_time > 10 )
+    {
+      max_acq_time = 10;
+    }
+  }
+
+  if ( max_acq_time < 1 )
+  {
+    max_acq_time = 0;
+  }
+
+  return (ULONG) max_acq_time;
+}
+
+ULONG get_gnss_sample_window_timeout ( microSWIFT_configuration *config )
+{
+  ULONG sample_window_timeout = (((config->samples_per_window / config->gnss_sampling_rate) / 60)
+                                 + GNSS_WINDOW_BUFFER_TIME);
+
+  return sample_window_timeout;
+}
+
 telemetry_type_t get_next_telemetry_message ( uint8_t *msg_buffer,
                                               microSWIFT_configuration *config )
 {
@@ -479,6 +510,22 @@ void clear_event_flags ( TX_EVENT_FLAGS_GROUP *event_flags )
 {
   ULONG current_flags = 0;
   (void) tx_event_flags_get (event_flags, ALL_EVENT_FLAGS, TX_OR_CLEAR, &current_flags, TX_NO_WAIT);
+}
+
+ULONG get_timer_remaining_ticks ( TX_TIMER *timer )
+{
+  CHAR **name;
+  UINT *active;
+  ULONG *remaining_ticks, *reschedule_ticks;
+  TX_TIMER **next_timer;
+
+  if ( tx_timer_info_get (timer, name, active, remaining_ticks, reschedule_ticks,
+                          next_timer) != TX_SUCCESS )
+  {
+    return 0;
+  }
+
+  return *remaining_ticks;
 }
 
 uint32_t ticks_from_milliseconds ( uint32_t milliseconds )
