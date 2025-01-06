@@ -58,8 +58,10 @@ char compile_time_flash[] __attribute__ ((section (".uservars.COMPILATION_TIME")
 
 // Globally available
 microSWIFT_firmware_version_t firmware_version;
-const char *compile_date;
-const char *compile_time;
+char compile_date[COMPILE_TIME_DATE_BUFFER_SIZE] =
+  { 0 };
+char compile_time[COMPILE_TIME_DATE_BUFFER_SIZE] =
+  { 0 };
 
 /* USER CODE END PV */
 
@@ -94,8 +96,8 @@ int main ( void )
   // Copy over the compiled in variables from the top of Flash
   firmware_version.major_rev = firmware_version_flash.major_rev;
   firmware_version.minor_rev = firmware_version_flash.minor_rev;
-  compile_date = (char*) &compile_date_flash[0];
-  compile_time = (char*) &compile_time_flash[0];
+  memcpy (&compile_date[0], &compile_date_flash[0], strlen (compile_date_flash));
+  memcpy (&compile_time[0], &compile_time_flash[0], strlen (compile_time_flash));
   // Shut down flash bank 2 -- no longer required
   HAL_FLASHEx_EnablePowerDown (FLASH_BANK_2);
   /* USER CODE END Init */

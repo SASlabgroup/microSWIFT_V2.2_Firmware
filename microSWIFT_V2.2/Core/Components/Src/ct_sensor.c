@@ -137,7 +137,7 @@ static uSWIFT_return_code_t _ct_parse_sample ( void )
          != UART_OK )
     {
       ct_self->reset_ct_uart ();
-      return_code = uSWIFT_COMMS_ERROR;
+      return_code = uSWIFT_IO_ERROR;
       continue;
     }
 
@@ -228,7 +228,7 @@ static uSWIFT_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *opt
        != UART_OK )
   {
     ct_self->reset_ct_uart ();
-    return_code = uSWIFT_COMMS_ERROR;
+    return_code = uSWIFT_IO_ERROR;
     return return_code;
   }
 
@@ -289,7 +289,7 @@ static uSWIFT_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *opt
 static uSWIFT_return_code_t _ct_uart_init ( void )
 {
   return (ct_self->uart_driver.init () == UART_OK) ?
-      uSWIFT_SUCCESS : uSWIFT_COMMS_ERROR;
+      uSWIFT_SUCCESS : uSWIFT_IO_ERROR;
 }
 
 /**
@@ -302,7 +302,7 @@ static uSWIFT_return_code_t _ct_reset_uart ( void )
 {
   if ( ct_self->uart_driver.deinit () != UART_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   tx_thread_sleep (1);

@@ -8,7 +8,7 @@
 #ifndef SRC_CT_H_
 #define SRC_CT_H_
 
-#include "app_threadx.h"
+//#include "app_threadx.h"
 #include "tx_api.h"
 #include "generic_uart_driver.h"
 #include "stddef.h"

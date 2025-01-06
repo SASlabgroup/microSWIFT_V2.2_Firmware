@@ -48,8 +48,9 @@ typedef struct
 } microSWIFT_firmware_version_t;
 
 extern microSWIFT_firmware_version_t firmware_version;
-extern const char *compile_date;
-extern const char *compile_time;
+#define COMPILE_TIME_DATE_BUFFER_SIZE 32
+extern char compile_date[COMPILE_TIME_DATE_BUFFER_SIZE];
+extern char compile_time[COMPILE_TIME_DATE_BUFFER_SIZE];
 /* USER CODE END PV */
 /* USER CODE END EC */
 

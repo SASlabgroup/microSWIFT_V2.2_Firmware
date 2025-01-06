@@ -116,7 +116,7 @@ static uSWIFT_return_code_t __shared_i2c_read ( uint8_t dev_addr, uint8_t dev_re
                             read_len)
        != HAL_OK )
   {
-    ret = uSWIFT_COMMS_ERROR;
+    ret = uSWIFT_IO_ERROR;
     return ret;
   }
 
@@ -139,7 +139,7 @@ static uSWIFT_return_code_t __shared_i2c_write ( uint8_t dev_addr, uint8_t dev_r
     if ( HAL_I2C_Master_Transmit_IT (i2c_bus->i2c_handle, dev_addr, input_output_buffer, 1)
          != HAL_OK )
     {
-      ret = uSWIFT_COMMS_ERROR;
+      ret = uSWIFT_IO_ERROR;
     }
   }
   else
@@ -148,7 +148,7 @@ static uSWIFT_return_code_t __shared_i2c_write ( uint8_t dev_addr, uint8_t dev_r
                                write_len)
          != HAL_OK )
     {
-      ret = uSWIFT_COMMS_ERROR;
+      ret = uSWIFT_IO_ERROR;
     }
   }
 

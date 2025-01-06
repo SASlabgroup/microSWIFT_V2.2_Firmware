@@ -72,8 +72,16 @@
 #define HIGH_PERFORMANCE_QUERY_SIZE 28
 #define HIGH_PERFORMANCE_RESPONSE_SIZE 36
 #define ENABLE_HIGH_PERFORMANCE_SIZE 60
+#define BREADCRUMB_TRACK_MAX_SIZE 4096
 
 // @formatter:off
+
+typedef struct
+{
+  int32_t   lat;
+  int32_t   lon;
+} gnss_track_point;
+
 typedef struct GNSS
 {
   // Our global configuration struct
@@ -95,6 +103,9 @@ typedef struct GNSS
   float                     *GNSS_N_Array;
   float                     *GNSS_E_Array;
   float                     *GNSS_D_Array;
+  // Pointer to the breadcrumb track buffer
+  gnss_track_point          *breadcrumb_track;
+  uint32_t                  breadcrumb_index;
   // Number of messages processed in a given buffer
   uint32_t                  messages_processed;
   // Keep a running track of sum -- to be used in getRunningAverage

@@ -134,13 +134,13 @@ uSWIFT_return_code_t ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_
                                       _ext_rtc_ms_delay, NULL)
        != PCF2131_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   // Software reset the RTC
   if ( pcf2131_software_reset (&rtc_self->dev_ctx) != PCF2131_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   // read the Software Reset register to see if the bit pattern matches default
@@ -148,7 +148,7 @@ uSWIFT_return_code_t ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_
 
   if ( ret != PCF2131_OK || register_read != RESET_REG_RESET_VAL )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   ret = rtc_self->clear_flag (ALL_RTC_FLAGS);
@@ -176,14 +176,14 @@ static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
   ret = pcf2131_set_clkout_freq (&(rtc_self->dev_ctx), FREQ_32768);
   if ( ret != PCF2131_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   // Power management scheme
   ret = pcf2131_config_pwr_mgmt_scheme (&(rtc_self->dev_ctx), SWITCH_OVER_DIS_LOW_BATT_DIS);
   if ( ret != PCF2131_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   // Temperature measurement/ compensation
@@ -191,14 +191,14 @@ static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
   ret |= pcf2131_set_temp_meas_period (&(rtc_self->dev_ctx), EVERY_32_MINS);
   if ( ret != PCF2131_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   // Interrupts: Int A will be used for alarm, Int B for watchdog
   ret = pcf2131_config_interrupts (&(rtc_self->dev_ctx), &rtc_self->irq_config);
   if ( ret != PCF2131_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   // Timestamps
@@ -212,7 +212,7 @@ static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
   ret |= pcf2131_clear_timestamps (&rtc_self->dev_ctx);
   if ( ret != PCF2131_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   // Perform OTP refresh, only on first start
@@ -221,7 +221,7 @@ static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
     ret = pcf2131_perform_otp_refresh (&rtc_self->dev_ctx);
     if ( ret != PCF2131_OK )
     {
-      return uSWIFT_COMMS_ERROR;
+      return uSWIFT_IO_ERROR;
     }
   }
 
@@ -280,14 +280,14 @@ static uSWIFT_return_code_t _ext_rtc_config_watchdog ( uint32_t period_ms )
   ret = pcf2131_watchdog_config_time_source (&rtc_self->dev_ctx, clock_select);
   if ( ret != PCF2131_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   // Set the watchdog timer value -- watchdog will start at this point
   ret = pcf2131_set_watchdog_timer_value (&rtc_self->dev_ctx, rtc_self->watchdog_refresh_time_val);
   if ( ret != PCF2131_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   return ret;
@@ -305,7 +305,7 @@ static uSWIFT_return_code_t _ext_rtc_refresh_watchdog ( void )
   ret = pcf2131_set_watchdog_timer_value (&rtc_self->dev_ctx, rtc_self->watchdog_refresh_time_val);
   if ( ret != PCF2131_OK )
   {
-    ret = uSWIFT_COMMS_ERROR;
+    ret = uSWIFT_IO_ERROR;
   }
 
   return ret;
@@ -340,7 +340,7 @@ static uSWIFT_return_code_t _ext_rtc_set_date_time ( struct tm *input_date_time 
 
   if ( ret != PCF2131_OK )
   {
-    ret = uSWIFT_COMMS_ERROR;
+    ret = uSWIFT_IO_ERROR;
   }
 
   return ret;
@@ -359,7 +359,7 @@ static uSWIFT_return_code_t _ext_rtc_get_date_time ( struct tm *return_date_time
 
   if ( ret != PCF2131_OK )
   {
-    ret = uSWIFT_COMMS_ERROR;
+    ret = uSWIFT_IO_ERROR;
   }
 
   return ret;
@@ -422,14 +422,14 @@ static uSWIFT_return_code_t _ext_rtc_get_timestamp ( pcf2131_timestamp_t which_t
   ret = pcf2131_get_timestamp (&rtc_self->dev_ctx, which_timestamp, &timestamp_struct);
   if ( ret != PCF2131_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   // Clear the timestamp flag
   ret = pcf2131_clear_timestamp_flag (&rtc_self->dev_ctx, which_timestamp);
   if ( ret != PCF2131_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   rtc_self->ts_in_use[which_timestamp] = false;
@@ -451,7 +451,7 @@ static uSWIFT_return_code_t _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting 
   ret = pcf2131_set_alarm (&rtc_self->dev_ctx, &alarm_setting);
   if ( ret != PCF2131_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   return ret;
@@ -591,7 +591,7 @@ static int32_t _ext_rtc_read_reg_spi ( void *unused_handle, uint16_t unused_bus_
                                    data_length + 1)
        != HAL_OK )
   {
-    retval = uSWIFT_COMMS_ERROR;
+    retval = uSWIFT_IO_ERROR;
   }
 
   if ( tx_semaphore_get (rtc_self->spi_sema, RTC_SPI_TIMEOUT) != TX_SUCCESS )
@@ -636,7 +636,7 @@ static int32_t _ext_rtc_write_reg_spi ( void *unused_handle, uint16_t unused_bus
 
   if ( HAL_SPI_Transmit_IT (rtc_self->rtc_spi_bus, write_buf, data_length + 1) != HAL_OK )
   {
-    retval = uSWIFT_COMMS_ERROR;
+    retval = uSWIFT_IO_ERROR;
   }
 
   if ( tx_semaphore_get (rtc_self->spi_sema, RTC_SPI_TIMEOUT) != TX_SUCCESS )

@@ -25,6 +25,9 @@
 
 static GNSS *gnss_self;
 
+// The breadcrumb track buffer
+static gnss_track_point breadcrumb_track[BREADCRUMB_TRACK_MAX_SIZE];
+
 extern DMA_QListTypeDef gnss_dma_linked_list;
 
 // @formatter:off
@@ -91,6 +94,8 @@ void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
   gnss_self->GNSS_N_Array = GNSS_N_Array;
   gnss_self->GNSS_E_Array = GNSS_E_Array;
   gnss_self->GNSS_D_Array = GNSS_D_Array;
+  gnss_self->breadcrumb_track = &breadcrumb_track[0];
+  gnss_self->breadcrumb_index = 0;
 
   __reset_struct_fields ();
 
@@ -354,7 +359,7 @@ static uSWIFT_return_code_t _gnss_sync_and_start_reception ( void )
   UBX_NAV_PVT_MESSAGE_LENGTH);
   watchdog_check_in (GNSS_THREAD);
   // Make sure we start right next time around in case there was an issue starting DMA
-  if ( return_code == uSWIFT_COMMS_ERROR )
+  if ( return_code == uSWIFT_IO_ERROR )
   {
     HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
     gnss_self->reset_uart ();
@@ -479,7 +484,7 @@ static uSWIFT_return_code_t _gnss_software_start ( void )
     HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
     gnss_self->reset_uart ();
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
 
   }
 
@@ -518,7 +523,7 @@ static uSWIFT_return_code_t _gnss_software_stop ( void )
     HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
     gnss_self->reset_uart ();
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
 
   }
 
@@ -592,12 +597,12 @@ static uSWIFT_return_code_t _gnss_reset_uart ( void )
 
   if ( usart1_deinit () != UART_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   if ( usart1_init () != UART_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   return uSWIFT_SUCCESS;
@@ -761,6 +766,15 @@ static void _gnss_process_message ( void )
     gnss_self->GNSS_D_Array[gnss_self->total_samples] = ((float) ((float) vdown) / MM_PER_METER);
 
     gnss_self->number_cycles_without_data = 0;
+
+    if ( (gnss_self->total_samples % gnss_self->global_config->gnss_sampling_rate == 0)
+         && (gnss_self->breadcrumb_index < BREADCRUMB_TRACK_MAX_SIZE) )
+    {
+      gnss_self->breadcrumb_track[gnss_self->breadcrumb_index].lat = lat;
+      gnss_self->breadcrumb_track[gnss_self->breadcrumb_index].lon = lon;
+      gnss_self->breadcrumb_index++;
+    }
+
     gnss_self->total_samples++;
 
     buf_length -= buf_end - buf_start;
@@ -1034,7 +1048,7 @@ static uSWIFT_return_code_t __enable_high_performance_mode ( void )
       case uSWIFT_SUCCESS:
         return return_code;
 
-      case uSWIFT_COMMS_ERROR:
+      case uSWIFT_IO_ERROR:
         config_step_attempts++;
         break;
 
@@ -1096,7 +1110,7 @@ static uSWIFT_return_code_t __query_high_performance_mode ( void )
     HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
     gnss_self->reset_uart ();
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
 
   }
 
@@ -1115,7 +1129,7 @@ static uSWIFT_return_code_t __query_high_performance_mode ( void )
     HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
     gnss_self->reset_uart ();
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   for ( num_payload_bytes = uUbxProtocolDecode (buf_start, buf_length, &message_class, &message_id,
@@ -1243,7 +1257,7 @@ static uSWIFT_return_code_t __start_GNSS_UART_DMA ( uint8_t *buffer, size_t msg_
 
   if ( hal_return_code != HAL_OK )
   {
-    return_code = uSWIFT_COMMS_ERROR;
+    return_code = uSWIFT_IO_ERROR;
   }
 
   __HAL_LINKDMA(gnss_self->gnss_uart_handle, hdmarx, *gnss_self->gnss_rx_dma_handle);
@@ -1251,7 +1265,7 @@ static uSWIFT_return_code_t __start_GNSS_UART_DMA ( uint8_t *buffer, size_t msg_
   hal_return_code = HAL_DMAEx_List_LinkQ (gnss_self->gnss_rx_dma_handle, &gnss_dma_linked_list);
   if ( hal_return_code != HAL_OK )
   {
-    return_code = uSWIFT_COMMS_ERROR;
+    return_code = uSWIFT_IO_ERROR;
   }
 
   tx_thread_sleep (25);
@@ -1263,7 +1277,7 @@ static uSWIFT_return_code_t __start_GNSS_UART_DMA ( uint8_t *buffer, size_t msg_
 
   if ( hal_return_code != HAL_OK )
   {
-    return_code = uSWIFT_COMMS_ERROR;
+    return_code = uSWIFT_IO_ERROR;
 //      gnss_self->reset_uart ();
   }
 //    else if ( hal_return_code == HAL_OK )

@@ -93,6 +93,7 @@ RTC
 GNSS
 ****
 
+[ ] Retain a breadcrumb track of lat/lon
 [x] Make globally visible function to return current lat/lon
 [x] Create some kind of signalling mechanism for Light/OBS that the GNSS sampling has started
 [x] Move buffers to inside GNSS struct
@@ -150,6 +151,8 @@ Temperature
 Light
 *****
 
+[ ] Figure out if we are going to keep Basic Counts
+	[ ] If so, need to ensure evertything is sized appropriately as current telemetry definition cannot support
 [x] Remove GPIO requirements -- do everything via polling on I2C
 [x] Rework I2C and figure out how to share bus
 [x] Track timestamps for start/stop times
@@ -205,4 +208,5 @@ FileX
 	[ ] Etcetera
 [ ] Make functions to save:
 	[ ] All logs -- these should save as generated
-	[ ] All raw data -- CSV format prefered
+	[ ] All raw data
+[ ] Write the time to each file at creation or closeout with fx_file_date_time_set

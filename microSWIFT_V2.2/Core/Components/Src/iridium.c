@@ -237,7 +237,7 @@ static uSWIFT_return_code_t _iridium_transmit_message ( uint8_t *msg, uint32_t m
 
   return_code = __internal_transmit_message (msg, msg_size - IRIDIUM_CHECKSUM_LENGTH);
 
-  if ( return_code == uSWIFT_COMMS_ERROR )
+  if ( return_code == uSWIFT_IO_ERROR )
   {
     __cycle_power ();
     return_code = iridium_self->config ();
@@ -315,7 +315,7 @@ static uSWIFT_return_code_t __send_basic_command_message ( const char *command,
                                         strlen (command), IRIDIUM_MAX_UART_TX_TICKS)
        != UART_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   if ( iridium_self->uart_driver.read (&iridium_self->uart_driver,
@@ -323,13 +323,13 @@ static uSWIFT_return_code_t __send_basic_command_message ( const char *command,
                                        IRIDIUM_MAX_UART_RX_TICKS_NO_TX)
        != UART_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   needle = strstr ((char*) &(iridium_self->response_buffer[1]), "OK");
   memset (&(iridium_self->response_buffer[0]), 0, IRIDIUM_MAX_RESPONSE_SIZE);
   return (needle == NULL) ?
-      uSWIFT_COMMS_ERROR : uSWIFT_SUCCESS;
+      uSWIFT_IO_ERROR : uSWIFT_SUCCESS;
 }
 
 /**
@@ -372,7 +372,7 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
                                             strlen (load_sbd), IRIDIUM_MAX_UART_TX_TICKS)
            != UART_OK )
       {
-        return uSWIFT_COMMS_ERROR;
+        return uSWIFT_IO_ERROR;
       }
 
       if ( iridium_self->uart_driver.read (&iridium_self->uart_driver,
@@ -381,7 +381,7 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
                                            IRIDIUM_MAX_UART_RX_TICKS_NO_TX)
            != UART_OK )
       {
-        return uSWIFT_COMMS_ERROR;
+        return uSWIFT_IO_ERROR;
       }
 
       needle = strstr ((char*) &(iridium_self->response_buffer[0]), "READY");
@@ -398,7 +398,7 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
 
     if ( fail_counter == max_retries )
     {
-      return_code = uSWIFT_COMMS_ERROR;
+      return_code = uSWIFT_IO_ERROR;
       continue;
     }
 
@@ -412,7 +412,7 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
                                             IRIDIUM_MAX_UART_TX_TICKS)
            != UART_OK )
       {
-        return uSWIFT_COMMS_ERROR;
+        return uSWIFT_IO_ERROR;
       }
 
       if ( iridium_self->uart_driver.read (&iridium_self->uart_driver,
@@ -421,7 +421,7 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
                                            IRIDIUM_MAX_UART_RX_TICKS_NO_TX)
            != UART_OK )
       {
-        return uSWIFT_COMMS_ERROR;
+        return uSWIFT_IO_ERROR;
       }
 
       SBDWB_response_code = iridium_self->response_buffer[SBDWB_RESPONSE_CODE_INDEX];
@@ -445,7 +445,7 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
 
     if ( (fail_counter == max_retries) || (!checksum_match) )
     {
-      return_code = uSWIFT_COMMS_ERROR;
+      return_code = uSWIFT_IO_ERROR;
       continue;
     }
 
@@ -456,7 +456,7 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
                                           strlen (send_sbd), IRIDIUM_MAX_UART_TX_TICKS)
          != UART_OK )
     {
-      return uSWIFT_COMMS_ERROR;
+      return uSWIFT_IO_ERROR;
     }
 
     if ( iridium_self->uart_driver.read (&iridium_self->uart_driver,
@@ -465,7 +465,7 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
                                          IRIDIUM_MAX_UART_RX_TICKS_TX)
          != UART_OK )
     {
-      return uSWIFT_COMMS_ERROR;
+      return uSWIFT_IO_ERROR;
     }
 
     watchdog_check_in (IRIDIUM_THREAD);

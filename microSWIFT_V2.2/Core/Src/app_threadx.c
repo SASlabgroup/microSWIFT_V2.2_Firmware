@@ -752,7 +752,7 @@ void MX_ThreadX_Init ( void )
  * @param  ULONG thread_input - unused
  * @retval void
  */
-uint32_t watchdog_refresh_counter = 0;
+static uint32_t watchdog_refresh_counter = 0; // debugging
 static void rtc_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
@@ -1407,7 +1407,7 @@ static void ct_thread_entry ( ULONG thread_input )
       ct_parsing_error_counter++;
     }
 
-    if ( (ct_parsing_error_counter >= 10) || (ct_return_code == uSWIFT_COMMS_ERROR) )
+    if ( (ct_parsing_error_counter >= 10) || (ct_return_code == uSWIFT_IO_ERROR) )
     {
       // If there are too many parsing errors or a UART error occurs, stop trying
       ct_error_out (&ct, CT_SAMPLING_ERROR, this_thread,

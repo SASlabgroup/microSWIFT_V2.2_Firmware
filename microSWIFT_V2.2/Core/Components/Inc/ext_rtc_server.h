@@ -83,26 +83,25 @@ typedef struct
   // For set requests, this contains input data
   // For get requests, this is written back to
   rtc_data_t            input_output_struct;
-  UINT                  complete_flag;
+  ULONG                 complete_flag;
   uSWIFT_return_code_t  *return_code;
 } rtc_request_message;
 
 typedef struct
 {
   TX_QUEUE              *request_queue;
-  TX_SEMAPHORE          *watchdog_refresh_semaphore;
   TX_EVENT_FLAGS_GROUP  *complete_flags;
 } rtc_server;
 
 // Interface functions
 void                 rtc_server_init ( TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP *complete_flags );
 void                 rtc_server_refresh_watchdog ( void );
-uSWIFT_return_code_t rtc_server_get_time ( struct tm *return_time_struct, UINT complete_flag );
-uSWIFT_return_code_t rtc_server_set_time ( struct tm *input_time_struct, UINT complete_flag );
-uSWIFT_return_code_t rtc_server_set_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag );
-uSWIFT_return_code_t rtc_server_get_timestamp ( pcf2131_timestamp_t which_timestamp, UINT complete_flag );
-uSWIFT_return_code_t rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, UINT complete_flag );
-uSWIFT_return_code_t rtc_server_clear_flag (rtc_flag_t which_flag, UINT complete_flag );
+uSWIFT_return_code_t rtc_server_get_time ( struct tm *return_time_struct, ULONG complete_flag );
+uSWIFT_return_code_t rtc_server_set_time ( struct tm *input_time_struct, ULONG complete_flag );
+uSWIFT_return_code_t rtc_server_set_timestamp ( pcf2131_timestamp_t which_timestamp, ULONG complete_flag );
+uSWIFT_return_code_t rtc_server_get_timestamp ( pcf2131_timestamp_t which_timestamp, ULONG complete_flag );
+uSWIFT_return_code_t rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, ULONG complete_flag );
+uSWIFT_return_code_t rtc_server_clear_flag (rtc_flag_t which_flag, ULONG complete_flag );
 // Generic do-all function
 uSWIFT_return_code_t rtc_server_process_request ( rtc_request_message *request );
 

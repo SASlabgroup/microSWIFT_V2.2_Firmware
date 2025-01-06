@@ -13,7 +13,7 @@ typedef enum
 {
   uSWIFT_SUCCESS                =  0,
   // Common errors used in low level drivers
-  uSWIFT_COMMS_ERROR            = -1,
+  uSWIFT_IO_ERROR               = -1,
   uSWIFT_BUSY                   = -2,
 
   uSWIFT_TIMEOUT                = -3,

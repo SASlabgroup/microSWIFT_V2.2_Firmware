@@ -6,22 +6,12 @@
  */
 
 #include "threadx_support.h"
-#include "stdbool.h"
 #include "stdarg.h"
 #include "stdio.h"
-#include "tx_api.h"
-#include "main.h"
-#include "gnss.h"
-#include "ct_sensor.h"
-#include "iridium.h"
-#include "temp_sensor.h"
-#include "turbidity_sensor.h"
-#include "light_sensor.h"
-#include "iridium.h"
-#include "persistent_ram.h"
-#include "logger.h"
 #include "watchdog.h"
 #include "sdmmc.h"
+#include "logger.h"
+#include "app_threadx.h"
 
 bool gnss_apply_config ( GNSS *gnss )
 {
@@ -514,18 +504,17 @@ void clear_event_flags ( TX_EVENT_FLAGS_GROUP *event_flags )
 
 ULONG get_timer_remaining_ticks ( TX_TIMER *timer )
 {
-  CHAR **name;
-  UINT *active;
-  ULONG *remaining_ticks, *reschedule_ticks;
-  TX_TIMER **next_timer;
 
-  if ( tx_timer_info_get (timer, name, active, remaining_ticks, reschedule_ticks,
-                          next_timer) != TX_SUCCESS )
+  ULONG remaining_ticks;
+
+  if ( tx_timer_info_get (timer, TX_NULL, TX_NULL, &remaining_ticks, TX_NULL,
+  TX_NULL)
+       != TX_SUCCESS )
   {
     return 0;
   }
 
-  return *remaining_ticks;
+  return remaining_ticks;
 }
 
 uint32_t ticks_from_milliseconds ( uint32_t milliseconds )

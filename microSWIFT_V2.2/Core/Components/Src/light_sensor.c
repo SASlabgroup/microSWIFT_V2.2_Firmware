@@ -151,19 +151,19 @@ static uSWIFT_return_code_t _light_sensor_self_test ( void )
                                      _light_sensor_ms_delay)
        != AS7341_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   tx_thread_sleep (20);
 
   if ( as7341_power (&light_self->dev_ctx, true) != AS7341_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   light_self->dev_ctx.bus_read (NULL, AS7341_I2C_ADDR, AUXID_REG_ADDR, (uint8_t*) &aux_id, 1);
@@ -172,12 +172,12 @@ static uSWIFT_return_code_t _light_sensor_self_test ( void )
   // Check the chip ID
   if ( as7341_get_id (&light_self->dev_ctx, &id) != AS7341_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   if ( (id != AS7341_ID) || (aux_id.auxid != AS7341_AUXID) || (rev_id.rev_id != AS7341_REVID) )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   ret = light_self->setup_sensor ();
@@ -205,7 +205,7 @@ static uSWIFT_return_code_t _light_sensor_setup_sensor ( void )
   // Make sure we're starting with SP_EN bit cleared
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   // Set ASTEP and ATIME to obtain the integration time from the following formula : t_int = (ATMIE + 1) X (ASTEP + 1) * 2.78us
@@ -272,14 +272,14 @@ static uSWIFT_return_code_t _light_sensor_read_all_channels ( void )
   // Integration mode SYNS --> GPIO pin triggers samples to start
   if ( as7341_set_integration_mode (&light_self->dev_ctx, SPM_MODE) != AS7341_OK )
   {
-    ret = uSWIFT_COMMS_ERROR;
+    ret = uSWIFT_IO_ERROR;
     goto failed;
   }
 
   // Make sure we're starting with SP_EN bit cleared
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
   {
-    ret = uSWIFT_COMMS_ERROR;
+    ret = uSWIFT_IO_ERROR;
     goto failed;
   }
 
@@ -287,14 +287,14 @@ static uSWIFT_return_code_t _light_sensor_read_all_channels ( void )
   if ( as7341_config_smux (&light_self->dev_ctx,
                            &(light_self->smux_assignment_low_channels)) != AS7341_OK )
   {
-    ret = uSWIFT_COMMS_ERROR;
+    ret = uSWIFT_IO_ERROR;
     goto failed;
   }
 
   // Enable spectral measurements
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, true) != AS7341_OK )
   {
-    ret = uSWIFT_COMMS_ERROR;
+    ret = uSWIFT_IO_ERROR;
     goto failed;
   }
 
@@ -317,7 +317,7 @@ static uSWIFT_return_code_t _light_sensor_read_all_channels ( void )
 
     if ( as7341_get_data_ready (&light_self->dev_ctx, &data_ready) != AS7341_OK )
     {
-      ret = uSWIFT_COMMS_ERROR;
+      ret = uSWIFT_IO_ERROR;
       goto failed;
     }
 
@@ -334,13 +334,13 @@ static uSWIFT_return_code_t _light_sensor_read_all_channels ( void )
       &light_self->dev_ctx, ((as7341_all_channel_data_struct*) &light_self->raw_counts.f1_chan))
        != AS7341_OK )
   {
-    ret = uSWIFT_COMMS_ERROR;
+    ret = uSWIFT_IO_ERROR;
     goto failed;
   }
 
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
   {
-    ret = uSWIFT_COMMS_ERROR;
+    ret = uSWIFT_IO_ERROR;
     goto failed;
   }
 
@@ -348,13 +348,13 @@ static uSWIFT_return_code_t _light_sensor_read_all_channels ( void )
   if ( as7341_config_smux (&light_self->dev_ctx,
                            &(light_self->smux_assignment_high_channels)) != AS7341_OK )
   {
-    ret = uSWIFT_COMMS_ERROR;
+    ret = uSWIFT_IO_ERROR;
     goto failed;
   }
 
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, true) != AS7341_OK )
   {
-    ret = uSWIFT_COMMS_ERROR;
+    ret = uSWIFT_IO_ERROR;
     goto failed;
   }
 
@@ -379,7 +379,7 @@ static uSWIFT_return_code_t _light_sensor_read_all_channels ( void )
 
     if ( as7341_get_data_ready (&light_self->dev_ctx, &data_ready) != AS7341_OK )
     {
-      return uSWIFT_COMMS_ERROR;
+      return uSWIFT_IO_ERROR;
     }
   }
 
@@ -393,12 +393,12 @@ static uSWIFT_return_code_t _light_sensor_read_all_channels ( void )
       &light_self->dev_ctx, ((as7341_all_channel_data_struct*) &light_self->raw_counts.f7_chan))
        != AS7341_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
   {
-    return uSWIFT_COMMS_ERROR;
+    return uSWIFT_IO_ERROR;
   }
 
   // Convert everything to basic counts
