@@ -136,6 +136,7 @@ Iridium
 CT
 **
 
+[ ] Store all samples taken in a series and pass down to file system for saving
 [x] Move buffers to inside CT struct
 [x] Switch over to generic UART driver
 
@@ -143,6 +144,7 @@ CT
 Temperature
 ************
 
+[ ] Store all samples taken in a series and pass down to file system for saving
 [x] Move buffers to inside Temperature struct
 [x] Rework I2C and figure out how to share bus
 [x] Remove FET pin and change on/off to software shutdown/idle/watever

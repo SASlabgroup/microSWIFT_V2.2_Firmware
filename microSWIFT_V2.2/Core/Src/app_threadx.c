@@ -68,27 +68,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-enum thread_priorities
-{
-  HIGHEST_PRIORITY = 1,
-  VERY_HIGH_PRIORITY = 2,
-  HIGH_PRIORITY = 3,
-  MID_PRIORITY = 4,
-  LOW_PRIORITY = 5,
-  VERY_LOW_PRIORITY = 6,
-  LOWEST_PRIORITY = 7
-};
 
-enum stack_sizes
-{
-  XXL_STACK = 16384,
-  XL_STACK = 8192,
-  L_STACK = 6144,
-  M_STACK = 4096,
-  S_STACK = 2048,
-  XS_STACK = 1024,
-  XXS_STACK = 512
-};
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -139,7 +119,7 @@ Thread_Handles thread_handles =
     &turbidity_thread,
     &waves_thread,
     &iridium_thread,
-    &fx_app_thread
+    &fx_thread
   };
 // @formatter:on
 // Used to track initialization status of threads and components
@@ -150,7 +130,7 @@ TX_EVENT_FLAGS_GROUP complete_flags;
 TX_EVENT_FLAGS_GROUP irq_flags;
 // Flags for errors
 TX_EVENT_FLAGS_GROUP error_flags;
-// RTC complete flags
+// RTC complete flags (for RTC server)
 TX_EVENT_FLAGS_GROUP rtc_complete_flags;
 // I2C complete flags
 TX_EVENT_FLAGS_GROUP i2c_complete_flags;
@@ -597,7 +577,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   /************************************************************************************************
    ************************************** Message Queues ******************************************
    ************************************************************************************************/
-  // Server message queue for RTC (including watchdog function) and UART Logger
+  // Server message queue for UART Logger
   //
   // Allocate buffer space for the message queue
   ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, sizeof(logger_message) * LOG_QUEUE_LENGTH,
@@ -615,6 +595,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     return ret;
   }
 
+  // Server message queue for RTC (including watchdog function)
   ret = tx_byte_allocate (byte_pool, (VOID**) &pointer,
                           sizeof(rtc_request_message) * RTC_QUEUE_LENGTH, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )

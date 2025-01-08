@@ -60,7 +60,7 @@ extern char compile_time[COMPILE_TIME_DATE_BUFFER_SIZE];
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-void Error_Handler ( void );
+void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 

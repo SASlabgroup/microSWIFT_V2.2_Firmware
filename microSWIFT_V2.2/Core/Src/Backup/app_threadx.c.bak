@@ -680,10 +680,8 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   device_handles.logger_uart_rx_dma_handle = &handle_GPDMA1_Channel2;
 
   configuration.samples_per_window = TOTAL_SAMPLES_PER_WINDOW;
-  configuration.windows_per_hour = SAMPLE_WINDOWS_PER_HOUR;
   configuration.duty_cycle = DUTY_CYCLE_PERIOD;
   configuration.iridium_max_transmit_time = IRIDIUM_MAX_TRANSMIT_TIME;
-  configuration.gnss_max_acquisition_wait_time = GNSS_MAX_ACQUISITION_WAIT_TIME;
   configuration.gnss_sampling_rate = GNSS_SAMPLING_RATE;
   configuration.total_ct_samples = TOTAL_CT_SAMPLES;
   configuration.total_temp_samples = TOTAL_TEMPERATURE_SAMPLES;
@@ -695,6 +693,7 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   configuration.temperature_enabled = TEMPERATURE_ENABLED;
   configuration.light_enabled = LIGHT_SENSOR_ENABLED;
   configuration.turbidity_enabled = TURBIDITY_SENSOR_ENABLED;
+  configuration.gnss_max_acquisition_wait_time = get_gnss_acquisition_timeout (&configuration);
 
   /* USER CODE END App_ThreadX_MEM_POOL */
   /* USER CODE BEGIN App_ThreadX_Init */
@@ -753,7 +752,7 @@ void MX_ThreadX_Init(void)
  * @param  ULONG thread_input - unused
  * @retval void
  */
-uint32_t watchdog_refresh_counter = 0;
+static uint32_t watchdog_refresh_counter = 0; // debugging
 static void rtc_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
@@ -1125,11 +1124,6 @@ static void gnss_thread_entry ( ULONG thread_input )
   ULONG actual_flags;
   int timer_ticks_to_get_message = round (
       ((float) TX_TIMER_TICKS_PER_SECOND / (float) configuration.gnss_sampling_rate) + 25);
-  uint16_t sample_window_timeout = ((configuration.samples_per_window
-                                     / configuration.gnss_sampling_rate)
-                                    / 60)
-                                   + GNSS_WINDOW_BUFFER_TIME;
-  int32_t gnss_max_acq_time = 0;
   uint32_t two_mins_remaining_sample_count = abs (
       (2 * 60 * configuration.gnss_sampling_rate) - configuration.samples_per_window);
   bool two_mins_out_msg_sent = false, start_flag_sent = false;
@@ -1178,43 +1172,10 @@ static void gnss_thread_entry ( ULONG thread_input )
   watchdog_register_thread (GNSS_THREAD);
   watchdog_check_in (GNSS_THREAD);
 
-  // Calculate the max acquisition time if we're running multiple windows per hour
-  if ( configuration.windows_per_hour == 1 )
-  {
-    gnss_max_acq_time = configuration.gnss_max_acquisition_wait_time;
-  }
-  else if ( configuration.windows_per_hour > 1 )
-  {
-    if ( is_first_sample_window () )
-    {
-      gnss_max_acq_time = configuration.gnss_max_acquisition_wait_time;
-    }
-    else
-    {
-      gnss_max_acq_time = (60 / configuration.windows_per_hour)
-                          - configuration.iridium_max_transmit_time - sample_window_timeout;
-    }
-  }
-  else
-  {
-    // Invalid (negative) number case
-    gnss_max_acq_time = 0;
-  }
-
-  // Invalid acquisition time case
-  if ( gnss_max_acq_time <= 1 )
-  {
-    LOG("Invalid GNSS max acquisition time: %d. Check settings for number of samples "
-        "per window and windows per hour. Continuing with 5 min acq time.",
-        gnss_max_acq_time);
-
-    gnss_max_acq_time = 5;
-  }
-
   watchdog_check_in (GNSS_THREAD);
 
   // Start the timer for resolution stages
-  gnss.start_timer (gnss_max_acq_time);
+  gnss.start_timer (configuration.gnss_max_acquisition_wait_time);
 
   // Frame sync and switch to DMA circular mode
   if ( gnss.sync_and_start_reception () != uSWIFT_SUCCESS )
@@ -1251,12 +1212,12 @@ static void gnss_thread_entry ( ULONG thread_input )
   {
     gnss_error_out (&gnss, GNSS_RESOLUTION_ERROR, this_thread,
                     "GNSS failed to get a fix within alloted time of %d minutes.",
-                    gnss_max_acq_time);
+                    configuration.gnss_max_acquisition_wait_time);
   }
 
   // Start the sample window timer
   gnss.stop_timer ();
-  gnss.start_timer (sample_window_timeout);
+  gnss.start_timer (get_gnss_sample_window_timeout (&configuration));
 
   // Process messages until complete
   while ( !gnss_get_sample_window_complete () )
@@ -1314,7 +1275,8 @@ static void gnss_thread_entry ( ULONG thread_input )
     if ( gnss_get_timer_timeout_status () )
     {
       gnss_error_out (&gnss, GNSS_SAMPLE_WINDOW_TIMEOUT, this_thread,
-                      "GNSS sample window timed out after %d minutes.", sample_window_timeout);
+                      "GNSS sample window timed out after %d minutes.",
+                      get_gnss_sample_window_timeout (&configuration));
     }
 
     // Check if we are two mins out
@@ -1445,7 +1407,7 @@ static void ct_thread_entry ( ULONG thread_input )
       ct_parsing_error_counter++;
     }
 
-    if ( (ct_parsing_error_counter >= 10) || (ct_return_code == uSWIFT_COMMS_ERROR) )
+    if ( (ct_parsing_error_counter >= 10) || (ct_return_code == uSWIFT_IO_ERROR) )
     {
       // If there are too many parsing errors or a UART error occurs, stop trying
       ct_error_out (&ct, CT_SAMPLING_ERROR, this_thread,
@@ -1617,10 +1579,7 @@ static void light_thread_entry ( ULONG thread_input )
     { 0 };
   light_raw_counts raw_counts;
   light_basic_counts basic_counts;
-  int32_t light_thread_timeout = ((configuration.samples_per_window
-                                   / configuration.gnss_sampling_rate)
-                                  / 60)
-                                 + GNSS_WINDOW_BUFFER_TIME; // Same timeout as GNSS
+  int32_t light_thread_timeout = get_gnss_sample_window_timeout (&configuration); // Same timeout as GNSS
   struct tm time_struct =
     { 0 };
   time_t time_now = 0;
@@ -1748,10 +1707,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
   uSWIFT_return_code_t ret;
   sbd_message_type_53_element sbd_msg_element =
     { 0 };
-  int32_t turbidity_thread_timeout = ((configuration.samples_per_window
-                                       / configuration.gnss_sampling_rate)
-                                      / 60)
-                                     + GNSS_WINDOW_BUFFER_TIME; // Same timeout as GNSS
+  int32_t turbidity_thread_timeout = get_gnss_sample_window_timeout (&configuration); // Same timeout as GNSS
   struct tm time_struct =
     { 0 };
   time_t time_now = 0;
@@ -1967,6 +1923,8 @@ static void iridium_thread_entry ( ULONG thread_input )
     { 0 };
   uint8_t *msg_ptr = (uint8_t*) &sbd_message;
   bool current_message_sent = false;
+  telemetry_type_t next_message_type;
+  uint32_t next_message_size = 0;
 
   tx_thread_sleep (10);
 
@@ -1994,7 +1952,6 @@ static void iridium_thread_entry ( ULONG thread_input )
   LOG("Iridium modem initialized successfully.");
   (void) tx_event_flags_set (&initialization_flags, IRIDIUM_INIT_SUCCESS, TX_OR);
 
-  iridium.charge_caps (IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
   iridium.sleep ();
 
   tx_thread_suspend (this_thread);
@@ -2002,10 +1959,6 @@ static void iridium_thread_entry ( ULONG thread_input )
   /******************************* Control thread resumes this thread *****************************/
   watchdog_register_thread (IRIDIUM_THREAD);
   watchdog_check_in (IRIDIUM_THREAD);
-
-#warning "On first window, set the modem's RTC. Do this here after the thread has been resumed."
-
-#warning"Figure out how to bail early here if there is no valid message to send."
 
   iridium.wake ();
   iridium.charge_caps (IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
@@ -2023,7 +1976,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   rtc_server_get_time (&time_struct, IRIDIUM_REQUEST_COMPLETE);
   time_now = mktime (&time_struct);
   sbd_timestamp = (uint32_t) time_now;
-  error_bits = get_current_flags (&error_flags);
+  error_bits = control_get_accumulated_error_flags ();
   memcpy (&sbd_message.legacy_number_7, &ascii_7, sizeof(char));
   memcpy (&sbd_message.type, &sbd_type, sizeof(uint8_t));
   memcpy (&sbd_message.size, &sbd_size, sizeof(uint16_t));
@@ -2060,16 +2013,25 @@ static void iridium_thread_entry ( ULONG thread_input )
       continue;
     }
 
-    msg_ptr = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
-
-    if ( msg_ptr == NULL )
+    next_message_type = get_next_telemetry_message (msg_ptr, &configuration);
+    if ( next_message_type == NO_MESSAGE )
     {
       break;
     }
 
-    if ( iridium.transmit_message (msg_ptr, sizeof(sbd_message_type_52)) == uSWIFT_SUCCESS )
+    next_message_size = (next_message_type == WAVES_TELEMETRY) ?
+        sizeof(sbd_message_type_52) :
+                        (next_message_type == TURBIDITY_TELEMETRY) ?
+                            sizeof(sbd_message_type_53) :
+                        (next_message_type == LIGHT_TELEMETRY) ?
+                            sizeof(sbd_message_type_54) : 0;
+
+    if ( next_message_size > 0 )
     {
-      persistent_ram_delete_message_element (WAVES_TELEMETRY, msg_ptr);
+      if ( iridium.transmit_message (msg_ptr, next_message_size) == uSWIFT_SUCCESS )
+      {
+        persistent_ram_delete_message_element (next_message_type, msg_ptr);
+      }
     }
   }
 
@@ -2082,9 +2044,11 @@ static void iridium_thread_entry ( ULONG thread_input )
     memcpy (&sbd_message.error_bits, &error_bits, sizeof(uint32_t));
     // Save the message
     persistent_ram_save_message (WAVES_TELEMETRY, msg_ptr);
+
+    tx_thread_sleep (10);
   }
 
-  // Turn off the modem
+// Turn off the modem
   iridium.stop_timer ();
   iridium.sleep ();
   iridium.off ();

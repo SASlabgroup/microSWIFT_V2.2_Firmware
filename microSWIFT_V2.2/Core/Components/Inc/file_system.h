@@ -16,9 +16,12 @@
 #include "light_sensor.h"
 #include "turbidity_sensor.h"
 #include "gpio.h"
+#include "stdbool.h"
 
 // @formatter:off
 #define FILE_SYSTEM_MAX_FILES (7U)
+#define FILE_MAX_NAME_LEN (32U)
+#define COMPLEX_FILE_WRITE_BUF_LEN (1024U)
 
 typedef enum
 {
@@ -35,14 +38,18 @@ typedef struct
 {
   FX_MEDIA                  *sd_card;
   FX_FILE                   files[FILE_SYSTEM_MAX_FILES];
+  char                      file_names[FILE_SYSTEM_MAX_FILES][FILE_MAX_NAME_LEN];
   uint32_t                  *media_sector_cache;
 
   microSWIFT_configuration  *global_config;
 
   gpio_pin_struct           fet_pin;
 
+  bool                      timer_timeout;
+
+  uint32_t                  sample_window_counter;
+
   uSWIFT_return_code_t      (*initialize_card) ( void );
-  uSWIFT_return_code_t      (*close_out_files) ( void );
   uSWIFT_return_code_t      (*save_log_line) ( char* line, uint32_t len );
   uSWIFT_return_code_t      (*save_gnss_velocities) ( GNSS *gnss );
   uSWIFT_return_code_t      (*save_gnss_breadcrumb_track) ( GNSS *gnss );
@@ -52,9 +59,11 @@ typedef struct
   uSWIFT_return_code_t      (*save_turbidity_raw) ( Turbidity_Sensor *obs );
 } File_System_SD_Card;
 
-void file_system_init ( File_System_SD_Card *file_sytem, uint32_t *media_sector_cache,
+void file_system_init ( File_System_SD_Card *file_system, uint32_t *media_sector_cache,
                         FX_MEDIA *sd_card, microSWIFT_configuration *global_config );
 void file_system_deinit ( void );
+void file_system_timer_expired ( ULONG expiration_input );
+bool file_system_get_timeout_status ( void );
 
 
 // @formatter:on

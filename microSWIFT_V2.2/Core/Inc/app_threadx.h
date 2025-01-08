@@ -46,6 +46,28 @@ extern "C" {
 /* USER CODE BEGIN ET */
 
 // @formatter:off
+enum thread_priorities
+{
+  HIGHEST_PRIORITY = 1,
+  VERY_HIGH_PRIORITY = 2,
+  HIGH_PRIORITY = 3,
+  MID_PRIORITY = 4,
+  LOW_PRIORITY = 5,
+  VERY_LOW_PRIORITY = 6,
+  LOWEST_PRIORITY = 7
+};
+
+enum stack_sizes
+{
+  XXL_STACK = 16384,
+  XL_STACK = 8192,
+  L_STACK = 6144,
+  M_STACK = 4096,
+  S_STACK = 2048,
+  XS_STACK = 1024,
+  XXS_STACK = 512
+};
+
 enum initialization_flags
 {
   RTC_INIT_SUCCESS              = ((ULONG) 1 << 0),
@@ -193,6 +215,8 @@ typedef struct
   TX_THREAD *iridium_thread;
   TX_THREAD *filex_thread;
 } Thread_Handles;
+
+extern microSWIFT_configuration configuration;
 
 extern Thread_Handles thread_handles;
 extern Device_Handles device_handles;

@@ -101,6 +101,11 @@ bool control_get_timeout_status ( void )
   return controller_self->timer_timeout;
 }
 
+ULONG control_get_accumulated_error_flags ( void )
+{
+  return controller_self->accumulated_error_flags;
+}
+
 static bool _control_startup_procedure ( void )
 {
   UINT tx_return;
@@ -113,23 +118,36 @@ static bool _control_startup_procedure ( void )
   bool initial_powerup = is_first_sample_window ();
   ULONG init_wait_ticks = STARTUP_SEQUENCE_MAX_WAIT_TICKS;
 
+  // Invalid acquisition time case
+  if ( controller_self->global_config->gnss_max_acquisition_wait_time == 0 )
+  {
+    LOG("Invalid calculated GNSS max acquisition time. Check settings.");
+
+    led_light_sequence (TEST_FAILED_LED_SEQUENCE, LED_SEQUENCE_FOREVER);
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 30);
+    HAL_NVIC_SystemReset ();
+  }
+
   // Start the duty cycle timer
   tx_return = tx_timer_change (
       controller_self->timer,
       (controller_self->global_config->duty_cycle * TX_TIMER_TICKS_PER_SECOND * 60), 0);
   if ( tx_return != TX_SUCCESS )
   {
+    LOG("Unable to set controller duty cycle timer.");
 
     led_light_sequence (TEST_FAILED_LED_SEQUENCE, LED_SEQUENCE_FOREVER);
-    tx_thread_sleep (30);
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 30);
     HAL_NVIC_SystemReset ();
   }
 
   tx_return = tx_timer_activate (controller_self->timer);
   if ( tx_return != TX_SUCCESS )
   {
+    LOG("Unable to set controller duty cycle timer.");
+
     led_light_sequence (TEST_FAILED_LED_SEQUENCE, LED_SEQUENCE_FOREVER);
-    tx_thread_sleep (30);
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 30);
     HAL_NVIC_SystemReset ();
   }
 
@@ -469,8 +487,6 @@ static void _control_manage_state ( void )
   {
     controller_self->thread_status.gnss_complete = true;
 
-#warning "Figure out how to error out all sensors when this happens."
-
     if ( !controller_self->thread_status.ct_complete )
     {
       ret |= tx_thread_resume (controller_self->thread_handles->ct_thread);
@@ -580,6 +596,8 @@ static void _control_monitor_and_handle_errors ( void )
     return;
   }
 
+  controller_self->accumulated_error_flags |= current_flags;
+
   gnss_errors = current_flags
                 & (GNSS_INIT_FAILED | GNSS_CONFIGURATION_FAILED | GNSS_RESOLUTION_ERROR
                    | GNSS_TOO_MANY_PARTIAL_MSGS | GNSS_SAMPLE_WINDOW_TIMEOUT
@@ -659,38 +677,30 @@ static void _control_monitor_and_handle_errors ( void )
 
 static void __get_alarm_settings_from_time ( struct tm *time, rtc_alarm_struct *alarm )
 {
+  int i = 0;
   alarm->day_alarm_en = false;
   alarm->hour_alarm_en = true;
   alarm->minute_alarm_en = true;
   alarm->second_alarm_en = true;
   alarm->weekday_alarm_en = false;
   alarm->alarm_second = 0;
+  alarm->alarm_minute = i;
 
-  //
-  //
-  // Testing
-  alarm->alarm_second = (time->tm_sec + 20) % 60;
-  alarm->alarm_minute = (alarm->alarm_second < time->tm_sec) ?
-      (time->tm_min + 1) % 60 : time->tm_min;
-  alarm->alarm_hour = ((alarm->alarm_minute == 0) && (alarm->alarm_second < time->tm_sec)) ?
-      (time->tm_hour + 1) % 24 : time->tm_hour;
-  return;
-  //
-  //
-  // End Testing
+  for ( i = controller_self->global_config->duty_cycle; i < 60;
+      i += controller_self->global_config->duty_cycle )
+  {
+    if ( time->tm_min < i )
+    {
+      alarm->alarm_minute = i;
+      break;
+    }
+  }
 
-  if ( controller_self->global_config->windows_per_hour == 1 )
-  {
-    alarm->alarm_minute = 0;
-    alarm->alarm_hour = (time->tm_hour + 1) % 24;
-  }
-  else
-  {
-    alarm->alarm_minute = (time->tm_min > 30) ?
-        0 : 30;
-    alarm->alarm_hour = (alarm->alarm_minute == 0) ?
-        (time->tm_hour + 1) % 24 : time->tm_hour;
-  }
+  alarm->alarm_hour =
+      (alarm->alarm_minute < time->tm_min) ?
+          (time->tm_hour + (controller_self->global_config->duty_cycle / 60) + 1) % 24 :
+          (time->tm_hour + (controller_self->global_config->duty_cycle / 60)) % 24;
+
 }
 
 static void __handle_rtc_error ( void )
@@ -704,15 +714,25 @@ static void __handle_rtc_error ( void )
 
 static void __handle_gnss_error ( ULONG error_flags )
 {
+  ULONG flags = GNSS_THREAD_COMPLETED_WITH_ERRORS | WAVES_THREAD_COMPLETED_WITH_ERRORS;
+
+  if ( controller_self->global_config->turbidity_enabled )
+  {
+    flags |= TURBIDITY_THREAD_COMPLETED_WITH_ERRORS;
+  }
+
+  if ( controller_self->global_config->light_enabled )
+  {
+    flags |= LIGHT_THREAD_COMPLETED_WITH_ERRORS;
+  }
+
   // Shut down CT sensor
   HAL_GPIO_WritePin (GNSS_FET_GPIO_Port, GNSS_FET_Pin, GPIO_PIN_RESET);
   // Set all the fields of the SBD message to error values
   memset (controller_self->current_message, 0, sizeof(sbd_message_type_52));
 
   // Set the GNSS_THREAD_COMPLETED_WITH_ERRORS and WAVES_THREAD_COMPLETED_WITH_ERRORS flags to prevent waves thread from running
-  (void) tx_event_flags_set (
-      controller_self->complete_flags,
-      (GNSS_THREAD_COMPLETED_WITH_ERRORS | WAVES_THREAD_COMPLETED_WITH_ERRORS), TX_OR);
+  (void) tx_event_flags_set (controller_self->complete_flags, flags, TX_OR);
 
   // Terminate the GNSS thread
   (void) tx_thread_suspend (controller_self->thread_handles->gnss_thread);
