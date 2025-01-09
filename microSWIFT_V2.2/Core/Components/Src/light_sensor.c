@@ -11,6 +11,7 @@
 #include "i2c.h"
 #include "shared_i2c_bus.h"
 #include "app_threadx.h"
+#include "gnss.h"
 
 // @formatter:off
 static Light_Sensor *light_self;
@@ -47,6 +48,7 @@ static void                 _light_sensor_ms_delay ( uint32_t delay );
 // Helper functions
 static void                 __raw_to_basic_counts (void);
 static void                 __get_mins_maxes (void);
+static time_t               __get_timestamp (void);
 
 // @formatter:on
 /**
@@ -85,7 +87,7 @@ void light_sensor_init ( Light_Sensor *struct_ptr, microSWIFT_configuration *glo
 
   light_self->as7341_current_reg_bank = REG_BANK_UNKNOWN;
 
-  light_self->sensor_gain = GAIN_64X;
+  light_self->sensor_gain = GAIN_1X;
 
   light_self->timer_timeout = false;
 
@@ -94,6 +96,13 @@ void light_sensor_init ( Light_Sensor *struct_ptr, microSWIFT_configuration *glo
   memset (&(light_self->samples_min), 0xFFFFFFFF, sizeof(light_basic_counts));
   memset (&(light_self->samples_max), 0, sizeof(light_basic_counts));
   memset (&(light_self->samples_averages_accumulator), 0, sizeof(light_basic_counts));
+
+  light_self->start_lat = 0;
+  light_self->start_lon = 0;
+  light_self->end_lat = 0;
+  light_self->end_lon = 0;
+  light_self->start_timestamp = 0;
+  light_self->stop_timestamp = 0;
 
   light_self->self_test = _light_sensor_self_test;
   light_self->setup_sensor = _light_sensor_setup_sensor;
@@ -460,6 +469,8 @@ static uSWIFT_return_code_t _light_sensor_process_measurements ( void )
 
   if ( light_self->total_samples == light_self->global_config->total_light_samples )
   {
+    gnss_get_current_lat_lon (&light_self->end_lat, &light_self->end_lon);
+    light_self->stop_timestamp = __get_timestamp ();
     return uSWIFT_DONE_SAMPLING;
   }
 
@@ -473,6 +484,12 @@ static uSWIFT_return_code_t _light_sensor_process_measurements ( void )
   }
 
   light_self->total_samples++;
+
+  if ( light_self->total_samples == 1 )
+  {
+    gnss_get_current_lat_lon (&light_self->start_lat, &light_self->start_lon);
+    light_self->start_timestamp = __get_timestamp ();
+  }
 
   return uSWIFT_SUCCESS;
 }
@@ -733,4 +750,24 @@ static void __get_mins_maxes ( void )
       *max = *basic_count;
     }
   }
+}
+
+/**
+ * Helper method to generate a timestamp from the RTC.
+ *
+ * @return timestamp as time_t
+ */
+static time_t __get_timestamp ( void )
+{
+  uSWIFT_return_code_t rtc_ret = uSWIFT_SUCCESS;
+  struct tm time;
+
+#warning "An error case here will need to be propogated up if not handled in the RTC thread."
+  rtc_ret = rtc_server_get_time (&time, LIGHT_REQUEST_PROCESSED);
+  if ( rtc_ret != uSWIFT_SUCCESS )
+  {
+    return -1;
+  }
+
+  return mktime (&time);
 }

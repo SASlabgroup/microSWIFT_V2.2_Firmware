@@ -36,8 +36,8 @@ typedef struct
   int32_t                   start_lon;
   int32_t                   end_lat;
   int32_t                   end_lon;
-  uint32_t                  start_timestamp;
-  uint32_t                  end_timestamp;
+  time_t                    start_timestamp;
+  time_t                    stop_timestamp;
 
   uint32_t                  samples_counter;
 

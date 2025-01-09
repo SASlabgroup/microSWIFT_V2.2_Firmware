@@ -78,8 +78,8 @@
 
 typedef struct
 {
-  int32_t   lat;
-  int32_t   lon;
+  float   lat;
+  float   lon;
 } gnss_track_point;
 
 typedef struct GNSS

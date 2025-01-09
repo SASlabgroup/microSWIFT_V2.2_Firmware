@@ -33,6 +33,7 @@ static uSWIFT_return_code_t _temperature_i2c_write( uint8_t dev_addr, uint8_t re
 static uSWIFT_return_code_t __init_sensor ( void );
 static float                __calculate_temp ( void );
 static void                 __reset_struct_fields ( bool reset_calibration );
+static time_t               __get_timestamp ( void );
 // @formatter:on
 
 void temperature_init ( Temperature *struct_ptr, microSWIFT_configuration *global_config,
@@ -44,7 +45,6 @@ void temperature_init ( Temperature *struct_ptr, microSWIFT_configuration *globa
   temperature_self->global_config = global_config;
   temperature_self->error_flags = error_flags;
   temperature_self->timer = timer;
-  temperature_self->timer_timeout = false;
 
   temperature_self->self_test = _temperature_self_test;
   temperature_self->get_readings = _temperature_get_readings;
@@ -93,10 +93,9 @@ static uSWIFT_return_code_t _temperature_get_readings ( bool get_single_reading,
   uint8_t read_data[3] =
     { 0 };
   int32_t num_readings = (get_single_reading) ?
-      1 : temperature_self->global_config->total_temp_samples;
-  float readings_accumulator = 0;
+      1 : TOTAL_TEMPERATURE_SAMPLES;
 
-  for ( int i = 0; i < num_readings; i++ )
+  while ( temperature_self->samples_counter < TOTAL_TEMPERATURE_SAMPLES )
   {
 
     command = TSYS01_ADC_TEMP_CONV;
@@ -119,12 +118,20 @@ static uSWIFT_return_code_t _temperature_get_readings ( bool get_single_reading,
 
     temperature_self->D1 = (read_data[0] << 16) | (read_data[1] << 8) | read_data[2];
 
-    readings_accumulator += __calculate_temp ();
+    temperature_self->samples[temperature_self->samples_counter] = __calculate_temp ();
+
+    temperature_self->samples_counter++;
   }
 
-  temperature_self->converted_temp = readings_accumulator / num_readings;
+  temperature_self->averaged_temp = 0.0f;
+  for ( int i = 0; i < num_readings; i++ )
+  {
+    temperature_self->averaged_temp += temperature_self->samples[i];
+  }
 
-  *temperature = temperature_self->converted_temp;
+  temperature_self->averaged_temp /= num_readings;
+
+  *temperature = temperature_self->averaged_temp;
 
   return return_code;
 }
@@ -211,7 +218,13 @@ static void __reset_struct_fields ( bool reset_calibration )
     memset (temperature_self->C, 0, sizeof(temperature_self->C));
   }
 
-  temperature_self->converted_temp = 0.0f;
+  memset (&(temeprature_self->samples[0]), 0, sizeof(temeprature_self->samples));
+
+  temperature_self->timer_timeout = false;
+
+  temperature_self->samples_counter = 0;
+
+  temperature_self->averaged_temp = 0.0f;
   temperature_self->D1 = 0;
   temperature_self->adc = 0;
 }
@@ -226,6 +239,26 @@ static uSWIFT_return_code_t _temperature_i2c_write ( uint8_t dev_addr, uint8_t r
                                                      uint8_t *write_buf, uint16_t size )
 {
   return shared_i2c_write (dev_addr, reg_addr, write_buf, size, TEMPERATURE_REQUEST_PROCESSED);
+}
+
+/**
+ * Helper method to generate a timestamp from the RTC.
+ *
+ * @return timestamp as time_t
+ */
+static time_t __get_timestamp ( void )
+{
+  uSWIFT_return_code_t rtc_ret = uSWIFT_SUCCESS;
+  struct tm time;
+
+#warning "An error case here will need to be propogated up if not handled in the RTC thread."
+  rtc_ret = rtc_server_get_time (&time, TEMPERATURE_REQUEST_PROCESSED);
+  if ( rtc_ret != uSWIFT_SUCCESS )
+  {
+    return -1;
+  }
+
+  return mktime (&time);
 }
 
 // @formatter:on

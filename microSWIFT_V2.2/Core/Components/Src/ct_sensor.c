@@ -35,6 +35,7 @@ static void                 _ct_off ( void );
 
 // Helper functions
 static void                 __reset_ct_struct_fields ( void );
+static time_t               __get_timestamp ( void );
 
 // Search terms
 static const char *temp_units =     "Deg.C";
@@ -124,6 +125,7 @@ static uSWIFT_return_code_t _ct_parse_sample ( void )
   // Samples array overflow safety check
   if ( ct_self->total_samples >= ct_self->global_config->total_ct_samples )
   {
+
     return_code = uSWIFT_DONE_SAMPLING;
     return return_code;
   }
@@ -158,7 +160,7 @@ static uSWIFT_return_code_t _ct_parse_sample ( void )
       continue;
     }
 
-    char *index = strstr (ct_self->data_buf, salinity_units);
+    index = strstr (ct_self->data_buf, salinity_units);
     if ( index == NULL )
     {
       continue;
@@ -172,10 +174,15 @@ static uSWIFT_return_code_t _ct_parse_sample ( void )
       continue;
     }
 
-    ct_self->samples_accumulator.salinity += salinity;
-    ct_self->samples_accumulator.temp += temperature;
+    ct_self->samples[ct_self->total_samples].salinity = salinity;
+    ct_self->samples[ct_self->total_samples].temp = temperature;
 
     ct_self->total_samples++;
+
+    if ( ct_self->total_samples == 1 )
+    {
+      ct_self->start_timestamp = __get_timestamp ();
+    }
 
     return_code = uSWIFT_SUCCESS;
     break;
@@ -192,15 +199,16 @@ static uSWIFT_return_code_t _ct_parse_sample ( void )
  */
 static uSWIFT_return_code_t _ct_get_averages ( ct_sample *readings )
 {
-  if ( ct_self->total_samples < ct_self->global_config->total_ct_samples )
+  double salinity = 0.0f, temp = 0.0f;
+
+  for ( int i = 0; i < ct_self->total_samples; i++ )
   {
-    return uSWIFT_NO_SAMPLES_ERROR;
+    salinity += ct_self->samples[i].salinity;
+    temp += ct_self->samples[i].temp;
   }
 
-  ct_self->samples_averages.temp = ct_self->samples_accumulator.salinity
-                                   / ((double) ct_self->total_samples);
-  ct_self->samples_averages.salinity = ct_self->samples_accumulator.temp
-                                       / ((double) ct_self->total_samples);
+  ct_self->samples_averages.temp = (float) (salinity / ((double) ct_self->total_samples));
+  ct_self->samples_averages.salinity = (float) (temp / ((double) ct_self->total_samples));
 
   readings->temp = ct_self->samples_averages.temp;
   readings->salinity = ct_self->samples_averages.salinity;
@@ -370,14 +378,36 @@ static void __reset_ct_struct_fields ( void )
 {
   ct_self->timer_timeout = false;
 
-  ct_self->samples_accumulator.salinity = 0.0f;
-  ct_self->samples_accumulator.temp = 0.0f;
+  memset (&(ct_self->samples[0]), 0, sizeof(ct_self->samples));
   // We will know if the CT sensor fails by the value 9999 in the iridium message
   ct_self->samples_averages.salinity = CT_VALUES_ERROR_CODE;
   ct_self->samples_averages.temp = CT_VALUES_ERROR_CODE;
 
   ct_self->total_samples = 0;
 
+  ct_self->start_timestamp = 0;
+  ct_self->stop_timestamp = 0;
+
   // zero out the buffer
   memset (&(ct_self->data_buf[0]), 0, CT_DATA_ARRAY_SIZE);
+}
+
+/**
+ * Helper method to generate a timestamp from the RTC.
+ *
+ * @return timestamp as time_t
+ */
+static time_t __get_timestamp ( void )
+{
+  uSWIFT_return_code_t rtc_ret = uSWIFT_SUCCESS;
+  struct tm time;
+
+#warning "An error case here will need to be propogated up if not handled in the RTC thread."
+  rtc_ret = rtc_server_get_time (&time, CT_REQUEST_PROCESSED);
+  if ( rtc_ret != uSWIFT_SUCCESS )
+  {
+    return -1;
+  }
+
+  return mktime (&time);
 }

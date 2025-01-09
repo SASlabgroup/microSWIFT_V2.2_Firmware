@@ -770,8 +770,10 @@ static void _gnss_process_message ( void )
     if ( (gnss_self->total_samples % gnss_self->global_config->gnss_sampling_rate == 0)
          && (gnss_self->breadcrumb_index < BREADCRUMB_TRACK_MAX_SIZE) )
     {
-      gnss_self->breadcrumb_track[gnss_self->breadcrumb_index].lat = lat;
-      gnss_self->breadcrumb_track[gnss_self->breadcrumb_index].lon = lon;
+      gnss_self->breadcrumb_track[gnss_self->breadcrumb_index].lat =
+          ((float) lat) / ((float) LAT_LON_CONVERSION_FACTOR);
+      gnss_self->breadcrumb_track[gnss_self->breadcrumb_index].lon =
+          ((float) lon) / ((float) LAT_LON_CONVERSION_FACTOR);
       gnss_self->breadcrumb_index++;
     }
 

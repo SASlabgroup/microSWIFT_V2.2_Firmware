@@ -1608,13 +1608,7 @@ static void light_thread_entry ( ULONG thread_input )
   watchdog_register_thread (LIGHT_THREAD);
   watchdog_check_in (LIGHT_THREAD);
 
-  gnss_get_current_lat_lon (&light.start_lat, &light.start_lon);
-
   light.standby ();
-
-  rtc_server_get_time (&time_struct, LIGHT_REQUEST_COMPLETE);
-  time_now = mktime (&time_struct);
-  light.start_timestamp = (uint32_t) time_now;
 
   light.start_timer (light_thread_timeout);
 
@@ -1651,11 +1645,6 @@ static void light_thread_entry ( ULONG thread_input )
   }
 
   light.idle ();
-
-  gnss_get_current_lat_lon (&light.end_lat, &light.end_lon);
-  rtc_server_get_time (&time_struct, LIGHT_REQUEST_COMPLETE);
-  time_now = mktime (&time_struct);
-  light.end_timestamp = (uint32_t) time_now;
 
   light.assemble_telemetry_message_element (&sbd_msg_element);
   persistent_ram_save_message (LIGHT_TELEMETRY, (uint8_t*) &sbd_msg_element);
@@ -1733,10 +1722,6 @@ static void turbidity_thread_entry ( ULONG thread_input )
 
   obs.standby ();
 
-  rtc_server_get_time (&time_struct, TURBIDITY_REQUEST_COMPLETE);
-  time_now = mktime (&time_struct);
-  obs.start_timestamp = (uint32_t) time_now;
-
   obs.start_timer (turbidity_thread_timeout);
 
   // Take our samples
@@ -1771,9 +1756,6 @@ static void turbidity_thread_entry ( ULONG thread_input )
   obs.idle ();
 
   gnss_get_current_lat_lon (&obs.end_lat, &obs.end_lon);
-  rtc_server_get_time (&time_struct, TURBIDITY_REQUEST_COMPLETE);
-  time_now = mktime (&time_struct);
-  obs.end_timestamp = (uint32_t) time_now;
 
   obs.assemble_telemetry_message_element (&sbd_msg_element);
   persistent_ram_save_message (LIGHT_TELEMETRY, (uint8_t*) &sbd_msg_element);

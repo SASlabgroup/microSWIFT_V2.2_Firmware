@@ -19,6 +19,7 @@
 #include "gpio.h"
 #include "configuration.h"
 #include "microSWIFT_return_codes.h"
+#include "time.h"
 
 // @formatter:off
 
@@ -32,6 +33,8 @@
 
 #define TEMPERATURE_SENSOR_I2C_TIMEOUT      2
 
+#define TOTAL_TEMPERATURE_SAMPLES 10
+
 typedef struct Temperature
 {
   microSWIFT_configuration  *global_config;
@@ -40,12 +43,19 @@ typedef struct Temperature
 
   bool                      timer_timeout;
 
+  float                     samples[TOTAL_TEMPERATURE_SAMPLES];
+
+  uint32_t                  samples_counter;
+
+  time_t                    start_timestamp;
+  time_t                    stop_timestamp;
+
   uSWIFT_return_code_t      (*self_test) ( float *optional_reading );
   uSWIFT_return_code_t      (*get_readings) ( bool get_single_reading, float *temperature );
   uSWIFT_return_code_t      (*start_timer) ( uint16_t timeout_in_minutes );
   uSWIFT_return_code_t      (*stop_timer) ( void );
 
-  float                     converted_temp;
+  float                     averaged_temp;
   float                     C[8]; // Cal data array
   uint32_t                  D1; // Read data (unconverted temp)
   uint32_t                  adc;

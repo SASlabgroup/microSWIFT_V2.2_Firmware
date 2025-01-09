@@ -16,6 +16,7 @@
 #include "stdbool.h"
 #include "configuration.h"
 #include "microSWIFT_return_codes.h"
+#include "time.h"
 
 // @formatter:off
 
@@ -33,11 +34,12 @@
 #define CT_VALUES_ERROR_CODE            0x70E2
 #define CT_UART_TX_TIMEOUT_TICKS        (TX_TIMER_TICKS_PER_SECOND / 10)
 #define CT_UART_RX_TIMEOUT_TICKS        (TX_TIMER_TICKS_PER_SECOND * 3)
+#define TOTAL_CT_SAMPLES 10
 
 typedef struct
 {
-  double salinity;
-  double temp;
+  float salinity;
+  float temp;
 } ct_sample;
 
 typedef struct CT
@@ -56,10 +58,13 @@ typedef struct CT
   // The buffer written to by CT sensor
   char                      data_buf[CT_DATA_ARRAY_SIZE];
   // Arrays to hold conductivity/temp values
-  ct_sample                 samples_accumulator;
+  ct_sample                 samples[TOTAL_CT_SAMPLES];
   ct_sample                 samples_averages;
   // Track the number of samples
   int32_t                   total_samples;
+  // Sampling start/stop time
+  time_t                    start_timestamp;
+  time_t                    stop_timestamp;
   // Timer timeout
   bool                      timer_timeout;
   // Function pointers

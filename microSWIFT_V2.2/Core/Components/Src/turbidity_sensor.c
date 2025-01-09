@@ -8,6 +8,7 @@
 #include "turbidity_sensor.h"
 #include "app_threadx.h"
 #include "shared_i2c_bus.h"
+#include "gnss.h"
 
 // @formatter:off
 static Turbidity_Sensor *turbidity_self;
@@ -34,6 +35,7 @@ static void                 _turbidity_sensor_ms_delay ( uint32_t delay );
 // Helper functions
 static uSWIFT_return_code_t __turbidity_sensor_get_proximity_reading (uint16_t *reading);
 static uSWIFT_return_code_t __turbidity_sensor_get_ambient_reading (uint16_t *reading);
+static time_t               __get_timestamp (void);
 // @formatter:on
 
 void turbidity_sensor_init ( Turbidity_Sensor *struct_ptr, microSWIFT_configuration *global_config,
@@ -138,13 +140,24 @@ static uSWIFT_return_code_t _turbidity_sensor_take_measurement ( void )
       &turbidity_self->ambient_series[turbidity_self->samples_counter]);
   ret |= __turbidity_sensor_get_proximity_reading (
       &turbidity_self->proximity_series[turbidity_self->samples_counter]);
+
   if ( ret != uSWIFT_SUCCESS )
   {
     return ret;
   }
 
-  if ( ++turbidity_self->samples_counter == turbidity_self->global_config->total_turbidity_samples )
+  turbidity_self->samples_counter++;
+
+  if ( turbidity_self->samples_counter == 1 )
   {
+    gnss_get_current_lat_lon (&turbidity_self->start_lat, &turbidity_self->start_lon);
+    turbidity_self->start_timestamp = __get_timestamp ();
+  }
+
+  if ( turbidity_self->samples_counter == turbidity_self->global_config->total_turbidity_samples )
+  {
+    gnss_get_current_lat_lon (&turbidity_self->end_lat, &turbidity_self->end_lon);
+    turbidity_self->stop_timestamp = __get_timestamp ();
     ret = uSWIFT_DONE_SAMPLING;
   }
 
@@ -233,7 +246,7 @@ static void _turbidity_sensor_assemble_telemetry_message_element (
   memcpy (&msg->end_lat, &turbidity_self->end_lat, sizeof(int32_t));
   memcpy (&msg->end_lon, &turbidity_self->end_lon, sizeof(int32_t));
   memcpy (&msg->start_timestamp, &turbidity_self->start_timestamp, sizeof(int32_t));
-  memcpy (&msg->end_timestamp, &turbidity_self->end_timestamp, sizeof(int32_t));
+  memcpy (&msg->end_timestamp, &turbidity_self->stop_timestamp, sizeof(int32_t));
   memcpy (&msg->backscatter_avgs, &turbidity_self->proximity_averages_series[0],
           sizeof(msg->backscatter_avgs));
   memcpy (&msg->ambient_avgs, &turbidity_self->ambient_averages_series[0],
@@ -335,4 +348,24 @@ static uSWIFT_return_code_t __turbidity_sensor_get_ambient_reading ( uint16_t *r
   ret = vcnl4010_get_ambient_reading (&turbidity_self->dev_ctx, reading);
 
   return ret;
+}
+
+/**
+ * Helper method to generate a timestamp from the RTC.
+ *
+ * @return timestamp as time_t
+ */
+static time_t __get_timestamp ( void )
+{
+  uSWIFT_return_code_t rtc_ret = uSWIFT_SUCCESS;
+  struct tm time;
+
+#warning "An error case here will need to be propogated up if not handled in the RTC thread."
+  rtc_ret = rtc_server_get_time (&time, TURBIDITY_REQUEST_PROCESSED);
+  if ( rtc_ret != uSWIFT_SUCCESS )
+  {
+    return -1;
+  }
+
+  return mktime (&time);
 }

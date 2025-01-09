@@ -21,7 +21,6 @@
 // @formatter:off
 #define FILE_SYSTEM_MAX_FILES (7U)
 #define FILE_MAX_NAME_LEN (32U)
-#define COMPLEX_FILE_WRITE_BUF_LEN (1024U)
 
 typedef enum
 {
