@@ -184,27 +184,31 @@ void fx_thread_entry ( ULONG thread_input )
           break;
 
         case SAVE_GNSS_RAW:
+          ret = file_system.save_gnss_velocities (msg.object_pointer);
           break;
 
         case SAVE_GNSS_BREADCRUMB_TRACK:
+          ret = file_system.save_gnss_breadcrumb_track (msg.object_pointer);
           break;
 
         case SAVE_TEMPERATURE_RAW:
+          ret = file_system.save_temperature_raw (msg.object_pointer);
           break;
 
         case SAVE_CT_RAW:
+          ret = file_system.save_ct_raw (msg.object_pointer);
           break;
 
         case SAVE_LIGHT_RAW:
+          ret = file_system.save_light_raw (msg.object_pointer);
           break;
 
         case SAVE_TURBIDITY_RAW:
-          break;
-
-        case CLOSE_OUT_FILES:
+          ret = file_system.save_turbidity_raw (msg.object_pointer);
           break;
 
         default:
+          ret = uSWIFT_PARAMETERS_INVALID;
           break;
       }
 

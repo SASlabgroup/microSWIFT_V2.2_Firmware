@@ -365,6 +365,8 @@ void filex_error_out ( TX_THREAD *filex_thread, const char *fmt, ... )
 
   HAL_SD_DeInit (&hsd2);
 
+#warning "This function needs to get cleaned up. For sure need to shut down SD card."
+
   vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
   va_end(args);
   LOG(&(tmp_fmt[0]));

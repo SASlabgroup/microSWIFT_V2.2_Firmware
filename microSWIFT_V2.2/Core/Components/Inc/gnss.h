@@ -155,11 +155,10 @@ typedef struct GNSS
 
 /* Function declarations */
 void                    gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
-                                   UART_HandleTypeDef *gnss_uart_handle, DMA_HandleTypeDef *gnss_tx_dma_handle,
-                                   DMA_HandleTypeDef *gnss_rx_dma_handle, TX_EVENT_FLAGS_GROUP *irq_flags,
-                                   TX_EVENT_FLAGS_GROUP *error_flags, TX_TIMER *timer, uint8_t *ubx_process_buf,
-                                   uint8_t *config_response_buffer, float *GNSS_N_Array, float *GNSS_E_Array,
-                                   float *GNSS_D_Array );
+                                    UART_HandleTypeDef *gnss_uart_handle, DMA_HandleTypeDef *gnss_tx_dma_handle,
+                                    DMA_HandleTypeDef *gnss_rx_dma_handle, TX_EVENT_FLAGS_GROUP *irq_flags,
+                                    TX_EVENT_FLAGS_GROUP *error_flags, TX_TIMER *timer, float *GNSS_N_Array,
+                                    float *GNSS_E_Array, float *GNSS_D_Array );
 void                    gnss_deinit ( void );
 void                    gnss_timer_expired ( ULONG expiration_input );
 bool                    gnss_get_timer_timeout_status ( void );

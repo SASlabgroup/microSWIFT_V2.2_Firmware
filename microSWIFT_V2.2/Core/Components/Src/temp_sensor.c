@@ -218,7 +218,7 @@ static void __reset_struct_fields ( bool reset_calibration )
     memset (temperature_self->C, 0, sizeof(temperature_self->C));
   }
 
-  memset (&(temeprature_self->samples[0]), 0, sizeof(temeprature_self->samples));
+  memset (&(temperature_self->samples[0]), 0, sizeof(temperature_self->samples));
 
   temperature_self->timer_timeout = false;
 

@@ -163,6 +163,7 @@ TX_QUEUE led_queue;
 // Shared I2C bus queue
 TX_QUEUE i2c_bus_queue;
 
+// Buffer for the Waves byte pool to allow dynamic memory allocation in a bounded fashion
 __ALIGN_BEGIN UCHAR waves_byte_pool_buffer[WAVES_MEM_POOL_SIZE] __attribute__((section(".ram1")))__ALIGN_END;
 TX_BYTE_POOL waves_byte_pool;
 
@@ -957,7 +958,8 @@ static void logger_thread_entry ( ULONG thread_input )
 
       logger.send_log_line (&(msg.str_buf[0]), msg.strlen);
 
-#warning "Add call here to pass the line buffer down to the file system to write it to a file. Wait for that to complete before returning the line buffer."
+      // Pass the buffer down to the file system for saving to SD card
+      (void) file_system_server_save_log_line (&(msg.str_buf[0]));
 
       logger.return_line_buffer (msg.str_buf);
 
@@ -1093,8 +1095,6 @@ static void gnss_thread_entry ( ULONG thread_input )
   TX_THREAD *this_thread = tx_thread_identify ();
   GNSS gnss =
     { 0 };
-  uint8_t ubx_message_process_buf[GNSS_MESSAGE_BUF_SIZE];
-  uint8_t gnss_config_response_buf[GNSS_CONFIG_BUFFER_SIZE];
   float *north = NULL, *east = NULL, *down = NULL;
   uSWIFT_return_code_t gnss_return_code;
   int number_of_no_sample_errors = 0;
@@ -1129,8 +1129,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   // ** NOTE: RF switch is managed by control thread
   gnss_init (&gnss, &configuration, device_handles.gnss_uart_handle,
              device_handles.gnss_uart_tx_dma_handle, device_handles.gnss_uart_rx_dma_handle,
-             &irq_flags, &error_flags, &gnss_timer, &(ubx_message_process_buf[0]),
-             &(gnss_config_response_buf[0]), north, east, down);
+             &irq_flags, &error_flags, &gnss_timer, north, east, down);
 
   gnss.on ();
   // Run tests if needed
@@ -1151,8 +1150,6 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   // This thread has successfully initialized, it should now be checking in with the watchdog
   watchdog_register_thread (GNSS_THREAD);
-  watchdog_check_in (GNSS_THREAD);
-
   watchdog_check_in (GNSS_THREAD);
 
   // Start the timer for resolution stages
@@ -1290,6 +1287,11 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   // Deinit -- this will shut down UART port and DMa channels
   gnss_deinit ();
+
+  watchdog_check_in (GNSS_THREAD);
+
+  (void) file_system_server_save_gnss_raw (&gnss);
+  (void) file_system_server_save_gnss_track (&gnss);
 
   watchdog_check_in (GNSS_THREAD);
   watchdog_deregister_thread (GNSS_THREAD);
@@ -1434,6 +1436,10 @@ static void ct_thread_entry ( ULONG thread_input )
   memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
 
   watchdog_check_in (CT_THREAD);
+
+  (void) file_system_server_save_ct_raw (&ct);
+
+  watchdog_check_in (CT_THREAD);
   watchdog_deregister_thread (CT_THREAD);
 
   (void) tx_event_flags_set (&complete_flags, CT_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
@@ -1530,6 +1536,10 @@ static void temperature_thread_entry ( ULONG thread_input )
   temperature.stop_timer ();
 
   memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
+
+  watchdog_check_in (TEMPERATURE_THREAD);
+
+  (void) file_system_server_save_ct_raw (&temperature);
 
   watchdog_check_in (TEMPERATURE_THREAD);
   watchdog_deregister_thread (TEMPERATURE_THREAD);
@@ -1650,6 +1660,10 @@ static void light_thread_entry ( ULONG thread_input )
   persistent_ram_save_message (LIGHT_TELEMETRY, (uint8_t*) &sbd_msg_element);
 
   watchdog_check_in (LIGHT_THREAD);
+
+  (void) file_system_server_save_light_raw (&light);
+
+  watchdog_check_in (LIGHT_THREAD);
   watchdog_deregister_thread (LIGHT_THREAD);
 
   (void) tx_event_flags_set (&complete_flags, LIGHT_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
@@ -1758,7 +1772,11 @@ static void turbidity_thread_entry ( ULONG thread_input )
   gnss_get_current_lat_lon (&obs.end_lat, &obs.end_lon);
 
   obs.assemble_telemetry_message_element (&sbd_msg_element);
-  persistent_ram_save_message (LIGHT_TELEMETRY, (uint8_t*) &sbd_msg_element);
+  persistent_ram_save_message (TURBIDITY_TELEMETRY, (uint8_t*) &sbd_msg_element);
+
+  watchdog_check_in (TURBIDITY_THREAD);
+
+  (void) file_system_server_save_turbidity_raw (&obs);
 
   watchdog_check_in (TURBIDITY_THREAD);
   watchdog_deregister_thread (TURBIDITY_THREAD);

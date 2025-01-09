@@ -25,8 +25,13 @@
 
 static GNSS *gnss_self;
 
-// The breadcrumb track buffer
-static gnss_track_point breadcrumb_track[BREADCRUMB_TRACK_MAX_SIZE];
+// Required buffers
+static uint8_t ubx_message_process_buf[GNSS_MESSAGE_BUF_SIZE] =
+  { 0 };
+static uint8_t gnss_config_response_buf[GNSS_CONFIG_BUFFER_SIZE] =
+  { 0 };
+static gnss_track_point breadcrumb_track[BREADCRUMB_TRACK_MAX_SIZE] =
+  { 0 };
 
 extern DMA_QListTypeDef gnss_dma_linked_list;
 
@@ -81,9 +86,8 @@ static void                 __reset_struct_fields ( void );
 void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
                  UART_HandleTypeDef *gnss_uart_handle, DMA_HandleTypeDef *gnss_tx_dma_handle,
                  DMA_HandleTypeDef *gnss_rx_dma_handle, TX_EVENT_FLAGS_GROUP *irq_flags,
-                 TX_EVENT_FLAGS_GROUP *error_flags, TX_TIMER *timer, uint8_t *ubx_process_buf,
-                 uint8_t *config_response_buffer, float *GNSS_N_Array, float *GNSS_E_Array,
-                 float *GNSS_D_Array )
+                 TX_EVENT_FLAGS_GROUP *error_flags, TX_TIMER *timer, float *GNSS_N_Array,
+                 float *GNSS_E_Array, float *GNSS_D_Array )
 {
   gnss_self = struct_ptr;
   // initialize everything
@@ -102,8 +106,8 @@ void gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *global_config,
   gnss_self->irq_flags = irq_flags;
   gnss_self->error_flags = error_flags;
   gnss_self->timer = timer;
-  gnss_self->ubx_process_buf = ubx_process_buf;
-  gnss_self->config_response_buf = config_response_buffer;
+  gnss_self->ubx_process_buf = &(ubx_message_process_buf[0]);
+  gnss_self->config_response_buf = &(gnss_config_response_buf[0]);
 
   gnss_self->config = _gnss_config;
   gnss_self->sync_and_start_reception = _gnss_sync_and_start_reception;

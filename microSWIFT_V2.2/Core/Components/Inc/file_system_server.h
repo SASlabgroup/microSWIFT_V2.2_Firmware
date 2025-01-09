@@ -22,8 +22,14 @@
 
 #define FILE_SYSTEM_QUEUE_LENGTH 16U
 #define FILE_SYSTEM_QUEUE_MAX_WAIT_TICKS 2U
-#define FILE_SYSTEM_FLAG_MAX_WAIT_TICKS 50U
-
+// Each file system operation has a different complexity and time requirement
+#define FILE_SYSTEM_LOG_LINE_MAX_WAIT_TICKS 50U
+#define FILE_SYSTEM_GNSS_VELOCITIES_MAX_WAIT_TICKS (TX_TIMER_TICKS_PER_SECOND * 5U)
+#define FILE_SYSTEM_GNSS_TRACK_MAX_WAIT_TICKS (TX_TIMER_TICKS_PER_SECOND * 10U)
+#define FILE_SYSTEM_TEMP_RAW_MAX_WAIT_TICKS 100U
+#define FILE_SYSTEM_CT_RAW_MAX_WAIT_TICKS 100U
+#define FILE_SYSTEM_LIGHT_RAW_MAX_WAIT_TICKS (TX_TIMER_TICKS_PER_SECOND * 2U)
+#define FILE_SYSTEM_TURBIDITY_RAW_MAX_WAIT_TICKS TX_TIMER_TICKS_PER_SECOND
 // Define request types
 typedef enum
 {
@@ -34,7 +40,6 @@ typedef enum
   SAVE_CT_RAW                   = 4,
   SAVE_LIGHT_RAW                = 5,
   SAVE_TURBIDITY_RAW            = 6,
-  CLOSE_OUT_FILES               = 7
 } file_system_request_t;
 
 typedef struct
@@ -55,14 +60,13 @@ typedef struct
 
 void                    file_system_server_init ( TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP *complete_flags,
                                                   microSWIFT_configuration *global_config );
-uSWIFT_return_code_t    file_system_server_save_log_line ( char *log_line, ULONG complete_flag );
-uSWIFT_return_code_t    file_system_server_save_gnss_raw ( GNSS *gnss, ULONG complete_flag );
-uSWIFT_return_code_t    file_system_server_save_gnss_track ( GNSS *gnss, ULONG complete_flag );
-uSWIFT_return_code_t    file_system_server_save_temperature_raw ( Temperature *temp, ULONG complete_flag );
-uSWIFT_return_code_t    file_system_server_save_ct_raw ( CT *ct, ULONG complete_flag );
-uSWIFT_return_code_t    file_system_server_save_light_raw ( Light_Sensor *light, ULONG complete_flag );
-uSWIFT_return_code_t    file_system_server_save_turbidity_raw ( Turbidity_Sensor *obs, ULONG complete_flag );
-uSWIFT_return_code_t    file_system_server_close_out_files ( ULONG complete_flag );
+uSWIFT_return_code_t    file_system_server_save_log_line ( char *log_line );
+uSWIFT_return_code_t    file_system_server_save_gnss_raw ( GNSS *gnss );
+uSWIFT_return_code_t    file_system_server_save_gnss_track ( GNSS *gnss );
+uSWIFT_return_code_t    file_system_server_save_temperature_raw ( Temperature *temp );
+uSWIFT_return_code_t    file_system_server_save_ct_raw ( CT *ct );
+uSWIFT_return_code_t    file_system_server_save_light_raw ( Light_Sensor *light );
+uSWIFT_return_code_t    file_system_server_save_turbidity_raw ( Turbidity_Sensor *obs );
 
 
 

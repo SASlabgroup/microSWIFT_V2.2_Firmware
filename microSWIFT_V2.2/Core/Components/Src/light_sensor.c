@@ -524,7 +524,7 @@ static void _light_sensor_assemble_telemetry_message_element ( sbd_message_type_
   memcpy (&msg->end_lat, &light_self->end_lat, sizeof(int32_t));
   memcpy (&msg->end_lon, &light_self->end_lon, sizeof(int32_t));
   memcpy (&msg->start_timestamp, &light_self->start_timestamp, sizeof(uint32_t));
-  memcpy (&msg->end_timestamp, &light_self->end_timestamp, sizeof(uint32_t));
+  memcpy (&msg->end_timestamp, &light_self->stop_timestamp, sizeof(uint32_t));
   memcpy (&msg->max_reading_clear, &light_self->samples_max.clear_chan, sizeof(uint16_t));
   memcpy (&msg->min_reading_clear, &light_self->samples_min.clear_chan, sizeof(uint16_t));
   memcpy (&msg->avg_clear, &light_self->samples_averages_accumulator.clear_chan, sizeof(uint16_t));
