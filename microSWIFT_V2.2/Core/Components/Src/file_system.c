@@ -6,11 +6,13 @@
  */
 
 #include "file_system.h"
+#include "app_threadx.h"
 #include "fx_stm32_sd_driver.h"
 #include "threadx_support.h"
 #include "sdmmc.h"
 #include "persistent_ram.h"
 #include "stdio.h"
+#include "stddef.h"
 #include "gpio.h"
 
 #define LINE_BUF_SIZE (256U)
@@ -28,6 +30,9 @@ static uSWIFT_return_code_t _file_system_save_turbidity_raw ( Turbidity_Sensor *
 // Helper functions
 static bool __open_sd_card ( void );
 static bool __close_sd_card ( void );
+static bool __write_file_header ( char *header, file_index_t file_index );
+static bool __close_out_file ( char *optional_footer, file_index_t file_index );
+static bool __update_file_timestamp ( file_index_t file_index );
 
 // Internal object pointer
 static File_System_SD_Card *file_sys_self;
@@ -42,6 +47,9 @@ void file_system_init ( File_System_SD_Card *file_system, uint32_t *media_sector
   file_sys_self->global_config = global_config;
 
 #warning "Add SD card fet pin here."
+  // This is made up just for the purpose of having something
+  file_sys_self->fet_pin.port = GPIOF;
+  file_sys_self->fet_pin.pin = GPIO_PIN_12;
 
   file_sys_self->timer_timeout = false;
 
@@ -75,8 +83,8 @@ void file_system_init ( File_System_SD_Card *file_system, uint32_t *media_sector
 
 void file_system_deinit ( void )
 {
-#warning "Close out the media, shut down power, deinit sdmmc interface."
-  return;
+  __close_sd_card ();
+  HAL_SD_DeInit (&hsd2);
 }
 
 void file_system_timer_expired ( ULONG expiration_input )
@@ -265,7 +273,7 @@ static uSWIFT_return_code_t _file_system_save_gnss_velocities ( GNSS *gnss )
   char line[LINE_BUF_SIZE];
   struct tm time;
   time_t timestamp = gnss->sample_window_start_time;
-  size_t str_index = 0, size_req = 0, seek_index = 0, str_length = 0;
+  size_t str_index = 0, size_req = 0;
   uint32_t velocity_index = 0, time_counter = 0;
 
   if ( !__open_sd_card () )
@@ -274,33 +282,13 @@ static uSWIFT_return_code_t _file_system_save_gnss_velocities ( GNSS *gnss )
     goto done;
   }
 
-  fx_ret = fx_file_open(file_sys_self->sd_card, &file_sys_self->files[GNSS_VELOCITIES],
-                        &(file_sys_self->file_names[GNSS_VELOCITIES][0]), FX_OPEN_FOR_WRITE);
-  if ( fx_ret != FX_SUCCESS )
+  if ( !__write_file_header (gnss_velocities_csv_header, GNSS_VELOCITIES) )
   {
     ret = uSWIFT_IO_ERROR;
     goto done;
   }
 
-  fx_ret = fx_file_seek (&file_sys_self->files[GNSS_VELOCITIES], seek_index);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
-
-  // Write the CSV file header
-  str_length = strlen (gnss_velocities_csv_header);
-  fx_ret = fx_file_write (&file_sys_self->files[GNSS_VELOCITIES], gnss_velocities_csv_header,
-                          str_length);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
-//  seek_index += str_length;
-
-// Write the CSV file lines
+  // Write the CSV file lines
   while ( velocity_index < gnss->total_samples )
   {
     // Update the timestamp second when appropriate
@@ -324,38 +312,20 @@ static uSWIFT_return_code_t _file_system_save_gnss_velocities ( GNSS *gnss )
       ret = uSWIFT_MEMORY_BUFFER_ERROR;
       goto done;
     }
-//    // Seek to the right spot
-//    fx_ret = fx_file_seek (&file_sys_self->files[GNSS_VELOCITIES], seek_index);
-//    if ( fx_ret != FX_SUCCESS )
-//    {
-//      ret = uSWIFT_IO_ERROR;
-//      goto done;
-//    }
     // Write it!
-    str_length = strlen (line);
-    fx_ret = fx_file_write (&file_sys_self->files[GNSS_VELOCITIES], &(line[0]), str_length);
+    fx_ret = fx_file_write (&file_sys_self->files[GNSS_VELOCITIES], &(line[0]), strlen (line));
     if ( fx_ret != FX_SUCCESS )
     {
       ret = uSWIFT_IO_ERROR;
       goto done;
     }
 
-//    seek_index += str_length;
     velocity_index++;
   }
 
-  fx_ret = fx_file_close (&file_sys_self->files[GNSS_VELOCITIES]);
-  if ( fx_ret != FX_SUCCESS )
+  if ( !__close_out_file (NULL, GNSS_VELOCITIES) )
   {
     ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
-
-  fx_ret = fx_media_flush (file_sys_self->sd_card);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
   }
 
 done:
@@ -416,9 +386,8 @@ static uSWIFT_return_code_t _file_system_save_gnss_breadcrumb_track ( GNSS *gnss
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   UINT fx_ret;
   char line[LINE_BUF_SIZE];
-  uint32_t str_index = 0, size_req = 0, size_remaining = 0, seek_index = 0, str_length = 0,
-      track_index = 0, max_points = gnss->total_samples
-                                    / file_sys_self->global_config->gnss_sampling_rate;
+  uint32_t str_index = 0, size_req = 0, size_remaining = 0, track_index = 0, max_points =
+      gnss->total_samples / file_sys_self->global_config->gnss_sampling_rate;
   struct tm time;
   time_t timestamp = gnss->sample_window_start_time;
 
@@ -428,31 +397,11 @@ static uSWIFT_return_code_t _file_system_save_gnss_breadcrumb_track ( GNSS *gnss
     goto done;
   }
 
-  fx_ret = fx_file_open(file_sys_self->sd_card, &file_sys_self->files[GNSS_BREADCRUMB_TRACK],
-                        &(file_sys_self->file_names[GNSS_BREADCRUMB_TRACK][0]), FX_OPEN_FOR_WRITE);
-  if ( fx_ret != FX_SUCCESS )
+  if ( !__write_file_header (gnss_track_kml_header, GNSS_BREADCRUMB_TRACK) )
   {
     ret = uSWIFT_IO_ERROR;
     goto done;
   }
-
-  fx_ret = fx_file_seek (&file_sys_self->files[GNSS_BREADCRUMB_TRACK], seek_index);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
-
-  // Write the KML header
-  str_length = strlen (gnss_track_kml_header);
-  fx_ret = fx_file_write (&file_sys_self->files[GNSS_BREADCRUMB_TRACK], gnss_track_kml_header,
-                          str_length);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
-//  seek_index += str_length;
 
   // Write the timestamped track points
   while ( track_index < max_points )
@@ -461,7 +410,6 @@ static uSWIFT_return_code_t _file_system_save_gnss_breadcrumb_track ( GNSS *gnss
     // Write the timstamp string
     str_index = strftime (&(line[0]), LINE_BUF_SIZE, gnss_track_placemark_time_format, &time);
     size_remaining = LINE_BUF_SIZE - str_index;
-
     // Write the track point
     size_req = snprintf (&(line[str_index]), size_remaining, gnss_track_placemark_location_format,
                          gnss->breadcrumb_track[track_index].lat,
@@ -472,45 +420,27 @@ static uSWIFT_return_code_t _file_system_save_gnss_breadcrumb_track ( GNSS *gnss
       ret = uSWIFT_MEMORY_BUFFER_ERROR;
       goto done;
     }
-//    // Seek to the right spot
-//    fx_ret = fx_file_seek (&file_sys_self->files[GNSS_VELOCITIES], seek_index);
-//    if ( fx_ret != FX_SUCCESS )
-//    {
-//      ret = uSWIFT_IO_ERROR;
-//      goto done;
-//    }
     // Write it!
-    str_length = strlen (line);
-    fx_ret = fx_file_write (&file_sys_self->files[GNSS_BREADCRUMB_TRACK], &(line[0]), str_length);
+    fx_ret = fx_file_write (&file_sys_self->files[GNSS_BREADCRUMB_TRACK], &(line[0]),
+                            strlen (line));
     if ( fx_ret != FX_SUCCESS )
     {
       ret = uSWIFT_IO_ERROR;
       goto done;
     }
 
-//    seek_index += str_length;
     track_index++;
     timestamp++;
   }
-//
-//  // Seek to the right spot
-//  fx_ret = fx_file_seek (&file_sys_self->files[GNSS_VELOCITIES], seek_index);
-//  if ( fx_ret != FX_SUCCESS )
-//  {
-//    ret = uSWIFT_IO_ERROR;
-//    goto done;
-//  }
 
   // Write the track header
-  str_length = strlen (gnss_track_header);
   fx_ret = fx_file_write (&file_sys_self->files[GNSS_BREADCRUMB_TRACK], gnss_track_header,
-                          str_length);
+                          strlen (gnss_track_header));
   if ( fx_ret != FX_SUCCESS )
   {
     ret = uSWIFT_IO_ERROR;
     goto done;
   }
-//  seek_index += str_length;
 
   // Write the track path
   track_index = 0;
@@ -526,50 +456,16 @@ static uSWIFT_return_code_t _file_system_save_gnss_breadcrumb_track ( GNSS *gnss
       ret = uSWIFT_MEMORY_BUFFER_ERROR;
       goto done;
     }
-//    // Seek to the right spot
-//    fx_ret = fx_file_seek (&file_sys_self->files[GNSS_VELOCITIES], seek_index);
-//    if ( fx_ret != FX_SUCCESS )
-//    {
-//      ret = uSWIFT_IO_ERROR;
-//      goto done;
-//    }
     // Write it!
-    str_length = strlen (line);
-    fx_ret = fx_file_write (&file_sys_self->files[GNSS_BREADCRUMB_TRACK], &(line[0]), str_length);
+    fx_ret = fx_file_write (&file_sys_self->files[GNSS_BREADCRUMB_TRACK], &(line[0]),
+                            strlen (line));
 
-//    seek_index += str_length;
     track_index++;
   }
 
-//  // Seek to the right spot
-//  fx_ret = fx_file_seek (&file_sys_self->files[GNSS_VELOCITIES], seek_index);
-//  if ( fx_ret != FX_SUCCESS )
-//  {
-//    ret = uSWIFT_IO_ERROR;
-//    goto done;
-//  }
-
-  // Write the footer
-  fx_ret = fx_file_write (&file_sys_self->files[GNSS_BREADCRUMB_TRACK], gnss_track_kml_footer,
-                          strlen (gnss_track_kml_footer));
-  if ( fx_ret != FX_SUCCESS )
+  if ( !__close_out_file (gnss_track_kml_footer, GNSS_BREADCRUMB_TRACK) )
   {
     ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
-
-  fx_ret = fx_file_close (&file_sys_self->files[GNSS_BREADCRUMB_TRACK]);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
-
-  fx_ret = fx_media_flush (file_sys_self->sd_card);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
   }
 
 done:
@@ -577,7 +473,7 @@ done:
   return ret;
 }
 
-// Constant strings used in _file_system_save_turbidity_raw
+// Constant strings used in _file_system_save_temperature_raw
 static char *temperature_csv_header = "Time,temperature\n";
 static char *temperature_time_format = "%X %x,";
 static char *temperature_line_format = "%.3f\n";
@@ -597,26 +493,7 @@ static uSWIFT_return_code_t _file_system_save_temperature_raw ( Temperature *tem
     goto done;
   }
 
-  fx_ret = fx_file_open(file_sys_self->sd_card, &file_sys_self->files[TEMPERATURE_FILE],
-                        &(file_sys_self->file_names[TEMPERATURE_FILE][0]), FX_OPEN_FOR_WRITE);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
-
-  // Seek to the beginning of the file
-  fx_ret = fx_file_seek (&file_sys_self->files[TEMPERATURE_FILE], 0);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
-
-  // Write the CSV file header
-  fx_ret = fx_file_write (&file_sys_self->files[TEMPERATURE_FILE], temperature_csv_header,
-                          strlen (temperature_csv_header));
-  if ( fx_ret != FX_SUCCESS )
+  if ( !__write_file_header (temperature_csv_header, TEMPERATURE_FILE) )
   {
     ret = uSWIFT_IO_ERROR;
     goto done;
@@ -642,7 +519,7 @@ static uSWIFT_return_code_t _file_system_save_temperature_raw ( Temperature *tem
     }
 
     // Write it!
-    fx_ret = fx_file_write (&file_sys_self->files[TURBIDITY_FILE], &(line[0]), strlen (line));
+    fx_ret = fx_file_write (&file_sys_self->files[TEMPERATURE_FILE], &(line[0]), strlen (line));
     if ( fx_ret != FX_SUCCESS )
     {
       ret = uSWIFT_IO_ERROR;
@@ -652,18 +529,9 @@ static uSWIFT_return_code_t _file_system_save_temperature_raw ( Temperature *tem
     sample_index++;
   }
 
-  fx_ret = fx_file_close (&file_sys_self->files[TURBIDITY_FILE]);
-  if ( fx_ret != FX_SUCCESS )
+  if ( !__close_out_file (NULL, TEMPERATURE_FILE) )
   {
     ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
-
-  fx_ret = fx_media_flush (file_sys_self->sd_card);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
   }
 
 done:
@@ -691,25 +559,7 @@ static uSWIFT_return_code_t _file_system_save_ct_raw ( CT *ct )
     goto done;
   }
 
-  fx_ret = fx_file_open(file_sys_self->sd_card, &file_sys_self->files[CT_FILE],
-                        &(file_sys_self->file_names[CT_FILE][0]), FX_OPEN_FOR_WRITE);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
-
-  // Seek to the beginning of the file
-  fx_ret = fx_file_seek (&file_sys_self->files[CT_FILE], 0);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
-
-  // Write the CSV file header
-  fx_ret = fx_file_write (&file_sys_self->files[CT_FILE], ct_csv_header, strlen (ct_csv_header));
-  if ( fx_ret != FX_SUCCESS )
+  if ( !__write_file_header (ct_csv_header, CT_FILE) )
   {
     ret = uSWIFT_IO_ERROR;
     goto done;
@@ -731,7 +581,6 @@ static uSWIFT_return_code_t _file_system_save_ct_raw ( CT *ct )
       ret = uSWIFT_MEMORY_BUFFER_ERROR;
       goto done;
     }
-
     // Write it!
     fx_ret = fx_file_write (&file_sys_self->files[CT_FILE], &(line[0]), strlen (line));
     if ( fx_ret != FX_SUCCESS )
@@ -744,18 +593,9 @@ static uSWIFT_return_code_t _file_system_save_ct_raw ( CT *ct )
     timestamp += 2; // 2 seconds between measurements with CT sensor
   }
 
-  fx_ret = fx_file_close (&file_sys_self->files[CT_FILE]);
-  if ( fx_ret != FX_SUCCESS )
+  if ( !__close_out_file (NULL, CT_FILE) )
   {
     ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
-
-  fx_ret = fx_media_flush (file_sys_self->sd_card);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
   }
 
 done:
@@ -773,8 +613,8 @@ static uSWIFT_return_code_t _file_system_save_light_raw ( Light_Sensor *light )
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   UINT fx_ret;
   char line[LINE_BUF_SIZE];
-  uint32_t str_index = 0, size_req = 0, size_remaining = 0, seek_index = 0, str_length = 0,
-      sample_index = 0, max_samples = light->total_samples;
+  uint32_t size_req = 0, size_remaining = 0, str_index = 0, sample_index = 0, max_samples = light
+      ->total_samples;
   struct tm time;
   time_t timestamp = light->start_timestamp;
 
@@ -784,30 +624,11 @@ static uSWIFT_return_code_t _file_system_save_light_raw ( Light_Sensor *light )
     goto done;
   }
 
-  fx_ret = fx_file_open(file_sys_self->sd_card, &file_sys_self->files[LIGHT_FILE],
-                        &(file_sys_self->file_names[LIGHT_FILE][0]), FX_OPEN_FOR_WRITE);
-  if ( fx_ret != FX_SUCCESS )
+  if ( !__write_file_header (light_csv_header, LIGHT_FILE) )
   {
     ret = uSWIFT_IO_ERROR;
     goto done;
   }
-
-  fx_ret = fx_file_seek (&file_sys_self->files[LIGHT_FILE], 0);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
-
-  // Write the CSV file header
-  str_length = strlen (light_csv_header);
-  fx_ret = fx_file_write (&file_sys_self->files[LIGHT_FILE], light_csv_header, str_length);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
-//  seek_index += str_length;
 
   // Write the CSV file lines
   while ( sample_index < max_samples )
@@ -831,39 +652,21 @@ static uSWIFT_return_code_t _file_system_save_light_raw ( Light_Sensor *light )
       ret = uSWIFT_MEMORY_BUFFER_ERROR;
       goto done;
     }
-//    // Seek to the right spot
-//    fx_ret = fx_file_seek (&file_sys_self->files[LIGHT_FILE], seek_index);
-//    if ( fx_ret != FX_SUCCESS )
-//    {
-//      ret = uSWIFT_IO_ERROR;
-//      goto done;
-//    }
     // Write it!
-    str_length = strlen (line);
-    fx_ret = fx_file_write (&file_sys_self->files[LIGHT_FILE], &(line[0]), str_length);
+    fx_ret = fx_file_write (&file_sys_self->files[LIGHT_FILE], &(line[0]), strlen (line));
     if ( fx_ret != FX_SUCCESS )
     {
       ret = uSWIFT_IO_ERROR;
       goto done;
     }
 
-//    seek_index += str_length;
     sample_index++;
     timestamp++;
   }
 
-  fx_ret = fx_file_close (&file_sys_self->files[LIGHT_FILE]);
-  if ( fx_ret != FX_SUCCESS )
+  if ( !__close_out_file (NULL, LIGHT_FILE) )
   {
     ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
-
-  fx_ret = fx_media_flush (file_sys_self->sd_card);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
   }
 
 done:
@@ -892,26 +695,7 @@ static uSWIFT_return_code_t _file_system_save_turbidity_raw ( Turbidity_Sensor *
     goto done;
   }
 
-  fx_ret = fx_file_open(file_sys_self->sd_card, &file_sys_self->files[TURBIDITY_FILE],
-                        &(file_sys_self->file_names[TURBIDITY_FILE][0]), FX_OPEN_FOR_WRITE);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
-
-  // Seek to the beginning of the file
-  fx_ret = fx_file_seek (&file_sys_self->files[TURBIDITY_FILE], 0);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
-
-  // Write the CSV file header
-  fx_ret = fx_file_write (&file_sys_self->files[TURBIDITY_FILE], turbidity_csv_header,
-                          strlen (turbidity_csv_header));
-  if ( fx_ret != FX_SUCCESS )
+  if ( !__write_file_header (turbidity_csv_header, TURBIDITY_FILE) )
   {
     ret = uSWIFT_IO_ERROR;
     goto done;
@@ -948,18 +732,9 @@ static uSWIFT_return_code_t _file_system_save_turbidity_raw ( Turbidity_Sensor *
     timestamp++;
   }
 
-  fx_ret = fx_file_close (&file_sys_self->files[TURBIDITY_FILE]);
-  if ( fx_ret != FX_SUCCESS )
+  if ( !__close_out_file (NULL, TURBIDITY_FILE) )
   {
     ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
-
-  fx_ret = fx_media_flush (file_sys_self->sd_card);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
   }
 
 done:
@@ -989,6 +764,80 @@ static bool __close_sd_card ( void )
   fx_ret = fx_media_close (file_sys_self->sd_card);
 
   gpio_write_pin (file_sys_self->fet_pin, GPIO_PIN_SET);
+
+  return (fx_ret == FX_SUCCESS);
+}
+
+static bool __write_file_header ( char *header, file_index_t file_index )
+{
+  UINT fx_ret;
+
+  fx_ret = fx_file_open(file_sys_self->sd_card, &file_sys_self->files[file_index],
+                        &(file_sys_self->file_names[file_index][0]), FX_OPEN_FOR_WRITE);
+  if ( fx_ret != FX_SUCCESS )
+  {
+    return false;
+  }
+
+  fx_ret = fx_file_seek (&file_sys_self->files[file_index], 0);
+  if ( fx_ret != FX_SUCCESS )
+  {
+    return false;
+  }
+
+  fx_ret = fx_file_write (&file_sys_self->files[file_index], header, strlen (header));
+
+  return (fx_ret == FX_SUCCESS);
+}
+
+static bool __close_out_file ( char *optional_footer, file_index_t file_index )
+{
+  UINT fx_ret;
+
+  if ( optional_footer != NULL )
+  {
+    fx_ret = fx_file_write (&file_sys_self->files[file_index], optional_footer,
+                            strlen (optional_footer));
+    if ( fx_ret != FX_SUCCESS )
+    {
+      return false;
+    }
+  }
+
+  if ( !__update_file_timestamp (file_index) )
+  {
+    return false;
+  }
+
+  fx_ret = fx_file_close (&file_sys_self->files[file_index]);
+  if ( fx_ret != FX_SUCCESS )
+  {
+    return false;
+  }
+
+  fx_ret = fx_media_flush (file_sys_self->sd_card);
+
+  return (fx_ret == FX_SUCCESS);
+}
+
+static bool __update_file_timestamp ( file_index_t file_index )
+{
+  uSWIFT_return_code_t rtc_ret = uSWIFT_SUCCESS;
+  UINT fx_ret;
+  struct tm time;
+
+  rtc_ret = rtc_server_get_time (&time, FILE_SYSTEM_REQUEST_PROCESSES);
+  if ( rtc_ret != uSWIFT_SUCCESS )
+  {
+    return false;
+  }
+
+  mktime (&time);
+
+  fx_ret = fx_file_date_time_set (file_sys_self->sd_card,
+                                  &(file_sys_self->file_names[file_index][0]), time.tm_year + 1900,
+                                  time.tm_mon + 1, time.tm_mday, time.tm_hour, time.tm_min,
+                                  time.tm_sec);
 
   return (fx_ret == FX_SUCCESS);
 }

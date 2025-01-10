@@ -26,9 +26,9 @@
 static GNSS *gnss_self;
 
 // Required buffers
-static uint8_t ubx_message_process_buf[GNSS_MESSAGE_BUF_SIZE] =
+static uint8_t ubx_message_process_buf[GNSS_MESSAGE_BUF_SIZE]__attribute__((section(".ram1"))) =
   { 0 };
-static uint8_t gnss_config_response_buf[GNSS_CONFIG_BUFFER_SIZE] =
+static uint8_t gnss_config_response_buf[GNSS_CONFIG_BUFFER_SIZE]__attribute__((section(".ram1"))) =
   { 0 };
 static gnss_track_point breadcrumb_track[BREADCRUMB_TRACK_MAX_SIZE] =
   { 0 };
@@ -1184,7 +1184,6 @@ static time_t __get_timestamp ( void )
   uSWIFT_return_code_t rtc_ret = uSWIFT_SUCCESS;
   struct tm time;
 
-#warning "An error case here will need to be propogated up if not handled in the RTC thread."
   rtc_ret = rtc_server_get_time (&time, GNSS_REQUEST_PROCESSED);
   if ( rtc_ret != uSWIFT_SUCCESS )
   {

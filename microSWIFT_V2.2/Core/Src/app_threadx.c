@@ -171,6 +171,8 @@ TX_BYTE_POOL waves_byte_pool;
 __ALIGN_BEGIN UCHAR logger_block_buffer[(sizeof(log_line_buf) * LOG_QUEUE_LENGTH)
                                         + (LOG_QUEUE_LENGTH * sizeof(void*))] __attribute__((section(".ram1")))__ALIGN_END;
 
+TX_BLOCK_POOL logger_block_pool;
+
 // Light sensor sample buffer
 ALIGN_32BYTES(
     light_basic_counts light_sensor_sample_buffer[LIGHT_SENSOR_BYTE_POOL_BUFFER_SIZE / sizeof(light_basic_counts)] __attribute__((section(".ram1"))));
@@ -180,8 +182,6 @@ ALIGN_32BYTES(
     uint16_t turbidity_sensor_ambient_buffer[TURBIDITY_SENSOR_SAMPLE_BUFFER_SIZE / sizeof(uint16_t)] __attribute__((section(".ram1"))));
 ALIGN_32BYTES(
     uint16_t turbidity_sensor_proximity_buffer[TURBIDITY_SENSOR_SAMPLE_BUFFER_SIZE / sizeof(uint16_t)] __attribute__((section(".ram1"))));
-
-TX_BLOCK_POOL logger_block_pool;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/

@@ -171,7 +171,8 @@ typedef enum
   TURBIDITY_REQUEST_PROCESSED           = ((ULONG) 1 << 6),
   IRIDIUM_REQUEST_PROCESSED             = ((ULONG) 1 << 7),
   LOGGER_REQUEST_PROCESSED              = ((ULONG) 1 << 8),
-  PERSISTENT_RAM_REQUEST_PROCESSED      = ((ULONG) 1 << 9)
+  PERSISTENT_RAM_REQUEST_PROCESSED      = ((ULONG) 1 << 9),
+  FILE_SYSTEM_REQUEST_PROCESSES         = ((ULONG) 1 << 10)
 } process_complete_flags_t;
 
 typedef struct

@@ -93,7 +93,7 @@ RTC
 GNSS
 ****
 
-[ ] Retain a breadcrumb track of lat/lon
+[x] Retain a breadcrumb track of lat/lon
 [x] Make globally visible function to return current lat/lon
 [x] Create some kind of signalling mechanism for Light/OBS that the GNSS sampling has started
 [x] Move buffers to inside GNSS struct
@@ -122,8 +122,6 @@ GNSS
 Iridium
 *******
 
-[ ] When the thread is resumed, first check if there is anything to send before wasting energy charging the caps
-	[ ] Probably still want to send waves message as it can indicate errors
 [x] Figure out message Tx scheme with the new telemetry formats
 	[x] Probably some kind of round-robin deal. Remember that Light/OBS messages happen much less often and can
 	    be sent AFTER the waves telemetry
@@ -136,7 +134,7 @@ Iridium
 CT
 **
 
-[ ] Store all samples taken in a series and pass down to file system for saving
+[x] Store all samples taken in a series and pass down to file system for saving
 [x] Move buffers to inside CT struct
 [x] Switch over to generic UART driver
 
@@ -144,7 +142,7 @@ CT
 Temperature
 ************
 
-[ ] Store all samples taken in a series and pass down to file system for saving
+[x] Store all samples taken in a series and pass down to file system for saving
 [x] Move buffers to inside Temperature struct
 [x] Rework I2C and figure out how to share bus
 [x] Remove FET pin and change on/off to software shutdown/idle/watever
@@ -193,7 +191,7 @@ ThreadX
 Logger
 ******
 
-[ ] Make a utility to pass all logs down to FileX
+[x] Make a utility to pass all logs down to FileX
 [x] Initialize in control, set the configuration flag if it is enabled
 	[x] It has its own thread and event loop
 [x] logger functions first check if it is enabled, if not, return immediately
@@ -203,12 +201,9 @@ Logger
 FileX
 *****
 
-[ ] Make sure this can fail to no ill effect
-[ ] Add FileX thread to all things that need it
-	[ ] Control is not tracking this thread
-	[ ] Watchdog needs this thread added
-	[ ] Etcetera
-[ ] Make functions to save:
-	[ ] All logs -- these should save as generated
-	[ ] All raw data
+[x] Make sure this can fail to no ill effect
+[x] Add FileX thread to all things that need it
+[x] Make functions to save:
+	[x] All logs -- these should save as generated
+	[x] All raw data
 [ ] Write the time to each file at creation or closeout with fx_file_date_time_set

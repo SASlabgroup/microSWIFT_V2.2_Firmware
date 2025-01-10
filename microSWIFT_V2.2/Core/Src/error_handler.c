@@ -26,5 +26,5 @@ void Error_Handler ( void )
 
 void safe_mode ( void )
 {
-#warning "Turn off all peripherals here"
+#warning "Turn off all peripherals here, then wait a short amount of time"
 }
