@@ -118,7 +118,7 @@ static uSWIFT_return_code_t _file_system_initialize_card ( void )
   // Create the directories in the first sample window
   if ( file_sys_self->sample_window_counter == 0 )
   {
-    fx_ret = fx_directory_create (file_sys_self->sd_card, "Log");
+    fx_ret = fx_directory_create (file_sys_self->sd_card, "Logs");
     if ( fx_ret != FX_SUCCESS )
     {
       ret = uSWIFT_IO_ERROR;
@@ -771,6 +771,12 @@ static bool __close_sd_card ( void )
 static bool __write_file_header ( char *header, file_index_t file_index )
 {
   UINT fx_ret;
+
+  fx_ret = fx_file_create (file_sys_self->sd_card, &(file_sys_self->file_names[file_index][0]));
+  if ( fx_ret != FX_SUCCESS )
+  {
+    return false;
+  }
 
   fx_ret = fx_file_open(file_sys_self->sd_card, &file_sys_self->files[file_index],
                         &(file_sys_self->file_names[file_index][0]), FX_OPEN_FOR_WRITE);

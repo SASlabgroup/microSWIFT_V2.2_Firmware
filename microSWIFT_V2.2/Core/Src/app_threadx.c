@@ -949,6 +949,8 @@ static void logger_thread_entry ( ULONG thread_input )
   uart_logger_init (&logger, &logger_block_pool, &logger_message_queue, &logger_mutex,
                     device_handles.logger_uart_handle);
 
+  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
+
   while ( 1 )
   {
     tx_ret = tx_queue_receive (&logger_message_queue, &msg, TX_WAIT_FOREVER);
@@ -1135,7 +1137,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   // Run tests if needed
   if ( tests.gnss_thread_test != NULL )
   {
-    tests.gnss_thread_test (NULL);
+    tests.gnss_thread_test (&gnss);
   }
 
   // Apply configuration through UBX_VALSET messages

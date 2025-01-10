@@ -22,12 +22,9 @@ typedef struct
   testing_funct temperature_thread_test;
   testing_funct light_thread_test;
   testing_funct turbidity_thread_test;
-  testing_funct accelerometer_thread_test;
-  testing_funct expansion_thread_1_test;
-  testing_funct expansion_thread_2_test;
-  testing_funct expansion_thread_3_test;
   testing_funct waves_thread_test;
   testing_funct iridium_thread_test;
+  testing_funct filex_test;
   testing_funct shutdown_test;
 } testing_hooks;
 

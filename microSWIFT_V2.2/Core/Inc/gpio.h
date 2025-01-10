@@ -40,7 +40,7 @@ typedef struct
 } gpio_pin_struct;
 /* USER CODE END Private defines */
 
-void MX_GPIO_Init ( void );
+void MX_GPIO_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 static inline GPIO_PinState gpio_read_pin ( gpio_pin_struct pin )

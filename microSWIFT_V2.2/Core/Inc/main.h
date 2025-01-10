@@ -81,7 +81,6 @@ void Error_Handler(void);
 #define SPI2_CSn1_GPIO_Port GPIOB
 #define RTC_INT_B_Pin GPIO_PIN_2
 #define RTC_INT_B_GPIO_Port GPIOB
-#define RTC_INT_B_EXTI_IRQn EXTI2_IRQn
 #define SPI1_CSn1_Pin GPIO_PIN_11
 #define SPI1_CSn1_GPIO_Port GPIOF
 #define WDOG_OR_INPUT_Pin GPIO_PIN_13

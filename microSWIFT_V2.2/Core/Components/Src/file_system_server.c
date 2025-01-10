@@ -42,10 +42,10 @@ uSWIFT_return_code_t file_system_server_save_log_line ( char *log_line )
     { 0 };
   ULONG event_flags;
 
-  if ( is_broken )
-  {
-    return uSWIFT_IO_ERROR;
-  }
+//  if ( is_broken )
+//  {
+//    return uSWIFT_IO_ERROR;
+//  }
 
   queue_msg.request = SAVE_LOG_LINE;
   queue_msg.size = strlen (log_line);
@@ -79,10 +79,10 @@ uSWIFT_return_code_t file_system_server_save_gnss_raw ( GNSS *gnss )
     { 0 };
   ULONG event_flags;
 
-  if ( is_broken )
-  {
-    return uSWIFT_IO_ERROR;
-  }
+//  if ( is_broken )
+//  {
+//    return uSWIFT_IO_ERROR;
+//  }
 
   queue_msg.request = SAVE_GNSS_RAW;
   queue_msg.size = sizeof(float) * file_server_self.global_config->samples_per_window * 3;
@@ -116,10 +116,10 @@ uSWIFT_return_code_t file_system_server_save_gnss_track ( GNSS *gnss )
     { 0 };
   ULONG event_flags;
 
-  if ( is_broken )
-  {
-    return uSWIFT_IO_ERROR;
-  }
+//  if ( is_broken )
+//  {
+//    return uSWIFT_IO_ERROR;
+//  }
 
   queue_msg.request = SAVE_GNSS_BREADCRUMB_TRACK;
   queue_msg.size = sizeof(gnss_track_point) * (gnss->breadcrumb_index + 1);
@@ -154,10 +154,10 @@ uSWIFT_return_code_t file_system_server_save_temperature_raw ( Temperature *temp
     { 0 };
   ULONG event_flags;
 
-  if ( is_broken )
-  {
-    return uSWIFT_IO_ERROR;
-  }
+//  if ( is_broken )
+//  {
+//    return uSWIFT_IO_ERROR;
+//  }
 
   queue_msg.request = SAVE_TEMPERATURE_RAW;
   queue_msg.size = temp->samples_counter * sizeof(float);
@@ -192,10 +192,10 @@ uSWIFT_return_code_t file_system_server_save_ct_raw ( CT *ct )
     { 0 };
   ULONG event_flags;
 
-  if ( is_broken )
-  {
-    return uSWIFT_IO_ERROR;
-  }
+//  if ( is_broken )
+//  {
+//    return uSWIFT_IO_ERROR;
+//  }
 
   queue_msg.request = SAVE_CT_RAW;
   queue_msg.size = ct->total_samples * sizeof(ct_sample);
@@ -229,10 +229,10 @@ uSWIFT_return_code_t file_system_server_save_light_raw ( Light_Sensor *light )
     { 0 };
   ULONG event_flags;
 
-  if ( is_broken )
-  {
-    return uSWIFT_IO_ERROR;
-  }
+//  if ( is_broken )
+//  {
+//    return uSWIFT_IO_ERROR;
+//  }
 
   queue_msg.request = SAVE_CT_RAW;
   queue_msg.size = light->total_samples * (sizeof(light_basic_counts) - sizeof(uint32_t));
@@ -266,10 +266,10 @@ uSWIFT_return_code_t file_system_server_save_turbidity_raw ( Turbidity_Sensor *o
     { 0 };
   ULONG event_flags;
 
-  if ( is_broken )
-  {
-    return uSWIFT_IO_ERROR;
-  }
+//  if ( is_broken )
+//  {
+//    return uSWIFT_IO_ERROR;
+//  }
 
   queue_msg.request = SAVE_CT_RAW;
   queue_msg.size = obs->samples_counter * (sizeof(uint16_t) * 2U);

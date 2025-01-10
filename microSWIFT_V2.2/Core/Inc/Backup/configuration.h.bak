@@ -67,11 +67,9 @@
 
 // If there is a CT sensor present
 #define CT_ENABLED false
-#define TOTAL_CT_SAMPLES 10
 
 // If there is a Blue Robotics I2C temperature sensor presen
 #define TEMPERATURE_ENABLED true
-#define TOTAL_TEMPERATURE_SAMPLES 10
 
 // If there is a light sensor present
 #define LIGHT_SENSOR_ENABLED true
