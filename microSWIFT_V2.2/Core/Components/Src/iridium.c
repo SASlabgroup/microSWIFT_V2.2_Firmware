@@ -407,10 +407,9 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
 
     tx_thread_sleep (2);
 
-    // Send over the payload + checksum
-
     watchdog_check_in (IRIDIUM_THREAD);
 
+    // Send over the payload + checksum
     if ( iridium_self->uart_driver.write (&iridium_self->uart_driver, (uint8_t*) &(payload[0]),
                                           payload_size + IRIDIUM_CHECKSUM_LENGTH,
                                           IRIDIUM_MAX_UART_TX_TICKS)
