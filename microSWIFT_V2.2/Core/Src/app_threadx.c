@@ -56,6 +56,7 @@
 #include "sbd.h"
 #include "leds.h"
 #include "shared_i2c_bus.h"
+#include "file_system_server.h"
 
 // Waves files
 #include "NEDWaves/NEDwaves_memlight.h"
@@ -204,11 +205,11 @@ static void turbidity_thread_entry ( ULONG thread_input );
 /* USER CODE END PFP */
 
 /**
- * @brief  Application ThreadX Initialization.
- * @param memory_ptr: memory pointer
- * @retval int
- */
-UINT App_ThreadX_Init ( VOID *memory_ptr )
+  * @brief  Application ThreadX Initialization.
+  * @param memory_ptr: memory pointer
+  * @retval int
+  */
+UINT App_ThreadX_Init(VOID *memory_ptr)
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -692,18 +693,18 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   return ret;
 }
 
-/**
- * @brief  Function that implements the kernel's initialization.
- * @param  None
- * @retval None
- */
-void MX_ThreadX_Init ( void )
+  /**
+  * @brief  Function that implements the kernel's initialization.
+  * @param  None
+  * @retval None
+  */
+void MX_ThreadX_Init(void)
 {
   /* USER CODE BEGIN Before_Kernel_Start */
 
   /* USER CODE END Before_Kernel_Start */
 
-  tx_kernel_enter ();
+  tx_kernel_enter();
 
   /* USER CODE BEGIN Kernel_Start_Error */
 
@@ -961,7 +962,7 @@ static void logger_thread_entry ( ULONG thread_input )
       logger.send_log_line (&(msg.str_buf[0]), msg.strlen);
 
       // Pass the buffer down to the file system for saving to SD card
-      (void) file_system_server_save_log_line (&(msg.str_buf[0]));
+      (void) file_system_server_save_log_line ((char*) &(msg.str_buf[0]));
 
       logger.return_line_buffer (msg.str_buf);
 
@@ -1494,7 +1495,7 @@ static void temperature_thread_entry ( ULONG thread_input )
                            "Temperature self test failed.");
   }
 
-  LOG("Temperature initialization complete. Temp = %4.3f degC, %4.3f degF.", self_test_reading,
+  LOG("Temperature initialization complete. Temp = %.1f degC, %.1f degF.", self_test_reading,
       ((self_test_reading * 9) / 5) + 32);
   (void) tx_event_flags_set (&initialization_flags, TEMPERATURE_INIT_SUCCESS, TX_OR);
 
@@ -1541,7 +1542,7 @@ static void temperature_thread_entry ( ULONG thread_input )
 
   watchdog_check_in (TEMPERATURE_THREAD);
 
-  (void) file_system_server_save_ct_raw (&temperature);
+  (void) file_system_server_save_temperature_raw (&temperature);
 
   watchdog_check_in (TEMPERATURE_THREAD);
   watchdog_deregister_thread (TEMPERATURE_THREAD);
@@ -1657,6 +1658,9 @@ static void light_thread_entry ( ULONG thread_input )
   }
 
   light.idle ();
+
+#warning "remove this code after testing"
+  light.start_timestamp = 1736536800;
 
   light.assemble_telemetry_message_element (&sbd_msg_element);
   persistent_ram_save_message (LIGHT_TELEMETRY, (uint8_t*) &sbd_msg_element);

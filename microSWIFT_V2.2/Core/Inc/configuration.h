@@ -37,7 +37,7 @@
 #define TOTAL_SAMPLES_PER_WINDOW 1024
 
 // The max time in MINUTES to try to get an Iridium message off
-#define IRIDIUM_MAX_TRANSMIT_TIME 1
+#define IRIDIUM_MAX_TRANSMIT_TIME 5
 
 // The version of RckBlock 9603 modem
 #define IRIDIUM_V3F false

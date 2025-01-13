@@ -37,6 +37,9 @@ static bool __update_file_timestamp ( file_index_t file_index );
 // Internal object pointer
 static File_System_SD_Card *file_sys_self;
 
+// Time format (MM/DD/YY HH:MM:SS)
+static char *csv_time_format = "%x %X,";
+
 void file_system_init ( File_System_SD_Card *file_system, uint32_t *media_sector_cache,
                         FX_MEDIA *sd_card, microSWIFT_configuration *global_config )
 {
@@ -59,7 +62,7 @@ void file_system_init ( File_System_SD_Card *file_system, uint32_t *media_sector
   snprintf (&(file_sys_self->file_names[LOG_FILE][0]), FILE_MAX_NAME_LEN, "Logs/Log_%lu.txt",
             file_sys_self->sample_window_counter);
   snprintf (&(file_sys_self->file_names[GNSS_VELOCITIES][0]), FILE_MAX_NAME_LEN,
-            "GNSS/Velocity%lu.csv", file_sys_self->sample_window_counter);
+            "GNSS/Velocity_%lu.csv", file_sys_self->sample_window_counter);
   snprintf (&(file_sys_self->file_names[GNSS_BREADCRUMB_TRACK][0]), FILE_MAX_NAME_LEN,
             "Tracks/Track_%lu.kml", file_sys_self->sample_window_counter);
   snprintf (&(file_sys_self->file_names[TEMPERATURE_FILE][0]), FILE_MAX_NAME_LEN,
@@ -263,16 +266,15 @@ done:
 
 // Constant strings used in _file_system_save_gnss_velocities
 static char *gnss_velocities_csv_header = "Time,V North,V East,V Down\n";
-static char *gnss_velocities_time_format = "%X %x,";
-static char *gnss_velocities_format = "%.3f,%.3f,%.3f";
+static char *gnss_velocities_format = "%.3f,%.3f,%.3f\n";
 /**************************************************************************/
 static uSWIFT_return_code_t _file_system_save_gnss_velocities ( GNSS *gnss )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   UINT fx_ret;
   char line[LINE_BUF_SIZE];
-  struct tm time;
   time_t timestamp = gnss->sample_window_start_time;
+  struct tm time = *gmtime (&timestamp);
   size_t str_index = 0, size_req = 0;
   uint32_t velocity_index = 0, time_counter = 0;
 
@@ -292,7 +294,7 @@ static uSWIFT_return_code_t _file_system_save_gnss_velocities ( GNSS *gnss )
   while ( velocity_index < gnss->total_samples )
   {
     // Update the timestamp second when appropriate
-    if ( ((time_counter++ % file_sys_self->global_config->gnss_sampling_rate) == 0)
+    if ( ((time_counter % file_sys_self->global_config->gnss_sampling_rate) == 0)
          && (velocity_index != 0) )
     {
       time = *gmtime (&timestamp);
@@ -300,7 +302,7 @@ static uSWIFT_return_code_t _file_system_save_gnss_velocities ( GNSS *gnss )
     }
 
     // Write the timstamp string
-    str_index = strftime (&(line[0]), LINE_BUF_SIZE, gnss_velocities_time_format, &time);
+    str_index = strftime (&(line[0]), LINE_BUF_SIZE, csv_time_format, &time);
 
     // Write the velocities to the char buffer
     size_req = snprintf (&(line[str_index]), LINE_BUF_SIZE - str_index, gnss_velocities_format,
@@ -321,6 +323,7 @@ static uSWIFT_return_code_t _file_system_save_gnss_velocities ( GNSS *gnss )
     }
 
     velocity_index++;
+    time_counter++;
   }
 
   if ( !__close_out_file (NULL, GNSS_VELOCITIES) )
@@ -355,7 +358,6 @@ static char *gnss_track_kml_header =
         "\t\t<styleUrl>#check-hide-children</styleUrl>\n";
 static char *gnss_track_placemark_time_format =
         "\t\t<Placemark>\n"
-          "\t\t\t<name>Start</name>\n"
           "\t\t\t<TimeStamp>\n"
             "\t\t\t\t<when>%Y-%m-%dT%XZ</when>\n"
           "\t\t\t</TimeStamp>\n";
@@ -412,8 +414,8 @@ static uSWIFT_return_code_t _file_system_save_gnss_breadcrumb_track ( GNSS *gnss
     size_remaining = LINE_BUF_SIZE - str_index;
     // Write the track point
     size_req = snprintf (&(line[str_index]), size_remaining, gnss_track_placemark_location_format,
-                         gnss->breadcrumb_track[track_index].lat,
-                         gnss->breadcrumb_track[track_index].lon);
+                         gnss->breadcrumb_track[track_index].lon,
+                         gnss->breadcrumb_track[track_index].lat);
     // Make sure we got everything
     if ( size_req > size_remaining )
     {
@@ -448,8 +450,8 @@ static uSWIFT_return_code_t _file_system_save_gnss_breadcrumb_track ( GNSS *gnss
   {
     // Write the track point to the char buffer
     size_req = snprintf (&(line[0]), LINE_BUF_SIZE, gnss_track_coord_format,
-                         gnss->breadcrumb_track[track_index].lat,
-                         gnss->breadcrumb_track[track_index].lon);
+                         gnss->breadcrumb_track[track_index].lon,
+                         gnss->breadcrumb_track[track_index].lat);
     // Make sure we got everything
     if ( size_req > LINE_BUF_SIZE )
     {
@@ -475,7 +477,6 @@ done:
 
 // Constant strings used in _file_system_save_temperature_raw
 static char *temperature_csv_header = "Time,temperature\n";
-static char *temperature_time_format = "%X %x,";
 static char *temperature_line_format = "%.3f\n";
 static uSWIFT_return_code_t _file_system_save_temperature_raw ( Temperature *temp )
 {
@@ -501,7 +502,7 @@ static uSWIFT_return_code_t _file_system_save_temperature_raw ( Temperature *tem
 
   time = *gmtime (&timestamp);
   // Write the timstamp string
-  str_index = strftime (&(line[0]), LINE_BUF_SIZE, temperature_time_format, &time);
+  str_index = strftime (&(line[0]), LINE_BUF_SIZE, csv_time_format, &time);
   size_remaining = LINE_BUF_SIZE - str_index;
 
   // Write the CSV file lines
@@ -541,7 +542,6 @@ done:
 
 // Constant strings used in _file_system_save_turbidity_raw
 static char *ct_csv_header = "Time,salinity,temperature\n";
-static char *ct_time_format = "%X %x,";
 static char *ct_line_format = "%.6f,%.6f\n";
 static uSWIFT_return_code_t _file_system_save_ct_raw ( CT *ct )
 {
@@ -570,7 +570,7 @@ static uSWIFT_return_code_t _file_system_save_ct_raw ( CT *ct )
   {
     time = *gmtime (&timestamp);
     // Write the timstamp string
-    str_index = strftime (&(line[0]), LINE_BUF_SIZE, ct_time_format, &time);
+    str_index = strftime (&(line[0]), LINE_BUF_SIZE, csv_time_format, &time);
     size_remaining = LINE_BUF_SIZE - str_index;
     // Write the sample values
     size_req = snprintf (&(line[str_index]), size_remaining, ct_line_format,
@@ -605,7 +605,6 @@ done:
 
 // Constant strings used in _file_system_save_light_raw
 static char *light_csv_header = "Time,F1,F2,F3,F4,F5,F6,F7,F8,NIR,Clear,Dark\n";
-static char *light_time_format = "%X %x,";
 static char *light_channels_format = "%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n";
 /*****************************************************************************/
 static uSWIFT_return_code_t _file_system_save_light_raw ( Light_Sensor *light )
@@ -635,17 +634,22 @@ static uSWIFT_return_code_t _file_system_save_light_raw ( Light_Sensor *light )
   {
     time = *gmtime (&timestamp);
     // Write the timstamp string
-    str_index = strftime (&(line[0]), LINE_BUF_SIZE, light_time_format, &time);
+    str_index = strftime (&(line[0]), LINE_BUF_SIZE, csv_time_format, &time);
     size_remaining = LINE_BUF_SIZE - str_index;
 
     // Write the sample to the char buffer
     size_req = snprintf (&(line[str_index]), size_remaining, light_channels_format,
-                         light->samples_series->f1_chan, light->samples_series->f2_chan,
-                         light->samples_series->f3_chan, light->samples_series->f4_chan,
-                         light->samples_series->f5_chan, light->samples_series->f6_chan,
-                         light->samples_series->f7_chan, light->samples_series->f8_chan,
-                         light->samples_series->nir_chan, light->samples_series->clear_chan,
-                         light->samples_series->dark_chan);
+                         light->samples_series[sample_index].f1_chan,
+                         light->samples_series[sample_index].f2_chan,
+                         light->samples_series[sample_index].f3_chan,
+                         light->samples_series[sample_index].f4_chan,
+                         light->samples_series[sample_index].f5_chan,
+                         light->samples_series[sample_index].f6_chan,
+                         light->samples_series[sample_index].f7_chan,
+                         light->samples_series[sample_index].f8_chan,
+                         light->samples_series[sample_index].nir_chan,
+                         light->samples_series[sample_index].clear_chan,
+                         light->samples_series[sample_index].dark_chan);
     // Make sure we got everything
     if ( size_req > size_remaining )
     {
@@ -676,7 +680,6 @@ done:
 
 // Constant strings used in _file_system_save_turbidity_raw
 static char *turbidity_csv_header = "Time,proximity,ambient\n";
-static char *turbidity_time_format = "%X %x,";
 static char *turbidity_line_format = "%hu,%hu\n";
 /*****************************************************************************/
 static uSWIFT_return_code_t _file_system_save_turbidity_raw ( Turbidity_Sensor *obs )
@@ -706,7 +709,7 @@ static uSWIFT_return_code_t _file_system_save_turbidity_raw ( Turbidity_Sensor *
   {
     time = *gmtime (&timestamp);
     // Write the timstamp string
-    str_index = strftime (&(line[0]), LINE_BUF_SIZE, turbidity_time_format, &time);
+    str_index = strftime (&(line[0]), LINE_BUF_SIZE, csv_time_format, &time);
     size_remaining = LINE_BUF_SIZE - str_index;
 
     // Write the sample values

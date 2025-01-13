@@ -48,7 +48,10 @@ static int32_t _generic_uart_read ( void *driver_ptr, uint8_t *read_buf, uint16_
 {
   generic_uart_driver *driver_handle = (generic_uart_driver*) driver_ptr;
 
-  HAL_UART_Receive_DMA (driver_handle->uart_handle, read_buf, size);
+  if ( HAL_UART_Receive_DMA (driver_handle->uart_handle, read_buf, size) != HAL_OK )
+  {
+    return UART_ERR;
+  }
 
   if ( tx_semaphore_get (driver_handle->uart_sema, timeout_ticks) != TX_SUCCESS )
   {
@@ -63,7 +66,10 @@ static int32_t _generic_uart_write ( void *driver_ptr, uint8_t *write_buf, uint1
 {
   generic_uart_driver *driver_handle = (generic_uart_driver*) driver_ptr;
 
-  HAL_UART_Transmit_DMA (driver_handle->uart_handle, write_buf, size);
+  if ( HAL_UART_Transmit_DMA (driver_handle->uart_handle, write_buf, size) != HAL_OK )
+  {
+    return UART_ERR;
+  }
 
   if ( tx_semaphore_get (driver_handle->uart_sema, timeout_ticks) != TX_SUCCESS )
   {

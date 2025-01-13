@@ -223,6 +223,7 @@ static bool _control_startup_procedure ( void )
   {
     tx_return = tx_event_flags_get (controller_self->init_flags, init_success_flags, TX_AND_CLEAR,
                                     &current_flags, TX_NO_WAIT);
+
     controller_self->monitor_and_handle_errors ();
 
     if ( tx_return == TX_SUCCESS )

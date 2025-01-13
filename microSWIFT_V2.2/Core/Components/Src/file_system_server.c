@@ -42,10 +42,10 @@ uSWIFT_return_code_t file_system_server_save_log_line ( char *log_line )
     { 0 };
   ULONG event_flags;
 
-//  if ( is_broken )
-//  {
-//    return uSWIFT_IO_ERROR;
-//  }
+  if ( is_broken )
+  {
+    return uSWIFT_IO_ERROR;
+  }
 
   queue_msg.request = SAVE_LOG_LINE;
   queue_msg.size = strlen (log_line);
@@ -234,7 +234,7 @@ uSWIFT_return_code_t file_system_server_save_light_raw ( Light_Sensor *light )
 //    return uSWIFT_IO_ERROR;
 //  }
 
-  queue_msg.request = SAVE_CT_RAW;
+  queue_msg.request = SAVE_LIGHT_RAW;
   queue_msg.size = light->total_samples * (sizeof(light_basic_counts) - sizeof(uint32_t));
   queue_msg.object_pointer = (void*) light;
   queue_msg.complete_flag = SAVE_LIGHT_RAW_COMPLETE;
@@ -271,7 +271,7 @@ uSWIFT_return_code_t file_system_server_save_turbidity_raw ( Turbidity_Sensor *o
 //    return uSWIFT_IO_ERROR;
 //  }
 
-  queue_msg.request = SAVE_CT_RAW;
+  queue_msg.request = SAVE_TURBIDITY_RAW;
   queue_msg.size = obs->samples_counter * (sizeof(uint16_t) * 2U);
   queue_msg.object_pointer = (void*) obs;
   queue_msg.complete_flag = SAVE_TURBIDITY_RAW_COMPLETE;
