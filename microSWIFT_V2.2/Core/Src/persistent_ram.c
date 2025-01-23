@@ -22,13 +22,14 @@ static void _persistent_ram_clear ( void );
  *
  * @return void
  */
-void persistent_ram_init ( void )
+void persistent_ram_init ( microSWIFT_configuration *config )
 {
   // The ram section "persistent_self" resides in is a NOLOAD section -- the contents reset and standby mode
   // once set.
   if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
   {
     _persistent_ram_clear ();
+    memcpy (&persistent_self.device_config, config, sizeof(microSWIFT_configuration));
   }
 }
 
@@ -41,6 +42,16 @@ void persistent_ram_deinit ( void )
 {
   // Clear everything out
   _persistent_ram_clear ();
+}
+
+/**
+ * Copy the current config to the supplied struct pointer.
+ *
+ * @return void
+ */
+void persistent_ram_get_device_config ( microSWIFT_configuration *config )
+{
+  memcpy (config, &persistent_self.device_config, sizeof(microSWIFT_configuration));
 }
 
 /**

@@ -106,7 +106,7 @@ void free_replacement ( VOID *ptr )
 emxArray_real32_T* argInit_1xUnbounded_real32_T ( microSWIFT_configuration *config )
 {
   emxArray_real32_T *result;
-  result = emxCreate_real32_T (1, config->samples_per_window);
+  result = emxCreate_real32_T (1, config->gnss_samples_per_window);
   return result;
 }
 

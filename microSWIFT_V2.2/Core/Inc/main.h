@@ -41,13 +41,12 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-typedef struct
-{
-  uint8_t major_rev :4;
-  uint8_t minor_rev :4;
-} microSWIFT_firmware_version_t;
-
-extern microSWIFT_firmware_version_t firmware_version;
+//typedef struct
+//{
+//  uint8_t major_rev;
+//  uint8_t minor_rev;
+//} microSWIFT_firmware_version_t;
+//extern microSWIFT_firmware_version_t firmware_version;
 #define COMPILE_TIME_DATE_BUFFER_SIZE 32
 extern char compile_date[COMPILE_TIME_DATE_BUFFER_SIZE];
 extern char compile_time[COMPILE_TIME_DATE_BUFFER_SIZE];
@@ -60,7 +59,7 @@ extern char compile_time[COMPILE_TIME_DATE_BUFFER_SIZE];
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-void Error_Handler(void);
+void Error_Handler ( void );
 
 /* USER CODE BEGIN EFP */
 

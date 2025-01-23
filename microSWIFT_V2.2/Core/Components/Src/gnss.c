@@ -414,7 +414,7 @@ static uSWIFT_return_code_t _gnss_get_running_average_velocities ( void )
   uSWIFT_return_code_t return_code = uSWIFT_SUCCESS;
   float substitute_north, substitute_east, substitute_down;
 
-  if ( gnss_self->total_samples >= gnss_self->global_config->samples_per_window )
+  if ( gnss_self->total_samples >= gnss_self->global_config->gnss_samples_per_window )
   {
 
     return_code = uSWIFT_DONE_SAMPLING;
@@ -670,15 +670,17 @@ static void _gnss_process_message ( void )
   bool velocities_non_zero;
 
   // Catch the end condition
-  if ( gnss_self->total_samples >= gnss_self->global_config->samples_per_window )
+  if ( gnss_self->total_samples >= gnss_self->global_config->gnss_samples_per_window )
   {
     HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
     gnss_self->sample_window_stop_time = __get_timestamp ();
     gnss_self->all_samples_processed = true;
-    gnss_self->sample_window_freq =
-        (double) (((double) gnss_self->global_config->samples_per_window)
-                  / (((double) (((double) gnss_self->sample_window_stop_time)
-                                - ((double) gnss_self->sample_window_start_time)))));
+    gnss_self->sample_window_freq = (double) (((double) gnss_self->global_config
+        ->gnss_samples_per_window)
+                                              / (((double) (((double) gnss_self
+                                                  ->sample_window_stop_time)
+                                                            - ((double) gnss_self
+                                                                ->sample_window_start_time)))));
 
     LOG("GNSS sample window complete.");
 

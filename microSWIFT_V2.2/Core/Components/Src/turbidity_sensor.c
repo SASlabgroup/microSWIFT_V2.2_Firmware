@@ -8,6 +8,7 @@
 #include "turbidity_sensor.h"
 #include "app_threadx.h"
 #include "shared_i2c_bus.h"
+#include "ext_rtc_server.h"
 #include "gnss.h"
 
 // @formatter:off

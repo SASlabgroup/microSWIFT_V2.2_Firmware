@@ -47,7 +47,7 @@ bool filex_test_gnss ( void *gnss_ptr )
 
   gnss->sample_window_start_time = 1736531700U;
 
-  for ( int i = 0; i < gnss->global_config->samples_per_window; i++ )
+  for ( int i = 0; i < gnss->global_config->gnss_samples_per_window; i++ )
   {
     sin_constant = (i + 1.0f) / 31.428f;
 

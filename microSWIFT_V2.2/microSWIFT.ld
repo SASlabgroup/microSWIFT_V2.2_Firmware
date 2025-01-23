@@ -64,9 +64,8 @@ SECTIONS
   /* Custom variables (firmware version, compile date/time, etc) */
   .uservars :
   {
-  	KEEP(*(.uservars.VERSION_NUMBER))
-  	KEEP(*(.uservars.COMPILATION_DATE))
-  	KEEP(*(.uservars.COMPILATION_TIME))
+  	/* Variables contained in type microSWIFT_configuration contained in configuration.h */
+  	KEEP(*(.uservars.CONFIGURATION))
   	*(.uservars*);
   } > USERVARS
 

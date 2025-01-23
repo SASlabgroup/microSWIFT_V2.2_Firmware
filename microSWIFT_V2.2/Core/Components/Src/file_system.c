@@ -7,6 +7,7 @@
 
 #include "file_system.h"
 #include "app_threadx.h"
+#include "ext_rtc_server.h"
 #include "fx_stm32_sd_driver.h"
 #include "threadx_support.h"
 #include "sdmmc.h"
@@ -118,68 +119,65 @@ static uSWIFT_return_code_t _file_system_initialize_card ( void )
     goto done;
   }
 
-  // Create the directories in the first sample window
-  if ( file_sys_self->sample_window_counter == 0 )
+  // Create the directories
+  fx_ret = fx_directory_create (file_sys_self->sd_card, "Logs");
+  if ( (fx_ret != FX_SUCCESS) && (fx_ret != FX_ALREADY_CREATED) )
   {
-    fx_ret = fx_directory_create (file_sys_self->sd_card, "Logs");
-    if ( fx_ret != FX_SUCCESS )
+    ret = uSWIFT_IO_ERROR;
+    goto done;
+  }
+
+  fx_ret = fx_directory_create (file_sys_self->sd_card, "GNSS");
+  if ( (fx_ret != FX_SUCCESS) && (fx_ret != FX_ALREADY_CREATED) )
+  {
+    ret = uSWIFT_IO_ERROR;
+    goto done;
+  }
+
+  fx_ret = fx_directory_create (file_sys_self->sd_card, "Tracks");
+  if ( (fx_ret != FX_SUCCESS) && (fx_ret != FX_ALREADY_CREATED) )
+  {
+    ret = uSWIFT_IO_ERROR;
+    goto done;
+  }
+
+  if ( file_sys_self->global_config->temperature_enabled )
+  {
+    fx_ret = fx_directory_create (file_sys_self->sd_card, "Temperature");
+    if ( (fx_ret != FX_SUCCESS) && (fx_ret != FX_ALREADY_CREATED) )
     {
       ret = uSWIFT_IO_ERROR;
       goto done;
     }
+  }
 
-    fx_ret = fx_directory_create (file_sys_self->sd_card, "GNSS");
-    if ( fx_ret != FX_SUCCESS )
+  if ( file_sys_self->global_config->ct_enabled )
+  {
+    fx_ret = fx_directory_create (file_sys_self->sd_card, "CT");
+    if ( (fx_ret != FX_SUCCESS) && (fx_ret != FX_ALREADY_CREATED) )
     {
       ret = uSWIFT_IO_ERROR;
       goto done;
     }
+  }
 
-    fx_ret = fx_directory_create (file_sys_self->sd_card, "Tracks");
-    if ( fx_ret != FX_SUCCESS )
+  if ( file_sys_self->global_config->light_enabled )
+  {
+    fx_ret = fx_directory_create (file_sys_self->sd_card, "Light");
+    if ( (fx_ret != FX_SUCCESS) && (fx_ret != FX_ALREADY_CREATED) )
     {
       ret = uSWIFT_IO_ERROR;
       goto done;
     }
+  }
 
-    if ( file_sys_self->global_config->temperature_enabled )
+  if ( file_sys_self->global_config->turbidity_enabled )
+  {
+    fx_ret = fx_directory_create (file_sys_self->sd_card, "Turbidity");
+    if ( (fx_ret != FX_SUCCESS) && (fx_ret != FX_ALREADY_CREATED) )
     {
-      fx_ret = fx_directory_create (file_sys_self->sd_card, "Temperature");
-      if ( fx_ret != FX_SUCCESS )
-      {
-        ret = uSWIFT_IO_ERROR;
-        goto done;
-      }
-    }
-
-    if ( file_sys_self->global_config->ct_enabled )
-    {
-      fx_ret = fx_directory_create (file_sys_self->sd_card, "CT");
-      if ( fx_ret != FX_SUCCESS )
-      {
-        ret = uSWIFT_IO_ERROR;
-        goto done;
-      }
-    }
-
-    if ( file_sys_self->global_config->light_enabled )
-    {
-      fx_ret = fx_directory_create (file_sys_self->sd_card, "Light");
-      if ( fx_ret != FX_SUCCESS )
-      {
-        ret = uSWIFT_IO_ERROR;
-        goto done;
-      }
-    }
-
-    if ( file_sys_self->global_config->turbidity_enabled )
-    {
-      fx_ret = fx_directory_create (file_sys_self->sd_card, "Turbidity");
-      if ( fx_ret != FX_SUCCESS )
-      {
-        ret = uSWIFT_IO_ERROR;
-        goto done;
-      }
+      ret = uSWIFT_IO_ERROR;
+      goto done;
     }
   }
 

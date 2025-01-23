@@ -14,6 +14,7 @@
 #include "tx_api.h"
 #include "time.h"
 #include "microSWIFT_return_codes.h"
+#include "stm32u5xx_hal.h"
 
 // Macros
 #define GNSS_CONFIG_BUFFER_SIZE 600
@@ -74,6 +75,7 @@
 #define ENABLE_HIGH_PERFORMANCE_SIZE 60
 #define BREADCRUMB_TRACK_MAX_SIZE 4096
 
+#define GNSS_WINDOW_BUFFER_TIME 2
 // @formatter:off
 
 typedef struct

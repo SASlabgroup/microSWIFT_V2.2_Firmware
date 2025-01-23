@@ -279,9 +279,9 @@ static void _control_shutdown_procedure ( void )
       (int ) alarm_settings.alarm_hour, (int ) alarm_settings.alarm_minute,
       (int ) alarm_settings.alarm_second);
 
-  persistent_ram_increment_sample_window_counter ();
+//  persistent_ram_increment_sample_window_counter ();
 
-  // Give the logger time to complete
+// Give the logger time to complete
   tx_thread_sleep (500);
 
   // Deinit all enabled peripherals

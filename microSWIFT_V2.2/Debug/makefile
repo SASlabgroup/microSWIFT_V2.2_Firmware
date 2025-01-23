@@ -66,7 +66,8 @@ microSWIFT_V2.2.list \
 
 
 # All Target
-all: main-build
+all:
+	+@$(MAKE) --no-print-directory main-build && $(MAKE) --no-print-directory post-build
 
 # Main-build Target
 main-build: microSWIFT_V2.2.elf secondary-outputs
@@ -92,6 +93,10 @@ clean:
 	-$(RM) default.size.stdout microSWIFT_V2.2.elf microSWIFT_V2.2.list microSWIFT_V2.2.map
 	-@echo ' '
 
+post-build:
+	sh /Users/philbush/STM32CubeIDE/microSWIFT/microSWIFT_V2.2/microSWIFT_V2.2/run_python_programmer.sh
+	-@echo ' '
+
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
 
 fail-specified-linker-script-missing:
@@ -101,6 +106,6 @@ fail-specified-linker-script-missing:
 warn-no-linker-script-specified:
 	@echo 'Warning: No linker script specified. Check the linker settings in the build configuration.'
 
-.PHONY: all clean dependents main-build fail-specified-linker-script-missing warn-no-linker-script-specified
+.PHONY: all clean dependents main-build fail-specified-linker-script-missing warn-no-linker-script-specified post-build
 
 -include ../makefile.targets

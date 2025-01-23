@@ -662,21 +662,25 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   device_handles.logger_uart_tx_dma_handle = &handle_GPDMA1_Channel3;
   device_handles.logger_uart_rx_dma_handle = &handle_GPDMA1_Channel2;
 
-  configuration.samples_per_window = TOTAL_SAMPLES_PER_WINDOW;
-  configuration.duty_cycle = DUTY_CYCLE_PERIOD;
-  configuration.iridium_max_transmit_time = IRIDIUM_MAX_TRANSMIT_TIME;
-  configuration.gnss_sampling_rate = GNSS_SAMPLING_RATE;
-  configuration.total_ct_samples = TOTAL_CT_SAMPLES;
-  configuration.total_temp_samples = TOTAL_TEMPERATURE_SAMPLES;
-  configuration.total_light_samples = TOTAL_LIGHT_SAMPLES;
-  configuration.total_turbidity_samples = TOTAL_TURBIDITY_SAMPLES;
-  configuration.iridium_v3f = IRIDIUM_V3F;
-  configuration.gnss_high_performance_mode = GNSS_HIGH_PERFORMANCE_MODE_ENABLED;
-  configuration.ct_enabled = CT_ENABLED;
-  configuration.temperature_enabled = TEMPERATURE_ENABLED;
-  configuration.light_enabled = LIGHT_SENSOR_ENABLED;
-  configuration.turbidity_enabled = TURBIDITY_SENSOR_ENABLED;
-  configuration.gnss_max_acquisition_wait_time = get_gnss_acquisition_timeout (&configuration);
+  persistent_ram_get_device_config (&configuration);
+//
+//#ifdef DEBUG
+//  configuration.gnss_samples_per_window = TOTAL_SAMPLES_PER_WINDOW;
+//  configuration.duty_cycle = DUTY_CYCLE_PERIOD;
+//  configuration.iridium_max_transmit_time = IRIDIUM_MAX_TRANSMIT_TIME;
+//  configuration.gnss_sampling_rate = GNSS_SAMPLING_RATE;
+//  configuration.total_ct_samples = TOTAL_CT_SAMPLES;
+//  configuration.total_temp_samples = TOTAL_TEMPERATURE_SAMPLES;
+//  configuration.total_light_samples = TOTAL_LIGHT_SAMPLES;
+//  configuration.total_turbidity_samples = TOTAL_TURBIDITY_SAMPLES;
+//  configuration.iridium_v3f = IRIDIUM_V3F;
+//  configuration.gnss_high_performance_mode = GNSS_HIGH_PERFORMANCE_MODE_ENABLED;
+//  configuration.ct_enabled = CT_ENABLED;
+//  configuration.temperature_enabled = TEMPERATURE_ENABLED;
+//  configuration.light_enabled = LIGHT_SENSOR_ENABLED;
+//  configuration.turbidity_enabled = TURBIDITY_SENSOR_ENABLED;
+//  configuration.gnss_max_acquisition_wait_time = get_gnss_acquisition_timeout (&configuration);
+//#endif
 
   /* USER CODE END App_ThreadX_MEM_POOL */
   /* USER CODE BEGIN App_ThreadX_Init */
@@ -687,7 +691,6 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     tests.threadx_init_test (NULL);
   }
 
-  persistent_ram_init ();
   /* USER CODE END App_ThreadX_Init */
 
   return ret;
@@ -1109,7 +1112,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   int timer_ticks_to_get_message = round (
       ((float) TX_TIMER_TICKS_PER_SECOND / (float) configuration.gnss_sampling_rate) + 25);
   uint32_t two_mins_remaining_sample_count = abs (
-      (2 * 60 * configuration.gnss_sampling_rate) - configuration.samples_per_window);
+      (2 * 60 * configuration.gnss_sampling_rate) - configuration.gnss_samples_per_window);
   bool two_mins_out_msg_sent = false, start_flag_sent = false;
   uint32_t total_samples = 0;
 
@@ -1285,7 +1288,7 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   // We were using the "port" field to encode how many samples were averaged divided by 10, but
   // now we are using it to store the firmware version
-  sbd_port = *((uint8_t*) &firmware_version);
+  sbd_port = *((uint8_t*) &configuration.firmware_version);
   memcpy (&sbd_message.port, &sbd_port, sizeof(uint8_t));
 
   // Deinit -- this will shut down UART port and DMa channels
