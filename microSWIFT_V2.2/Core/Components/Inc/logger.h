@@ -48,12 +48,12 @@ typedef struct
   // UART handle
   UART_HandleTypeDef *uart;
   void (*send_log_line) ( log_line_buf *buf, size_t strlen );
-  void (*return_line_buffer) ( log_line_buf *buffer );
   bool logger_enabled;
 } uart_logger;
 
 void uart_logger_init ( uart_logger *logger, TX_BLOCK_POOL *block_pool, TX_QUEUE *msg_que,
                         TX_MUTEX *mutex, UART_HandleTypeDef *uart_handle );
 void uart_log ( const char *fmt, ... );
+void uart_logger_return_line_buf ( log_line_buf *buffer );
 
 #endif /* COMPONENTS_INC_LOGGER_H_ */

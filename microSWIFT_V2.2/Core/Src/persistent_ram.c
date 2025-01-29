@@ -24,11 +24,12 @@ static void _persistent_ram_clear ( void );
  */
 void persistent_ram_init ( microSWIFT_configuration *config )
 {
-  // The ram section "persistent_self" resides in is a NOLOAD section -- the contents reset and standby mode
-  // once set.
+  // The ram section "persistent_self" resides in is a NOLOAD section. Contents remain persistent through
+  // standby mode.
   if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
   {
     _persistent_ram_clear ();
+    persistent_self.magic_number = PERSISTENT_RAM_MAGIC_DOUBLE_WORD;
     memcpy (&persistent_self.device_config, config, sizeof(microSWIFT_configuration));
   }
 }
@@ -403,5 +404,4 @@ static void _persistent_ram_clear ( void )
 {
   // Clear everything out
   memset (&persistent_self, 0, sizeof(Persistent_Storage));
-  persistent_self.magic_number = PERSISTENT_RAM_MAGIC_DOUBLE_WORD;
 }

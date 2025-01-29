@@ -44,8 +44,8 @@ static void                  _iridium_off ( void );
 // Helper functions
 static uSWIFT_return_code_t  __send_basic_command_message ( const char *command, uint8_t response_size );
 static uSWIFT_return_code_t  __internal_transmit_message ( uint8_t *payload, uint16_t payload_size );
+static iridium_checksum_t    __get_checksum ( uint8_t *payload, size_t payload_size );
 static void                  __cycle_power ( void );
-static void                  __get_checksum ( uint8_t *payload, size_t payload_size );
 static void                  __reset_uart ( void );
 static int32_t               __uart_read_dma ( void *driver_ptr, uint8_t *read_buf, uint16_t size, uint32_t timeout_ticks );
 static int32_t               __uart_write_dma ( void *driver_ptr, uint8_t *write_buf, uint16_t size, uint32_t timeout_ticks );
@@ -346,6 +346,7 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
 {
   uSWIFT_return_code_t return_code = uSWIFT_TIMEOUT;
   ULONG actual_flags;
+  iridium_checksum_t checksum;
   char *needle;
   char *sbdix_search_term = "+SBDIX: ";
   char payload_size_str[4];
@@ -372,10 +373,10 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
     tx_response_time = 0;
 
     // get the checksum
-    __get_checksum ((uint8_t*) payload, payload_size);
+    checksum = __get_checksum ((uint8_t*) payload, payload_size);
+    memcpy (&(payload[payload_size]), &checksum, sizeof(iridium_checksum_t));
 
     // Tell the modem we want to send a message
-
     watchdog_check_in (IRIDIUM_THREAD);
 
     if ( iridium_self->uart_driver.write (&iridium_self->uart_driver, (uint8_t*) &(load_sbd[0]),
@@ -528,6 +529,28 @@ io_error:
  *
  * @return void
  */
+static iridium_checksum_t __get_checksum ( uint8_t *payload, size_t payload_size )
+{
+  iridium_checksum_t checksum =
+    { 0 };
+  uint16_t temp_checksum = 0;
+
+  // calculate checksum
+  for ( int i = 0; i < payload_size; i++ )
+  {
+    temp_checksum += payload[i];
+  }
+
+  checksum.checksum_a = (uint8_t) ((temp_checksum & 0xFF00) >> 8);
+  checksum.checksum_b = (uint8_t) (temp_checksum & 0xFF);
+
+  return checksum;
+}
+
+/**
+ *
+ * @return void
+ */
 static void __cycle_power ( void )
 {
   iridium_self->sleep ();
@@ -537,27 +560,6 @@ static void __cycle_power ( void )
   iridium_self->on ();
   iridium_self->wake ();
   tx_thread_sleep (250);
-}
-
-/**
- *
- * @return void
- */
-static void __get_checksum ( uint8_t *payload, size_t payload_size )
-{
-#warning "This should be redone to return a checksum, not directly append it to a buffer."
-
-  uint16_t checksum = 0;
-  uint8_t *checksum_ptr = (uint8_t*) &checksum;
-  // calculate checksum
-  for ( int i = 0; i < payload_size; i++ )
-  {
-    checksum += payload[i];
-  }
-  // place checksum in the last two bytes of the payload array
-  payload[payload_size + 1] = ((uint8_t) *checksum_ptr);
-  checksum_ptr++;
-  payload[payload_size] = ((uint8_t) *checksum_ptr);
 }
 
 static void __reset_uart ( void )

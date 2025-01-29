@@ -18,6 +18,7 @@
 #include "configuration.h"
 #include "ct_sensor.h"
 #include "stdarg.h"
+#include "sbd.h"
 
 // @formatter:off
 // Object instance pointer
@@ -380,8 +381,8 @@ static void __reset_ct_struct_fields ( void )
 
   memset (&(ct_self->samples[0]), 0, sizeof(ct_self->samples));
   // We will know if the CT sensor fails by the value 9999 in the iridium message
-  ct_self->samples_averages.salinity = CT_VALUES_ERROR_CODE;
-  ct_self->samples_averages.temp = CT_VALUES_ERROR_CODE;
+  ct_self->samples_averages.salinity = TELEMETRY_FIELD_ERROR_CODE;
+  ct_self->samples_averages.temp = TELEMETRY_FIELD_ERROR_CODE;
 
   ct_self->total_samples = 0;
 
@@ -402,7 +403,6 @@ static time_t __get_timestamp ( void )
   uSWIFT_return_code_t rtc_ret = uSWIFT_SUCCESS;
   struct tm time;
 
-#warning "An error case here will need to be propogated up if not handled in the RTC thread."
   rtc_ret = rtc_server_get_time (&time, CT_REQUEST_PROCESSED);
   if ( rtc_ret != uSWIFT_SUCCESS )
   {

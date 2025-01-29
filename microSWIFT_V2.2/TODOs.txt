@@ -175,8 +175,8 @@ OBS
 ThreadX
 *******
 
-[ ] Figure out the required main memory pool size
-	[ ] Currently good, but will likely need to increase size soon
+[x] Figure out the required main memory pool size
+	[x] Currently good, but will likely need to increase size soon
 [x] Find a new way to identify subsequent windows since we will go into shutdown mode after the end
     of the sample window
 [x] Change all non-threadx objects to static allocation -- remove from App_ThreadX_Init()
@@ -206,4 +206,4 @@ FileX
 [x] Make functions to save:
 	[x] All logs -- these should save as generated
 	[x] All raw data
-[ ] Write the time to each file at creation or closeout with fx_file_date_time_set
+[x] Write the time to each file at creation or closeout with fx_file_date_time_set

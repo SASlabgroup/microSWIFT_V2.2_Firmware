@@ -108,53 +108,6 @@ void HAL_UART_RxCpltCallback ( UART_HandleTypeDef *huart )
 }
 
 /**
- * @brief  UART error callback.
- * @param  huart UART handle.
- * @retval None
- */
-void HAL_UART_ErrorCallback ( UART_HandleTypeDef *huart )
-{
-#warning "Figure this out."
-}
-//  uint32_t error_flag = 0;
-//  UNUSED(huart);
-//#warning "Add a call to set an error flag here. Probably best to try to manage the error in Control\
-//          Thread."
-//
-//  error_flag = HAL_UART_GetError (huart);
-//
-//  switch ( error_flag )
-//  {
-//    case HAL_UART_ERROR_NONE:
-//      goto not_problem;
-//
-//    case HAL_UART_ERROR_PE:
-//      goto problem;
-//
-//    case HAL_UART_ERROR_NE:
-//      goto problem;
-//
-//    case HAL_UART_ERROR_FE:
-//      goto problem;
-//
-//    case HAL_UART_ERROR_ORE:
-//      goto not_problem;
-//
-//    case HAL_UART_ERROR_DMA:
-//      goto problem;
-//
-//    case HAL_UART_ERROR_RTO:
-//      goto problem;
-//  }
-//
-//problem:
-//  error_flag = 0;
-//
-//not_problem:
-//  return;
-//}
-
-/**
  * @brief  Reception Event Callback (Rx event notification called after use of advanced reception service).
  * @param  huart UART handle
  * @param  Size  Number of data available in application reception buffer (indicates a position in
@@ -264,7 +217,7 @@ void HAL_GPIO_EXTI_Rising_Callback ( uint16_t GPIO_Pin )
  */
 void HAL_GPIO_EXTI_Falling_Callback ( uint16_t GPIO_Pin )
 {
-#warning "Probably remove these?"
+#warning "Probably remove these in final version"
   if ( GPIO_Pin == RTC_INT_A_Pin )
   {
 #ifdef DEBUG

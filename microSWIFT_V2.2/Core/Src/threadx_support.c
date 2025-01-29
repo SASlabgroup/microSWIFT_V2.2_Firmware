@@ -379,7 +379,11 @@ ULONG get_gnss_acquisition_timeout ( microSWIFT_configuration *config )
 {
   int32_t max_acq_time = 10;
 
-  if ( config->duty_cycle <= 60U )
+  if ( is_first_sample_window () )
+  {
+    max_acq_time = config->gnss_max_acquisition_wait_time;
+  }
+  else if ( config->duty_cycle <= 60U )
   {
     max_acq_time = config->duty_cycle - config->iridium_max_transmit_time
                    - get_gnss_sample_window_timeout (config) - 1;

@@ -12,9 +12,6 @@
 #include "main.h"
 #include "threadx_support.h"
 
-#warning"move the RTC dev kit off the Nucleo so pinout will be more free."
-#warning"try piping the clock signal into the Nucleo"
-
 static Ext_RTC *rtc_self;
 
 /* Core struct functions */

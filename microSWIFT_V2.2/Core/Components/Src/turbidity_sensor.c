@@ -361,7 +361,6 @@ static time_t __get_timestamp ( void )
   uSWIFT_return_code_t rtc_ret = uSWIFT_SUCCESS;
   struct tm time;
 
-#warning "An error case here will need to be propogated up if not handled in the RTC thread."
   rtc_ret = rtc_server_get_time (&time, TURBIDITY_REQUEST_PROCESSED);
   if ( rtc_ret != uSWIFT_SUCCESS )
   {

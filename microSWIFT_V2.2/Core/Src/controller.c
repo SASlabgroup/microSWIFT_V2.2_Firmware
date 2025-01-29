@@ -131,7 +131,7 @@ static bool _control_startup_procedure ( void )
   // Start the duty cycle timer
   tx_return = tx_timer_change (
       controller_self->timer,
-      (controller_self->global_config->duty_cycle * TX_TIMER_TICKS_PER_SECOND * 60), 0);
+      (controller_self->global_config->duty_cycle * 60 * TX_TIMER_TICKS_PER_SECOND) - 15, 0);
   if ( tx_return != TX_SUCCESS )
   {
     LOG("Unable to set controller duty cycle timer.");
@@ -150,10 +150,6 @@ static bool _control_startup_procedure ( void )
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 30);
     HAL_NVIC_SystemReset ();
   }
-
-#warning "In subsequent sampling windows, if a non-critical sensor fails, set an error flag, shut\
-         the component and thread down, and continue on."
-#warning "Add filex thread to the list (core) when the interface is completed"
 
   if ( !initial_powerup )
   {
@@ -182,7 +178,7 @@ static bool _control_startup_procedure ( void )
   (void) tx_thread_resume (controller_self->thread_handles->gnss_thread);
   (void) tx_thread_resume (controller_self->thread_handles->iridium_thread);
 
-// Start optional component threads if enabled
+  // Start optional component threads if enabled
   if ( controller_self->global_config->ct_enabled )
   {
     init_success_flags |= CT_INIT_SUCCESS;
@@ -423,16 +419,21 @@ static void _control_enter_processor_standby_mode ( void )
     __DSB ();
     __WFI();
   }
+
 }
 
 static void _control_manage_state ( void )
 {
-#warning "Add a timeout determined by duty cycle. That way, if a thread doesn't finish in time, it can be force quit. "
-
   ULONG current_flags;
   UINT ret = TX_SUCCESS;
 
   bool iridium_ready = false;
+
+  // Check first if the duty cycle timer has expired
+  if ( controller_self->timer_timeout )
+  {
+    controller_self->shutdown_procedure ();
+  }
 
   (void) tx_event_flags_get (controller_self->complete_flags, ALL_EVENT_FLAGS, TX_OR_CLEAR,
                              &current_flags, TX_NO_WAIT);
@@ -441,6 +442,52 @@ static void _control_manage_state ( void )
   if ( current_flags == 0 )
   {
     return;
+  }
+
+  // Handle completed statuses first to avoid trying to resume a thread that has been terminated.
+  if ( (current_flags & CT_THREAD_COMPLETED_SUCCESSFULLY)
+       || (current_flags & CT_THREAD_COMPLETED_WITH_ERRORS) )
+  {
+    controller_self->thread_status.ct_complete = true;
+
+    LOG("CT thread complete, now terminating.");
+    tx_thread_sleep (10);
+  }
+
+  if ( (current_flags & TEMPERATURE_THREAD_COMPLETED_SUCCESSFULLY)
+       || (current_flags & TEMPERATURE_THREAD_COMPLETED_WITH_ERRORS) )
+  {
+    controller_self->thread_status.temperature_complete = true;
+
+    LOG("Temperature thread complete, now terminating.");
+    tx_thread_sleep (10);
+  }
+
+  if ( (current_flags & TURBIDITY_THREAD_COMPLETED_SUCCESSFULLY)
+       || (current_flags & TURBIDITY_THREAD_COMPLETED_WITH_ERRORS) )
+  {
+    controller_self->thread_status.turbidity_complete = true;
+
+    LOG("Turbidity thread complete, now terminating.");
+    tx_thread_sleep (10);
+  }
+
+  if ( (current_flags & LIGHT_THREAD_COMPLETED_SUCCESSFULLY)
+       || (current_flags & LIGHT_THREAD_COMPLETED_WITH_ERRORS) )
+  {
+    controller_self->thread_status.light_complete = true;
+
+    LOG("Light thread complete, now terminating.");
+    tx_thread_sleep (10);
+  }
+
+  if ( (current_flags & WAVES_THREAD_COMPLETED_SUCCESSFULLY)
+       | (current_flags & WAVES_THREAD_COMPLETED_WITH_ERRORS) )
+  {
+    controller_self->thread_status.waves_complete = true;
+
+    LOG("NED Waves thread complete, now terminating.");
+    tx_thread_sleep (10);
   }
 
   // When the GNSS has resolved time, has a fix, and has started sampling, signal the light
@@ -499,51 +546,6 @@ static void _control_manage_state ( void )
     }
 
     LOG("GNSS thread complete, now terminating.");
-    tx_thread_sleep (10);
-  }
-
-  if ( (current_flags & CT_THREAD_COMPLETED_SUCCESSFULLY)
-       | (current_flags & CT_THREAD_COMPLETED_WITH_ERRORS) )
-  {
-    controller_self->thread_status.ct_complete = true;
-
-    LOG("CT thread complete, now terminating.");
-    tx_thread_sleep (10);
-  }
-
-  if ( (current_flags & TEMPERATURE_THREAD_COMPLETED_SUCCESSFULLY)
-       | (current_flags & TEMPERATURE_THREAD_COMPLETED_WITH_ERRORS) )
-  {
-    controller_self->thread_status.temperature_complete = true;
-
-    LOG("Temperature thread complete, now terminating.");
-    tx_thread_sleep (10);
-  }
-
-  if ( (current_flags & TURBIDITY_THREAD_COMPLETED_SUCCESSFULLY)
-       | (current_flags & TURBIDITY_THREAD_COMPLETED_WITH_ERRORS) )
-  {
-    controller_self->thread_status.turbidity_complete = true;
-
-    LOG("Turbidity thread complete, now terminating.");
-    tx_thread_sleep (10);
-  }
-
-  if ( (current_flags & LIGHT_THREAD_COMPLETED_SUCCESSFULLY)
-       | (current_flags & LIGHT_THREAD_COMPLETED_WITH_ERRORS) )
-  {
-    controller_self->thread_status.light_complete = true;
-
-    LOG("Light thread complete, now terminating.");
-    tx_thread_sleep (10);
-  }
-
-  if ( (current_flags & WAVES_THREAD_COMPLETED_SUCCESSFULLY)
-       | (current_flags & WAVES_THREAD_COMPLETED_WITH_ERRORS) )
-  {
-    controller_self->thread_status.waves_complete = true;
-
-    LOG("NED Waves thread complete, now terminating.");
     tx_thread_sleep (10);
   }
 
@@ -745,8 +747,10 @@ static void __handle_ct_error ( ULONG error_flag )
   // Shut down CT sensor
   HAL_GPIO_WritePin (CT_FET_GPIO_Port, CT_FET_Pin, GPIO_PIN_RESET);
 
-  memset (&controller_self->current_message->mean_temp, CT_VALUES_ERROR_CODE, sizeof(real16_T));
-  memset (&controller_self->current_message->mean_salinity, CT_VALUES_ERROR_CODE, sizeof(real16_T));
+  memset (&controller_self->current_message->mean_temp, TELEMETRY_FIELD_ERROR_CODE,
+          sizeof(real16_T));
+  memset (&controller_self->current_message->mean_salinity, TELEMETRY_FIELD_ERROR_CODE,
+          sizeof(real16_T));
 
   // Set the CT_COMPLETED_WITH_ERRORS flag
   (void) tx_event_flags_set (controller_self->complete_flags, CT_THREAD_COMPLETED_WITH_ERRORS,
@@ -758,10 +762,8 @@ static void __handle_ct_error ( ULONG error_flag )
 
 static void __handle_temperature_error ( ULONG error_flag )
 {
-  // Shut down the Temperature sensor
-//  HAL_GPIO_WritePin (TEMP_FET_GPIO_Port, TEMP_FET_Pin, GPIO_PIN_RESET);
-
-  memset (&controller_self->current_message->mean_temp, CT_VALUES_ERROR_CODE, sizeof(real16_T));
+  memset (&controller_self->current_message->mean_temp, TELEMETRY_FIELD_ERROR_CODE,
+          sizeof(real16_T));
 
   // Set the TEMPERATURE_COMPLETED_WITH_ERRORS flag
   (void) tx_event_flags_set (controller_self->complete_flags,
@@ -817,7 +819,7 @@ static void __handle_iridium_error ( ULONG error_flag )
 }
 static void __handle_file_system_error ( void )
 {
-#warning "figure out how to handle file system errors."
+  HAL_GPIO_WritePin (SD_CARD_FET_GPIO_Port, SD_CARD_FET_Pin, GPIO_PIN_RESET);
 
   (void) tx_thread_suspend (controller_self->thread_handles->filex_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->filex_thread);
@@ -825,7 +827,25 @@ static void __handle_file_system_error ( void )
 
 static void __handle_i2c_error ( void )
 {
-#warning "figure out how to handle I2C system errors."
+  if ( controller_self->global_config->temperature_enabled )
+  {
+    (void) tx_event_flags_set (controller_self->complete_flags,
+                               TEMPERATURE_THREAD_COMPLETED_WITH_ERRORS,
+                               TX_OR);
+  }
+
+  if ( controller_self->global_config->light_enabled )
+  {
+    (void) tx_event_flags_set (controller_self->complete_flags, LIGHT_THREAD_COMPLETED_WITH_ERRORS,
+    TX_OR);
+  }
+
+  if ( controller_self->global_config->turbidity_enabled )
+  {
+    (void) tx_event_flags_set (controller_self->complete_flags,
+                               TURBIDITY_THREAD_COMPLETED_WITH_ERRORS,
+                               TX_OR);
+  }
 }
 
 static void __handle_misc_error ( ULONG error_flag )

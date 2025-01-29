@@ -102,6 +102,8 @@ void Error_Handler ( void );
 #define ACCELEROMETER_FET_GPIO_Port GPIOE
 #define SPARE_GPIO1_Pin GPIO_PIN_12
 #define SPARE_GPIO1_GPIO_Port GPIOE
+#define SD_CARD_FET_Pin GPIO_PIN_12
+#define SD_CARD_FET_GPIO_Port GPIOF
 #define SPI3_CSn1_Pin GPIO_PIN_13
 #define SPI3_CSn1_GPIO_Port GPIOE
 #define SPI3_CSn2_Pin GPIO_PIN_14

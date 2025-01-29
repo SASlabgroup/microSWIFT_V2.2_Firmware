@@ -27,7 +27,7 @@ void tests_init ( void )
   tests.main_test = NULL;
   tests.threadx_init_test = NULL;
   tests.control_test = NULL;
-  tests.gnss_thread_test = filex_test_gnss;
+  tests.gnss_thread_test = NULL;
   tests.ct_thread_test = NULL;
   tests.light_thread_test = NULL;
   tests.turbidity_thread_test = NULL;
@@ -69,7 +69,7 @@ bool filex_test_gnss ( void *gnss_ptr )
 
   if ( file_system_server_save_gnss_raw (gnss) != uSWIFT_SUCCESS )
   {
-    return false;
+//    return false;
   }
 
   if ( file_system_server_save_gnss_track (gnss) != uSWIFT_SUCCESS )

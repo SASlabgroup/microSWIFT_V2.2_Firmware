@@ -16,7 +16,7 @@
 #include "stddef.h"
 #include "gpio.h"
 
-#define LINE_BUF_SIZE (256U)
+#define LINE_BUF_SIZE (512U)
 
 // Struct functions
 static uSWIFT_return_code_t _file_system_initialize_card ( void );
@@ -50,10 +50,9 @@ void file_system_init ( File_System_SD_Card *file_system, uint32_t *media_sector
   file_sys_self->media_sector_cache = media_sector_cache;
   file_sys_self->global_config = global_config;
 
-#warning "Add SD card fet pin here."
   // This is made up just for the purpose of having something
-  file_sys_self->fet_pin.port = GPIOF;
-  file_sys_self->fet_pin.pin = GPIO_PIN_12;
+  file_sys_self->fet_pin.port = SD_CARD_FET_GPIO_Port;
+  file_sys_self->fet_pin.pin = SD_CARD_FET_Pin;
 
   file_sys_self->timer_timeout = false;
 
@@ -340,7 +339,7 @@ static char *gnss_track_kml_header =
     "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
     "<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n"
       "\t<Document>\n"
-        "\t\t<name>microSWIFT track</name>\n"
+        "\t\t<name>microSWIFT %lu track %lu</name>\n"
         "\t\t<Style id=\"circ\">\n"
           "\t\t\t<IconStyle>\n"
             "\t\t\t\t<Icon>\n"
@@ -359,6 +358,8 @@ static char *gnss_track_placemark_time_format =
           "\t\t\t<TimeStamp>\n"
             "\t\t\t\t<when>%Y-%m-%dT%XZ</when>\n"
           "\t\t\t</TimeStamp>\n";
+static char *gnss_track_placemark_start_stop_format =
+          "\t\t\t<name>%s</name>\n";
 static char *gnss_track_placemark_location_format =
           "\t\t\t<styleUrl>#circ</styleUrl>\n"
           "\t\t\t<Point>\n"
@@ -397,7 +398,11 @@ static uSWIFT_return_code_t _file_system_save_gnss_breadcrumb_track ( GNSS *gnss
     goto done;
   }
 
-  if ( !__write_file_header (gnss_track_kml_header, GNSS_BREADCRUMB_TRACK) )
+  // Write the tracking number into the header
+  snprintf (&(line[0]), LINE_BUF_SIZE, gnss_track_kml_header,
+            file_sys_self->global_config->tracking_number, file_sys_self->sample_window_counter);
+
+  if ( !__write_file_header (&(line[0]), GNSS_BREADCRUMB_TRACK) )
   {
     ret = uSWIFT_IO_ERROR;
     goto done;
@@ -410,6 +415,21 @@ static uSWIFT_return_code_t _file_system_save_gnss_breadcrumb_track ( GNSS *gnss
     // Write the timstamp string
     str_index = strftime (&(line[0]), LINE_BUF_SIZE, gnss_track_placemark_time_format, &time);
     size_remaining = LINE_BUF_SIZE - str_index;
+
+    if ( track_index == 0 )
+    {
+      str_index += snprintf (&(line[str_index]), size_remaining,
+                             gnss_track_placemark_start_stop_format, "Start");
+      size_remaining = LINE_BUF_SIZE - str_index;
+    }
+
+    if ( track_index == (max_points - 1) )
+    {
+      str_index += snprintf (&(line[str_index]), size_remaining,
+                             gnss_track_placemark_start_stop_format, "Stop");
+      size_remaining = LINE_BUF_SIZE - str_index;
+    }
+
     // Write the track point
     size_req = snprintf (&(line[str_index]), size_remaining, gnss_track_placemark_location_format,
                          gnss->breadcrumb_track[track_index].lon,
@@ -746,13 +766,17 @@ done:
 static bool __open_sd_card ( void )
 {
   UINT fx_ret;
+  char card_name[32] =
+    { 0 };
 
   gpio_write_pin (file_sys_self->fet_pin, GPIO_PIN_SET);
 
+  snprintf (&(card_name[0]), 32, "microSWIFT %lu", file_sys_self->global_config->tracking_number);
+
   tx_thread_sleep (1);
 
-  fx_ret = fx_media_open(file_sys_self->sd_card, "microSWIFT", fx_stm32_sd_driver, (VOID *)FX_NULL,
-                         (VOID *) file_sys_self->media_sector_cache,
+  fx_ret = fx_media_open(file_sys_self->sd_card, &(card_name[0]), fx_stm32_sd_driver,
+                         (VOID *)FX_NULL, (VOID *) file_sys_self->media_sector_cache,
                          FX_STM32_SD_DEFAULT_SECTOR_SIZE);
 
   return (fx_ret == FX_SUCCESS);

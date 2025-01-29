@@ -21,7 +21,6 @@ const char *rtc_err_str = "RTC ERROR";
 
 static UINT _logger_get_buffer ( log_line_buf **line_buf );
 static void _logger_send_log_line ( log_line_buf *buf, size_t strlen );
-static void _logger_return_buffer ( log_line_buf *buffer );
 
 static void __reset_uart ( void );
 
@@ -38,7 +37,6 @@ void uart_logger_init ( uart_logger *logger, TX_BLOCK_POOL *block_pool, TX_QUEUE
   logger_self->lock = mutex;
   logger_self->uart = uart_handle;
   logger_self->send_log_line = _logger_send_log_line;
-  logger_self->return_line_buffer = _logger_return_buffer;
 
   // If the enable pin is being pulled to ground, enable the logger
   if ( HAL_GPIO_ReadPin (logger_self->enable_pin.port, logger_self->enable_pin.pin)
@@ -110,7 +108,7 @@ static void _logger_send_log_line ( log_line_buf *buf, size_t strlen )
   }
 }
 
-static void _logger_return_buffer ( log_line_buf *buffer )
+void uart_logger_return_line_buf ( log_line_buf *buffer )
 {
   (void) tx_block_release ((VOID*) buffer);
 }
