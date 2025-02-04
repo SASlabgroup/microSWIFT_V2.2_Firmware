@@ -15,14 +15,14 @@
 
 // @formatter:off
 static Light_Sensor *light_self;
-static as7341_gpio_int_struct gpio_struct;
+//static as7341_gpio_int_struct gpio_struct;
 
 // Struct functions
 static uSWIFT_return_code_t _light_sensor_self_test (void);
 static uSWIFT_return_code_t _light_sensor_setup_sensor (void);
 static uSWIFT_return_code_t _light_sensor_read_all_channels (void);
-static uSWIFT_return_code_t _light_sensor_start_timer ( uint16_t timeout_in_minutes );
-static uSWIFT_return_code_t _light_sensor_stop_timer ( void );
+static uSWIFT_return_code_t _light_sensor_start_timer (uint16_t timeout_in_minutes);
+static uSWIFT_return_code_t _light_sensor_stop_timer (void);
 static uSWIFT_return_code_t _light_sensor_process_measurements (void);
 static uSWIFT_return_code_t _light_sensor_get_samples_averages (void);
 static void                 _light_sensor_assemble_telemetry_message_element (sbd_message_type_54_element *msg);
@@ -31,6 +31,8 @@ static void                 _light_sensor_get_basic_counts (light_basic_counts *
 static void                 _light_sensor_get_single_measurement (uint16_t *raw_measurement, uint32_t *basic_count, light_channel_index_t which_channel);
 static void                 _light_sensor_standby (void);
 static void                 _light_sensor_idle (void);
+static void                 _light_sensor_on (void);
+static void                 _light_sensor_off (void);
 // Functions neccessary for the AS7341 pins
 //static bool                 __as7341_wait_on_int (uint32_t timeout_ms);
 //static GPIO_PinState        __get_as7341_int_pin_state ( void );
@@ -117,6 +119,8 @@ void light_sensor_init ( Light_Sensor *struct_ptr, microSWIFT_configuration *glo
   light_self->get_single_measurement = _light_sensor_get_single_measurement;
   light_self->standby = _light_sensor_standby;
   light_self->idle = _light_sensor_idle;
+  light_self->on = _light_sensor_on;
+  light_self->off = _light_sensor_off;
 }
 
 /**
@@ -576,6 +580,16 @@ static void _light_sensor_idle ( void )
 {
   as7341_spectral_meas_config (&light_self->dev_ctx, false);
   as7341_power (&light_self->dev_ctx, false);
+}
+
+static void _light_sensor_on ( void )
+{
+  HAL_GPIO_WritePin (LIGHT_FET_GPIO_Port, LIGHT_FET_Pin, GPIO_PIN_SET);
+}
+
+static void _light_sensor_off ( void )
+{
+  HAL_GPIO_WritePin (LIGHT_FET_GPIO_Port, LIGHT_FET_Pin, GPIO_PIN_RESET);
 }
 
 //static bool __as7341_wait_on_int ( uint32_t timeout_ms )

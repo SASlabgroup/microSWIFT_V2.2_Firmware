@@ -170,7 +170,6 @@ static bool _control_startup_procedure ( void )
   tx_thread_sleep (2);
 
   // Set the RF switch to GNSS port
-  controller_self->rf_switch.power_on ();
   controller_self->rf_switch.set_gnss_port ();
 
   // Start core threads
@@ -382,7 +381,7 @@ static void _control_enter_processor_standby_mode ( void )
   // Clear the backup ram retention bit
   CLEAR_BIT(PWR->BDCR1, PWR_BDCR1_BREN);
 
-  // Make sure the RTC INT_A pin (alarm function) is being pulled up (open drain on RTC)
+  // Make sure the RTC INT_B pin (alarm function) is being pulled up (open drain on RTC)
   HAL_PWREx_EnablePullUpPullDownConfig ();
   HAL_PWREx_EnableGPIOPullUp (PWR_GPIO_D, RTC_INT_A_Pin);
 

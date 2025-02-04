@@ -16,6 +16,7 @@
 #include "configuration.h"
 #include "shared_i2c_bus.h"
 #include "app_threadx.h"
+#include "ext_rtc_server.h"
 
 // @formatter:off
 // Object instance pointer

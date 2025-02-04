@@ -117,6 +117,8 @@ typedef struct
   void                      (*get_single_measurement) (uint16_t *raw_measurement, uint32_t *basic_count, light_channel_index_t which_channel);
   void                      (*standby) (void);
   void                      (*idle) (void);
+  void                      (*on) (void);
+  void                      (*off) (void);
 
 } Light_Sensor;
 

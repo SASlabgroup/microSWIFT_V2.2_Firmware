@@ -649,7 +649,9 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   device_handles.core_spi_handle = &hspi1;
   device_handles.core_i2c_handle = &hi2c2;
   device_handles.iridium_uart_handle = &huart4;
-  device_handles.gnss_uart_handle = &huart2;
+//  device_handles.gnss_uart_handle = &huart2;
+  // Testing top hat
+  device_handles.gnss_uart_handle = &huart3;
   device_handles.ct_uart_handle = &huart1;
   device_handles.logger_uart_handle = &huart3;
   device_handles.ext_psram_handle = &hospi1;
@@ -941,6 +943,12 @@ static void logger_thread_entry ( ULONG thread_input )
 
   while ( 1 )
   {
+    // Testing top hat
+    while ( 1 )
+    {
+      tx_thread_relinquish ();
+    }
+
     tx_ret = tx_queue_receive (&logger_message_queue, &msg, TX_WAIT_FOREVER);
     if ( tx_ret == TX_SUCCESS )
     {
@@ -1097,7 +1105,13 @@ static void gnss_thread_entry ( ULONG thread_input )
   bool two_mins_out_msg_sent = false, start_flag_sent = false;
   uint32_t total_samples = 0;
 
-  if ( usart2_init () != UART_OK )
+//  if ( usart2_init () != UART_OK )
+//  {
+//    gnss_error_out (&gnss, GNSS_INIT_FAILED, this_thread, "GNSS UART port failed to initialize.");
+//  }
+
+  // Testing tophat
+  if ( usart3_init () != UART_OK )
   {
     gnss_error_out (&gnss, GNSS_INIT_FAILED, this_thread, "GNSS UART port failed to initialize.");
   }
@@ -1573,6 +1587,8 @@ static void light_thread_entry ( ULONG thread_input )
     tests.light_thread_test (NULL);
   }
 
+  light.on ();
+
   if ( !light_self_test (&light) )
   {
     light_error_out (&light, LIGHT_INIT_FAILED, this_thread, "Light sensor self test failed.");
@@ -1598,6 +1614,7 @@ static void light_thread_entry ( ULONG thread_input )
   (void) tx_event_flags_set (&initialization_flags, LIGHT_INIT_SUCCESS, TX_OR);
 
   light.idle ();
+  light.off ();
   tx_thread_suspend (this_thread);
 
   /******************************* Control thread resumes this thread *****************************/
@@ -1605,6 +1622,8 @@ static void light_thread_entry ( ULONG thread_input )
   watchdog_register_thread (LIGHT_THREAD);
   watchdog_check_in (LIGHT_THREAD);
 
+  light.on ();
+  tx_thread_sleep (1);
   light.standby ();
 
   light.start_timer (light_thread_timeout);
@@ -1642,6 +1661,7 @@ static void light_thread_entry ( ULONG thread_input )
   }
 
   light.idle ();
+  light.off ();
 
   light.assemble_telemetry_message_element (&sbd_msg_element);
   persistent_ram_save_message (LIGHT_TELEMETRY, (uint8_t*) &sbd_msg_element);
