@@ -31,7 +31,10 @@ Busses
 General
 *******
 
-[ ] Ensure nothing calls Error_Handler();
+[ ] !! Go through ALL pin and port assignments.
+	[ ] Ensure device_handles assignments are correct
+	[ ] Ensure all port macros and non-generated functions are correct
+[ ] Ensure all unrecoverable errors call Error_Handler();
 [ ] Ensure all interrupt handlers are covered, including default_handler
 [x] Make a common return code for EVERYTHING (close enough).
 	[x] Ensure all functions return an uSWIFT_return_code_t
@@ -134,6 +137,7 @@ Iridium
 CT
 **
 
+[ ] Add fet pin and on/off
 [x] Store all samples taken in a series and pass down to file system for saving
 [x] Move buffers to inside CT struct
 [x] Switch over to generic UART driver
@@ -142,6 +146,7 @@ CT
 Temperature
 ************
 
+[ ] Add fet pin and on/off
 [x] Store all samples taken in a series and pass down to file system for saving
 [x] Move buffers to inside Temperature struct
 [x] Rework I2C and figure out how to share bus
@@ -164,6 +169,7 @@ Light
 OBS
 ***
 
+[ ] Add fet pin and on/off
 [x] Remove GPIO requirements -- do everything via polling on I2C
 [x] Rework I2C and figure out how to share bus
 [x] Track timestamps for start/stop times
@@ -191,6 +197,7 @@ ThreadX
 Logger
 ******
 
+[ ] Figure out how to return early if not enabled/ errored
 [x] Make a utility to pass all logs down to FileX
 [x] Initialize in control, set the configuration flag if it is enabled
 	[x] It has its own thread and event loop
