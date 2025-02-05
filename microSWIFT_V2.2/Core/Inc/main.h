@@ -82,8 +82,10 @@ void Error_Handler ( void );
 #define RTC_INT_B_GPIO_Port GPIOB
 #define SPI1_CSn1_Pin GPIO_PIN_11
 #define SPI1_CSn1_GPIO_Port GPIOF
-//#define WDOG_OR_INPUT_Pin GPIO_PIN_13
-//#define WDOG_OR_INPUT_GPIO_Port GPIOF
+#define SD_CARD_FET_Pin GPIO_PIN_12
+#define SD_CARD_FET_GPIO_Port GPIOF
+#define LIGHT_FET_Pin GPIO_PIN_13
+#define LIGHT_FET_GPIO_Port GPIOF
 #define SPI1_CSn3_Pin GPIO_PIN_14
 #define SPI1_CSn3_GPIO_Port GPIOF
 #define SPI2_CSn3_Pin GPIO_PIN_15
@@ -102,14 +104,11 @@ void Error_Handler ( void );
 #define ACCELEROMETER_FET_GPIO_Port GPIOE
 #define SPARE_GPIO1_Pin GPIO_PIN_12
 #define SPARE_GPIO1_GPIO_Port GPIOE
-#define SD_CARD_FET_Pin GPIO_PIN_12
-#define SD_CARD_FET_GPIO_Port GPIOF
 #define SPI3_CSn1_Pin GPIO_PIN_13
 #define SPI3_CSn1_GPIO_Port GPIOE
 #define SPI3_CSn2_Pin GPIO_PIN_14
 #define SPI3_CSn2_GPIO_Port GPIOE
-//#define UART_LOGGER_EN_Pin GPIO_PIN_15
-//#define UART_LOGGER_EN_GPIO_Port GPIOE
+
 #define EXT_LED_RED_Pin GPIO_PIN_8
 #define EXT_LED_RED_GPIO_Port GPIOD
 #define EXT_LED_GREEN_Pin GPIO_PIN_10
@@ -129,26 +128,23 @@ void Error_Handler ( void );
 #define IRIDIUM_RI_N_EXTI_IRQn EXTI0_IRQn
 #define BUS_5V_FET_Pin GPIO_PIN_4
 #define BUS_5V_FET_GPIO_Port GPIOD
-//#define GNSS_FET_Pin GPIO_PIN_4
-//#define GNSS_FET_GPIO_Port GPIOB
+
+#define WDOG_OR_INPUT_Pin GPIO_PIN_9
+#define WDOG_OR_INPUT_GPIO_Port GPIOB
 #define RF_SWITCH_EN_Pin GPIO_PIN_0
 #define RF_SWITCH_EN_GPIO_Port GPIOE
-//#define RF_SWITCH_VCTL_Pin GPIO_PIN_1
-//#define RF_SWITCH_VCTL_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
-#define RF_SWITCH_VCTL_Pin GPIO_PIN_13
+#define RF_SWITCH_VCTL_Pin GPIO_PIN_14
 #define RF_SWITCH_VCTL_GPIO_Port GPIOF
 // Not hooked up, connecting to unused pin to keep code working
 #define GNSS_FET_Pin GPIO_PIN_6
 #define GNSS_FET_GPIO_Port GPIOB
 #define UART_LOGGER_EN_Pin GPIO_PIN_7
 #define UART_LOGGER_EN_GPIO_Port GPIOB
-#define WDOG_OR_INPUT_Pin GPIO_PIN_9
-#define WDOG_OR_INPUT_GPIO_Port GPIOB
 
 // Moved
-#define LIGHT_FET_Pin GPIO_PIN_14
+#define LIGHT_FET_Pin GPIO_PIN_13
 #define LIGHT_FET_GPIO_Port GPIOF
 /* USER CODE END Private defines */
 

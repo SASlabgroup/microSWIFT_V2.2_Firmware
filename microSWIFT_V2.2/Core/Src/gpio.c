@@ -62,13 +62,13 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, RTC_TIMESTAMP_4_Pin|RTC_TIMESTAMP_2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, RTC_TIMESTAMP_3_Pin|SPI2_CSn1_Pin|GNSS_FET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, RTC_TIMESTAMP_3_Pin|SPI2_CSn1_Pin|GNSS_FET_Pin|WDOG_OR_INPUT_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOF, SPI1_CSn1_Pin|SPI1_CSn3_Pin|SPI2_CSn3_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOF, SPI1_CSn1_Pin|SD_CARD_FET_Pin|SPI1_CSn3_Pin|SPI2_CSn3_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(WDOG_OR_INPUT_GPIO_Port, WDOG_OR_INPUT_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(LIGHT_FET_GPIO_Port, LIGHT_FET_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, EXT_LED_RED_Pin|EXT_LED_GREEN_Pin|RTC_TIMESTAMP_1_Pin|BUS_5V_FET_Pin, GPIO_PIN_RESET);
@@ -106,10 +106,8 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PF2 PF3 PF4 PF5
-                           PF12 */
-  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5
-                          |GPIO_PIN_12;
+  /*Configure GPIO pins : PF2 PF3 PF4 PF5 */
+  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
@@ -135,8 +133,8 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : RTC_TIMESTAMP_3_Pin SPI2_CSn1_Pin GNSS_FET_Pin */
-  GPIO_InitStruct.Pin = RTC_TIMESTAMP_3_Pin|SPI2_CSn1_Pin|GNSS_FET_Pin;
+  /*Configure GPIO pins : RTC_TIMESTAMP_3_Pin SPI2_CSn1_Pin GNSS_FET_Pin WDOG_OR_INPUT_Pin */
+  GPIO_InitStruct.Pin = RTC_TIMESTAMP_3_Pin|SPI2_CSn1_Pin|GNSS_FET_Pin|WDOG_OR_INPUT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -148,8 +146,10 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(RTC_INT_B_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SPI1_CSn1_Pin WDOG_OR_INPUT_Pin SPI1_CSn3_Pin SPI2_CSn3_Pin */
-  GPIO_InitStruct.Pin = SPI1_CSn1_Pin|WDOG_OR_INPUT_Pin|SPI1_CSn3_Pin|SPI2_CSn3_Pin;
+  /*Configure GPIO pins : SPI1_CSn1_Pin SD_CARD_FET_Pin LIGHT_FET_Pin SPI1_CSn3_Pin
+                           SPI2_CSn3_Pin */
+  GPIO_InitStruct.Pin = SPI1_CSn1_Pin|SD_CARD_FET_Pin|LIGHT_FET_Pin|SPI1_CSn3_Pin
+                          |SPI2_CSn3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -179,9 +179,9 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(UART_LOGGER_EN_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB11 PB13 PB15 PB5
-                           PB6 PB7 PB8 PB9 */
+                           PB6 PB7 PB8 */
   GPIO_InitStruct.Pin = GPIO_PIN_11|GPIO_PIN_13|GPIO_PIN_15|GPIO_PIN_5
-                          |GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9;
+                          |GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);

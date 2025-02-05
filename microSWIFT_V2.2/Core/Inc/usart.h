@@ -62,10 +62,10 @@ extern DMA_HandleTypeDef handle_GPDMA1_Channel11;
 
 #define CT_UART USART1
 #define IRIDIUM_UART UART4
-#define GNSS_UART USART2
+#define GNSS_UART USART3
 //#define AUX_UART_1 USART2
 //#define AUX_UART_2 USART3
-#define LOGGER_UART USART3
+#define LOGGER_UART USART2
 /* USER CODE END Private defines */
 
 void MX_LPUART1_UART_Init(void);

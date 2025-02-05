@@ -15,10 +15,10 @@ void Error_Handler ( void )
 {
   __disable_irq ();
 
-#ifdef DEBUG
-  __asm__("BKPT");
-#endif
   safe_mode ();
+
+  persistent_ram_deinit ();
+
   HAL_NVIC_SystemReset ();
 
   __enable_irq ();

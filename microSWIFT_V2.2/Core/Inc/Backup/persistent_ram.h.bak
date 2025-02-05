@@ -12,6 +12,7 @@
 #include "stddef.h"
 #include "sbd.h"
 #include "NEDWaves/rtwhalf.h"
+#include "configuration.h"
 
 #define PERSISTENT_RAM_MAGIC_DOUBLE_WORD 0x5048494C42555348
 
@@ -67,6 +68,7 @@ typedef struct
   Waves_Message_Storage     waves_storage;
   Turbidity_Message_Storage turbidity_storage;
   Light_Message_Storage     light_storage;
+  microSWIFT_configuration  device_config;
 } Persistent_Storage;
 
 typedef enum
@@ -77,8 +79,9 @@ typedef enum
   NO_MESSAGE            = 3
 } telemetry_type_t;
 
-void                    persistent_ram_init ( void );
+void                    persistent_ram_init ( microSWIFT_configuration *config );
 void                    persistent_ram_deinit ( void );
+void                    persistent_ram_get_device_config (microSWIFT_configuration *config);
 void                    persistent_ram_increment_sample_window_counter ( void );
 uint32_t                persistent_ram_get_sample_window_counter ( void );
 uint32_t                persistent_ram_get_num_msgs_enqueued ( telemetry_type_t msg_type );

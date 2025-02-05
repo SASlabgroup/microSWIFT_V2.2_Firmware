@@ -147,6 +147,23 @@ void HAL_UARTEx_RxEventCallback ( UART_HandleTypeDef *huart, uint16_t Size )
 }
 
 /**
+ * @brief  UART error callback.
+ * @param  huart UART handle.
+ * @retval None
+ */
+void HAL_UART_ErrorCallback ( UART_HandleTypeDef *huart )
+{
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(huart);
+  uint8_t dummy = 0;
+
+  if ( huart->Instance == GNSS_UART )
+  {
+    dummy = 1;
+  }
+}
+
+/**
  * @brief  Period elapsed callback in non blocking mode
  * @note   This function is called  when TIM16 interrupt took place, inside
  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment

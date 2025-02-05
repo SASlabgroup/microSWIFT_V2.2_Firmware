@@ -26,6 +26,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "stdbool.h"
 #include "testing_hooks.h"
 #include "octospi.h"
 /* USER CODE END Includes */
@@ -48,20 +49,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
-// Compiled in
-const microSWIFT_firmware_version_t firmware_version_flash __attribute__ ((section (".uservars.VERSION_NUMBER")))
-=
-  { 0, 0 };
-char compile_date_flash[] __attribute__ ((section (".uservars.COMPILATION_DATE"))) = __DATE__;
-char compile_time_flash[] __attribute__ ((section (".uservars.COMPILATION_TIME"))) = __TIME__;
-
-// Globally available
-microSWIFT_firmware_version_t firmware_version;
-char compile_date[COMPILE_TIME_DATE_BUFFER_SIZE] =
-  { 0 };
-char compile_time[COMPILE_TIME_DATE_BUFFER_SIZE] =
-  { 0 };
+// Configuration bytes programmed using STM32 Cube programmer in the last page of flash
+static microSWIFT_configuration flash_config __attribute__ ((section (".uservars.CONFIGURATION")));
 
 /* USER CODE END PV */
 
@@ -93,11 +82,9 @@ int main ( void )
   HAL_Init ();
 
   /* USER CODE BEGIN Init */
-  // Copy over the compiled in variables from the top of Flash
-  firmware_version.major_rev = firmware_version_flash.major_rev;
-  firmware_version.minor_rev = firmware_version_flash.minor_rev;
-  memcpy (&compile_date[0], &compile_date_flash[0], strlen (compile_date_flash));
-  memcpy (&compile_time[0], &compile_time_flash[0], strlen (compile_time_flash));
+  persistent_ram_init (&flash_config);
+  persistent_ram_increment_sample_window_counter ();
+
   // Shut down flash bank 2 -- no longer required
   HAL_FLASHEx_EnablePowerDown (FLASH_BANK_2);
   /* USER CODE END Init */

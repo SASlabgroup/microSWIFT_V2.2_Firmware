@@ -35,6 +35,7 @@
 #include "stdbool.h"
 #include "string.h"
 #include "ext_rtc.h"
+#include "ext_rtc_server.h"
 #include "gnss.h"
 #include "battery.h"
 #include "ct_sensor.h"
@@ -262,7 +263,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   // Create the logger thread. Low priority priority level and no preemption possible
   ret = tx_thread_create(&led_thread, "LED thread", led_thread_entry, 0, pointer, XXS_STACK,
-                         LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
+                         VERY_HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -648,35 +649,28 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   device_handles.core_spi_handle = &hspi1;
   device_handles.core_i2c_handle = &hi2c2;
   device_handles.iridium_uart_handle = &huart4;
-  device_handles.gnss_uart_handle = &huart2;
+//  device_handles.gnss_uart_handle = &huart2;
+  // Testing top hat
+  device_handles.gnss_uart_handle = &huart3;
   device_handles.ct_uart_handle = &huart1;
   device_handles.logger_uart_handle = &huart3;
   device_handles.ext_psram_handle = &hospi1;
   device_handles.battery_adc = &hadc1;
-  device_handles.gnss_uart_tx_dma_handle = &handle_GPDMA1_Channel7;
-  device_handles.gnss_uart_rx_dma_handle = &handle_GPDMA1_Channel6;
+  device_handles.gnss_uart_tx_dma_handle = &handle_GPDMA1_Channel5;
+  device_handles.gnss_uart_rx_dma_handle = &handle_GPDMA1_Channel4;
   device_handles.iridium_uart_tx_dma_handle = &handle_GPDMA1_Channel9;
   device_handles.iridium_uart_rx_dma_handle = &handle_GPDMA1_Channel8;
   device_handles.ct_uart_tx_dma_handle = &handle_GPDMA1_Channel11;
   device_handles.ct_uart_rx_dma_handle = &handle_GPDMA1_Channel10;
-  device_handles.logger_uart_tx_dma_handle = &handle_GPDMA1_Channel3;
-  device_handles.logger_uart_rx_dma_handle = &handle_GPDMA1_Channel2;
+//  device_handles.logger_uart_tx_dma_handle = &handle_GPDMA1_Channel3;
+//  device_handles.logger_uart_rx_dma_handle = &handle_GPDMA1_Channel2;
 
-  configuration.samples_per_window = TOTAL_SAMPLES_PER_WINDOW;
-  configuration.duty_cycle = DUTY_CYCLE_PERIOD;
-  configuration.iridium_max_transmit_time = IRIDIUM_MAX_TRANSMIT_TIME;
-  configuration.gnss_sampling_rate = GNSS_SAMPLING_RATE;
-  configuration.total_ct_samples = TOTAL_CT_SAMPLES;
-  configuration.total_temp_samples = TOTAL_TEMPERATURE_SAMPLES;
-  configuration.total_light_samples = TOTAL_LIGHT_SAMPLES;
-  configuration.total_turbidity_samples = TOTAL_TURBIDITY_SAMPLES;
-  configuration.iridium_v3f = IRIDIUM_V3F;
-  configuration.gnss_high_performance_mode = GNSS_HIGH_PERFORMANCE_MODE_ENABLED;
-  configuration.ct_enabled = CT_ENABLED;
-  configuration.temperature_enabled = TEMPERATURE_ENABLED;
-  configuration.light_enabled = LIGHT_SENSOR_ENABLED;
-  configuration.turbidity_enabled = TURBIDITY_SENSOR_ENABLED;
+  persistent_ram_get_device_config (&configuration);
   configuration.gnss_max_acquisition_wait_time = get_gnss_acquisition_timeout (&configuration);
+
+  // Testing top hat
+  configuration.gnss_max_acquisition_wait_time = 30;
+  configuration.iridium_max_transmit_time = 30;
 
   /* USER CODE END App_ThreadX_MEM_POOL */
   /* USER CODE BEGIN App_ThreadX_Init */
@@ -687,7 +681,6 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
     tests.threadx_init_test (NULL);
   }
 
-  persistent_ram_init ();
   /* USER CODE END App_ThreadX_Init */
 
   return ret;
@@ -954,6 +947,12 @@ static void logger_thread_entry ( ULONG thread_input )
 
   while ( 1 )
   {
+    // Testing top hat
+    while ( 1 )
+    {
+      tx_thread_sleep (1000);
+    }
+
     tx_ret = tx_queue_receive (&logger_message_queue, &msg, TX_WAIT_FOREVER);
     if ( tx_ret == TX_SUCCESS )
     {
@@ -963,8 +962,6 @@ static void logger_thread_entry ( ULONG thread_input )
 
       // Pass the buffer down to the file system for saving to SD card
       (void) file_system_server_save_log_line ((char*) &(msg.str_buf[0]));
-
-      logger.return_line_buffer (msg.str_buf);
 
       // Need to wait until the transmission is complete before grabbing another message
       (void) tx_semaphore_get (&logger_sema, TX_WAIT_FOREVER);
@@ -1025,7 +1022,6 @@ static void control_thread_entry ( ULONG thread_input )
   // Run the self test
   if ( !control.startup_procedure () )
   {
-#warning "Add a log that displays the reason self test failed."
     if ( first_window )
     {
       control.shutdown_all_peripherals ();
@@ -1109,11 +1105,17 @@ static void gnss_thread_entry ( ULONG thread_input )
   int timer_ticks_to_get_message = round (
       ((float) TX_TIMER_TICKS_PER_SECOND / (float) configuration.gnss_sampling_rate) + 25);
   uint32_t two_mins_remaining_sample_count = abs (
-      (2 * 60 * configuration.gnss_sampling_rate) - configuration.samples_per_window);
+      (2 * 60 * configuration.gnss_sampling_rate) - configuration.gnss_samples_per_window);
   bool two_mins_out_msg_sent = false, start_flag_sent = false;
   uint32_t total_samples = 0;
 
-  if ( usart2_init () != UART_OK )
+//  if ( usart2_init () != UART_OK )
+//  {
+//    gnss_error_out (&gnss, GNSS_INIT_FAILED, this_thread, "GNSS UART port failed to initialize.");
+//  }
+
+  // Testing tophat
+  if ( usart3_init () != UART_OK )
   {
     gnss_error_out (&gnss, GNSS_INIT_FAILED, this_thread, "GNSS UART port failed to initialize.");
   }
@@ -1285,7 +1287,7 @@ static void gnss_thread_entry ( ULONG thread_input )
 
   // We were using the "port" field to encode how many samples were averaged divided by 10, but
   // now we are using it to store the firmware version
-  sbd_port = *((uint8_t*) &firmware_version);
+  sbd_port = *((uint8_t*) &configuration.firmware_version);
   memcpy (&sbd_message.port, &sbd_port, sizeof(uint8_t));
 
   // Deinit -- this will shut down UART port and DMa channels
@@ -1338,8 +1340,8 @@ static void ct_thread_entry ( ULONG thread_input )
   }
 
   // Set the mean salinity and temp values to error values in the event the sensor fails
-  half_salinity.bitPattern = CT_VALUES_ERROR_CODE;
-  half_temp.bitPattern = CT_VALUES_ERROR_CODE;
+  half_salinity.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+  half_temp.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
 
   memcpy (&sbd_message.mean_salinity, &half_salinity, sizeof(real16_T));
   memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
@@ -1589,6 +1591,8 @@ static void light_thread_entry ( ULONG thread_input )
     tests.light_thread_test (NULL);
   }
 
+  light.on ();
+
   if ( !light_self_test (&light) )
   {
     light_error_out (&light, LIGHT_INIT_FAILED, this_thread, "Light sensor self test failed.");
@@ -1614,6 +1618,7 @@ static void light_thread_entry ( ULONG thread_input )
   (void) tx_event_flags_set (&initialization_flags, LIGHT_INIT_SUCCESS, TX_OR);
 
   light.idle ();
+  light.off ();
   tx_thread_suspend (this_thread);
 
   /******************************* Control thread resumes this thread *****************************/
@@ -1621,6 +1626,8 @@ static void light_thread_entry ( ULONG thread_input )
   watchdog_register_thread (LIGHT_THREAD);
   watchdog_check_in (LIGHT_THREAD);
 
+  light.on ();
+  tx_thread_sleep (1);
   light.standby ();
 
   light.start_timer (light_thread_timeout);
@@ -1658,9 +1665,7 @@ static void light_thread_entry ( ULONG thread_input )
   }
 
   light.idle ();
-
-#warning "remove this code after testing"
-  light.start_timestamp = 1736536800;
+  light.off ();
 
   light.assemble_telemetry_message_element (&sbd_msg_element);
   persistent_ram_save_message (LIGHT_TELEMETRY, (uint8_t*) &sbd_msg_element);
@@ -2044,6 +2049,9 @@ static void iridium_thread_entry ( ULONG thread_input )
 
   watchdog_check_in (IRIDIUM_THREAD);
   watchdog_deregister_thread (IRIDIUM_THREAD);
+
+  // The logger gets weird if there is no break here...
+  tx_thread_sleep (25);
 
   (void) tx_event_flags_set (&complete_flags, IRIDIUM_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);

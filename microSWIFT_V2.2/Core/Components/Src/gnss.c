@@ -300,7 +300,7 @@ static uSWIFT_return_code_t _gnss_sync_and_start_reception ( void )
       + 100);
   uint32_t watchdog_counter = 0;
 
-  __HAL_UART_ENABLE_IT(&huart2, UART_IT_ERR);
+  __HAL_UART_ENABLE_IT(&huart3, UART_IT_ERR);
 
   // Zero out the message buffer
   memset (&(msg_buf[0]), 0, INITIAL_STAGES_BUFFER_SIZE);
@@ -1259,6 +1259,9 @@ static uSWIFT_return_code_t __start_GNSS_UART_DMA ( uint8_t *buffer, size_t msg_
 
   HAL_DMA_Abort (gnss_self->gnss_rx_dma_handle);
   HAL_DMA_Abort (gnss_self->gnss_tx_dma_handle);
+
+  usart3_deinit ();
+  usart3_init ();
 
   hal_return_code = MX_gnss_dma_linked_list_Config ();
 

@@ -379,7 +379,11 @@ ULONG get_gnss_acquisition_timeout ( microSWIFT_configuration *config )
 {
   int32_t max_acq_time = 10;
 
-  if ( config->duty_cycle <= 60U )
+  if ( is_first_sample_window () )
+  {
+    max_acq_time = config->gnss_max_acquisition_wait_time;
+  }
+  else if ( config->duty_cycle <= 60U )
   {
     max_acq_time = config->duty_cycle - config->iridium_max_transmit_time
                    - get_gnss_sample_window_timeout (config) - 1;
@@ -400,7 +404,8 @@ ULONG get_gnss_acquisition_timeout ( microSWIFT_configuration *config )
 
 ULONG get_gnss_sample_window_timeout ( microSWIFT_configuration *config )
 {
-  ULONG sample_window_timeout = (((config->samples_per_window / config->gnss_sampling_rate) / 60)
+  ULONG sample_window_timeout = (((config->gnss_samples_per_window / config->gnss_sampling_rate)
+                                  / 60)
                                  + GNSS_WINDOW_BUFFER_TIME);
 
   return sample_window_timeout;
@@ -487,7 +492,7 @@ telemetry_type_t get_next_telemetry_message ( uint8_t *msg_buffer,
 
 bool is_first_sample_window ( void )
 {
-  return (persistent_ram_get_sample_window_counter () == 0);
+  return (persistent_ram_get_sample_window_counter () == 1);
 }
 
 ULONG get_current_flags ( TX_EVENT_FLAGS_GROUP *event_flags )
