@@ -733,33 +733,14 @@ static void rtc_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
   TX_THREAD *this_thread = tx_thread_identify ();
-  Ext_RTC rtc =
-    { 0 };
   uSWIFT_return_code_t ret;
   UINT tx_ret;
   rtc_request_message req;
 
   tx_thread_sleep (10);
 
-  ret = ext_rtc_init (&rtc, device_handles.core_spi_handle, &ext_rtc_spi_sema);
-
+  // RTC already initialized in main, just need to init the server
   rtc_server_init (&rtc_messaging_queue, &rtc_complete_flags);
-
-  // Setup the RTC
-  ret |= rtc.setup_rtc ();
-
-  // Initialize the watchdog
-  ret |= rtc.config_watchdog (WATCHDOG_PERIOD);
-
-  if ( ret != uSWIFT_SUCCESS )
-  {
-    // Gotta wait for the logger to fully initialize
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
-    rtc_error_out (this_thread, "RTC failed to initialize.");
-  }
-
-  // Set the GPIO pin low for the OR logic gate
-  HAL_GPIO_WritePin (WDOG_OR_INPUT_GPIO_Port, WDOG_OR_INPUT_Pin, GPIO_PIN_RESET);
 
   (void) tx_event_flags_set (&initialization_flags, RTC_INIT_SUCCESS, TX_OR);
 

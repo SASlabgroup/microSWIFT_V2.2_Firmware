@@ -34,6 +34,8 @@ extern "C" {
 
 extern SPI_HandleTypeDef hspi1;
 
+extern SPI_HandleTypeDef hspi2;
+
 /* USER CODE BEGIN Private defines */
 #define SPI_OK 0
 #define SPI_ERROR -1
@@ -44,6 +46,7 @@ extern SPI_HandleTypeDef hspi1;
 /* USER CODE END Private defines */
 
 void MX_SPI1_Init(void);
+void MX_SPI2_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 int32_t spi1_init ( void );

@@ -14,9 +14,9 @@
 TX_SEMAPHORE sd_tx_semaphore;
 TX_SEMAPHORE sd_rx_semaphore;
 
-extern SD_HandleTypeDef hsd2;
+extern SD_HandleTypeDef hsd1;
 #if (FX_STM32_SD_INIT == 1)
-extern void MX_SDMMC2_SD_Init(void);
+extern void MX_SDMMC1_SD_Init(void);
 #endif
 
 /* USER CODE BEGIN  0 */
@@ -37,7 +37,7 @@ INT fx_stm32_sd_init(UINT instance)
   /* USER CODE END PRE_FX_SD_INIT */
 
 #if (FX_STM32_SD_INIT == 1)
-	MX_SDMMC2_SD_Init();
+	MX_SDMMC1_SD_Init();
 #endif
 
   /* USER CODE BEGIN POST_FX_SD_INIT */
@@ -61,7 +61,7 @@ INT fx_stm32_sd_deinit(UINT instance)
   /* USER CODE END PRE_FX_SD_DEINIT */
 
 #if (FX_STM32_SD_INIT == 1)
-  if(HAL_SD_DeInit(&hsd2) != HAL_OK)
+  if(HAL_SD_DeInit(&hsd1) != HAL_OK)
   {
     ret = 1;
   }
@@ -87,7 +87,7 @@ INT fx_stm32_sd_get_status(UINT instance)
   UNUSED(instance);
   /* USER CODE END PRE_GET_STATUS */
 
-  if(HAL_SD_GetCardState(&hsd2) != HAL_SD_CARD_TRANSFER)
+  if(HAL_SD_GetCardState(&hsd1) != HAL_SD_CARD_TRANSFER)
   {
     ret = 1;
   }
@@ -115,7 +115,7 @@ INT fx_stm32_sd_read_blocks(UINT instance, UINT *buffer, UINT start_block, UINT 
 	UNUSED(instance);
   /* USER CODE END PRE_READ_BLOCKS */
 
-  if(HAL_SD_ReadBlocks_DMA(&hsd2, (uint8_t *)buffer, start_block, total_blocks) != HAL_OK)
+  if(HAL_SD_ReadBlocks_DMA(&hsd1, (uint8_t *)buffer, start_block, total_blocks) != HAL_OK)
   {
     ret = 1;
   }
@@ -143,7 +143,7 @@ INT fx_stm32_sd_write_blocks(UINT instance, UINT *buffer, UINT start_block, UINT
 	UNUSED(instance);
   /* USER CODE END PRE_WRITE_BLOCKS */
 
-  if(HAL_SD_WriteBlocks_DMA(&hsd2, (uint8_t *)buffer, start_block, total_blocks) != HAL_OK)
+  if(HAL_SD_WriteBlocks_DMA(&hsd1, (uint8_t *)buffer, start_block, total_blocks) != HAL_OK)
   {
     ret = 1;
   }

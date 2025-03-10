@@ -81,7 +81,8 @@ typedef enum
 
 void                    persistent_ram_init ( microSWIFT_configuration *config );
 void                    persistent_ram_deinit ( void );
-void                    persistent_ram_get_device_config (microSWIFT_configuration *config);
+void                    persistent_ram_set_device_config ( microSWIFT_configuration *config );
+void                    persistent_ram_get_device_config ( microSWIFT_configuration *config );
 void                    persistent_ram_increment_sample_window_counter ( void );
 uint32_t                persistent_ram_get_sample_window_counter ( void );
 uint32_t                persistent_ram_get_num_msgs_enqueued ( telemetry_type_t msg_type );

@@ -113,26 +113,26 @@ void HAL_OSPI_MspInit(OSPI_HandleTypeDef* ospiHandle)
     PF10     ------> OCTOSPIM_P1_CLK
     PA4     ------> OCTOSPIM_P1_NCS
     */
-    GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9;
+    GPIO_InitStruct.Pin = RAM_OCTOSPI_SIO_3_Pin|RAM_OCTOSPI_SIO_2_Pin|RAM_OCTOSPI_SIO_0_Pin|RAM_OCTOSPI_SIO_1_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF10_OCTOSPI1;
     HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = GPIO_PIN_10;
+    GPIO_InitStruct.Pin = RAM_OCTOSPI_CLK_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF3_OCTOSPI1;
-    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+    HAL_GPIO_Init(RAM_OCTOSPI_CLK_GPIO_Port, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = GPIO_PIN_4;
+    GPIO_InitStruct.Pin = RAM_OCTOSPI_CSn_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF3_OCTOSPI1;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    HAL_GPIO_Init(RAM_OCTOSPI_CSn_GPIO_Port, &GPIO_InitStruct);
 
     /* OCTOSPI1 interrupt Init */
     HAL_NVIC_SetPriority(OCTOSPI1_IRQn, 14, 0);
@@ -163,10 +163,10 @@ void HAL_OSPI_MspDeInit(OSPI_HandleTypeDef* ospiHandle)
     PF10     ------> OCTOSPIM_P1_CLK
     PA4     ------> OCTOSPIM_P1_NCS
     */
-    HAL_GPIO_DeInit(GPIOF, GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9
-                          |GPIO_PIN_10);
+    HAL_GPIO_DeInit(GPIOF, RAM_OCTOSPI_SIO_3_Pin|RAM_OCTOSPI_SIO_2_Pin|RAM_OCTOSPI_SIO_0_Pin|RAM_OCTOSPI_SIO_1_Pin
+                          |RAM_OCTOSPI_CLK_Pin);
 
-    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_4);
+    HAL_GPIO_DeInit(RAM_OCTOSPI_CSn_GPIO_Port, RAM_OCTOSPI_CSn_Pin);
 
     /* OCTOSPI1 interrupt Deinit */
     HAL_NVIC_DisableIRQ(OCTOSPI1_IRQn);

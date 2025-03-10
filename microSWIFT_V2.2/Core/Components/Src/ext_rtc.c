@@ -65,8 +65,9 @@ uSWIFT_return_code_t ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_
 
   rtc_self->spi_sema = rtc_spi_sema;
 
-  rtc_self->int_a_pin.port = RTC_INT_A_GPIO_Port;
-  rtc_self->int_a_pin.pin = RTC_INT_A_Pin;
+  // Int A is connected to nRST through a logic OR gate
+  rtc_self->int_a_pin.port = 0U;
+  rtc_self->int_a_pin.pin = 0U;
   rtc_self->int_b_pin.port = RTC_INT_B_GPIO_Port;
   rtc_self->int_b_pin.pin = RTC_INT_B_Pin;
 
@@ -101,16 +102,19 @@ uSWIFT_return_code_t ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_
   rtc_self->irq_config.timestamp_2_irq_en = false;
   rtc_self->irq_config.timestamp_3_irq_en = false;
   rtc_self->irq_config.timestamp_4_irq_en = false;
-  // If a mask bit is set, the associated IRQ is masked and will not fire.
-  // Int A will be used for the Alarm
+
+  // If a mask bit is set, the associated IRQ is masked and will not fire. Start with all IRQs masked
+  *((uint8_t*) &rtc_self->irq_config.int_b_mask_1) = 0xFF;
   *((uint8_t*) &rtc_self->irq_config.int_a_mask_1) = 0xFF;
-  rtc_self->irq_config.int_a_mask_1.alarm_irq_mask = false;
+
+  // Int A will be used for Watchdog
+  rtc_self->irq_config.int_a_mask_1.watchdog_irq_mask = false;
   rtc_self->irq_config.int_a_mask_1.dash_bit = 0b00;
   *((uint8_t*) &rtc_self->irq_config.int_a_mask_2) = 0xFF;
   rtc_self->irq_config.int_a_mask_2.dash_bit = 0b0000;
-  // Int B will be used for Watchdog
-  *((uint8_t*) &rtc_self->irq_config.int_b_mask_1) = 0xFF;
-  rtc_self->irq_config.int_b_mask_1.watchdog_irq_mask = false;
+
+  // Int B will be used for the Alarm
+  rtc_self->irq_config.int_b_mask_1.alarm_irq_mask = false;
   rtc_self->irq_config.int_b_mask_1.dash_bit = 0b00;
   *((uint8_t*) &rtc_self->irq_config.int_b_mask_2) = 0xFF;
   rtc_self->irq_config.int_b_mask_2.dash_bit = 0b0000;
@@ -148,8 +152,6 @@ uSWIFT_return_code_t ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_
     return uSWIFT_IO_ERROR;
   }
 
-  ret = rtc_self->clear_flag (ALL_RTC_FLAGS);
-
   return ret;
 }
 
@@ -162,7 +164,7 @@ static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
-  // Clear any interrupts present
+  // Clear all flags (including watchdog flag if it was active)
   ret = rtc_self->clear_flag (ALL_RTC_FLAGS);
   if ( ret != uSWIFT_SUCCESS )
   {
@@ -191,7 +193,7 @@ static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
     return uSWIFT_IO_ERROR;
   }
 
-  // Interrupts: Int A will be used for alarm, Int B for watchdog
+  // Interrupts: Int B will be used for alarm, Int A for watchdog
   ret = pcf2131_config_interrupts (&(rtc_self->dev_ctx), &rtc_self->irq_config);
   if ( ret != PCF2131_OK )
   {

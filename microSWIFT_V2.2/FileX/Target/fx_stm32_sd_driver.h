@@ -56,7 +56,7 @@ extern TX_SEMAPHORE sd_rx_semaphore;
 #define FX_STM32_SD_DMA_API                              	  1
 
 /* SDIO instance to be used by FileX */
-#define FX_STM32_SD_INSTANCE                                  1
+#define FX_STM32_SD_INSTANCE                                  0
 
 /* Default sector size, used by the driver */
 #define FX_STM32_SD_DEFAULT_SECTOR_SIZE                       512

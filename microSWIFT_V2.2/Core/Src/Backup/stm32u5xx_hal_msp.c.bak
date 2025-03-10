@@ -79,7 +79,7 @@ void HAL_MspInit(void)
 
   /** Configure the internal voltage reference buffer voltage scale
   */
-  HAL_SYSCFG_VREFBUF_VoltageScalingConfig(SYSCFG_VREFBUF_VOLTAGE_SCALE1);
+  HAL_SYSCFG_VREFBUF_VoltageScalingConfig(SYSCFG_VREFBUF_VOLTAGE_SCALE2);
 
   /** Enable the Internal Voltage Reference buffer
   */

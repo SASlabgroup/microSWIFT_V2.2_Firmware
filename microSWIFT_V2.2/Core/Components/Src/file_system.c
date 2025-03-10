@@ -106,7 +106,7 @@ static uSWIFT_return_code_t _file_system_initialize_card ( void )
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
   // Initialize the SDMMC interface
-  if ( !sdmmc2_init () )
+  if ( !sdmmc1_init () )
   {
     ret = uSWIFT_IO_ERROR;
     goto done;

@@ -71,13 +71,15 @@ extern DMA_HandleTypeDef handle_GPDMA1_Channel5;
 extern DMA_NodeTypeDef Node_GPDMA1_Channel4;
 extern DMA_QListTypeDef List_GPDMA1_Channel4;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel4;
+extern UART_HandleTypeDef hlpuart1;
 extern UART_HandleTypeDef huart4;
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
 extern OSPI_HandleTypeDef hospi1;
-extern SD_HandleTypeDef hsd2;
+extern SD_HandleTypeDef hsd1;
 extern SPI_HandleTypeDef hspi1;
+extern SPI_HandleTypeDef hspi2;
 extern TIM_HandleTypeDef htim6;
 
 /* USER CODE BEGIN EV */
@@ -204,6 +206,20 @@ void EXTI0_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles EXTI Line2 interrupt.
+  */
+void EXTI2_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI2_IRQn 0 */
+
+  /* USER CODE END EXTI2_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(RTC_INT_B_Pin);
+  /* USER CODE BEGIN EXTI2_IRQn 1 */
+
+  /* USER CODE END EXTI2_IRQn 1 */
+}
+
+/**
   * @brief This function handles GPDMA1 Channel 4 global interrupt.
   */
 void GPDMA1_Channel4_IRQHandler(void)
@@ -302,6 +318,20 @@ void I2C2_EV_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles I2C2 Error interrupt.
+  */
+void I2C2_ER_IRQHandler(void)
+{
+  /* USER CODE BEGIN I2C2_ER_IRQn 0 */
+
+  /* USER CODE END I2C2_ER_IRQn 0 */
+  HAL_I2C_ER_IRQHandler(&hi2c2);
+  /* USER CODE BEGIN I2C2_ER_IRQn 1 */
+
+  /* USER CODE END I2C2_ER_IRQn 1 */
+}
+
+/**
   * @brief This function handles SPI1 global interrupt.
   */
 void SPI1_IRQHandler(void)
@@ -313,6 +343,20 @@ void SPI1_IRQHandler(void)
   /* USER CODE BEGIN SPI1_IRQn 1 */
 
   /* USER CODE END SPI1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles SPI2 global interrupt.
+  */
+void SPI2_IRQHandler(void)
+{
+  /* USER CODE BEGIN SPI2_IRQn 0 */
+
+  /* USER CODE END SPI2_IRQn 0 */
+  HAL_SPI_IRQHandler(&hspi2);
+  /* USER CODE BEGIN SPI2_IRQn 1 */
+
+  /* USER CODE END SPI2_IRQn 1 */
 }
 
 /**
@@ -372,6 +416,20 @@ void UART4_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles LPUART1 global interrupt.
+  */
+void LPUART1_IRQHandler(void)
+{
+  /* USER CODE BEGIN LPUART1_IRQn 0 */
+
+  /* USER CODE END LPUART1_IRQn 0 */
+  HAL_UART_IRQHandler(&hlpuart1);
+  /* USER CODE BEGIN LPUART1_IRQn 1 */
+
+  /* USER CODE END LPUART1_IRQn 1 */
+}
+
+/**
   * @brief This function handles OCTOSPI1 global interrupt.
   */
 void OCTOSPI1_IRQHandler(void)
@@ -386,17 +444,17 @@ void OCTOSPI1_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles SDMMC2 global interrupt.
+  * @brief This function handles SDMMC1 global interrupt.
   */
-void SDMMC2_IRQHandler(void)
+void SDMMC1_IRQHandler(void)
 {
-  /* USER CODE BEGIN SDMMC2_IRQn 0 */
+  /* USER CODE BEGIN SDMMC1_IRQn 0 */
 
-  /* USER CODE END SDMMC2_IRQn 0 */
-  HAL_SD_IRQHandler(&hsd2);
-  /* USER CODE BEGIN SDMMC2_IRQn 1 */
+  /* USER CODE END SDMMC1_IRQn 0 */
+  HAL_SD_IRQHandler(&hsd1);
+  /* USER CODE BEGIN SDMMC1_IRQn 1 */
 
-  /* USER CODE END SDMMC2_IRQn 1 */
+  /* USER CODE END SDMMC1_IRQn 1 */
 }
 
 /**

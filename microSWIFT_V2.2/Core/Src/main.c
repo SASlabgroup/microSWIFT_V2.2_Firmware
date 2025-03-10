@@ -51,7 +51,8 @@
 /* USER CODE BEGIN PV */
 // Configuration bytes programmed using STM32 Cube programmer in the last page of flash
 static microSWIFT_configuration flash_config __attribute__ ((section (".uservars.CONFIGURATION")));
-
+Ext_RTC rtc =
+  { 0 };
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -82,8 +83,28 @@ int main ( void )
   HAL_Init ();
 
   /* USER CODE BEGIN Init */
+
+  // Setup the persistent ram if needed
   persistent_ram_init (&flash_config);
   persistent_ram_increment_sample_window_counter ();
+
+  // Initialize and configure the RTC since we need the 32768 LSE clock signal to calibrate main system clock (MSIS)
+  if ( ext_rtc_init (&rtc, device_handles.core_spi_handle, &ext_rtc_spi_sema) != uSWIFT_SUCCESS )
+  {
+    Error_Handler ();
+  }
+
+  // In addition to outputting the clock signal, this will also clear the any active flags/ IRQs (including watchdog)
+  if ( rtc.setup_rtc () != uSWIFT_SUCCESS )
+  {
+    Error_Handler ();
+  }
+
+  // Initialize/ configure the watchdog
+  if ( rtc.config_watchdog (WATCHDOG_PERIOD) != uSWIFT_SUCCESS )
+  {
+    Error_Handler ();
+  }
 
   // Shut down flash bank 2 -- no longer required
   HAL_FLASHEx_EnablePowerDown (FLASH_BANK_2);
@@ -96,6 +117,7 @@ int main ( void )
   SystemClock_Config ();
 
   /* USER CODE BEGIN SysInit */
+  // Disable any previous pullups or pull downs
   HAL_PWREx_DisablePullUpPullDownConfig ();
   /* USER CODE END SysInit */
 
@@ -143,26 +165,22 @@ void SystemClock_Config ( void )
 
   /** Configure the main internal regulator output voltage
    */
-  if ( HAL_PWREx_ControlVoltageScaling (PWR_REGULATOR_VOLTAGE_SCALE3) != HAL_OK )
+  if ( HAL_PWREx_ControlVoltageScaling (PWR_REGULATOR_VOLTAGE_SCALE4) != HAL_OK )
   {
     Error_Handler ();
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
    */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLMBOOST = RCC_PLLMBOOST_DIV1;
-  RCC_OscInitStruct.PLL.PLLM = 1;
-  RCC_OscInitStruct.PLL.PLLN = 8;
-  RCC_OscInitStruct.PLL.PLLP = 4;
-  RCC_OscInitStruct.PLL.PLLQ = 8;
-  RCC_OscInitStruct.PLL.PLLR = 2;
-  RCC_OscInitStruct.PLL.PLLRGE = RCC_PLLVCIRANGE_1;
-  RCC_OscInitStruct.PLL.PLLFRACN = 0;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE | RCC_OSCILLATORTYPE_MSI
+                                     | RCC_OSCILLATORTYPE_MSIK;
+  RCC_OscInitStruct.LSEState = RCC_LSE_BYPASS;
+  RCC_OscInitStruct.MSIState = RCC_MSI_ON;
+  RCC_OscInitStruct.MSICalibrationValue = RCC_MSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_2;
+  RCC_OscInitStruct.MSIKClockRange = RCC_MSIKRANGE_2;
+  RCC_OscInitStruct.MSIKState = RCC_MSIK_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if ( HAL_RCC_OscConfig (&RCC_OscInitStruct) != HAL_OK )
   {
     Error_Handler ();
@@ -172,16 +190,21 @@ void SystemClock_Config ( void )
    */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1
                                 | RCC_CLOCKTYPE_PCLK2 | RCC_CLOCKTYPE_PCLK3;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB3CLKDivider = RCC_HCLK_DIV1;
 
-  if ( HAL_RCC_ClockConfig (&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK )
+  if ( HAL_RCC_ClockConfig (&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK )
   {
     Error_Handler ();
   }
+
+  /** Enable MSI Auto calibration
+   */
+  HAL_RCCEx_EnableMSIPLLModeSelection (RCC_MSIKPLL_MODE_SEL);
+  HAL_RCCEx_EnableMSIPLLMode ();
 }
 
 /**
@@ -206,6 +229,43 @@ static void SystemPower_Config ( void )
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/**
+ * @brief  Period elapsed callback in non blocking mode
+ * @note   This function is called  when TIM6 interrupt took place, inside
+ * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+ * a global variable "uwTick" used as application time base.
+ * @param  htim : TIM handle
+ * @retval None
+ */
+void HAL_TIM_PeriodElapsedCallback ( TIM_HandleTypeDef *htim )
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if ( htim->Instance == TIM6 )
+  {
+    HAL_IncTick ();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
+
+/**
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
+void Error_Handler ( void )
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* User can add his own implementation to report the HAL error return state */
+  __disable_irq ();
+  while ( 1 )
+  {
+  }
+  /* USER CODE END Error_Handler_Debug */
+}
 
 #ifdef  USE_FULL_ASSERT
 /**
