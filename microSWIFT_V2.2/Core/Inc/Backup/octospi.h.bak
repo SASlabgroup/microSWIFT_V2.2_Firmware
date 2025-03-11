@@ -38,10 +38,11 @@ extern OSPI_HandleTypeDef hospi1;
 
 /* USER CODE END Private defines */
 
-void MX_OCTOSPI1_Init(void);
+void MX_OCTOSPI1_Init ( void );
 
 /* USER CODE BEGIN Prototypes */
 bool octospi1_init ( void );
+void octospi1_deinit ( void );
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

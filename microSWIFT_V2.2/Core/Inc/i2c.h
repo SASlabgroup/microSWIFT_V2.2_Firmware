@@ -47,6 +47,8 @@ void MX_I2C2_Init ( void );
 int32_t i2c2_init ( void );
 
 int32_t i2c2_deinit ( void );
+
+bool i2c_bus_init_status ( I2C_TypeDef *instance );
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

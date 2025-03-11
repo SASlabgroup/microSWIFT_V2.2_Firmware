@@ -19,12 +19,40 @@ void Error_Handler ( void )
 
   persistent_ram_deinit ();
 
-  HAL_NVIC_SystemReset ();
-
-  __enable_irq ();
+  while ( 1 )
+  {
+    HAL_NVIC_SystemReset ();
+  }
 }
 
 void safe_mode ( void )
 {
-#warning "Turn off all peripherals here, then wait a short amount of time"
+  // Shut down all interfaces
+  (void) i2c2_deinit ();
+  (void) octospi1_deinit ();
+  (void) sdmmc1_deinit ();
+  (void) spi1_deinit ();
+  (void) spi2_deinit ();
+  (void) lpuart1_deinit ();
+  (void) usart1_deinit ();
+  (void) usart2_deinit ();
+  (void) usart3_deinit ();
+  (void) uart4_deinit ();
+
+  // Turn everything off
+  HAL_GPIO_WritePin (CT_FET_GPIO_Port, CT_FET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (RF_SWITCH_VCTL_GPIO_Port, RF_SWITCH_VCTL_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (GNSS_FET_GPIO_Port, GNSS_FET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (BUS_5V_FET_GPIO_Port, BUS_5V_FET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (SD_CARD_FET_GPIO_Port, SD_CARD_FET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (RS232_FORCEOFF_GPIO_Port, RS232_FORCEOFF_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (LED_RED_GPIO_Port, LED_RED_PinLED_RED_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (TEMPERATURE_FET_GPIO_Port, TEMPERATURE_FET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (LIGHT_FET_GPIO_Port, LIGHT_FET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin ( RTC_WDOG_OR_INPUT_GPIO_Port, RTC_WDOG_OR_INPUT_Pin, GPIO_PIN_RESET);
+
+  // Short delay
+  HAL_Delay (10);
 }

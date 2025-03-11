@@ -32,6 +32,7 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stdbool.h"
+#include "ext_rtc.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -55,7 +56,7 @@ extern char compile_time[COMPILE_TIME_DATE_BUFFER_SIZE];
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-void Error_Handler(void);
+void Error_Handler ( void );
 
 /* USER CODE BEGIN EFP */
 
@@ -182,17 +183,7 @@ void Error_Handler(void);
 #define RF_SWITCH_VCTL_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
-#define RF_SWITCH_VCTL_Pin GPIO_PIN_14
-#define RF_SWITCH_VCTL_GPIO_Port GPIOF
-// Not hooked up, connecting to unused pin to keep code working
-#define GNSS_FET_Pin GPIO_PIN_6
-#define GNSS_FET_GPIO_Port GPIOB
-#define UART_LOGGER_EN_Pin GPIO_PIN_7
-#define UART_LOGGER_EN_GPIO_Port GPIOB
 
-// Moved
-#define LIGHT_FET_Pin GPIO_PIN_13
-#define LIGHT_FET_GPIO_Port GPIOF
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

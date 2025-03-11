@@ -35,13 +35,19 @@ extern "C" {
 extern SD_HandleTypeDef hsd1;
 
 /* USER CODE BEGIN Private defines */
+#define SDMMC_OK 0
+#define SDMMC_ERROR -1
 
+#define SD_CARD_SDMMC SDMMC1
 /* USER CODE END Private defines */
 
-void MX_SDMMC1_SD_Init(void);
+void MX_SDMMC1_SD_Init ( void );
 
 /* USER CODE BEGIN Prototypes */
-bool sdmmc1_init ( void );
+int32_t sdmmc1_init ( void );
+int32_t sdmmc1_deinit ( void );
+
+bool sdmmc_init_status ( SD_TypeDef *instance );
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

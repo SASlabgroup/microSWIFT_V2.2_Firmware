@@ -29,7 +29,7 @@ void persistent_ram_init ( microSWIFT_configuration *config )
   if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
   {
     _persistent_ram_clear ();
-    persistent_ram_set_config (config);
+    persistent_ram_set_device_config (config);
 
     persistent_self.magic_number = PERSISTENT_RAM_MAGIC_DOUBLE_WORD;
   }
@@ -48,7 +48,7 @@ void persistent_ram_deinit ( void )
 
 /**
  * Copy over the configuration from supplied pointer into the persistent ram.
- * 
+ *
  * @return void
  */
 void persistent_ram_set_device_config ( microSWIFT_configuration *config )

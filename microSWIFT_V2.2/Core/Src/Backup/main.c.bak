@@ -29,7 +29,6 @@
 #include "stdbool.h"
 #include "testing_hooks.h"
 #include "octospi.h"
-#include "ext_rtc.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/

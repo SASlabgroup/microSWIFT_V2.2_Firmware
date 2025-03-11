@@ -37,12 +37,6 @@ static int32_t _ext_rtc_write_reg_spi ( void *unused_handle, uint16_t unused_bus
                                         uint16_t data_length );
 static void _ext_rtc_ms_delay ( uint32_t delay );
 static uint8_t __weekday_from_date ( int y, int m, int d );
-//static int32_t _ext_rtc_read_reg_spi_dma ( void *unused_handle, uint16_t unused_bus_address,
-//                                           uint16_t reg_address, uint8_t *read_data,
-//                                           uint16_t data_length );
-//static int32_t _ext_rtc_write_reg_spi_dma ( void *unused_handle, uint16_t unused_bus_address,
-//                                            uint16_t reg_address, uint8_t *write_data,
-//                                            uint16_t data_length );
 /**
  * @brief  Initialize the Ext_RTC struct
  *
