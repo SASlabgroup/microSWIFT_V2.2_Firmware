@@ -47,6 +47,8 @@ extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN Private defines */
+extern DMA_HandleTypeDef handle_LPDMA1_Channel0;
+extern DMA_HandleTypeDef handle_LPDMA1_Channel1;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel0;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel1;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel2;
@@ -55,15 +57,11 @@ extern DMA_HandleTypeDef handle_GPDMA1_Channel4;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel5;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel6;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel7;
-extern DMA_HandleTypeDef handle_GPDMA1_Channel8;
-extern DMA_HandleTypeDef handle_GPDMA1_Channel9;
-extern DMA_HandleTypeDef handle_GPDMA1_Channel10;
-extern DMA_HandleTypeDef handle_GPDMA1_Channel11;
 
 #define GNSS_UART LPUART1
 #define CT_UART USART1
 #define EXPANSION_UART USART2
-#define VCP_UART USART3
+#define LOGGER_UART USART3
 #define IRIDIUM_UART UART4
 
 /* USER CODE END Private defines */

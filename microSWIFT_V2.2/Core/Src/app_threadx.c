@@ -206,11 +206,11 @@ static void turbidity_thread_entry ( ULONG thread_input );
 /* USER CODE END PFP */
 
 /**
-  * @brief  Application ThreadX Initialization.
-  * @param memory_ptr: memory pointer
-  * @retval int
-  */
-UINT App_ThreadX_Init(VOID *memory_ptr)
+ * @brief  Application ThreadX Initialization.
+ * @param memory_ptr: memory pointer
+ * @retval int
+ */
+UINT App_ThreadX_Init ( VOID *memory_ptr )
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -647,30 +647,28 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
    ***************************************** Misc init ********************************************
    ************************************************************************************************/
   device_handles.core_spi_handle = &hspi1;
+  device_handles.expansion_spi_handle = &hspi2;
   device_handles.core_i2c_handle = &hi2c2;
   device_handles.iridium_uart_handle = &huart4;
-//  device_handles.gnss_uart_handle = &huart2;
-  // Testing top hat
-  device_handles.gnss_uart_handle = &huart3;
+  device_handles.gnss_uart_handle = &hlpuart1;
   device_handles.ct_uart_handle = &huart1;
   device_handles.logger_uart_handle = &huart3;
+  device_handles.expansion_uart_handle = &huart2
   device_handles.ext_psram_handle = &hospi1;
   device_handles.battery_adc = &hadc1;
-  device_handles.gnss_uart_tx_dma_handle = &handle_GPDMA1_Channel5;
-  device_handles.gnss_uart_rx_dma_handle = &handle_GPDMA1_Channel4;
-  device_handles.iridium_uart_tx_dma_handle = &handle_GPDMA1_Channel9;
-  device_handles.iridium_uart_rx_dma_handle = &handle_GPDMA1_Channel8;
-  device_handles.ct_uart_tx_dma_handle = &handle_GPDMA1_Channel11;
-  device_handles.ct_uart_rx_dma_handle = &handle_GPDMA1_Channel10;
-//  device_handles.logger_uart_tx_dma_handle = &handle_GPDMA1_Channel3;
-//  device_handles.logger_uart_rx_dma_handle = &handle_GPDMA1_Channel2;
+  device_handles.gnss_uart_tx_dma_handle = &handle_LPDMA1_Channel1;
+  device_handles.gnss_uart_rx_dma_handle = &handle_LPDMA1_Channel0;
+  device_handles.iridium_uart_tx_dma_handle = &handle_GPDMA1_Channel7;
+  device_handles.iridium_uart_rx_dma_handle = &handle_GPDMA1_Channel6;
+  device_handles.ct_uart_tx_dma_handle = &handle_GPDMA1_Channel1;
+  device_handles.ct_uart_rx_dma_handle = &handle_GPDMA1_Channel0;
+  device_handles.logger_uart_tx_dma_handle = &handle_GPDMA1_Channel5;
+  device_handles.logger_uart_rx_dma_handle = &handle_GPDMA1_Channel4;
+  device_handles.expansion_uart_tx_dma_handle = &handle_GPDMA1_Channel3;
+  device_handles.expansion_uart_rx_dma_handle = &handle_GPDMA1_Channel2;
 
   persistent_ram_get_device_config (&configuration);
   configuration.gnss_max_acquisition_wait_time = get_gnss_acquisition_timeout (&configuration);
-
-  // Testing top hat
-  configuration.gnss_max_acquisition_wait_time = 30;
-  configuration.iridium_max_transmit_time = 30;
 
   /* USER CODE END App_ThreadX_MEM_POOL */
   /* USER CODE BEGIN App_ThreadX_Init */
@@ -686,18 +684,18 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   return ret;
 }
 
-  /**
-  * @brief  Function that implements the kernel's initialization.
-  * @param  None
-  * @retval None
-  */
-void MX_ThreadX_Init(void)
+/**
+ * @brief  Function that implements the kernel's initialization.
+ * @param  None
+ * @retval None
+ */
+void MX_ThreadX_Init ( void )
 {
   /* USER CODE BEGIN Before_Kernel_Start */
 
   /* USER CODE END Before_Kernel_Start */
 
-  tx_kernel_enter();
+  tx_kernel_enter ();
 
   /* USER CODE BEGIN Kernel_Start_Error */
 

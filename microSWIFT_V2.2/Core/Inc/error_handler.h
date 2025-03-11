@@ -8,7 +8,10 @@
 #ifndef INC_ERROR_HANDLER_H_
 #define INC_ERROR_HANDLER_H_
 
+#include "stdbool.h"
+#include "tx_api.h"
+
 void Error_Handler ( void );
-void safe_mode ( void );
+void safe_mode ( bool use_hal_delay );
 
 #endif /* INC_ERROR_HANDLER_H_ */

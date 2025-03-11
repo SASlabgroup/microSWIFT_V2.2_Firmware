@@ -15,7 +15,7 @@ void Error_Handler ( void )
 {
   __disable_irq ();
 
-  safe_mode ();
+  safe_mode (true);
 
   persistent_ram_deinit ();
 
@@ -25,7 +25,7 @@ void Error_Handler ( void )
   }
 }
 
-void safe_mode ( void )
+void safe_mode ( bool use_hal_delay )
 {
   // Shut down all interfaces
   (void) i2c2_deinit ();
@@ -51,8 +51,15 @@ void safe_mode ( void )
   HAL_GPIO_WritePin (TEMPERATURE_FET_GPIO_Port, TEMPERATURE_FET_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin (LIGHT_FET_GPIO_Port, LIGHT_FET_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin ( RTC_WDOG_OR_INPUT_GPIO_Port, RTC_WDOG_OR_INPUT_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (RTC_WDOG_OR_INPUT_GPIO_Port, RTC_WDOG_OR_INPUT_Pin, GPIO_PIN_RESET);
 
   // Short delay
-  HAL_Delay (10);
+  if ( use_hal_delay )
+  {
+    HAL_Delay (10);
+  }
+  else
+  {
+    tx_thread_sleep (10);
+  }
 }
