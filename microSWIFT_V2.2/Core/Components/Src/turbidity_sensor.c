@@ -25,6 +25,8 @@ static uSWIFT_return_code_t _turbidity_sensor_stop_timer (void);
 static void                 _turbidity_sensor_assemble_telemetry_message_element (sbd_message_type_53_element *msg);
 static void                 _turbidity_sensor_standby (void);
 static void                 _turbidity_sensor_idle (void);
+static void                 _turbidity_sensor_on ( void );
+static void                 _turbidity_sensor_off ( void );
 // I/O functions for the sensor
 static int32_t              _turbidity_sensor_i2c_read ( void *unused_handle, uint16_t bus_address,
                                                           uint16_t reg_address, uint8_t *read_data,
@@ -47,6 +49,9 @@ void turbidity_sensor_init ( Turbidity_Sensor *struct_ptr, microSWIFT_configurat
   turbidity_self->global_config = global_config;
 
   turbidity_self->timer = timer;
+
+  turbidity_self->pwr_fet.port = TURBIDITY_FET_GPIO_Port;
+  turbidity_self->pwr_fet.pin = TURBIDITY_FET_Pin;
 
   turbidity_self->ambient_series = ambient_buffer;
   turbidity_self->proximity_series = proximity_buffer;
@@ -71,6 +76,8 @@ void turbidity_sensor_init ( Turbidity_Sensor *struct_ptr, microSWIFT_configurat
       _turbidity_sensor_assemble_telemetry_message_element;
   turbidity_self->standby = _turbidity_sensor_standby;
   turbidity_self->idle = _turbidity_sensor_idle;
+  turbidity_self->on = _turbidity_sensor_on;
+  turbidity_self->off = _turbidity_sensor_off;
 }
 
 void turbidity_timer_expired ( ULONG expiration_input )
@@ -263,6 +270,16 @@ static void _turbidity_sensor_idle ( void )
 {
   vcnl4010_set_led_current (&turbidity_self->dev_ctx, _0_MA);
   vcnl4010_cont_conv_config (&turbidity_self->dev_ctx, false);
+}
+
+static void _turbidity_sensor_on ( void )
+{
+  gpio_write_pin (turbidity_self->pwr_fet, GPIO_PIN_SET);
+}
+
+static void _turbidity_sensor_off ( void )
+{
+  gpio_write_pin (turbidity_self->pwr_fet, GPIO_PIN_RESET);
 }
 
 static int32_t _turbidity_sensor_i2c_read ( void *unused_handle, uint16_t bus_address,

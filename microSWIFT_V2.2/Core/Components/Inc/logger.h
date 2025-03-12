@@ -37,8 +37,6 @@ typedef struct
 
 typedef struct
 {
-  // GPIO pin to indicate enable/ disable
-  gpio_pin_struct enable_pin;
   // Block pool for the char buffers
   TX_BLOCK_POOL *block_pool;
   // Message queue
@@ -48,7 +46,6 @@ typedef struct
   // UART handle
   UART_HandleTypeDef *uart;
   void (*send_log_line) ( log_line_buf *buf, size_t strlen );
-  bool logger_enabled;
 } uart_logger;
 
 void uart_logger_init ( uart_logger *logger, TX_BLOCK_POOL *block_pool, TX_QUEUE *msg_que,

@@ -76,6 +76,8 @@ typedef struct
 
   TX_TIMER                  *timer;
 
+  gpio_pin_struct           pwr_fet;
+
   dev_ctx_t                 dev_ctx;
 
   as7341_smux_assignment    smux_assignment_low_channels;

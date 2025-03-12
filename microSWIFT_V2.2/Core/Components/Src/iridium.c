@@ -117,6 +117,15 @@ void iridium_deinit ( void )
   (void) iridium_self->uart_driver.deinit ();
   HAL_DMA_DeInit (iridium_self->uart_rx_dma_handle);
   HAL_DMA_DeInit (iridium_self->uart_tx_dma_handle);
+
+  // Just to be overly sure we don't get an erroneous IRQ
+  HAL_NVIC_ClearPendingIRQ (GPDMA1_Channel6_IRQn);
+  HAL_NVIC_ClearPendingIRQ (GPDMA1_Channel7_IRQn);
+  HAL_NVIC_ClearPendingIRQ (UART4_IRQn);
+
+  HAL_NVIC_DisableIRQ (GPDMA1_Channel6_IRQn);
+  HAL_NVIC_DisableIRQ (GPDMA1_Channel7_IRQn);
+  HAL_NVIC_DisableIRQ (UART4_IRQn);
 }
 
 /**

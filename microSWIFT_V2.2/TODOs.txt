@@ -32,30 +32,28 @@ General
 *******
 
 [ ] !! Go through ALL pin and port assignments.
-	[ ] Ensure device_handles assignments are correct
+	[x] Ensure device_handles assignments are correct
 	[ ] Ensure all port macros and non-generated functions are correct
 [ ] Ensure all unrecoverable errors call Error_Handler();
-[ ] Ensure all interrupt handlers are covered, including default_handler
+[x] Ensure all interrupt handlers are covered, including default_handler
+[ ] Refactor RTC alarm setting with duty cycle
 [x] Make a common return code for EVERYTHING (close enough).
 	[x] Ensure all functions return an uSWIFT_return_code_t
 [x] !!!! Fix all timing instances of TX calls to use 
-	[ ] Looks like everything is good and stable, keep an eye out for more
-[ ] Consider adding error interrupts for interfaces to identify issues early
-[ ] Move away from cycles per hour to duty cycle definition in configuration.h
-[ ] Ensure all threads disable associated interrupts prior to termination
-[ ] Try using the RTC as the LSE clock source.
-	[ ] Will require a call to enable clock out on RTC in main immediately after HAL_Init and before clock/pwr config
+	[x] Looks like everything is good and stable, keep an eye out for more
+[x] Move away from cycles per hour to duty cycle definition in configuration.h
+[x] Ensure all threads disable associated interrupts prior to termination
+[x] Try using the RTC as the LSE clock source.
+	[x] Will require a call to enable clock out on RTC in main immediately after HAL_Init and before clock/pwr config
 [x] Check static stack usage and adjust threead stack size accordingly
 [x] Make generic green/red led on/off functions
     [x] Need to move the pins and use throughole LEDs for the prototype
 [x] Finish implementation of watchdog
 [x] Check all init calls in startup procedure to make sure bus peripheral is starting properly
-[ ] Redo all GPIO bare pin calls -- FET pins, etc -- to use GPIO functions in gpio.c. Make sure to
-    pass in GPIO pin/port definitions and include them in the structs.
 [x] Figure out how to disable watchdog in debug mode
 	[x] Likely just adjust the watchdog period to be very long
-[ ] Make sure everything sticks to the principle that there are no infinite loops
-	[ ] Need to insert some timers in various places, such as a timer for the full sample, process, transmit scheme
+[x] Make sure everything sticks to the principle that there are no infinite loops
+	[x] Need to insert some timers in various places, such as a timer for the full sample, process, transmit scheme
 	    and initialization of sensors
 [x] Ditch watchdog hour timer and all that baggage
 [x] Modify linker script -- add external memory if necessary
@@ -84,7 +82,7 @@ Control
 [x] End of cycle now becomes setting an alarm, soft shutting down everything, and entering
     shutdown mode
 [ ] Figure out how to keep the modem off during standby mode.
-	[ ] Will need to configure pull resistors in standby like we do with the RTC Int
+	[x] Will need to configure pull resistors in standby like we do with the RTC Int
 	[ ] Make sure this works with both v3.D and v3.F modems
 
 ****************************************************************************************************
@@ -158,6 +156,8 @@ Light
 
 [ ] Figure out if we are going to keep Basic Counts
 	[ ] If so, need to ensure evertything is sized appropriately as current telemetry definition cannot support
+[ ] Bring over changes from the light sensor test
+    [ ] Update programmer tool to reflect
 [x] Remove GPIO requirements -- do everything via polling on I2C
 [x] Rework I2C and figure out how to share bus
 [x] Track timestamps for start/stop times

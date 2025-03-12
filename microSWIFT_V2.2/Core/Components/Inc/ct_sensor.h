@@ -17,6 +17,7 @@
 #include "configuration.h"
 #include "microSWIFT_return_codes.h"
 #include "time.h"
+#include "gpio.h"
 
 // @formatter:off
 
@@ -55,6 +56,9 @@ typedef struct CT
   TX_EVENT_FLAGS_GROUP      *error_flags;
   // Pointer to timer
   TX_TIMER                  *timer;
+  // Power switch
+  gpio_pin_struct           pwr_fet;
+  gpio_pin_struct           rs232_forceoff;
   // The buffer written to by CT sensor
   char                      data_buf[CT_DATA_ARRAY_SIZE];
   // Arrays to hold conductivity/temp values

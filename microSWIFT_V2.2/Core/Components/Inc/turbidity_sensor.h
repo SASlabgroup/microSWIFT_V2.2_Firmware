@@ -27,6 +27,8 @@ typedef struct
 
   TX_TIMER                  *timer;
 
+  gpio_pin_struct           pwr_fet;
+
   uint16_t                  *ambient_series;
   uint16_t                  *proximity_series;
 
@@ -55,6 +57,8 @@ typedef struct
   void                      (*assemble_telemetry_message_element) (sbd_message_type_53_element *msg);
   void                      (*standby) (void);
   void                      (*idle) (void);
+  void                      (*on) (void);
+  void                      (*off) (void);
 } Turbidity_Sensor;
 
 void turbidity_sensor_init          ( Turbidity_Sensor *struct_ptr, microSWIFT_configuration *global_config,

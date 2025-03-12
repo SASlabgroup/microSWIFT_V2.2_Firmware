@@ -33,12 +33,7 @@ static void                 _light_sensor_standby (void);
 static void                 _light_sensor_idle (void);
 static void                 _light_sensor_on (void);
 static void                 _light_sensor_off (void);
-// Functions neccessary for the AS7341 pins
-//static bool                 __as7341_wait_on_int (uint32_t timeout_ms);
-//static GPIO_PinState        __get_as7341_int_pin_state ( void );
-//static GPIO_PinState        __get_as7341_gpio_pin_state ( void );
-//static void                 __set_as7341_int_pin_state ( GPIO_PinState state );
-//static void                 __set_as7341_gpio_pin_state ( GPIO_PinState state );
+
 // I/O functions for the sensor
 static int32_t              _light_sensor_i2c_read ( void *unused_handle, uint16_t bus_address,
                                                      uint16_t reg_address, uint8_t *read_data,
@@ -69,6 +64,9 @@ void light_sensor_init ( Light_Sensor *struct_ptr, microSWIFT_configuration *glo
 
   light_self->global_config = global_config;
   light_self->timer = timer;
+
+  light_self->pwr_fet.port = LIGHT_FET_GPIO_Port;
+  light_self->pwr_fet.pin = LIGHT_FET_Pin;
 
   light_self->smux_assignment_low_channels.adc_assignments[0] = F1;
   light_self->smux_assignment_low_channels.adc_assignments[1] = F2;
@@ -584,49 +582,13 @@ static void _light_sensor_idle ( void )
 
 static void _light_sensor_on ( void )
 {
-  HAL_GPIO_WritePin (LIGHT_FET_GPIO_Port, LIGHT_FET_Pin, GPIO_PIN_SET);
+  gpio_write_pin (light_self->pwr_fet, GPIO_PIN_SET);
 }
 
 static void _light_sensor_off ( void )
 {
-  HAL_GPIO_WritePin (LIGHT_FET_GPIO_Port, LIGHT_FET_Pin, GPIO_PIN_RESET);
+  gpio_write_pin (light_self->pwr_fet, GPIO_PIN_RESET);
 }
-
-//static bool __as7341_wait_on_int ( uint32_t timeout_ms )
-//{
-//  ULONG timeout = timeout_ms + 1;
-//
-//  if ( tx_semaphore_get (light_self->int_pin_sema, timeout) != TX_SUCCESS )
-//  {
-//    return false;
-//  }
-//
-//  return true;
-//}
-//
-//static GPIO_PinState __get_as7341_int_pin_state ( void )
-//{
-//  return HAL_GPIO_ReadPin (light_self->gpio_handle->int_pin.port,
-//                           light_self->gpio_handle->int_pin.pin);
-//}
-//
-//static GPIO_PinState __get_as7341_gpio_pin_state ( void )
-//{
-//  return HAL_GPIO_ReadPin (light_self->gpio_handle->gpio_pin.port,
-//                           light_self->gpio_handle->gpio_pin.pin);
-//}
-//
-//void __set_as7341_int_pin_state ( GPIO_PinState state )
-//{
-//  HAL_GPIO_WritePin (light_self->gpio_handle->int_pin.port, light_self->gpio_handle->int_pin.pin,
-//                     state);
-//}
-//
-//void __set_as7341_gpio_pin_state ( GPIO_PinState state )
-//{
-//  HAL_GPIO_WritePin (light_self->gpio_handle->gpio_pin.port, light_self->gpio_handle->gpio_pin.pin,
-//                     state);
-//}
 
 static int32_t _light_sensor_i2c_read ( void *unused_handle, uint16_t bus_address,
                                         uint16_t reg_address, uint8_t *read_data,

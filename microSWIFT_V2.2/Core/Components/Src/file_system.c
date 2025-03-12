@@ -87,7 +87,7 @@ void file_system_init ( File_System_SD_Card *file_system, uint32_t *media_sector
 void file_system_deinit ( void )
 {
   __close_sd_card ();
-  HAL_SD_DeInit (&hsd2);
+  sdmmc1_deinit ();
 }
 
 void file_system_timer_expired ( ULONG expiration_input )

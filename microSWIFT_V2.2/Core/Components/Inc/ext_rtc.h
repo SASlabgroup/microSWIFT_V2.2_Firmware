@@ -9,10 +9,10 @@
 #define COMPONENTS_INC_EXT_RTC_H_
 
 #include <ext_rtc_server.h>
+#include "gpio.h"
 #include "tx_api.h"
 #include "spi.h"
 #include "time.h"
-#include "gpio.h"
 #include "microSWIFT_return_codes.h"
 
 //@formatter:off
@@ -33,7 +33,6 @@ typedef struct
 
   TX_SEMAPHORE              *spi_sema;
 
-  gpio_pin_struct           int_a_pin;
   gpio_pin_struct           int_b_pin;
   gpio_pin_struct           ts_pins[NUMBER_OF_TIMESTAMPS];
 

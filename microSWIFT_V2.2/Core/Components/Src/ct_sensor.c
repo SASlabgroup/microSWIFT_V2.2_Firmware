@@ -64,6 +64,10 @@ void ct_init ( CT *struct_ptr, microSWIFT_configuration *global_config,
   ct_self->uart_handle = ct_uart_handle;
   ct_self->tx_dma_handle = ct_tx_dma_handle;
   ct_self->rx_dma_handle = ct_rx_dma_handle;
+  ct_self->pwr_fet.port = CT_FET_GPIO_Port;
+  ct_self->pwr_fet.pin = CT_FET_Pin;
+  ct_self->rs232_forceoff.port = RS232_FORCEOFF_GPIO_Port;
+  ct_self->rs232_forceoff.pin = RS232_FORCEOFF_Pin;
   ct_self->parse_sample = _ct_parse_sample;
   ct_self->get_averages = _ct_get_averages;
   ct_self->self_test = _ct_self_test;
@@ -88,6 +92,15 @@ void ct_deinit ( void )
   ct_self->uart_driver.deinit ();
   HAL_DMA_DeInit (ct_self->tx_dma_handle);
   HAL_DMA_DeInit (ct_self->rx_dma_handle);
+
+  // Just to be overly sure we don't get an erroneous IRQ
+  HAL_NVIC_ClearPendingIRQ (GPDMA1_Channel0_IRQn);
+  HAL_NVIC_ClearPendingIRQ (GPDMA1_Channel1_IRQn);
+  HAL_NVIC_ClearPendingIRQ (USART1_IRQn);
+
+  HAL_NVIC_DisableIRQ (GPDMA1_Channel0_IRQn);
+  HAL_NVIC_DisableIRQ (GPDMA1_Channel1_IRQn);
+  HAL_NVIC_DisableIRQ (USART1_IRQn);
 }
 
 /**
@@ -362,7 +375,8 @@ static uSWIFT_return_code_t _ct_stop_timer ( void )
  */
 static void _ct_on ( void )
 {
-  HAL_GPIO_WritePin (CT_FET_GPIO_Port, CT_FET_Pin, GPIO_PIN_SET);
+  gpio_write_pin (ct_self->pwr_fet, GPIO_PIN_SET);
+  gpio_write_pin (ct_self->rs232_forceoff, GPIO_PIN_SET);
 }
 
 /**
@@ -372,7 +386,8 @@ static void _ct_on ( void )
  */
 static void _ct_off ( void )
 {
-  HAL_GPIO_WritePin (CT_FET_GPIO_Port, CT_FET_Pin, GPIO_PIN_RESET);
+  gpio_write_pin (ct_self->pwr_fet, GPIO_PIN_RESET);
+  gpio_write_pin (ct_self->rs232_forceoff, GPIO_PIN_RESET);
 }
 
 static void __reset_ct_struct_fields ( void )

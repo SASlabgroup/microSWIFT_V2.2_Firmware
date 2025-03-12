@@ -29,7 +29,7 @@ extern "C" {
 #include "main.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "stdbool.h"
 /* USER CODE END Includes */
 
 /* USER CODE BEGIN Private defines */
@@ -40,9 +40,11 @@ typedef struct
 } gpio_pin_struct;
 /* USER CODE END Private defines */
 
-void MX_GPIO_Init(void);
+void MX_GPIO_Init ( void );
 
 /* USER CODE BEGIN Prototypes */
+void configure_iridium_onoff_pin ( bool v3f );
+
 static inline GPIO_PinState gpio_read_pin ( gpio_pin_struct pin )
 {
   return HAL_GPIO_ReadPin (pin.port, pin.pin);

@@ -26,7 +26,6 @@ int32_t watchdog_init ( watchdog_handle wd_handle, TX_EVENT_FLAGS_GROUP *watchdo
   wd_handle->temperature_active = false;
   wd_handle->light_active = false;
   wd_handle->turbidity_active = false;
-  wd_handle->accelerometer_active = false;
   wd_handle->waves_active = false;
   wd_handle->iridium_active = false;
   wd_handle->filex_active = false;
@@ -72,11 +71,6 @@ void watchdog_event_callback ( TX_EVENT_FLAGS_GROUP *flags_group_ptr )
   if ( hidden_handle->turbidity_active )
   {
     required_flags |= TURBIDITY_THREAD;
-  }
-
-  if ( hidden_handle->accelerometer_active )
-  {
-    required_flags |= ACCELEROMETER_THREAD;
   }
 
   if ( hidden_handle->waves_active )
@@ -151,10 +145,6 @@ void watchdog_register_thread ( enum watchdog_thread_flags which_thread )
       hidden_handle->turbidity_active = true;
       break;
 
-    case ACCELEROMETER_THREAD:
-      hidden_handle->accelerometer_active = true;
-      break;
-
     case WAVES_THREAD:
       hidden_handle->waves_active = true;
       break;
@@ -168,7 +158,7 @@ void watchdog_register_thread ( enum watchdog_thread_flags which_thread )
       break;
 
     default:
-      LOG ("Invalid arg supplied to watchdog_register_thread().");
+      LOG("Invalid arg supplied to watchdog_register_thread().");
       break;
   }
 }
@@ -197,10 +187,6 @@ void watchdog_deregister_thread ( enum watchdog_thread_flags which_thread )
       hidden_handle->turbidity_active = false;
       break;
 
-    case ACCELEROMETER_THREAD:
-      hidden_handle->accelerometer_active = false;
-      break;
-
     case WAVES_THREAD:
       hidden_handle->waves_active = false;
       break;
@@ -214,7 +200,7 @@ void watchdog_deregister_thread ( enum watchdog_thread_flags which_thread )
       break;
 
     default:
-      LOG ("Invalid arg supplied to watchdog_deregister_thread().");
+      LOG("Invalid arg supplied to watchdog_deregister_thread().");
       break;
   }
 }

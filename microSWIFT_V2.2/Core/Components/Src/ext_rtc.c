@@ -60,8 +60,6 @@ uSWIFT_return_code_t ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_
   rtc_self->spi_sema = rtc_spi_sema;
 
   // Int A is connected to nRST through a logic OR gate
-  rtc_self->int_a_pin.port = 0U;
-  rtc_self->int_a_pin.pin = 0U;
   rtc_self->int_b_pin.port = RTC_INT_B_GPIO_Port;
   rtc_self->int_b_pin.pin = RTC_INT_B_Pin;
 

@@ -10,12 +10,14 @@
 #include "persistent_ram.h"
 #include "app_threadx.h"
 #include "main.h"
+#include "battery.h"
+#include "sdmmc.h"
 
 void Error_Handler ( void )
 {
-  __disable_irq ();
+  safe_mode ();
 
-  safe_mode (true);
+  __disable_irq ();
 
   persistent_ram_deinit ();
 
@@ -25,8 +27,9 @@ void Error_Handler ( void )
   }
 }
 
-void safe_mode ( bool use_hal_delay )
+void safe_mode ( void )
 {
+  int i, j;
   // Shut down all interfaces
   (void) i2c2_deinit ();
   (void) octospi1_deinit ();
@@ -38,6 +41,7 @@ void safe_mode ( bool use_hal_delay )
   (void) usart2_deinit ();
   (void) usart3_deinit ();
   (void) uart4_deinit ();
+  (void) battery_deinit ();
 
   // Turn everything off
   HAL_GPIO_WritePin (CT_FET_GPIO_Port, CT_FET_Pin, GPIO_PIN_RESET);
@@ -47,19 +51,16 @@ void safe_mode ( bool use_hal_delay )
   HAL_GPIO_WritePin (SD_CARD_FET_GPIO_Port, SD_CARD_FET_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin (RS232_FORCEOFF_GPIO_Port, RS232_FORCEOFF_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin (LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin (LED_RED_GPIO_Port, LED_RED_PinLED_RED_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin (TEMPERATURE_FET_GPIO_Port, TEMPERATURE_FET_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin (LIGHT_FET_GPIO_Port, LIGHT_FET_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin (RTC_WDOG_OR_INPUT_GPIO_Port, RTC_WDOG_OR_INPUT_Pin, GPIO_PIN_RESET);
 
-  // Short delay
-  if ( use_hal_delay )
+  // Short delay with no dependencies
+  for ( i = 0; i < 16000000; i++ )
   {
-    HAL_Delay (10);
-  }
-  else
-  {
-    tx_thread_sleep (10);
+    j = i;
+    i = j;
   }
 }

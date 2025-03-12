@@ -135,6 +135,15 @@ void gnss_deinit ( void )
   HAL_UART_DeInit (gnss_self->gnss_uart_handle);
   HAL_DMA_DeInit (gnss_self->gnss_rx_dma_handle);
   HAL_DMA_DeInit (gnss_self->gnss_tx_dma_handle);
+
+  // Just to be overly sure we don't get an erroneous IRQ
+  HAL_NVIC_ClearPendingIRQ (LPDMA1_Channel0_IRQn);
+  HAL_NVIC_ClearPendingIRQ (LPDMA1_Channel1_IRQn);
+  HAL_NVIC_ClearPendingIRQ (LPUART1_IRQn);
+
+  HAL_NVIC_DisableIRQ (LPDMA1_Channel0_IRQn);
+  HAL_NVIC_DisableIRQ (LPDMA1_Channel1_IRQn);
+  HAL_NVIC_DisableIRQ (LPUART1_IRQn);
 }
 
 /**
@@ -599,12 +608,12 @@ static uSWIFT_return_code_t _gnss_set_rtc ( uint8_t *msg_payload )
 static uSWIFT_return_code_t _gnss_reset_uart ( void )
 {
 
-  if ( usart1_deinit () != UART_OK )
+  if ( lpuart1_deinit () != UART_OK )
   {
     return uSWIFT_IO_ERROR;
   }
 
-  if ( usart1_init () != UART_OK )
+  if ( lpuart1_init () != UART_OK )
   {
     return uSWIFT_IO_ERROR;
   }
@@ -1260,8 +1269,8 @@ static uSWIFT_return_code_t __start_GNSS_UART_DMA ( uint8_t *buffer, size_t msg_
   HAL_DMA_Abort (gnss_self->gnss_rx_dma_handle);
   HAL_DMA_Abort (gnss_self->gnss_tx_dma_handle);
 
-  usart3_deinit ();
-  usart3_init ();
+  lpuart1_deinit ();
+  lpuart1_init ();
 
   hal_return_code = MX_gnss_dma_linked_list_Config ();
 
@@ -1280,26 +1289,13 @@ static uSWIFT_return_code_t __start_GNSS_UART_DMA ( uint8_t *buffer, size_t msg_
 
   tx_thread_sleep (25);
 
-//  while ( counter++ < 25 )
-//  {
   hal_return_code = HAL_UARTEx_ReceiveToIdle_DMA (gnss_self->gnss_uart_handle,
                                                   (uint8_t*) &(buffer[0]), msg_size);
 
   if ( hal_return_code != HAL_OK )
   {
     return_code = uSWIFT_IO_ERROR;
-//      gnss_self->reset_uart ();
   }
-//    else if ( hal_return_code == HAL_OK )
-//    {
-//      __HAL_DMA_DISABLE_IT(gnss_self->gnss_tx_dma_handle, DMA_IT_HT);
-//      __HAL_DMA_DISABLE_IT(gnss_self->gnss_rx_dma_handle, DMA_IT_HT);
-//      return_code = uSWIFT_SUCCESS;
-//      break;
-//    }
-
-//    tx_thread_sleep (3);
-//  }
 
   return return_code;
 }

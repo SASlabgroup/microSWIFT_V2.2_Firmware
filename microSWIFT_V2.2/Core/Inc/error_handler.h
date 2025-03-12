@@ -12,6 +12,6 @@
 #include "tx_api.h"
 
 void Error_Handler ( void );
-void safe_mode ( bool use_hal_delay );
+void safe_mode ( void );
 
 #endif /* INC_ERROR_HANDLER_H_ */

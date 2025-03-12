@@ -29,6 +29,7 @@
 #include "stdbool.h"
 #include "testing_hooks.h"
 #include "octospi.h"
+#include "ext_rtc.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -106,8 +107,6 @@ int main ( void )
     Error_Handler ();
   }
 
-  // Shut down flash bank 2 -- no longer required
-  HAL_FLASHEx_EnablePowerDown (FLASH_BANK_2);
   /* USER CODE END Init */
 
   /* Configure the System Power */
@@ -126,6 +125,11 @@ int main ( void )
   MX_GPDMA1_Init ();
   MX_LPDMA1_Init ();
   /* USER CODE BEGIN 2 */
+
+  configure_iridium_onoff_pin (flash_config.iridium_v3f);
+
+  // Shut down flash bank 2 -- no longer required
+  HAL_FLASHEx_EnablePowerDown (FLASH_BANK_2);
 
   tests_init ();
 

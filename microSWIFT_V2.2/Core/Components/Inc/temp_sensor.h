@@ -41,6 +41,8 @@ typedef struct Temperature
   TX_EVENT_FLAGS_GROUP      *error_flags;
   TX_TIMER                  *timer;
 
+  gpio_pin_struct           pwr_gpio;
+
   bool                      timer_timeout;
 
   float                     samples[TOTAL_TEMPERATURE_SAMPLES];
@@ -50,17 +52,18 @@ typedef struct Temperature
   time_t                    start_timestamp;
   time_t                    stop_timestamp;
 
-  uSWIFT_return_code_t      (*self_test) ( float *optional_reading );
-  uSWIFT_return_code_t      (*get_readings) ( bool get_single_reading, float *temperature );
-  uSWIFT_return_code_t      (*start_timer) ( uint16_t timeout_in_minutes );
-  uSWIFT_return_code_t      (*stop_timer) ( void );
-
   float                     averaged_temp;
   float                     C[8]; // Cal data array
   uint32_t                  D1; // Read data (unconverted temp)
   uint32_t                  adc;
 
-  gpio_pin_struct           pwr_gpio;
+  uSWIFT_return_code_t      (*self_test) ( float *optional_reading );
+  uSWIFT_return_code_t      (*get_readings) ( bool get_single_reading, float *temperature );
+  uSWIFT_return_code_t      (*start_timer) ( uint16_t timeout_in_minutes );
+  uSWIFT_return_code_t      (*stop_timer) ( void );
+  void                      (*on) ( void );
+  void                      (*off) ( void );
+
 } Temperature;
 
 void temperature_init ( Temperature *struct_ptr, microSWIFT_configuration *global_config,

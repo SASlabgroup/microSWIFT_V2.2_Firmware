@@ -84,6 +84,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
+extern Ext_RTC rtc;
 
 // The configuration struct
 microSWIFT_configuration configuration;
@@ -653,7 +654,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   device_handles.gnss_uart_handle = &hlpuart1;
   device_handles.ct_uart_handle = &huart1;
   device_handles.logger_uart_handle = &huart3;
-  device_handles.expansion_uart_handle = &huart2
+  device_handles.expansion_uart_handle = &huart2;
   device_handles.ext_psram_handle = &hospi1;
   device_handles.battery_adc = &hadc1;
   device_handles.gnss_uart_tx_dma_handle = &handle_LPDMA1_Channel1;
@@ -926,11 +927,6 @@ static void logger_thread_entry ( ULONG thread_input )
 
   while ( 1 )
   {
-    // Testing top hat
-    while ( 1 )
-    {
-      tx_thread_sleep (1000);
-    }
 
     tx_ret = tx_queue_receive (&logger_message_queue, &msg, TX_WAIT_FOREVER);
     if ( tx_ret == TX_SUCCESS )
@@ -973,7 +969,8 @@ static void control_thread_entry ( ULONG thread_input )
   UNUSED(thread_input);
   Control control =
     { 0 };
-  struct watchdog_t watchdog;
+  struct watchdog_t watchdog =
+    { 0 };
   bool first_window = is_first_sample_window (), heartbeat_started = false;
   uint32_t watchdog_counter = 0;
   ULONG start_time = 0;
@@ -995,7 +992,7 @@ static void control_thread_entry ( ULONG thread_input )
 
   if ( watchdog_init (&watchdog, &watchdog_check_in_flags) != WATCHDOG_OK )
   {
-    HAL_NVIC_SystemReset ();
+    Error_Handler ();
   }
 
   // Run the self test
@@ -1008,7 +1005,7 @@ static void control_thread_entry ( ULONG thread_input )
       led_light_sequence (TEST_FAILED_LED_SEQUENCE, LED_SEQUENCE_FOREVER);
       tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 30);
 
-      HAL_NVIC_SystemReset ();
+      Error_Handler ();
     }
   }
 
@@ -1044,13 +1041,14 @@ static void control_thread_entry ( ULONG thread_input )
       control.shutdown_procedure ();
     }
 
+    // Once the initial light sequence has finished, start the heartbeat sequence
     if ( ((tx_time_get () - start_time) > (TX_TIMER_TICKS_PER_SECOND * 10)) && !heartbeat_started )
     {
       led_light_sequence (HEARTBEAT_SEQUENCE, LED_SEQUENCE_FOREVER);
       heartbeat_started = true;
     }
 
-    tx_thread_sleep (1);
+    tx_thread_relinquish ();
   }
 
 }
@@ -1088,13 +1086,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   bool two_mins_out_msg_sent = false, start_flag_sent = false;
   uint32_t total_samples = 0;
 
-//  if ( usart2_init () != UART_OK )
-//  {
-//    gnss_error_out (&gnss, GNSS_INIT_FAILED, this_thread, "GNSS UART port failed to initialize.");
-//  }
-
-  // Testing tophat
-  if ( usart3_init () != UART_OK )
+  if ( lpuart1_init () != UART_OK )
   {
     gnss_error_out (&gnss, GNSS_INIT_FAILED, this_thread, "GNSS UART port failed to initialize.");
   }
@@ -1269,7 +1261,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   sbd_port = *((uint8_t*) &configuration.firmware_version);
   memcpy (&sbd_message.port, &sbd_port, sizeof(uint8_t));
 
-  // Deinit -- this will shut down UART port and DMa channels
+  // Deinit -- this will shut down UART port and DMA channels
   gnss_deinit ();
 
   watchdog_check_in (GNSS_THREAD);
@@ -1463,6 +1455,8 @@ static void temperature_thread_entry ( ULONG thread_input )
 
   temperature_init (&temperature, &configuration, &error_flags, &temperature_timer, true);
 
+  temperature.on ();
+
   //
   // Run tests if needed
   if ( tests.temperature_thread_test != NULL )
@@ -1479,6 +1473,9 @@ static void temperature_thread_entry ( ULONG thread_input )
   LOG("Temperature initialization complete. Temp = %.1f degC, %.1f degF.", self_test_reading,
       ((self_test_reading * 9) / 5) + 32);
   (void) tx_event_flags_set (&initialization_flags, TEMPERATURE_INIT_SUCCESS, TX_OR);
+
+  // No need to turn off temperature sensor, it automatically enters standby mode when not actively
+  // taking a measurement and the FET dissipates far more power than the sensor in standby mode.
 
   tx_thread_suspend (this_thread);
 
@@ -1518,6 +1515,7 @@ static void temperature_thread_entry ( ULONG thread_input )
   half_temp = floatToHalf (sampling_reading);
 
   temperature.stop_timer ();
+  temperature.off ();
 
   memcpy (&sbd_message.mean_temp, &half_temp, sizeof(real16_T));
 
@@ -1555,9 +1553,6 @@ static void light_thread_entry ( ULONG thread_input )
   light_raw_counts raw_counts;
   light_basic_counts basic_counts;
   int32_t light_thread_timeout = get_gnss_sample_window_timeout (&configuration); // Same timeout as GNSS
-  struct tm time_struct =
-    { 0 };
-  time_t time_now = 0;
 
   light_sensor_init (&light, &configuration, &(light_sensor_sample_buffer[0]), &light_timer);
 
@@ -1597,7 +1592,6 @@ static void light_thread_entry ( ULONG thread_input )
   (void) tx_event_flags_set (&initialization_flags, LIGHT_INIT_SUCCESS, TX_OR);
 
   light.idle ();
-  light.off ();
   tx_thread_suspend (this_thread);
 
   /******************************* Control thread resumes this thread *****************************/
@@ -1605,7 +1599,6 @@ static void light_thread_entry ( ULONG thread_input )
   watchdog_register_thread (LIGHT_THREAD);
   watchdog_check_in (LIGHT_THREAD);
 
-  light.on ();
   tx_thread_sleep (1);
   light.standby ();
 
@@ -1682,13 +1675,12 @@ static void turbidity_thread_entry ( ULONG thread_input )
   sbd_message_type_53_element sbd_msg_element =
     { 0 };
   int32_t turbidity_thread_timeout = get_gnss_sample_window_timeout (&configuration); // Same timeout as GNSS
-  struct tm time_struct =
-    { 0 };
-  time_t time_now = 0;
 
   turbidity_sensor_init (&obs, &configuration, &turbidity_timer,
                          &turbidity_sensor_ambient_buffer[0],
                          &turbidity_sensor_proximity_buffer[0]);
+
+  obs.on ();
 
   tx_thread_sleep (10);
 
@@ -1757,7 +1749,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND - (tx_time_get () % TX_TIMER_TICKS_PER_SECOND));
   }
 
-  obs.idle ();
+  obs.off ();
 
   gnss_get_current_lat_lon (&obs.end_lat, &obs.end_lon);
 
@@ -1879,9 +1871,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   TX_THREAD *this_thread = &iridium_thread;
   Iridium iridium =
     { 0 };
-  uSWIFT_return_code_t iridium_return_code = uSWIFT_SUCCESS;
   int32_t iridium_thread_timeout = configuration.iridium_max_transmit_time;
-  UINT tx_return;
   char ascii_7 = '7';
   uint8_t sbd_type = 52;
   uint16_t sbd_size = 327;

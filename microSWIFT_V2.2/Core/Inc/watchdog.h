@@ -25,10 +25,9 @@ enum watchdog_thread_flags
   TEMPERATURE_THREAD   = ((ULONG) 1 << 3),
   LIGHT_THREAD         = ((ULONG) 1 << 4),
   TURBIDITY_THREAD     = ((ULONG) 1 << 5),
-  ACCELEROMETER_THREAD = ((ULONG) 1 << 6),
-  WAVES_THREAD         = ((ULONG) 1 << 7),
-  IRIDIUM_THREAD       = ((ULONG) 1 << 8),
-  FILEX_THREAD         = ((ULONG) 1 << 9)
+  WAVES_THREAD         = ((ULONG) 1 << 6),
+  IRIDIUM_THREAD       = ((ULONG) 1 << 7),
+  FILEX_THREAD         = ((ULONG) 1 << 8)
 };
 
 struct watchdog_t
@@ -40,7 +39,6 @@ struct watchdog_t
   bool                  temperature_active;
   bool                  light_active;
   bool                  turbidity_active;
-  bool                  accelerometer_active;
   bool                  waves_active;
   bool                  iridium_active;
   bool                  filex_active;

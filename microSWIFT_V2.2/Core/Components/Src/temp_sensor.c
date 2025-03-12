@@ -27,6 +27,8 @@ static uSWIFT_return_code_t _temperature_self_test ( float *optional_reading );
 static uSWIFT_return_code_t _temperature_get_readings ( bool get_single_reading, float *temperature );
 static uSWIFT_return_code_t _temperature_start_timer ( uint16_t timeout_in_minutes );
 static uSWIFT_return_code_t _temperature_stop_timer ( void );
+static void                 _temperature_on ( void );
+static void                 _temperature_off ( void );
 // Interface IO functions
 static uSWIFT_return_code_t _temperature_i2c_read ( uint8_t dev_addr, uint8_t reg_addr, uint8_t *read_buf, uint16_t size );
 static uSWIFT_return_code_t _temperature_i2c_write( uint8_t dev_addr, uint8_t reg_addr, uint8_t *write_buf, uint16_t size );
@@ -47,10 +49,15 @@ void temperature_init ( Temperature *struct_ptr, microSWIFT_configuration *globa
   temperature_self->error_flags = error_flags;
   temperature_self->timer = timer;
 
+  temperature_self->pwr_gpio.port = TEMPERATURE_FET_GPIO_Port;
+  temperature_self->pwr_gpio.pin = TEMPERATURE_FET_Pin;
+
   temperature_self->self_test = _temperature_self_test;
   temperature_self->get_readings = _temperature_get_readings;
   temperature_self->start_timer = _temperature_start_timer;
   temperature_self->stop_timer = _temperature_stop_timer;
+  temperature_self->on = _temperature_on;
+  temperature_self->off = _temperature_off;
 
   __reset_struct_fields (clear_calibration_data);
 }
@@ -160,6 +167,16 @@ static uSWIFT_return_code_t _temperature_stop_timer ( void )
 {
   return (tx_timer_deactivate (temperature_self->timer) == TX_SUCCESS) ?
       uSWIFT_SUCCESS : uSWIFT_TIMER_ERROR;
+}
+
+static void _temperature_on ( void )
+{
+  gpio_write_pin (temperature_self->pwr_gpio, GPIO_PIN_SET);
+}
+
+static void _temperature_off ( void )
+{
+  gpio_write_pin (temperature_self->pwr_gpio, GPIO_PIN_RESET);
 }
 
 static uSWIFT_return_code_t __init_sensor ( void )

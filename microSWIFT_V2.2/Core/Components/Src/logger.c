@@ -17,20 +17,13 @@
 
 static uart_logger *logger_self;
 
-const char *rtc_err_str = "RTC ERROR";
-
 static UINT _logger_get_buffer ( log_line_buf **line_buf );
 static void _logger_send_log_line ( log_line_buf *buf, size_t strlen );
-
-static void __reset_uart ( void );
 
 void uart_logger_init ( uart_logger *logger, TX_BLOCK_POOL *block_pool, TX_QUEUE *msg_que,
                         TX_MUTEX *mutex, UART_HandleTypeDef *uart_handle )
 {
   logger_self = logger;
-
-  logger_self->enable_pin.port = UART_LOGGER_EN_GPIO_Port;
-  logger_self->enable_pin.pin = UART_LOGGER_EN_Pin;
 
   logger_self->block_pool = block_pool;
   logger_self->msg_que = msg_que;
@@ -38,20 +31,12 @@ void uart_logger_init ( uart_logger *logger, TX_BLOCK_POOL *block_pool, TX_QUEUE
   logger_self->uart = uart_handle;
   logger_self->send_log_line = _logger_send_log_line;
 
-  // If the enable pin is being pulled to ground, enable the logger
-  if ( HAL_GPIO_ReadPin (logger_self->enable_pin.port, logger_self->enable_pin.pin)
-       == GPIO_PIN_RESET )
-  {
-    logger_self->logger_enabled = usart3_init () == UART_OK;
-  }
-  else
-  {
-    logger_self->logger_enabled = false;
-  }
+  (void) usart3_init ();
 }
 
 void uart_log ( const char *fmt, ... )
 {
+  // All threads have access to this
   if ( tx_mutex_get (logger_self->lock, MUTEX_LOCK_TICKS) != TX_SUCCESS )
   {
     return;
@@ -102,19 +87,10 @@ static UINT _logger_get_buffer ( log_line_buf **line_buf )
 
 static void _logger_send_log_line ( log_line_buf *buf, size_t strlen )
 {
-  if ( logger_self->logger_enabled )
-  {
-    HAL_UART_Transmit_DMA (logger_self->uart, (uint8_t*) &(buf->line_buf[0]), strlen);
-  }
+  (void) HAL_UART_Transmit_DMA (logger_self->uart, (uint8_t*) &(buf->line_buf[0]), strlen);
 }
 
 void uart_logger_return_line_buf ( log_line_buf *buffer )
 {
   (void) tx_block_release ((VOID*) buffer);
-}
-
-static void __reset_uart ( void )
-{
-  usart6_deinit ();
-  usart6_init ();
 }
