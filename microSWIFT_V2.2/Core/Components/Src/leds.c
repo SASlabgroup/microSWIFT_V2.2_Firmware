@@ -15,10 +15,10 @@ void leds_init ( LEDs *struct_ptr, TX_TIMER *led_duration_timer, TX_QUEUE *led_q
 {
   led_self = struct_ptr;
 
-  led_self->red_led.pin = EXT_LED_RED_Pin;
-  led_self->red_led.port = EXT_LED_RED_GPIO_Port;
-  led_self->green_led.pin = EXT_LED_GREEN_Pin;
-  led_self->green_led.port = EXT_LED_GREEN_GPIO_Port;
+  led_self->red_led.pin = LED_RED_Pin;
+  led_self->red_led.port = LED_RED_GPIO_Port;
+  led_self->green_led.pin = LED_GREEN_Pin;
+  led_self->green_led.port = LED_GREEN_GPIO_Port;
 
   led_self->duration_timer = led_duration_timer;
   led_self->led_queue = led_queue;

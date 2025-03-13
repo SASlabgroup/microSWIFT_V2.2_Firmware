@@ -73,7 +73,6 @@ typedef struct Iridium
   uint8_t                   response_buffer[IRIDIUM_MAX_RESPONSE_SIZE];
 
   gpio_pin_struct           bus_5v_fet;
-  gpio_pin_struct           pwr_pin;
   gpio_pin_struct           sleep_pin;
 
 

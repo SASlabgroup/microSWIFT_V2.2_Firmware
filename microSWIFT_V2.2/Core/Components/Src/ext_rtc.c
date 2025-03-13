@@ -232,8 +232,6 @@ static uSWIFT_return_code_t _ext_rtc_config_watchdog ( uint32_t period_ms )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   watchdog_time_source_t clock_select;
-  pcf2131_irq_config_struct irq_config =
-    { 0 };
 
   // We'll establish a minimum refresh interval of 10 seconds
   if ( (period_ms < RTC_WATCHDOG_MIN_REFRESH) || (period_ms > PCF2131_1_64HZ_CLK_MAX_PERIOD_MS) )

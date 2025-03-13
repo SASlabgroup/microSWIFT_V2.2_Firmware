@@ -39,7 +39,7 @@ void shared_i2c_server_init ( TX_QUEUE *i2c_queue, TX_EVENT_FLAGS_GROUP *operati
 
 bool shared_i2c_deinit ( void )
 {
-  return (i2c_deinit () == I2C_OK);
+  return (i2c2_deinit () == I2C_OK);
 }
 
 uSWIFT_return_code_t shared_i2c_read ( uint8_t dev_addr, uint8_t dev_reg,

@@ -907,7 +907,10 @@ static void i2c_bus_thread_entry ( ULONG thread_input )
  ***************************************************************************************************
  ***************************************************************************************************
  * @brief  Logger thread entry
- *         Logs all system messages to UART port
+ *         Logs all system messages to Virtual Com Port (VCP). Logs are also passed down to the file
+ *         system to be written to the SD card.
+ *         !! Logging return codes are not checked and any function is allowed to fail silently,
+ *            such that the logging functionality cannot crash the system or create a bottleneck. !!
  * @param  ULONG thread_input - unused
  * @retval void
  */
@@ -960,7 +963,7 @@ static void logger_thread_entry ( ULONG thread_input )
  ***************************************************************************************************
  ***************************************************************************************************
  * @brief  Control thread entry
- *         Primary control thread, manages all other threads and meta state
+ *         Primary control thread, manages all other threads and meta state.
  * @param  ULONG thread_input - unused
  * @retval void
  */

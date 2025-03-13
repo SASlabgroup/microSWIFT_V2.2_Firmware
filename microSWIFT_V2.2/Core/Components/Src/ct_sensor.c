@@ -6,6 +6,7 @@
  */
 
 #include "app_threadx.h"
+#include "ext_rtc_server.h"
 #include "tx_api.h"
 #include "main.h"
 #include "generic_uart_driver.h"

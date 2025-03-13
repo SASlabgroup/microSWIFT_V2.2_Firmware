@@ -49,8 +49,8 @@ static void                  __cycle_power ( void );
 static void                  __reset_uart ( void );
 static int32_t               __uart_read_dma ( void *driver_ptr, uint8_t *read_buf, uint16_t size, uint32_t timeout_ticks );
 static int32_t               __uart_write_dma ( void *driver_ptr, uint8_t *write_buf, uint16_t size, uint32_t timeout_ticks );
-static int32_t               __uart_read_it ( void *driver_ptr, uint8_t *read_buf, uint16_t size, uint32_t timeout_ticks );
-static int32_t               __uart_write_it ( void *driver_ptr, uint8_t *write_buf, uint16_t size, uint32_t timeout_ticks );
+//static int32_t               __uart_read_it ( void *driver_ptr, uint8_t *read_buf, uint16_t size, uint32_t timeout_ticks );
+//static int32_t               __uart_write_it ( void *driver_ptr, uint8_t *write_buf, uint16_t size, uint32_t timeout_ticks );
 
 // AT commands
 static const char *ack                          = "AT\r";
@@ -85,8 +85,6 @@ void iridium_init ( Iridium *struct_ptr, microSWIFT_configuration *global_config
 
   iridium_self->bus_5v_fet.port = BUS_5V_FET_GPIO_Port;
   iridium_self->bus_5v_fet.pin = BUS_5V_FET_Pin;
-  iridium_self->pwr_pin.port = IRIDIUM_FET_GPIO_Port;
-  iridium_self->pwr_pin.pin = IRIDIUM_FET_Pin;
   iridium_self->sleep_pin.port = IRIDIUM_OnOff_GPIO_Port;
   iridium_self->sleep_pin.pin = IRIDIUM_OnOff_Pin;
 
@@ -299,8 +297,6 @@ static void _iridium_wake ( void )
 static void _iridium_on ( void )
 {
   HAL_GPIO_WritePin (iridium_self->bus_5v_fet.port, iridium_self->bus_5v_fet.pin, GPIO_PIN_SET);
-  tx_thread_sleep (1);
-  HAL_GPIO_WritePin (iridium_self->pwr_pin.port, iridium_self->pwr_pin.pin, GPIO_PIN_SET);
 }
 
 /**
@@ -309,8 +305,6 @@ static void _iridium_on ( void )
  */
 static void _iridium_off ( void )
 {
-  HAL_GPIO_WritePin (iridium_self->pwr_pin.port, iridium_self->pwr_pin.pin, GPIO_PIN_RESET);
-  tx_thread_sleep (1);
   HAL_GPIO_WritePin (iridium_self->bus_5v_fet.port, iridium_self->bus_5v_fet.pin, GPIO_PIN_RESET);
 }
 
@@ -322,7 +316,6 @@ static uSWIFT_return_code_t __send_basic_command_message ( const char *command,
                                                            uint8_t response_size )
 {
   char *needle;
-  ULONG actual_flags;
 
   memset (&(iridium_self->response_buffer[0]), 0, IRIDIUM_MAX_RESPONSE_SIZE);
 
@@ -354,15 +347,13 @@ static uSWIFT_return_code_t __send_basic_command_message ( const char *command,
 static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint16_t payload_size )
 {
   uSWIFT_return_code_t return_code = uSWIFT_TIMEOUT;
-  ULONG actual_flags;
   iridium_checksum_t checksum;
   char *needle;
   char *sbdix_search_term = "+SBDIX: ";
   char payload_size_str[4];
   char load_sbd[15] = "AT+SBDWB=";
   char SBDWB_response_code;
-  int SBDIX_response_code, fail_counter, tx_response_time, max_retries = 10;
-  bool message_response_received;
+  int SBDIX_response_code;
 
   // Assemble the load_sbd string
   itoa (payload_size, payload_size_str, 10);
@@ -377,9 +368,6 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
     {
       return return_code;
     }
-
-    message_response_received = false;
-    tx_response_time = 0;
 
     // get the checksum
     checksum = __get_checksum ((uint8_t*) payload, payload_size);
@@ -618,41 +606,41 @@ static int32_t __uart_write_dma ( void *driver_ptr, uint8_t *write_buf, uint16_t
   return UART_OK;
 }
 
-static int32_t __uart_read_it ( void *driver_ptr, uint8_t *read_buf, uint16_t size,
-                                uint32_t timeout_ticks )
-{
-  generic_uart_driver *driver_handle = (generic_uart_driver*) driver_ptr;
-
-  if ( HAL_UART_Receive_IT (driver_handle->uart_handle, read_buf, size) != HAL_OK )
-  {
-    return UART_ERR;
-  }
-
-  if ( tx_semaphore_get (driver_handle->uart_sema, timeout_ticks) != TX_SUCCESS )
-  {
-    HAL_UART_Abort (driver_handle->uart_handle);
-    return UART_ERR;
-  }
-
-  return UART_OK;
-}
-
-static int32_t __uart_write_it ( void *driver_ptr, uint8_t *write_buf, uint16_t size,
-                                 uint32_t timeout_ticks )
-{
-  generic_uart_driver *driver_handle = (generic_uart_driver*) driver_ptr;
-
-  if ( HAL_UART_Transmit_IT (driver_handle->uart_handle, write_buf, size) != HAL_OK )
-  {
-    return UART_ERR;
-  }
-
-  if ( tx_semaphore_get (driver_handle->uart_sema, timeout_ticks) != TX_SUCCESS )
-  {
-    HAL_UART_Abort (driver_handle->uart_handle);
-    return UART_ERR;
-  }
-
-  return UART_OK;
-}
+//static int32_t __uart_read_it ( void *driver_ptr, uint8_t *read_buf, uint16_t size,
+//                                uint32_t timeout_ticks )
+//{
+//  generic_uart_driver *driver_handle = (generic_uart_driver*) driver_ptr;
+//
+//  if ( HAL_UART_Receive_IT (driver_handle->uart_handle, read_buf, size) != HAL_OK )
+//  {
+//    return UART_ERR;
+//  }
+//
+//  if ( tx_semaphore_get (driver_handle->uart_sema, timeout_ticks) != TX_SUCCESS )
+//  {
+//    HAL_UART_Abort (driver_handle->uart_handle);
+//    return UART_ERR;
+//  }
+//
+//  return UART_OK;
+//}
+//
+//static int32_t __uart_write_it ( void *driver_ptr, uint8_t *write_buf, uint16_t size,
+//                                 uint32_t timeout_ticks )
+//{
+//  generic_uart_driver *driver_handle = (generic_uart_driver*) driver_ptr;
+//
+//  if ( HAL_UART_Transmit_IT (driver_handle->uart_handle, write_buf, size) != HAL_OK )
+//  {
+//    return UART_ERR;
+//  }
+//
+//  if ( tx_semaphore_get (driver_handle->uart_sema, timeout_ticks) != TX_SUCCESS )
+//  {
+//    HAL_UART_Abort (driver_handle->uart_handle);
+//    return UART_ERR;
+//  }
+//
+//  return UART_OK;
+//}
 

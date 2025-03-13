@@ -6,6 +6,7 @@
  */
 
 #include "light_sensor.h"
+#include "ext_rtc_server.h"
 #include "gpio.h"
 #include "tx_api.h"
 #include "i2c.h"
@@ -15,7 +16,6 @@
 
 // @formatter:off
 static Light_Sensor *light_self;
-//static as7341_gpio_int_struct gpio_struct;
 
 // Struct functions
 static uSWIFT_return_code_t _light_sensor_self_test (void);

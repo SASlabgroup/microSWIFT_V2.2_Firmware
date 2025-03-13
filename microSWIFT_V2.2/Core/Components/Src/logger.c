@@ -36,7 +36,7 @@ void uart_logger_init ( uart_logger *logger, TX_BLOCK_POOL *block_pool, TX_QUEUE
 
 void uart_log ( const char *fmt, ... )
 {
-  // All threads have access to this
+  // All threads have access to this function concurrently, need mutual exclusion
   if ( tx_mutex_get (logger_self->lock, MUTEX_LOCK_TICKS) != TX_SUCCESS )
   {
     return;

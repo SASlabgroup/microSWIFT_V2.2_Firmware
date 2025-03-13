@@ -36,7 +36,6 @@ static uSWIFT_return_code_t _temperature_i2c_write( uint8_t dev_addr, uint8_t re
 static uSWIFT_return_code_t __init_sensor ( void );
 static float                __calculate_temp ( void );
 static void                 __reset_struct_fields ( bool reset_calibration );
-static time_t               __get_timestamp ( void );
 // @formatter:on
 
 void temperature_init ( Temperature *struct_ptr, microSWIFT_configuration *global_config,
@@ -257,25 +256,6 @@ static uSWIFT_return_code_t _temperature_i2c_write ( uint8_t dev_addr, uint8_t r
                                                      uint8_t *write_buf, uint16_t size )
 {
   return shared_i2c_write (dev_addr, reg_addr, write_buf, size, TEMPERATURE_REQUEST_PROCESSED);
-}
-
-/**
- * Helper method to generate a timestamp from the RTC.
- *
- * @return timestamp as time_t
- */
-static time_t __get_timestamp ( void )
-{
-  uSWIFT_return_code_t rtc_ret = uSWIFT_SUCCESS;
-  struct tm time;
-
-  rtc_ret = rtc_server_get_time (&time, TEMPERATURE_REQUEST_PROCESSED);
-  if ( rtc_ret != uSWIFT_SUCCESS )
-  {
-    return -1;
-  }
-
-  return mktime (&time);
 }
 
 // @formatter:on

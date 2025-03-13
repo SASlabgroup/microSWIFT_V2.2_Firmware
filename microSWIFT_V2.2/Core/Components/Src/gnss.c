@@ -6,7 +6,7 @@
  *
  */
 
-#include <ext_rtc_server.h>
+#include "ext_rtc_server.h"
 #include "gnss.h"
 #include "byte_array.h"
 #include "app_threadx.h"
@@ -1262,7 +1262,6 @@ static uSWIFT_return_code_t __start_GNSS_UART_DMA ( uint8_t *buffer, size_t msg_
 {
   uSWIFT_return_code_t return_code = uSWIFT_SUCCESS;
   HAL_StatusTypeDef hal_return_code = HAL_OK;
-  uint32_t counter = 0;
 
   memset (&(buffer[0]), 0, UBX_MESSAGE_SIZE * 2);
 

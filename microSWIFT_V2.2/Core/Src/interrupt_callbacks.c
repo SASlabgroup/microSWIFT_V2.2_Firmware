@@ -235,13 +235,14 @@ void HAL_GPIO_EXTI_Rising_Callback ( uint16_t GPIO_Pin )
  */
 void HAL_GPIO_EXTI_Falling_Callback ( uint16_t GPIO_Pin )
 {
-#warning "Probably remove these in final version"
-  if ( GPIO_Pin == RTC_INT_B_Pin )
-  {
-#ifdef DEBUG
-    __asm__("BKPT");
-#endif
-  }
+  UNUSED(GPIO_Pin);
+//#warning "Probably remove these in final version"
+//  if ( GPIO_Pin == RTC_INT_B_Pin )
+//  {
+//#ifdef DEBUG
+//    __asm__("BKPT");
+//#endif
+//  }
 }
 
 /**
