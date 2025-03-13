@@ -6,8 +6,10 @@ Busses
 ****
 - SPI1:= 	 	Core SPI bus
        		 	-> RTC
+
+- SPI2
        		
-- I2C1:=	 	Core I2C bus
+- I2C2:=	 	Core I2C bus
 			 	-> Light Sensor
 			 	-> Turbidity
 			 	-> Temperature
@@ -31,12 +33,12 @@ Busses
 General
 *******
 
-[ ] !! Go through ALL pin and port assignments.
+[ ] !!!!!!! Refactor RTC alarm setting with duty cycle !!!!!!!
+[x] Go through ALL pin and port assignments.
 	[x] Ensure device_handles assignments are correct
-	[ ] Ensure all port macros and non-generated functions are correct
+	[x] Ensure all port macros and non-generated functions are correct
 [ ] Ensure all unrecoverable errors call Error_Handler();
 [x] Ensure all interrupt handlers are covered, including default_handler
-[ ] Refactor RTC alarm setting with duty cycle
 [x] Make a common return code for EVERYTHING (close enough).
 	[x] Ensure all functions return an uSWIFT_return_code_t
 [x] !!!! Fix all timing instances of TX calls to use 
@@ -65,7 +67,7 @@ General
 ****************************************************************************************************
 Control
 *******
-[x] !!!!Figure out the control flow if GNSS is unable to get a fix
+[ ] !!!!Figure out the control flow if GNSS is unable to get a fix
 	[x] Light and OBS won't be able to complete their messages
 	[x] Most likely just want to quit at this point...
 [x] Figure out how to identify first time power on and subsequent power on.
@@ -135,7 +137,7 @@ Iridium
 CT
 **
 
-[ ] Add fet pin and on/off
+[x] Add fet pin and on/off
 [x] Store all samples taken in a series and pass down to file system for saving
 [x] Move buffers to inside CT struct
 [x] Switch over to generic UART driver
@@ -144,7 +146,7 @@ CT
 Temperature
 ************
 
-[ ] Add fet pin and on/off
+[x] Add fet pin and on/off
 [x] Store all samples taken in a series and pass down to file system for saving
 [x] Move buffers to inside Temperature struct
 [x] Rework I2C and figure out how to share bus
@@ -169,7 +171,7 @@ Light
 OBS
 ***
 
-[ ] Add fet pin and on/off
+[x] Add fet pin and on/off
 [x] Remove GPIO requirements -- do everything via polling on I2C
 [x] Rework I2C and figure out how to share bus
 [x] Track timestamps for start/stop times
@@ -197,7 +199,7 @@ ThreadX
 Logger
 ******
 
-[ ] Figure out how to return early if not enabled/ errored
+[x] Figure out how to return early if errored
 [x] Make a utility to pass all logs down to FileX
 [x] Initialize in control, set the configuration flag if it is enabled
 	[x] It has its own thread and event loop

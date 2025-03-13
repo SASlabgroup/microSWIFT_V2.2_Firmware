@@ -50,8 +50,8 @@ static uint8_t __weekday_from_date ( int y, int m, int d );
 uSWIFT_return_code_t ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus,
                                     TX_SEMAPHORE *rtc_spi_sema )
 {
-  uSWIFT_return_code_t ret;
-  uint8_t register_read = 0;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
+
   // Grab the global struct pointer
   rtc_self = struct_ptr;
 
@@ -130,20 +130,6 @@ uSWIFT_return_code_t ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_
     return uSWIFT_IO_ERROR;
   }
 
-  // Software reset the RTC
-  if ( pcf2131_software_reset (&rtc_self->dev_ctx) != PCF2131_OK )
-  {
-    return uSWIFT_IO_ERROR;
-  }
-
-  // read the Software Reset register to see if the bit pattern matches default
-  ret = rtc_self->dev_ctx.bus_read (NULL, 0, RESET_REG_ADDR, &register_read, 1);
-
-  if ( ret != PCF2131_OK || register_read != RESET_REG_RESET_VAL )
-  {
-    return uSWIFT_IO_ERROR;
-  }
-
   return ret;
 }
 
@@ -155,6 +141,28 @@ uSWIFT_return_code_t ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_
 static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
+  uint8_t register_read = 0;
+
+  // Perform OTP refresh, only on first start
+  if ( is_first_sample_window () )
+  {
+    ret = pcf2131_perform_otp_refresh (&rtc_self->dev_ctx);
+    if ( ret != PCF2131_OK )
+    {
+      return uSWIFT_IO_ERROR;
+    }
+  }
+
+  // Clear POR bit -- just a precaution
+  ret = pcf2131_poro_config (&rtc_self->dev_ctx, false);
+
+  // Read the Software Reset register to see if the bit pattern matches default
+  ret = rtc_self->dev_ctx.bus_read (NULL, 0, RESET_REG_ADDR, &register_read, 1);
+
+  if ( ret != PCF2131_OK || register_read != RESET_REG_RESET_VAL )
+  {
+    return uSWIFT_IO_ERROR;
+  }
 
   // Clear all flags (including watchdog flag if it was active)
   ret = rtc_self->clear_flag (ALL_RTC_FLAGS);
@@ -197,7 +205,7 @@ static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
   {
     ret |= pcf2131_set_timestamp_enable (&rtc_self->dev_ctx, (pcf2131_timestamp_t) i, true);
     ret |= pcf2131_set_timestamp_store_option (&rtc_self->dev_ctx, (pcf2131_timestamp_t) i,
-                                               FIRST_EVENT_STORED);
+                                               LAST_EVENT_STORED);
   }
 
   ret |= pcf2131_clear_timestamps (&rtc_self->dev_ctx);
@@ -205,19 +213,6 @@ static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
   {
     return uSWIFT_IO_ERROR;
   }
-
-  // Perform OTP refresh, only on first start
-  if ( is_first_sample_window () )
-  {
-    ret = pcf2131_perform_otp_refresh (&rtc_self->dev_ctx);
-    if ( ret != PCF2131_OK )
-    {
-      return uSWIFT_IO_ERROR;
-    }
-  }
-
-  // Clear POR bit -- crystal should be plenty good by now
-  ret = pcf2131_por_config (&rtc_self->dev_ctx, false);
 
   return ret;
 }

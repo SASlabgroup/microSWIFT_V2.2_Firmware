@@ -1524,8 +1524,8 @@ int32_t pcf2131_get_alarm ( dev_ctx_t *dev_handle, rtc_alarm_struct *return_alar
 int32_t pcf2131_config_interrupts ( dev_ctx_t *dev_handle, pcf2131_irq_config_struct *irq_config );
 int32_t pcf2131_config_int_signal_behavior ( dev_ctx_t *dev_handle, int_signal_behavior_t behavior );
 int32_t pcf2131_set_timestamp_enable ( dev_ctx_t *dev_handle, pcf2131_timestamp_t which_timestamp,
-bool enable );
-int32_t pcf2131_por_config ( dev_ctx_t *dev_handle, bool en );
+                                       bool enable );
+int32_t pcf2131_poro_config ( dev_ctx_t *dev_handle, bool en );
 int32_t pcf2131_set_timestamp_store_option ( dev_ctx_t *dev_handle,
                                              pcf2131_timestamp_t which_timestamp,
                                              timestamp_subsequent_event_t option );
@@ -1547,7 +1547,7 @@ int32_t pcf2131_clear_battery_status_flag ( dev_ctx_t *dev_handle );
 int32_t pcf2131_get_battery_switch_over_flag ( dev_ctx_t *dev_handle, bool *return_flag );
 int32_t pcf2131_clear_battery_switch_over_flag ( dev_ctx_t *dev_handle );
 int32_t pcf2131_get_timestamp_flag ( dev_ctx_t *dev_handle, pcf2131_timestamp_t which_timestamp,
-bool *return_flag );
+                                     bool *return_flag );
 int32_t pcf2131_clear_timestamp_flag ( dev_ctx_t *dev_handle, pcf2131_timestamp_t which_timestamp );
 int32_t pcf2131_set_temp_meas_period ( dev_ctx_t *dev_handle, temp_meas_period_t meas_period );
 int32_t pcf2131_set_clkout_freq ( dev_ctx_t *dev_handle, clock_frequency_t freq_out );

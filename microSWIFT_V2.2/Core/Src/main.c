@@ -52,15 +52,14 @@
 /* USER CODE BEGIN PV */
 // Configuration bytes programmed using STM32 Cube programmer in the last page of flash
 static microSWIFT_configuration flash_config __attribute__ ((section (".uservars.CONFIGURATION")));
-Ext_RTC rtc =
-  { 0 };
+//Ext_RTC rtc = { 0 };
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config ( void );
 static void SystemPower_Config ( void );
 /* USER CODE BEGIN PFP */
-
+static void rtc_init_delay ( void );
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -85,27 +84,31 @@ int main ( void )
 
   /* USER CODE BEGIN Init */
 
+  // Need to delay in order for the RTC oscillator to stabilize. Default is to output 32768Hz clock, and this
+  // will be used to calibrate the MSIS when switching over to that clock source as the primary in SystemClock_Config().
+  rtc_init_delay ();
+
   // Setup the persistent ram if needed
   persistent_ram_init (&flash_config);
   persistent_ram_increment_sample_window_counter ();
-
-  // Initialize and configure the RTC since we need the 32768 LSE clock signal to calibrate main system clock (MSIS)
-  if ( ext_rtc_init (&rtc, device_handles.core_spi_handle, &ext_rtc_spi_sema) != uSWIFT_SUCCESS )
-  {
-    Error_Handler ();
-  }
-
-  // In addition to outputting the clock signal, this will also clear the any active flags/ IRQs (including watchdog)
-  if ( rtc.setup_rtc () != uSWIFT_SUCCESS )
-  {
-    Error_Handler ();
-  }
-
-  // Initialize/ configure the watchdog
-  if ( rtc.config_watchdog (WATCHDOG_PERIOD) != uSWIFT_SUCCESS )
-  {
-    Error_Handler ();
-  }
+//
+//  // Initialize and configure the RTC since we need the 32768 LSE clock signal to calibrate main system clock (MSIS)
+//  if ( ext_rtc_init (&rtc, device_handles.core_spi_handle, &ext_rtc_spi_sema) != uSWIFT_SUCCESS )
+//  {
+//    Error_Handler ();
+//  }
+//
+//  // In addition to outputting the clock signal, this will also clear the any active flags/ IRQs (including watchdog)
+//  if ( rtc.setup_rtc () != uSWIFT_SUCCESS )
+//  {
+//    Error_Handler ();
+//  }
+//
+//  // Initialize/ configure the watchdog
+//  if ( rtc.config_watchdog (WATCHDOG_PERIOD) != uSWIFT_SUCCESS )
+//  {
+//    Error_Handler ();
+//  }
 
   /* USER CODE END Init */
 
@@ -231,7 +234,31 @@ static void SystemPower_Config ( void )
 }
 
 /* USER CODE BEGIN 4 */
+static void rtc_init_delay ( void )
+{
+  GPIO_InitTypeDef GPIO_InitStruct =
+    { 0 };
 
+  // Turn on Green LED to let user know the system has powered up
+  __HAL_RCC_GPIOD_CLK_ENABLE();
+
+  GPIO_InitStruct.Pin = LED_GREEN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init (GPIOD, &GPIO_InitStruct);
+
+  HAL_GPIO_WritePin (LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
+
+  // Max time for oscillator stabilization is 2s, add a little bit for clock inaccuracy
+  HAL_Delay (2050);
+
+  // Turn off and deinit LED GPIO (will be reinitialized in MX_GPIO_Init() )
+  HAL_GPIO_WritePin (LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_DeInit (GPIOD, LED_GREEN_Pin);
+  __HAL_RCC_GPIOD_CLK_DISABLE();
+
+}
 /* USER CODE END 4 */
 
 #ifdef  USE_FULL_ASSERT

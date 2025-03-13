@@ -84,8 +84,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-extern Ext_RTC rtc;
-
+//extern Ext_RTC rtc;
 // The configuration struct
 microSWIFT_configuration configuration;
 // The SBD message we'll assemble
@@ -731,6 +730,7 @@ static uint32_t watchdog_refresh_counter = 0; // debugging
 static void rtc_thread_entry ( ULONG thread_input )
 {
   UNUSED(thread_input);
+  Ext_RTC rtc;
   TX_THREAD *this_thread = tx_thread_identify ();
   uSWIFT_return_code_t ret;
   UINT tx_ret;
@@ -738,8 +738,25 @@ static void rtc_thread_entry ( ULONG thread_input )
 
   tx_thread_sleep (10);
 
-  // RTC already initialized in main, just need to init the server
+  ret = ext_rtc_init (&rtc, device_handles.core_spi_handle, &ext_rtc_spi_sema);
+
   rtc_server_init (&rtc_messaging_queue, &rtc_complete_flags);
+
+  // Setup the RTC
+  ret |= rtc.setup_rtc ();
+
+  // Initialize the watchdog
+  ret |= rtc.config_watchdog (WATCHDOG_PERIOD);
+
+  if ( ret != uSWIFT_SUCCESS )
+  {
+    // Gotta wait for the logger to fully initialize
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
+    rtc_error_out (this_thread, "RTC failed to initialize.");
+  }
+
+  // Set the GPIO pin low for the OR logic gate
+  HAL_GPIO_WritePin (RTC_WDOG_OR_INPUT_GPIO_Port, RTC_WDOG_OR_INPUT_Pin, GPIO_PIN_RESET);
 
   (void) tx_event_flags_set (&initialization_flags, RTC_INIT_SUCCESS, TX_OR);
 

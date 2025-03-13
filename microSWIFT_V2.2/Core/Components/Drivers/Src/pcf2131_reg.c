@@ -372,7 +372,7 @@ bool enable )
   return ret;
 }
 
-int32_t pcf2131_por_config ( dev_ctx_t *dev_handle, bool en )
+int32_t pcf2131_poro_config ( dev_ctx_t *dev_handle, bool en )
 {
   int32_t ret = PCF2131_OK;
   pcf2131_ctrl1_reg_t ctrl1;
