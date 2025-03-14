@@ -37,8 +37,8 @@ General
 [x] Go through ALL pin and port assignments.
 	[x] Ensure device_handles assignments are correct
 	[x] Ensure all port macros and non-generated functions are correct
-[ ] Ensure all unrecoverable errors call Error_Handler();
-[x] Ensure all interrupt handlers are covered, including default_handler
+[x] Ensure all unrecoverable errors call Error_Handler();
+[x] Ensure all interrupt handlers are covered
 [x] Make a common return code for EVERYTHING (close enough).
 	[x] Ensure all functions return an uSWIFT_return_code_t
 [x] !!!! Fix all timing instances of TX calls to use 
@@ -67,7 +67,7 @@ General
 ****************************************************************************************************
 Control
 *******
-[ ] !!!!Figure out the control flow if GNSS is unable to get a fix
+[x] !!!!Figure out the control flow if GNSS is unable to get a fix
 	[x] Light and OBS won't be able to complete their messages
 	[x] Most likely just want to quit at this point...
 [x] Figure out how to identify first time power on and subsequent power on.
@@ -79,13 +79,13 @@ Control
 	    in a subsequent window.
 [x] Consider wrapping the initialization of north, east, down arrays into mem_replacements.c and
     provide get/set functions for passing to GNSS and waves
-[ ] Implement shut_it_all_down(), enter_shutdown_mode(), etc
-	[ ] Ensure all modes result in soft-shutdown
+[x] Implement shut_it_all_down(), enter_shutdown_mode(), etc (_control_shutdown_all_peripherals, _control_shutdown_all_interfaces)
+	[x] Ensure all modes result in soft-shutdown
 [x] End of cycle now becomes setting an alarm, soft shutting down everything, and entering
     shutdown mode
-[ ] Figure out how to keep the modem off during standby mode.
+[x] Figure out how to keep the modem off during standby mode.
 	[x] Will need to configure pull resistors in standby like we do with the RTC Int
-	[ ] Make sure this works with both v3.D and v3.F modems
+	[x] Make sure this works with both v3.D and v3.F modems
 
 ****************************************************************************************************
 RTC
