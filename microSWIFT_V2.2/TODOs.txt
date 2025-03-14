@@ -160,7 +160,7 @@ Light
 [x] Figure out if we are going to keep Basic Counts
 	[x] Keeping them internally but not using them
 [x] Bring over changes from the light sensor test
-[ ] Update programmer tool to reflect 0.5Hz
+[x] Update programmer tool to reflect 0.5Hz
 [x] Remove GPIO requirements -- do everything via polling on I2C
 [x] Rework I2C and figure out how to share bus
 [x] Track timestamps for start/stop times

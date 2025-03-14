@@ -683,7 +683,7 @@ static uSWIFT_return_code_t _file_system_save_light_raw ( Light_Sensor *light )
     }
 
     sample_index++;
-    timestamp++;
+    timestamp += 2;
   }
 
   if ( !__close_out_file (NULL, LIGHT_FILE) )
