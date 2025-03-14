@@ -1881,6 +1881,7 @@ static void waves_thread_entry ( ULONG thread_input )
   (void) tx_event_flags_set (&complete_flags, WAVES_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
 }
+
 /***************************************************************************************************
  ***************************************************************************************************
  ***********************************    Iridium Thread    ******************************************
