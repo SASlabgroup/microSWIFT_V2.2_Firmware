@@ -10,7 +10,6 @@
 
 #include "usart.h"
 #include "tx_api.h"
-#include "basic_stack.h"
 #include "stdarg.h"
 #include "stdbool.h"
 #include "gpio.h"

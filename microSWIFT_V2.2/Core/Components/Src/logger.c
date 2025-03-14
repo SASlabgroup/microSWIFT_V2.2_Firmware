@@ -9,7 +9,6 @@
 #include "logger.h"
 #include "usart.h"
 #include "tx_api.h"
-#include "basic_stack.h"
 #include "stdarg.h"
 #include "time.h"
 #include "string.h"
