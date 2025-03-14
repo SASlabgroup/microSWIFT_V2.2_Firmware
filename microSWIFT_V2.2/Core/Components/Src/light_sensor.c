@@ -51,7 +51,6 @@ static time_t               __get_timestamp (void);
 /**
  * @brief  Initialize the Light_Sensor struct.
  * @param  struct_ptr:= pointer to Light_Sensor struct
- * @param  i2c_handle:= handle for I2C onboard peripheral
  * @param  timer:= pointer to TX_TIMER instance
  * @param  int_pin_sema:= pointer to semaphore used to evaluate falling edges on Int pin
  * @param  light_Sensor_i2c_sema:= semaphore used to determine TxRx completion status from I2C interrupt transactions
@@ -87,7 +86,7 @@ void light_sensor_init ( Light_Sensor *struct_ptr, microSWIFT_configuration *glo
 
   light_self->as7341_current_reg_bank = REG_BANK_UNKNOWN;
 
-  light_self->sensor_gain = GAIN_1X;
+  light_self->sensor_gain = GAIN_4X;
 
   light_self->timer_timeout = false;
 
@@ -228,9 +227,9 @@ static uSWIFT_return_code_t _light_sensor_setup_sensor ( void )
     return ret;
   }
 
-  // Disable wait time, though we still need WTIME to be longer than integration time
-  ret = as7341_set_wait_time (&light_self->dev_ctx, 250);
-  ret |= as7341_wait_config (&light_self->dev_ctx, false);
+  // Need WTIME to be longer than integration time: integration time = 182ms, WTIME = 2.78ms * (n+1) = 2.78*68 = 189ms
+  ret = as7341_set_wait_time (&light_self->dev_ctx, 67);
+  ret |= as7341_wait_config (&light_self->dev_ctx, true);
   if ( ret != uSWIFT_SUCCESS )
   {
     return ret;
@@ -243,21 +242,16 @@ static uSWIFT_return_code_t _light_sensor_setup_sensor ( void )
     return ret;
   }
 
-  // Set the GPIO pin to input and output?
-  uint8_t gpio_2 = 0x06, edge_reg = 0;
-  ret = light_self->dev_ctx.bus_write (NULL, AS7341_I2C_ADDR, GPIO_2_REG_ADDR, (uint8_t*) &gpio_2,
-                                       1);
-
-  ret = light_self->dev_ctx.bus_read (NULL, AS7341_I2C_ADDR, EDGE_REG_ADDR, (uint8_t*) &edge_reg,
-                                      1);
+  // Setup auto-zero to occur every cycle
+  az_config.az_nth_iteration.nth_iteration = 1;
+  ret = as7341_auto_zero_config (&light_self->dev_ctx, az_config.az_nth_iteration);
   if ( ret != uSWIFT_SUCCESS )
   {
     return ret;
   }
 
-  // Setup auto-zero to occur every cycle
-  az_config.az_nth_iteration.nth_iteration = 1;
-  ret = as7341_auto_zero_config (&light_self->dev_ctx, az_config.az_nth_iteration);
+  // Set integration mode to SPM (non-synchronized)
+  ret = as7341_set_integration_mode (&light_self->dev_ctx, SPM_MODE);
   if ( ret != uSWIFT_SUCCESS )
   {
     return ret;
@@ -279,20 +273,6 @@ static uSWIFT_return_code_t _light_sensor_read_all_channels ( void )
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   bool data_ready = false, first_wait = false;
   uint32_t wait_period = 0, timeout = TX_TIMER_TICKS_PER_SECOND / 4, start_time = 0, time_now = 0;
-
-  // Integration mode SYNS --> GPIO pin triggers samples to start
-  if ( as7341_set_integration_mode (&light_self->dev_ctx, SPM_MODE) != AS7341_OK )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto failed;
-  }
-
-  // Make sure we're starting with SP_EN bit cleared
-  if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto failed;
-  }
 
   // Set the SMUX to the lower channels
   if ( as7341_config_smux (&light_self->dev_ctx,
@@ -321,7 +301,7 @@ static uSWIFT_return_code_t _light_sensor_read_all_channels ( void )
     }
     else
     {
-      wait_period = 5;
+      wait_period = 2;
     }
 
     tx_thread_sleep (wait_period);
@@ -383,7 +363,7 @@ static uSWIFT_return_code_t _light_sensor_read_all_channels ( void )
     }
     else
     {
-      wait_period = 5;
+      wait_period = 2;
     }
 
     tx_thread_sleep (wait_period);
@@ -404,12 +384,13 @@ static uSWIFT_return_code_t _light_sensor_read_all_channels ( void )
       &light_self->dev_ctx, ((as7341_all_channel_data_struct*) &light_self->raw_counts.f7_chan))
        != AS7341_OK )
   {
-    return uSWIFT_IO_ERROR;
+    ret = uSWIFT_IO_ERROR;
+    goto failed;
   }
 
   if ( as7341_spectral_meas_config (&light_self->dev_ctx, false) != AS7341_OK )
   {
-    return uSWIFT_IO_ERROR;
+    ret = uSWIFT_IO_ERROR;
   }
 
   // Convert everything to basic counts

@@ -84,7 +84,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-//extern Ext_RTC rtc;
 // The configuration struct
 microSWIFT_configuration configuration;
 // The SBD message we'll assemble
@@ -754,9 +753,6 @@ static void rtc_thread_entry ( ULONG thread_input )
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
     rtc_error_out (this_thread, "RTC failed to initialize.");
   }
-
-  // Set the GPIO pin low for the OR logic gate
-  HAL_GPIO_WritePin (RTC_WDOG_OR_INPUT_GPIO_Port, RTC_WDOG_OR_INPUT_Pin, GPIO_PIN_RESET);
 
   (void) tx_event_flags_set (&initialization_flags, RTC_INIT_SUCCESS, TX_OR);
 
@@ -1573,6 +1569,7 @@ static void light_thread_entry ( ULONG thread_input )
   light_raw_counts raw_counts;
   light_basic_counts basic_counts;
   int32_t light_thread_timeout = get_gnss_sample_window_timeout (&configuration); // Same timeout as GNSS
+  ULONG sample_start_time = 0, thread_sleep_time = 0;
 
   light_sensor_init (&light, &configuration, &(light_sensor_sample_buffer[0]), &light_timer);
 
@@ -1628,6 +1625,8 @@ static void light_thread_entry ( ULONG thread_input )
   while ( 1 )
   {
 
+    sample_start_time = tx_time_get ();
+
     watchdog_check_in (LIGHT_THREAD);
 
     light_ret = light.read_all_channels ();
@@ -1652,8 +1651,16 @@ static void light_thread_entry ( ULONG thread_input )
       break;
     }
 
-    // Sleep the rest of the second away
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND - (tx_time_get () % TX_TIMER_TICKS_PER_SECOND));
+    thread_sleep_time = ((sample_start_time + (TX_TIMER_TICKS_PER_SECOND * 2)) - tx_time_get ());
+
+    // Check for wrap around
+    if ( thread_sleep_time > (TX_TIMER_TICKS_PER_SECOND * 2) )
+    {
+      thread_sleep_time = 0;
+    }
+
+    // Run at 0.5Hz
+    tx_thread_sleep (thread_sleep_time);
   }
 
   light.idle ();

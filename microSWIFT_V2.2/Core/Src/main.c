@@ -29,7 +29,6 @@
 #include "stdbool.h"
 #include "testing_hooks.h"
 #include "octospi.h"
-#include "ext_rtc.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -91,24 +90,6 @@ int main ( void )
   // Setup the persistent ram if needed
   persistent_ram_init (&flash_config);
   persistent_ram_increment_sample_window_counter ();
-//
-//  // Initialize and configure the RTC since we need the 32768 LSE clock signal to calibrate main system clock (MSIS)
-//  if ( ext_rtc_init (&rtc, device_handles.core_spi_handle, &ext_rtc_spi_sema) != uSWIFT_SUCCESS )
-//  {
-//    Error_Handler ();
-//  }
-//
-//  // In addition to outputting the clock signal, this will also clear the any active flags/ IRQs (including watchdog)
-//  if ( rtc.setup_rtc () != uSWIFT_SUCCESS )
-//  {
-//    Error_Handler ();
-//  }
-//
-//  // Initialize/ configure the watchdog
-//  if ( rtc.config_watchdog (WATCHDOG_PERIOD) != uSWIFT_SUCCESS )
-//  {
-//    Error_Handler ();
-//  }
 
   /* USER CODE END Init */
 

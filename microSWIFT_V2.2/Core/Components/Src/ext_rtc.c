@@ -63,6 +63,12 @@ uSWIFT_return_code_t ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_
   rtc_self->int_b_pin.port = RTC_INT_B_GPIO_Port;
   rtc_self->int_b_pin.pin = RTC_INT_B_Pin;
 
+  // Int A pin (Watchdog) is put through a logic OR gate to correct for the latching nature of
+  // the watchdog signal. To prevent a permamnent reset condition, a second input to nRST is
+  // used as well as pull-up resistors to allow for recovery from a watchdog reset event.
+  rtc_self->watchdog_or_gate_input.port = RTC_WDOG_OR_INPUT_GPIO_Port;
+  rtc_self->watchdog_or_gate_input.pin = RTC_WDOG_OR_INPUT_Pin;
+
   rtc_self->ts_pins[0].port = RTC_TIMESTAMP_1_GPIO_Port;
   rtc_self->ts_pins[0].pin = RTC_TIMESTAMP_1_Pin;
 
@@ -273,6 +279,9 @@ static uSWIFT_return_code_t _ext_rtc_config_watchdog ( uint32_t period_ms )
   {
     return uSWIFT_IO_ERROR;
   }
+
+  // Set the watchdog logic OR input to low to allow the watchdog to successfully reset the processor
+  gpio_write_pin (rtc_self->watchdog_or_gate_input, GPIO_PIN_RESET);
 
   return ret;
 }

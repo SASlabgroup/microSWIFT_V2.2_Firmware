@@ -34,6 +34,7 @@ typedef struct
   TX_SEMAPHORE              *spi_sema;
 
   gpio_pin_struct           int_b_pin;
+  gpio_pin_struct           watchdog_or_gate_input;
   gpio_pin_struct           ts_pins[NUMBER_OF_TIMESTAMPS];
 
   bool                      ts_in_use[NUMBER_OF_TIMESTAMPS];
