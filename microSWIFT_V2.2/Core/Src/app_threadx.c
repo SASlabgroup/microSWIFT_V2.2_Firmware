@@ -582,16 +582,17 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   // Server message queue for UART Logger
   //
   // Allocate buffer space for the message queue
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, sizeof(logger_message) * LOG_QUEUE_LENGTH,
-  TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer,
+                          GET_QUEUE_BUFFER_SIZE(sizeof(logger_message), LOG_QUEUE_LENGTH),
+                          TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
   ret = tx_queue_create(&logger_message_queue, "logger msg queue",
-                        sizeof(logger_message) / sizeof(uint32_t), pointer,
-                        sizeof(logger_message) * LOG_QUEUE_LENGTH);
+                        GET_QUEUE_MSG_ELEMENT_SIZE(sizeof(logger_message)), pointer,
+                        GET_QUEUE_BUFFER_SIZE(sizeof(logger_message), LOG_QUEUE_LENGTH));
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -599,44 +600,48 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
 
   // Server message queue for RTC (including watchdog function)
   ret = tx_byte_allocate (byte_pool, (VOID**) &pointer,
-                          sizeof(rtc_request_message) * RTC_QUEUE_LENGTH, TX_NO_WAIT);
+                          GET_QUEUE_BUFFER_SIZE(sizeof(rtc_request_message), RTC_QUEUE_LENGTH),
+                          TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
   ret = tx_queue_create(&rtc_messaging_queue, "RTC msg queue",
-                        sizeof(rtc_request_message) / sizeof(uint32_t), pointer,
-                        sizeof(rtc_request_message) * RTC_QUEUE_LENGTH);
+                        GET_QUEUE_MSG_ELEMENT_SIZE(sizeof(rtc_request_message)), pointer,
+                        GET_QUEUE_BUFFER_SIZE(sizeof(rtc_request_message), RTC_QUEUE_LENGTH));
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
   ret = tx_byte_allocate (byte_pool, (VOID**) &pointer,
-                          sizeof(led_message) * LED_MESSAGE_QUEUE_LENGTH, TX_NO_WAIT);
+                          GET_QUEUE_BUFFER_SIZE(sizeof(led_message), LED_MESSAGE_QUEUE_LENGTH),
+                          TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
-  ret = tx_queue_create(&led_queue, "LED queue", sizeof(led_message) / sizeof(uint32_t), pointer,
-                        sizeof(led_message) * LED_MESSAGE_QUEUE_LENGTH);
+  ret = tx_queue_create(&led_queue, "LED queue", GET_QUEUE_MSG_ELEMENT_SIZE(sizeof(led_message)),
+                        pointer,
+                        GET_QUEUE_BUFFER_SIZE(sizeof(led_message), LED_MESSAGE_QUEUE_LENGTH));
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
   ret = tx_byte_allocate (byte_pool, (VOID**) &pointer,
-                          sizeof(i2c_queue_message) * I2C_QUEUE_LENGTH, TX_NO_WAIT);
+                          GET_QUEUE_BUFFER_SIZE(sizeof(i2c_queue_message), I2C_QUEUE_LENGTH),
+                          TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
 
   ret = tx_queue_create(&i2c_bus_queue, "I2C Bus queue",
-                        sizeof(i2c_queue_message) / sizeof(uint32_t), pointer,
-                        sizeof(i2c_queue_message) * I2C_QUEUE_LENGTH);
+                        GET_QUEUE_MSG_ELEMENT_SIZE(sizeof(i2c_queue_message)), pointer,
+                        GET_QUEUE_BUFFER_SIZE(sizeof(i2c_queue_message), I2C_QUEUE_LENGTH));
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -781,12 +786,12 @@ static void rtc_thread_entry ( ULONG thread_input )
           break;
 
         case SET_TIMESTAMP:
-          ret = rtc.set_timestamp (req.input_output_struct.get_set_timestamp.which_timestamp);
+          ret = rtc.set_timestamp (req.input_output_struct.set_timestamp.which_timestamp);
           break;
 
         case GET_TIMESTAMP:
-          ret = rtc.get_timestamp (req.input_output_struct.get_set_timestamp.which_timestamp,
-                                   &req.input_output_struct.get_set_timestamp.timestamp);
+          ret = rtc.get_timestamp (req.input_output_struct.get_timestamp.which_timestamp,
+                                   req.input_output_struct.get_timestamp.timestamp);
           break;
 
         case SET_ALARM:

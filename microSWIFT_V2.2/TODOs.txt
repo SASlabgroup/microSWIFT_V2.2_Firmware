@@ -33,7 +33,7 @@ Busses
 General
 *******
 
-[ ] !!!!!!! Refactor RTC alarm setting with duty cycle !!!!!!!
+[x] !!!!!!! Refactor RTC alarm setting with duty cycle !!!!!!!
 [x] Go through ALL pin and port assignments.
 	[x] Ensure device_handles assignments are correct
 	[x] Ensure all port macros and non-generated functions are correct

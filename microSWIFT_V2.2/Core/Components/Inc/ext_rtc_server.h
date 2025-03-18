@@ -47,7 +47,7 @@ typedef enum
   ALL_RTC_FLAGS             = 9
 } rtc_flag_t;
 
-// Message struct for GET_TIME request
+// Message struct for GET_TIME, request
 typedef struct
 {
   struct tm *time_struct;
@@ -59,18 +59,24 @@ typedef struct
   struct tm *time_struct;
 } rtc_set_time_t;
 
+typedef struct
+{
+  pcf2131_timestamp_t   which_timestamp;
+} rtc_set_timestamp_t;
+
 // Message struct for GET_TIMESTAMP request
 typedef struct
 {
   pcf2131_timestamp_t   which_timestamp;
-  time_t                timestamp;
+  struct tm             *timestamp;
 } rtc_get_timestamp_t;
 
 // Generic message type for request -- used to create uniform request size
 typedef union
 {
   rtc_get_time_t        get_set_time;
-  rtc_get_timestamp_t   get_set_timestamp;
+  rtc_set_timestamp_t   set_timestamp;
+  rtc_get_timestamp_t   get_timestamp;
   rtc_alarm_struct      set_alarm;
   uint32_t              clear_flag;
 } rtc_data_t;
@@ -99,7 +105,8 @@ void                 rtc_server_refresh_watchdog ( void );
 uSWIFT_return_code_t rtc_server_get_time ( struct tm *return_time_struct, ULONG complete_flag );
 uSWIFT_return_code_t rtc_server_set_time ( struct tm *input_time_struct, ULONG complete_flag );
 uSWIFT_return_code_t rtc_server_set_timestamp ( pcf2131_timestamp_t which_timestamp, ULONG complete_flag );
-uSWIFT_return_code_t rtc_server_get_timestamp ( pcf2131_timestamp_t which_timestamp, ULONG complete_flag );
+uSWIFT_return_code_t rtc_server_get_timestamp ( pcf2131_timestamp_t which_timestamp, struct tm* return_timestamp,
+                                                ULONG complete_flag );
 uSWIFT_return_code_t rtc_server_set_alarm ( rtc_alarm_struct alarm_settings, ULONG complete_flag );
 uSWIFT_return_code_t rtc_server_clear_flag (rtc_flag_t which_flag, ULONG complete_flag );
 // Generic do-all function

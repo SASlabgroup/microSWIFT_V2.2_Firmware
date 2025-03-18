@@ -21,7 +21,7 @@
 #include "octospi.h"
 
 /* USER CODE BEGIN 0 */
-
+bool octospi1_init_status = false;
 /* USER CODE END 0 */
 
 OSPI_HandleTypeDef hospi1;
@@ -184,16 +184,15 @@ void HAL_OSPI_MspDeInit ( OSPI_HandleTypeDef *ospiHandle )
 }
 
 /* USER CODE BEGIN 1 */
-bool octospi1_init ( void )
+int32_t octospi1_init ( void )
 {
+  int32_t ret = OCTOSPI_OK;
+
   OSPIM_CfgTypeDef sOspiManagerCfg =
     { 0 };
   HAL_OSPI_DLYB_CfgTypeDef HAL_OSPI_DLYB_Cfg_Struct =
     { 0 };
 
-  /* USER CODE BEGIN OCTOSPI1_Init 1 */
-
-  /* USER CODE END OCTOSPI1_Init 1 */
   hospi1.Instance = OCTOSPI1;
   hospi1.Init.FifoThreshold = 1;
   hospi1.Init.DualQuad = HAL_OSPI_DUALQUAD_DISABLE;
@@ -209,30 +208,56 @@ bool octospi1_init ( void )
   hospi1.Init.ChipSelectBoundary = 0;
   hospi1.Init.DelayBlockBypass = HAL_OSPI_DELAY_BLOCK_BYPASSED;
   hospi1.Init.MaxTran = 0;
-  hospi1.Init.Refresh = 0;
+  hospi1.Init.Refresh = 241;
   if ( HAL_OSPI_Init (&hospi1) != HAL_OK )
   {
-    return false;
+    ret = OCTOSPI_ERROR;
   }
+
   sOspiManagerCfg.ClkPort = 1;
   sOspiManagerCfg.NCSPort = 1;
   sOspiManagerCfg.IOLowPort = HAL_OSPIM_IOPORT_1_LOW;
   if ( HAL_OSPIM_Config (&hospi1, &sOspiManagerCfg, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK )
   {
-    return false;
+    ret = OCTOSPI_ERROR;
   }
+
   HAL_OSPI_DLYB_Cfg_Struct.Units = 0;
   HAL_OSPI_DLYB_Cfg_Struct.PhaseSel = 0;
   if ( HAL_OSPI_DLYB_SetConfig (&hospi1, &HAL_OSPI_DLYB_Cfg_Struct) != HAL_OK )
   {
-    return false;
+    ret = OCTOSPI_ERROR;
   }
 
-  return true;
+  octospi1_init_status = (ret == OCTOSPI_OK);
+
+  return ret;
 }
 
-void octospi1_deinit ( void )
+int32_t octospi1_deinit ( void )
 {
-  (void) HAL_OSPI_DeInit (&hospi1);
+  int32_t ret = OCTOSPI_OK;
+
+  if ( octospi1_init_status )
+  {
+    if ( HAL_OSPI_DeInit (&hospi1) != HAL_OK )
+    {
+      ret = OCTOSPI_ERROR;
+    }
+
+    octospi1_init_status = false;
+  }
+
+  return ret;
+}
+
+bool octospi_interface_init_status ( OCTOSPI_TypeDef *instance )
+{
+  if ( instance == OCTOSPI1 )
+  {
+    return octospi1_init_status;
+  }
+
+  return false;
 }
 /* USER CODE END 1 */

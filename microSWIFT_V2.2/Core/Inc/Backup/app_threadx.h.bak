@@ -181,11 +181,13 @@ typedef struct
   SD_HandleTypeDef *sd_handle;
 #endif
   SPI_HandleTypeDef     *core_spi_handle;
+  SPI_HandleTypeDef     *expansion_spi_handle;
   I2C_HandleTypeDef     *core_i2c_handle;
   UART_HandleTypeDef    *iridium_uart_handle;
   UART_HandleTypeDef    *gnss_uart_handle;
   UART_HandleTypeDef    *ct_uart_handle;
   UART_HandleTypeDef    *logger_uart_handle;
+  UART_HandleTypeDef    *expansion_uart_handle;
   OSPI_HandleTypeDef    *ext_psram_handle;
   ADC_HandleTypeDef     *battery_adc;
   // DMA handles
@@ -197,6 +199,8 @@ typedef struct
   DMA_HandleTypeDef     *ct_uart_rx_dma_handle;
   DMA_HandleTypeDef     *logger_uart_tx_dma_handle;
   DMA_HandleTypeDef     *logger_uart_rx_dma_handle;
+  DMA_HandleTypeDef     *expansion_uart_tx_dma_handle;
+  DMA_HandleTypeDef     *expansion_uart_rx_dma_handle;
 } Device_Handles;
 
 typedef struct

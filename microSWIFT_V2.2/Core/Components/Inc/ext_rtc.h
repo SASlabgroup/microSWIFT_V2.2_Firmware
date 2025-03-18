@@ -49,7 +49,7 @@ typedef struct
   uSWIFT_return_code_t      (*set_date_time) ( struct tm *input_date_time );
   uSWIFT_return_code_t      (*get_date_time) ( struct tm *return_date_time );
   uSWIFT_return_code_t      (*set_timestamp) ( pcf2131_timestamp_t which_timestamp );
-  uSWIFT_return_code_t      (*get_timestamp) ( pcf2131_timestamp_t which_timestamp, time_t *return_timestamp );
+  uSWIFT_return_code_t      (*get_timestamp) ( pcf2131_timestamp_t which_timestamp, struct tm *return_timestamp );
   uSWIFT_return_code_t      (*set_alarm) ( rtc_alarm_struct alarm_setting );
   uSWIFT_return_code_t      (*clear_flag) ( rtc_flag_t which_flag );
 } Ext_RTC;

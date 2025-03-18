@@ -41,7 +41,7 @@ extern SD_HandleTypeDef hsd1;
 #define SD_CARD_SDMMC SDMMC1
 /* USER CODE END Private defines */
 
-void MX_SDMMC1_SD_Init ( void );
+void MX_SDMMC1_SD_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 int32_t sdmmc1_init ( void );

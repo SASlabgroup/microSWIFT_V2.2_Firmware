@@ -32,7 +32,7 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stdbool.h"
-#include "ext_rtc.h"
+
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -42,7 +42,6 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-extern Ext_RTC rtc;
 
 #define COMPILE_TIME_DATE_BUFFER_SIZE 32
 extern char compile_date[COMPILE_TIME_DATE_BUFFER_SIZE];

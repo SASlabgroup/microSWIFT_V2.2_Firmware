@@ -13,6 +13,7 @@
 #include "NEDWaves/rtwhalf.h"
 #include "ct_sensor.h"
 #include "leds.h"
+#include "sdmmc.h"
 
 // @formatter:off
 static Control  *controller_self;
@@ -125,20 +126,22 @@ static bool _control_startup_procedure ( void )
 
     led_light_sequence (TEST_FAILED_LED_SEQUENCE, LED_SEQUENCE_FOREVER);
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 30);
-    HAL_NVIC_SystemReset ();
+    Error_Handler ();
   }
 
   // Start the duty cycle timer
   tx_return = tx_timer_change (
       controller_self->timer,
-      (controller_self->global_config->duty_cycle * 60 * TX_TIMER_TICKS_PER_SECOND) - 15, 0);
+      (controller_self->global_config->duty_cycle * 60 * TX_TIMER_TICKS_PER_SECOND)
+      - TX_TIMER_TICKS_PER_SECOND,
+      0);
   if ( tx_return != TX_SUCCESS )
   {
     LOG("Unable to set controller duty cycle timer.");
 
     led_light_sequence (TEST_FAILED_LED_SEQUENCE, LED_SEQUENCE_FOREVER);
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 30);
-    HAL_NVIC_SystemReset ();
+    Error_Handler ();
   }
 
   tx_return = tx_timer_activate (controller_self->timer);
@@ -148,7 +151,7 @@ static bool _control_startup_procedure ( void )
 
     led_light_sequence (TEST_FAILED_LED_SEQUENCE, LED_SEQUENCE_FOREVER);
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 30);
-    HAL_NVIC_SystemReset ();
+    Error_Handler ();
   }
 
   if ( !initial_powerup )
@@ -246,35 +249,33 @@ static void _control_shutdown_procedure ( void )
   // Make extra sure the alarm flag is cleared
   if ( rtc_server_clear_flag (ALARM_FLAG, CONTROL_REQUEST_COMPLETE) != uSWIFT_SUCCESS )
   {
-    HAL_NVIC_SystemReset ();
+    Error_Handler ();
   }
 
   tx_thread_sleep (1);
 
   // And the alarm interrupt line on the RTC is high (off)
-  if ( HAL_GPIO_ReadPin (RTC_INT_A_GPIO_Port, RTC_INT_A_Pin) != GPIO_PIN_SET )
+  if ( HAL_GPIO_ReadPin (RTC_INT_B_GPIO_Port, RTC_INT_B_Pin) != GPIO_PIN_SET )
   {
-    HAL_NVIC_SystemReset ();
+    Error_Handler ();
   }
 
   // Get the time so we can set the alarm
   if ( rtc_server_get_time (&time_now, CONTROL_REQUEST_COMPLETE) != uSWIFT_SUCCESS )
   {
-    HAL_NVIC_SystemReset ();
+    Error_Handler ();
   }
 
   // Set the alarm
   __get_alarm_settings_from_time (&time_now, &alarm_settings);
   if ( rtc_server_set_alarm (alarm_settings, CONTROL_REQUEST_COMPLETE) != uSWIFT_SUCCESS )
   {
-    HAL_NVIC_SystemReset ();
+    Error_Handler ();
   }
 
   LOG("All threads complete. Entering processor standby mode. Alarm set for %02d:%02d:%02d UTC.",
       (int ) alarm_settings.alarm_hour, (int ) alarm_settings.alarm_minute,
       (int ) alarm_settings.alarm_second);
-
-//  persistent_ram_increment_sample_window_counter ();
 
 // Give the logger time to complete
   tx_thread_sleep (500);
@@ -324,42 +325,41 @@ static real16_T _control_get_battery_voltage ( void )
 
 static void _control_shutdown_all_peripherals ( void )
 {
-  // Shut down Iridium modem
-  HAL_GPIO_WritePin (IRIDIUM_OnOff_GPIO_Port, IRIDIUM_OnOff_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin (IRIDIUM_FET_GPIO_Port, IRIDIUM_FET_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin (BUS_5V_FET_GPIO_Port, BUS_5V_FET_Pin, GPIO_PIN_RESET);
-  // Shut down GNSS
-  HAL_GPIO_WritePin (GNSS_FET_GPIO_Port, GNSS_FET_Pin, GPIO_PIN_RESET);
-  // Reset RF switch GPIOs. This will set it to be ported to the modem (safe case)
-  HAL_GPIO_WritePin (RF_SWITCH_VCTL_GPIO_Port, RF_SWITCH_VCTL_Pin, GPIO_PIN_RESET);
-  // Turn off power to the RF switch
-  HAL_GPIO_WritePin (RF_SWITCH_EN_GPIO_Port, RF_SWITCH_EN_Pin, GPIO_PIN_RESET);
-  // Shut down CT sensor
   HAL_GPIO_WritePin (CT_FET_GPIO_Port, CT_FET_Pin, GPIO_PIN_RESET);
-
-#warning "Make sure all devices are covered here."
+  HAL_GPIO_WritePin (RF_SWITCH_VCTL_GPIO_Port, RF_SWITCH_VCTL_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (GNSS_FET_GPIO_Port, GNSS_FET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (BUS_5V_FET_GPIO_Port, BUS_5V_FET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (SD_CARD_FET_GPIO_Port, SD_CARD_FET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (RS232_FORCEOFF_GPIO_Port, RS232_FORCEOFF_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (TEMPERATURE_FET_GPIO_Port, TEMPERATURE_FET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (TURBIDITY_FET_GPIO_Port, TURBIDITY_FET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (LIGHT_FET_GPIO_Port, LIGHT_FET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin (RTC_WDOG_OR_INPUT_GPIO_Port, RTC_WDOG_OR_INPUT_Pin, GPIO_PIN_RESET);
 }
 
 static void _control_shutdown_all_interfaces ( void )
 {
-  uart4_deinit ();
-  usart1_deinit ();
-  usart2_deinit ();
-  usart3_deinit ();
-
-  spi1_deinit ();
-
-  i2c2_deinit ();
-
-  battery_deinit ();
+  (void) i2c2_deinit ();
+  (void) octospi1_deinit ();
+  (void) sdmmc1_deinit ();
+  (void) spi1_deinit ();
+  (void) spi2_deinit ();
+  (void) lpuart1_deinit ();
+  (void) usart1_deinit ();
+  (void) usart2_deinit ();
+  (void) usart3_deinit ();
+  (void) uart4_deinit ();
+  (void) battery_deinit ();
 }
 
 static void _control_enter_processor_standby_mode ( void )
 {
-  __IO uint32_t dummy;
+  __IO uint32_t dummy, i;
 
   // Disable all non-relevant interrupts
-  for ( int i = 0; i < HSPI1_IRQn; i++ )
+  for ( i = WWDG_IRQn; i <= HSPI1_IRQn; i++ )
   {
     HAL_NVIC_DisableIRQ (i);
     HAL_NVIC_ClearPendingIRQ (i);
@@ -381,14 +381,15 @@ static void _control_enter_processor_standby_mode ( void )
   // Clear the backup ram retention bit
   CLEAR_BIT(PWR->BDCR1, PWR_BDCR1_BREN);
 
-  // Make sure the RTC INT_B pin (alarm function) is being pulled up (open drain on RTC)
-  HAL_PWREx_EnablePullUpPullDownConfig ();
-  HAL_PWREx_EnableGPIOPullUp (PWR_GPIO_D, RTC_INT_A_Pin);
+  // If using Iridium Modem Version V3D, configure a pull down to keep the modem off during sleep
+  if ( !controller_self->global_config->iridium_v3f )
+  {
+    // Configure the sleep pin for the modem
+    HAL_PWREx_EnablePullUpPullDownConfig ();
+    HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_G, IRIDIUM_OnOff_Pin);
+  }
 
-  // Configure the sleep pin for the modem
-  HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_G, IRIDIUM_OnOff_Pin);
-
-  // Enable wakeup on the RTC alarm pin
+  // Enable wakeup on the RTC alarm pin: PWR_WAKEUP_PIN1_LOW_1 = PB2 low polarity = RTC Int B
   HAL_PWR_EnableWakeUpPin (PWR_WAKEUP_PIN1_LOW_1);
 
   // Clear the stop mode and standby mode flags
@@ -411,6 +412,8 @@ static void _control_enter_processor_standby_mode ( void )
   dummy = PWR->SR;
   dummy = PWR->CR1;
   dummy = SCB->SCR;
+
+  i = dummy;
 
   // Enter low-power mode
   while ( 1 )
@@ -578,7 +581,7 @@ static void _control_manage_state ( void )
     controller_self->shutdown_all_peripherals ();
     persistent_ram_deinit ();
     HAL_Delay (10);
-    HAL_NVIC_SystemReset ();
+    Error_Handler ();
   }
 }
 
@@ -680,6 +683,7 @@ static void _control_monitor_and_handle_errors ( void )
 static void __get_alarm_settings_from_time ( struct tm *time, rtc_alarm_struct *alarm )
 {
   int i = 0;
+
   alarm->day_alarm_en = false;
   alarm->hour_alarm_en = true;
   alarm->minute_alarm_en = true;
@@ -711,7 +715,7 @@ static void __handle_rtc_error ( void )
   controller_self->shutdown_all_interfaces ();
 
   tx_thread_sleep (10);
-  HAL_NVIC_SystemReset ();
+  Error_Handler ();
 }
 
 static void __handle_gnss_error ( ULONG error_flags )
@@ -807,7 +811,6 @@ static void __handle_iridium_error ( ULONG error_flag )
 {
   // Shut down the modem
   HAL_GPIO_WritePin (IRIDIUM_OnOff_GPIO_Port, IRIDIUM_OnOff_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin (IRIDIUM_FET_GPIO_Port, IRIDIUM_FET_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin (BUS_5V_FET_GPIO_Port, BUS_5V_FET_Pin, GPIO_PIN_RESET);
 
   (void) tx_event_flags_set (controller_self->complete_flags, IRIDIUM_THREAD_COMPLETED_WITH_ERRORS,
@@ -870,6 +873,6 @@ static void __handle_misc_error ( ULONG error_flag )
     // Clear out persistent ram if memory cannot be trusted
     persistent_ram_deinit ();
     tx_thread_sleep (10);
-    HAL_NVIC_SystemReset ();
+    Error_Handler ();
   }
 }

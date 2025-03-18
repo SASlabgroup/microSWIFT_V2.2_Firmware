@@ -35,14 +35,19 @@ extern "C" {
 extern OSPI_HandleTypeDef hospi1;
 
 /* USER CODE BEGIN Private defines */
+#define OCTOSPI_OK 0
+#define OCTOSPI_ERROR -1
 
+#define EXT_RAM_OCTOSPI OCTOSPI1
 /* USER CODE END Private defines */
 
 void MX_OCTOSPI1_Init ( void );
 
 /* USER CODE BEGIN Prototypes */
-bool octospi1_init ( void );
-void octospi1_deinit ( void );
+int32_t octospi1_init ( void );
+int32_t octospi1_deinit ( void );
+
+bool octospi_interface_init_status ( OCTOSPI_TypeDef *instance );
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

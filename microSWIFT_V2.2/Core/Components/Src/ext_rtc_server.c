@@ -95,7 +95,7 @@ uSWIFT_return_code_t rtc_server_set_timestamp ( pcf2131_timestamp_t which_timest
   ULONG event_flags;
 
   queue_msg.request = SET_TIMESTAMP;
-  queue_msg.input_output_struct.get_set_timestamp.which_timestamp = which_timestamp;
+  queue_msg.input_output_struct.set_timestamp.which_timestamp = which_timestamp;
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 
@@ -117,7 +117,7 @@ uSWIFT_return_code_t rtc_server_set_timestamp ( pcf2131_timestamp_t which_timest
 }
 
 uSWIFT_return_code_t rtc_server_get_timestamp ( pcf2131_timestamp_t which_timestamp,
-                                                ULONG complete_flag )
+                                                struct tm *return_timestamp, ULONG complete_flag )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   rtc_request_message queue_msg =
@@ -125,7 +125,8 @@ uSWIFT_return_code_t rtc_server_get_timestamp ( pcf2131_timestamp_t which_timest
   ULONG event_flags;
 
   queue_msg.request = GET_TIMESTAMP;
-  queue_msg.input_output_struct.get_set_timestamp.which_timestamp = which_timestamp;
+  queue_msg.input_output_struct.get_timestamp.which_timestamp = which_timestamp;
+  queue_msg.input_output_struct.get_timestamp.timestamp = return_timestamp;
   queue_msg.complete_flag = complete_flag;
   queue_msg.return_code = &ret;
 

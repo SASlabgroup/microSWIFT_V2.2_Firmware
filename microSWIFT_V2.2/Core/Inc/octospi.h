@@ -41,7 +41,7 @@ extern OSPI_HandleTypeDef hospi1;
 #define EXT_RAM_OCTOSPI OCTOSPI1
 /* USER CODE END Private defines */
 
-void MX_OCTOSPI1_Init ( void );
+void MX_OCTOSPI1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 int32_t octospi1_init ( void );

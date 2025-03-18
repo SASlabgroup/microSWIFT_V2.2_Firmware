@@ -33,6 +33,17 @@ void persistent_ram_init ( microSWIFT_configuration *config )
 
     persistent_self.magic_number = PERSISTENT_RAM_MAGIC_DOUBLE_WORD;
   }
+
+  // If the RTC has not been set, then reset the sample window counter
+  if ( !persistent_ram_get_rtc_time_set () )
+  {
+    persistent_self.sample_window_counter = 1;
+  }
+  // Otherwise increment it
+  else
+  {
+    persistent_self.sample_window_counter++;
+  }
 }
 
 /**
@@ -67,23 +78,43 @@ void persistent_ram_get_device_config ( microSWIFT_configuration *config )
 }
 
 /**
- * Increment the duty cycle counter.
- *
- * @return void
- */
-void persistent_ram_increment_sample_window_counter ( void )
-{
-  persistent_self.sample_window_counter++;
-}
-
-/**
  * Return the duty cycle count (counting up from power on).
  *
- * @return void
+ * @return sample_window_counter
  */
 uint32_t persistent_ram_get_sample_window_counter ( void )
 {
   return persistent_self.sample_window_counter;
+}
+
+/**
+ * Reset the sample window counter to 0. It will be incremented at next boot.
+ *
+ * @return void
+ */
+void persistent_ram_reset_sample_window_counter ( void )
+{
+  persistent_self.sample_window_counter = 0;
+}
+
+/**
+ * Set the rtc_time_set flag to true.
+ *
+ * @return void
+ */
+void persistent_ram_set_rtc_time_set ( void )
+{
+  persistent_self.rtc_time_Set = true;
+}
+
+/**
+ * Get the rtc_time_set flag.
+ *
+ * @return rtc_time_set flag
+ */
+bool persistent_ram_get_rtc_time_set ( void )
+{
+  return persistent_self.rtc_time_set;
 }
 
 /**

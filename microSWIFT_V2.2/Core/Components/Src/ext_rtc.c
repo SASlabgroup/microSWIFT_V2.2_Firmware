@@ -22,7 +22,7 @@ static uSWIFT_return_code_t _ext_rtc_set_date_time ( struct tm *input_date_time 
 static uSWIFT_return_code_t _ext_rtc_get_date_time ( struct tm *return_date_time );
 static uSWIFT_return_code_t _ext_rtc_set_timestamp ( pcf2131_timestamp_t which_timestamp );
 static uSWIFT_return_code_t _ext_rtc_get_timestamp ( pcf2131_timestamp_t which_timestamp,
-                                                     time_t *return_timestamp );
+                                                     struct tm *return_timestamp );
 static uSWIFT_return_code_t _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting );
 static uSWIFT_return_code_t _ext_rtc_clear_flag ( rtc_flag_t which_flag );
 
@@ -81,7 +81,8 @@ uSWIFT_return_code_t ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_
   rtc_self->ts_pins[3].port = RTC_TIMESTAMP_4_GPIO_Port;
   rtc_self->ts_pins[3].pin = RTC_TIMESTAMP_4_Pin;
 
-  rtc_self->ts_in_use[0] = false;
+  // Timestamp 1 holds boot time
+  rtc_self->ts_in_use[0] = true;
   rtc_self->ts_in_use[1] = false;
   rtc_self->ts_in_use[2] = false;
   rtc_self->ts_in_use[3] = false;
@@ -336,6 +337,12 @@ static uSWIFT_return_code_t _ext_rtc_set_date_time ( struct tm *input_date_time 
     ret = uSWIFT_IO_ERROR;
   }
 
+  if ( ret == uSWIFT_SUCCESS )
+  {
+    // Retrain in persistent memory that we have set the RTC time.
+    persistent_ram_set_rtc_time_set ();
+  }
+
   return ret;
 }
 
@@ -392,11 +399,11 @@ static uSWIFT_return_code_t _ext_rtc_set_timestamp ( pcf2131_timestamp_t which_t
 /**
  * @brief  Get a timestamp.
  * @param  which_timestamp:= Which timestamp (1-4) to read
- * @param  return_timestamp:= Timestamp as time_t
+ * @param  return_timestamp:= Timestamp as struct tm
  * @retval uSWIFT_return_code_t
  */
 static uSWIFT_return_code_t _ext_rtc_get_timestamp ( pcf2131_timestamp_t which_timestamp,
-                                                     time_t *return_timestamp )
+                                                     struct tm *return_timestamp )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   struct tm timestamp_struct;
@@ -427,7 +434,7 @@ static uSWIFT_return_code_t _ext_rtc_get_timestamp ( pcf2131_timestamp_t which_t
 
   rtc_self->ts_in_use[which_timestamp] = false;
 
-  *return_timestamp = mktime (&timestamp_struct);
+  memcpy (return_timestamp, &timestamp_struct, sizeof(struct tm));
 
   return ret;
 }

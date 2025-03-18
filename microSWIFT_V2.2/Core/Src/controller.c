@@ -19,9 +19,9 @@
 static Control  *controller_self;
 
 // Struct functions
-static bool     _control_startup_procedure( void );
-static void     _control_shutdown_procedure( void );
-static real16_T _control_get_battery_voltage( void );
+static bool     _control_startup_procedure ( void );
+static void     _control_shutdown_procedure ( void );
+static real16_T _control_get_battery_voltage ( void );
 static void     _control_shutdown_all_peripherals ( void );
 static void     _control_shutdown_all_interfaces ( void );
 static void     _control_enter_processor_standby_mode ( void );
@@ -29,16 +29,16 @@ static void     _control_manage_state ( void );
 static void     _control_monitor_and_handle_errors ( void );
 
 // Helper functions
-static void     __get_alarm_settings_from_time(struct tm* time, rtc_alarm_struct *alarm);
-static void     __handle_rtc_error( void );
-static void     __handle_gnss_error( ULONG error_flag );
-static void     __handle_ct_error( ULONG error_flag );
-static void     __handle_temperature_error( ULONG error_flag );
-static void     __handle_turbidity_error( ULONG error_flag );
-static void     __handle_light_error( ULONG error_flag );
-static void     __handle_waves_error( void );
-static void     __handle_iridium_error( ULONG error_flags );
-static void     __handle_file_system_error( void );
+static void     __get_alarm_settings ( rtc_alarm_struct *alarm);
+static void     __handle_rtc_error ( void );
+static void     __handle_gnss_error ( ULONG error_flag );
+static void     __handle_ct_error ( ULONG error_flag );
+static void     __handle_temperature_error ( ULONG error_flag );
+static void     __handle_turbidity_error ( ULONG error_flag );
+static void     __handle_light_error ( ULONG error_flag );
+static void     __handle_waves_error ( void );
+static void     __handle_iridium_error ( ULONG error_flags );
+static void     __handle_file_system_error ( void );
 static void     __handle_i2c_error ( void );
 static void     __handle_misc_error ( ULONG error_flag );
 
@@ -260,14 +260,8 @@ static void _control_shutdown_procedure ( void )
     Error_Handler ();
   }
 
-  // Get the time so we can set the alarm
-  if ( rtc_server_get_time (&time_now, CONTROL_REQUEST_COMPLETE) != uSWIFT_SUCCESS )
-  {
-    Error_Handler ();
-  }
-
   // Set the alarm
-  __get_alarm_settings_from_time (&time_now, &alarm_settings);
+  __get_alarm_settings (&alarm_settings);
   if ( rtc_server_set_alarm (alarm_settings, CONTROL_REQUEST_COMPLETE) != uSWIFT_SUCCESS )
   {
     Error_Handler ();
@@ -277,7 +271,7 @@ static void _control_shutdown_procedure ( void )
       (int ) alarm_settings.alarm_hour, (int ) alarm_settings.alarm_minute,
       (int ) alarm_settings.alarm_second);
 
-// Give the logger time to complete
+  // Give the logger time to complete
   tx_thread_sleep (500);
 
   // Deinit all enabled peripherals
@@ -680,33 +674,75 @@ static void _control_monitor_and_handle_errors ( void )
 
 }
 
-static void __get_alarm_settings_from_time ( struct tm *time, rtc_alarm_struct *alarm )
+static void __get_alarm_settings ( rtc_alarm_struct *alarm )
 {
-  int i = 0;
+  struct tm boot_time =
+    { 0 }, time_now =
+    { 0 };
+  time_t boot_timestamp = 0, now_timestamp = 0;
 
   alarm->day_alarm_en = false;
   alarm->hour_alarm_en = true;
   alarm->minute_alarm_en = true;
   alarm->second_alarm_en = true;
   alarm->weekday_alarm_en = false;
+  // Alarm second is always 0
   alarm->alarm_second = 0;
-  alarm->alarm_minute = i;
 
-  for ( i = controller_self->global_config->duty_cycle; i < 60;
-      i += controller_self->global_config->duty_cycle )
+  // Start by getting current time. This will be used to set the alarm in the first case and used for
+  // sanity check in the second case
+  if ( rtc_server_get_time (&time_now, CONTROL_THREAD_REQUEST_PROCESSED) != uSWIFT_SUCCESS )
   {
-    if ( time->tm_min < i )
-    {
-      alarm->alarm_minute = i;
-      break;
-    }
+    Error_Handler ();
   }
 
-  alarm->alarm_hour =
-      (alarm->alarm_minute < time->tm_min) ?
-          (time->tm_hour + (controller_self->global_config->duty_cycle / 60) + 1) % 24 :
-          (time->tm_hour + (controller_self->global_config->duty_cycle / 60)) % 24;
+  // If the clock has not been set (GNSS failed to get a fix) or this is the first sample window, the next
+  // window will start at the top of the hour, either in real time or whatever the RTC is set to
+  if ( is_first_sample_window () || (!persistent_ram_get_rtc_time_set ()) )
+  {
+    alarm->alarm_minute = 0;
 
+    // Edge case where the current time is xx:59:59, etc
+    if ( time_now.tm_min == 59 )
+    {
+      alarm->alarm_hour = (time_now.tm_hour + 2) % 24;
+    }
+    else
+    {
+      alarm->alarm_hour = (time_now.tm_hour + 1) % 24;
+    }
+  }
+  // Otherwise set the alarm to be boot time + duty cycle
+  else
+  {
+    // Get the timestamp from RTC timestamp 1, which was set at boot
+    if ( rtc_server_get_timestamp (BOOT_TIME_TIMESTAMP, &boot_time,
+                                   CONTROL_THREAD_REQUEST_PROCESSED)
+         != uSWIFT_SUCCESS )
+    {
+      Error_Handler ();
+    }
+
+    // Turn the struct tm into a time_t timestamp for easy arithmetic
+    boot_timestamp = mktime (&boot_time);
+    // Boot timestamp now reflects the wakeup time
+    boot_timestamp += controller_self->global_config->duty_cycle * 60U;
+
+    // Sanity check, make sure the alarm is not being set in the past.
+    // Need a few seconds buffer (5U) for the rest of the code to run before standby mode.
+    now_timestamp = *gmtime (&time_now);
+    if ( boot_timestamp < (now_timestamp + 5U) )
+    {
+      // Set wakeup to be time now + duty cycle.
+      boot_timestamp = now_timestamp + (controller_self->global_config->duty_cycle * 60U);
+    }
+
+    // Recycle boot_time struct to turn the wakeup time_t (boot_timestamp) into a struct tm
+    boot_time = *gmtime (&boot_timestamp);
+
+    alarm->alarm_minute = boot_time.tm_min;
+    alarm->alarm_hour = boot_time.tm_hour;
+  }
 }
 
 static void __handle_rtc_error ( void )
