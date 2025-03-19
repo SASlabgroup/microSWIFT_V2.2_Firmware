@@ -135,7 +135,7 @@ int main ( void )
   /* USER CODE BEGIN WHILE */
   while ( 1 )
   {
-    HAL_NVIC_SystemReset ();
+    Error_Handler ();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
