@@ -104,7 +104,7 @@ void persistent_ram_reset_sample_window_counter ( void )
  */
 void persistent_ram_set_rtc_time_set ( void )
 {
-  persistent_self.rtc_time_Set = true;
+  persistent_self.rtc_time_set = true;
 }
 
 /**

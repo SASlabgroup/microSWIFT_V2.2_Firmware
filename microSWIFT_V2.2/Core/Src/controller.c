@@ -239,7 +239,6 @@ static bool _control_startup_procedure ( void )
 static void _control_shutdown_procedure ( void )
 {
   rtc_alarm_struct alarm_settings;
-  struct tm time_now;
 
   led_light_sequence (LIGHTS_OFF, LED_SEQUENCE_FOREVER);
 
@@ -730,7 +729,7 @@ static void __get_alarm_settings ( rtc_alarm_struct *alarm )
 
     // Sanity check, make sure the alarm is not being set in the past.
     // Need a few seconds buffer (5U) for the rest of the code to run before standby mode.
-    now_timestamp = *gmtime (&time_now);
+    now_timestamp = mktime (&time_now);
     if ( boot_timestamp < (now_timestamp + 5U) )
     {
       // Set wakeup to be time now + duty cycle.
