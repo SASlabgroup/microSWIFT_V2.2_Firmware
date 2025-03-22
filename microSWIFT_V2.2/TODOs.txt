@@ -61,7 +61,7 @@ General
 [x] Modify linker script -- add external memory if necessary
 	[x] Added section for SRAM2 and moved waves memory pool and a few other small things to RAM1
 [x] Make a thread to handle UART console port comms... Will use USART 6, 115200 baud, 8N1
-[ ] Ensure all possible error conditions (including interrupts, default handler, etc) will not
+[x] Ensure all possible error conditions (including interrupts, default handler, etc) will not
     result in a forever loop -- all unexpected conditions should software reset.    
     
 ****************************************************************************************************

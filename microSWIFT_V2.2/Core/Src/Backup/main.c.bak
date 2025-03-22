@@ -89,7 +89,6 @@ int main ( void )
 
   // Setup the persistent ram if needed
   persistent_ram_init (&flash_config);
-  persistent_ram_increment_sample_window_counter ();
 
   /* USER CODE END Init */
 
@@ -110,7 +109,11 @@ int main ( void )
   MX_LPDMA1_Init ();
   /* USER CODE BEGIN 2 */
 
+  // Change the gpio configuration based on which modem type we're using
   configure_iridium_onoff_pin (flash_config.iridium_v3f);
+
+  // Toggle RTC timestamp 1 to capture boot time
+  toggle_rtc_timestamp1_pin ();
 
   // Shut down flash bank 2 -- no longer required
   HAL_FLASHEx_EnablePowerDown (FLASH_BANK_2);
@@ -132,7 +135,7 @@ int main ( void )
   /* USER CODE BEGIN WHILE */
   while ( 1 )
   {
-    HAL_NVIC_SystemReset ();
+    Error_Handler ();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

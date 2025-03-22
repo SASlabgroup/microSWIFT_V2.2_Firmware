@@ -17,8 +17,6 @@ void Error_Handler ( void )
 {
   safe_mode ();
 
-  __disable_irq ();
-
   persistent_ram_deinit ();
 
   while ( 1 )
@@ -43,6 +41,8 @@ void safe_mode ( void )
   (void) uart4_deinit ();
   (void) battery_deinit ();
 
+  __disable_irq ();
+
   // Turn everything off
   HAL_GPIO_WritePin (CT_FET_GPIO_Port, CT_FET_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin (RF_SWITCH_VCTL_GPIO_Port, RF_SWITCH_VCTL_Pin, GPIO_PIN_RESET);
@@ -58,7 +58,7 @@ void safe_mode ( void )
   HAL_GPIO_WritePin (RTC_WDOG_OR_INPUT_GPIO_Port, RTC_WDOG_OR_INPUT_Pin, GPIO_PIN_RESET);
 
   // Short delay with no dependencies
-  for ( i = 0; i < 16000000; i++ )
+  for ( i = 0; i < 1600000; i++ )
   {
     j = i;
     i = j;

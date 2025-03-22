@@ -9,6 +9,7 @@
 #define INC_THREADX_SUPPORT_H_
 
 #include "stdbool.h"
+#include "math.h"
 #include "tx_api.h"
 #include "main.h"
 #include "gnss.h"
@@ -21,6 +22,11 @@
 #include "stdarg.h"
 #include "sbd.h"
 #include "persistent_ram.h"
+
+#define GET_QUEUE_MSG_ELEMENT_SIZE(msg_element_size) \
+  ((uint32_t) ceil(((double)msg_element_size) / ((double)sizeof(uint32_t))))
+#define GET_QUEUE_BUFFER_SIZE(msg_element_size, queue_element_length) \
+  (GET_QUEUE_MSG_ELEMENT_SIZE(msg_element_size) * sizeof(uint32_t) * queue_element_length)
 
 // @formatter:off
 

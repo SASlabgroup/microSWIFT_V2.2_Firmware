@@ -44,6 +44,7 @@ void MX_GPIO_Init ( void );
 
 /* USER CODE BEGIN Prototypes */
 void configure_iridium_onoff_pin ( bool v3f );
+void toggle_rtc_timestamp1_pin ( void );
 
 static inline GPIO_PinState gpio_read_pin ( gpio_pin_struct pin )
 {

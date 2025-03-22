@@ -65,7 +65,13 @@ void MX_GPIO_Init ( void )
   HAL_GPIO_WritePin (EXP_GPIO_1_GPIO_Port, EXP_GPIO_1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin (RTC_WDOG_OR_INPUT_GPIO_Port, RTC_WDOG_OR_INPUT_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin (RTC_WDOG_OR_INPUT_GPIO_Port, RTC_WDOG_OR_INPUT_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin (GPIOF, RTC_TIMESTAMP_1_Pin | RTC_TIMESTAMP_2_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin (GPIOG, RTC_TIMESTAMP_3_Pin | RTC_TIMESTAMP_4_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin (EXP_SPI_CSn_GPIO_Port, EXP_SPI_CSn_Pin, GPIO_PIN_SET);
@@ -151,23 +157,18 @@ void MX_GPIO_Init ( void )
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init (RTC_INT_B_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : RTC_WDOG_OR_INPUT_Pin */
-  GPIO_InitStruct.Pin = RTC_WDOG_OR_INPUT_Pin;
+  /*Configure GPIO pins : RTC_WDOG_OR_INPUT_Pin RTC_TIMESTAMP_1_Pin RTC_TIMESTAMP_2_Pin */
+  GPIO_InitStruct.Pin = RTC_WDOG_OR_INPUT_Pin | RTC_TIMESTAMP_1_Pin | RTC_TIMESTAMP_2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init (RTC_WDOG_OR_INPUT_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : RTC_TIMESTAMP_1_Pin RTC_TIMESTAMP_2_Pin */
-  GPIO_InitStruct.Pin = RTC_TIMESTAMP_1_Pin | RTC_TIMESTAMP_2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init (GPIOF, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : RTC_TIMESTAMP_3_Pin RTC_TIMESTAMP_4_Pin */
-  GPIO_InitStruct.Pin = RTC_TIMESTAMP_3_Pin | RTC_TIMESTAMP_4_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  /*Configure GPIO pins : RTC_TIMESTAMP_3_Pin RTC_TIMESTAMP_4_Pin IRIDIUM_OnOff_Pin */
+  GPIO_InitStruct.Pin = RTC_TIMESTAMP_3_Pin | RTC_TIMESTAMP_4_Pin | IRIDIUM_OnOff_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init (GPIOG, &GPIO_InitStruct);
 
   /*Configure GPIO pins : EXP_SPI_CSn_Pin GNSS_FET_Pin */
@@ -203,13 +204,6 @@ void MX_GPIO_Init ( void )
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init (GPIOG, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : IRIDIUM_OnOff_Pin */
-  GPIO_InitStruct.Pin = IRIDIUM_OnOff_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init (IRIDIUM_OnOff_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pin : IRIDIUM_RI_N_Pin */
   GPIO_InitStruct.Pin = IRIDIUM_RI_N_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
@@ -238,5 +232,12 @@ void configure_iridium_onoff_pin ( bool v3f )
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init (IRIDIUM_OnOff_GPIO_Port, &GPIO_InitStruct);
+}
+
+void toggle_rtc_timestamp1_pin ( void )
+{
+  HAL_GPIO_WritePin (RTC_TIMESTAMP_1_GPIO_Port, RTC_TIMESTAMP_1_Pin, GPIO_PIN_RESET);
+  HAL_Delay (1);
+  HAL_GPIO_WritePin (RTC_TIMESTAMP_1_GPIO_Port, RTC_TIMESTAMP_1_Pin, GPIO_PIN_SET);
 }
 /* USER CODE END 2 */

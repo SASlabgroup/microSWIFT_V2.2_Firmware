@@ -95,7 +95,7 @@ UINT MX_FileX_Init(VOID *memory_ptr)
   }
   // Create the file system thread. LOWEST_PRIORITY priority level and no preemption possible
   ret = tx_thread_create(&fx_thread, "FileX Thread", fx_thread_entry, 0, pointer, XL_STACK,
-                         LOWEST_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
+                         LOWEST_PRIORITY, LOWEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
 
   if ( ret != FX_SUCCESS )
   {
@@ -160,6 +160,13 @@ void fx_thread_entry ( ULONG thread_input )
   uSWIFT_return_code_t ret;
 
   tx_thread_sleep (10);
+
+#warning "Testing disabling filex"
+
+  while ( 1 )
+  {
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
+  }
 
   file_system_init (&file_system, &(fx_sd_media_memory[0]), &sd_card, &configuration);
   file_system_server_init (&file_system_messaging_queue, &file_system_complete_flags,

@@ -16,6 +16,7 @@
 #include "sbd.h"
 
 #define STARTUP_SEQUENCE_MAX_WAIT_TICKS (TX_TIMER_TICKS_PER_SECOND * 30)
+#define BOOT_TIME_TIMESTAMP TIMESTAMP_1
 
 // @formatter:off
 typedef struct
@@ -34,7 +35,7 @@ typedef struct
   TX_TIMER                  *timer;
 
   sbd_message_type_52       *current_message;
-  
+
   ULONG                     accumulated_error_flags;
 
   bool                      timer_timeout;
