@@ -57,21 +57,22 @@ void uart_log ( const char *fmt, ... )
     (void) tx_mutex_put (logger_self->lock);
     return;
   }
-#warning "this needs to be looked at"
-  memset (log_buf, 0, sizeof(log_line_buf));
 
   str_len = vsnprintf (&(log_buf->line_buf[sizeof(log_line_buf) - bytes_remaining]),
                        bytes_remaining, fmt, args);
 
   va_end(args);
 
-  bytes_remaining -= str_len + 2;
+  bytes_remaining -= str_len;
+
+  // Put a break line at the end
+  strncat (&log_buf->line_buf[0], "\r\n", bytes_remaining);
+
+  bytes_remaining = (bytes_remaining >= 2) ?
+      bytes_remaining - 2 : bytes_remaining;
 
   msg.str_buf = log_buf;
   msg.strlen = sizeof(log_line_buf) - bytes_remaining;
-
-  // Put a break line at the end
-  strcat (&log_buf->line_buf[0], "\r\n");
 
   (void) tx_queue_send (logger_self->msg_que, (VOID*) &msg, TX_NO_WAIT);
 
@@ -85,7 +86,7 @@ static UINT _logger_get_buffer ( log_line_buf **line_buf )
 
 static void _logger_send_log_line ( log_line_buf *buf, size_t strlen )
 {
-  (void) HAL_UART_Transmit_IT (logger_self->uart, (uint8_t*) &(buf->line_buf[0]), strlen);
+  (void) HAL_UART_Transmit_DMA (logger_self->uart, (uint8_t*) &(buf->line_buf[0]), strlen);
 }
 
 void uart_logger_return_line_buf ( log_line_buf *buffer )

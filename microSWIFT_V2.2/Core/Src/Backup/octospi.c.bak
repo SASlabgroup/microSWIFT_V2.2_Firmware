@@ -135,7 +135,7 @@ void HAL_OSPI_MspInit(OSPI_HandleTypeDef* ospiHandle)
     HAL_GPIO_Init(RAM_OCTOSPI_CSn_GPIO_Port, &GPIO_InitStruct);
 
     /* OCTOSPI1 interrupt Init */
-    HAL_NVIC_SetPriority(OCTOSPI1_IRQn, 14, 0);
+    HAL_NVIC_SetPriority(OCTOSPI1_IRQn, 15, 0);
     HAL_NVIC_EnableIRQ(OCTOSPI1_IRQn);
   /* USER CODE BEGIN OCTOSPI1_MspInit 1 */
 

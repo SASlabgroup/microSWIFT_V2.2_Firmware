@@ -20,7 +20,6 @@
 #include "app_threadx.h"
 #include "main.h"
 #include "gpdma.h"
-#include "lpdma.h"
 #include "memorymap.h"
 #include "gpio.h"
 
@@ -106,7 +105,6 @@ int main ( void )
   /* Initialize all configured peripherals */
   MX_GPIO_Init ();
   MX_GPDMA1_Init ();
-  MX_LPDMA1_Init ();
   /* USER CODE BEGIN 2 */
 
   // Change the gpio configuration based on which modem type we're using

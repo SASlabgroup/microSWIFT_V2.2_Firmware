@@ -660,8 +660,8 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   device_handles.expansion_uart_handle = &huart2;
   device_handles.ext_psram_handle = &hospi1;
   device_handles.battery_adc = &hadc1;
-  device_handles.gnss_uart_tx_dma_handle = &handle_LPDMA1_Channel1;
-  device_handles.gnss_uart_rx_dma_handle = &handle_LPDMA1_Channel0;
+  device_handles.gnss_uart_tx_dma_handle = &handle_GPDMA1_Channel9;
+  device_handles.gnss_uart_rx_dma_handle = &handle_GPDMA1_Channel8;
   device_handles.iridium_uart_tx_dma_handle = &handle_GPDMA1_Channel7;
   device_handles.iridium_uart_rx_dma_handle = &handle_GPDMA1_Channel6;
   device_handles.ct_uart_tx_dma_handle = &handle_GPDMA1_Channel1;
@@ -1009,7 +1009,8 @@ static void control_thread_entry ( ULONG thread_input )
                    &irq_flags, &complete_flags, &control_timer, device_handles.battery_adc,
                    &sbd_message);
 
-  LOG("\n\nBoot.");
+#warning"change this to include microswift firmware version, ID, and sample window count"
+  LOG("\r\n\r\nBoot.");
 
   if ( watchdog_init (&watchdog, &watchdog_check_in_flags) != WATCHDOG_OK )
   {

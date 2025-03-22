@@ -57,10 +57,10 @@
 /* External variables --------------------------------------------------------*/
 extern ADC_HandleTypeDef hadc1;
 extern I2C_HandleTypeDef hi2c2;
-extern DMA_NodeTypeDef Node_LPDMA1_Channel0;
-extern DMA_QListTypeDef List_LPDMA1_Channel0;
-extern DMA_HandleTypeDef handle_LPDMA1_Channel0;
-extern DMA_HandleTypeDef handle_LPDMA1_Channel1;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel9;
+extern DMA_NodeTypeDef Node_GPDMA1_Channel8;
+extern DMA_QListTypeDef List_GPDMA1_Channel8;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel8;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel7;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel6;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel1;
@@ -512,31 +512,44 @@ void SDMMC1_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles LPDMA1 SmartRun Channel 0 global interrupt.
+  * @brief This function handles GPDMA1 Channel 8 global interrupt.
   */
-void LPDMA1_Channel0_IRQHandler(void)
+void GPDMA1_Channel8_IRQHandler(void)
 {
-  /* USER CODE BEGIN LPDMA1_Channel0_IRQn 0 */
+  /* USER CODE BEGIN GPDMA1_Channel8_IRQn 0 */
 
-  /* USER CODE END LPDMA1_Channel0_IRQn 0 */
-  HAL_DMA_IRQHandler(&handle_LPDMA1_Channel0);
-  /* USER CODE BEGIN LPDMA1_Channel0_IRQn 1 */
+  /* USER CODE END GPDMA1_Channel8_IRQn 0 */
+  HAL_DMA_IRQHandler(&handle_GPDMA1_Channel8);
+  /* USER CODE BEGIN GPDMA1_Channel8_IRQn 1 */
 
-  /* USER CODE END LPDMA1_Channel0_IRQn 1 */
+  /* USER CODE END GPDMA1_Channel8_IRQn 1 */
 }
 
 /**
-  * @brief This function handles LPDMA1 SmartRun Channel 1 global interrupt.
+  * @brief This function handles GPDMA1 Channel 9 global interrupt.
   */
-void LPDMA1_Channel1_IRQHandler(void)
+void GPDMA1_Channel9_IRQHandler(void)
 {
-  /* USER CODE BEGIN LPDMA1_Channel1_IRQn 0 */
+  /* USER CODE BEGIN GPDMA1_Channel9_IRQn 0 */
 
-  /* USER CODE END LPDMA1_Channel1_IRQn 0 */
-  HAL_DMA_IRQHandler(&handle_LPDMA1_Channel1);
-  /* USER CODE BEGIN LPDMA1_Channel1_IRQn 1 */
+  /* USER CODE END GPDMA1_Channel9_IRQn 0 */
+  HAL_DMA_IRQHandler(&handle_GPDMA1_Channel9);
+  /* USER CODE BEGIN GPDMA1_Channel9_IRQn 1 */
 
-  /* USER CODE END LPDMA1_Channel1_IRQn 1 */
+  /* USER CODE END GPDMA1_Channel9_IRQn 1 */
+}
+
+/**
+  * @brief This function handles FPU global interrupt.
+  */
+void FPU_IRQHandler(void)
+{
+  /* USER CODE BEGIN FPU_IRQn 0 */
+
+  /* USER CODE END FPU_IRQn 0 */
+  /* USER CODE BEGIN FPU_IRQn 1 */
+
+  /* USER CODE END FPU_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

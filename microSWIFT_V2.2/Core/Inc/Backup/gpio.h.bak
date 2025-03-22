@@ -40,7 +40,7 @@ typedef struct
 } gpio_pin_struct;
 /* USER CODE END Private defines */
 
-void MX_GPIO_Init ( void );
+void MX_GPIO_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 void configure_iridium_onoff_pin ( bool v3f );

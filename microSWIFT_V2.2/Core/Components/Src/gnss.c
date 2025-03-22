@@ -865,12 +865,10 @@ static uSWIFT_return_code_t __send_config ( uint8_t *config_array, size_t messag
   memset (&(gnss_self->config_response_buf[0]), 0, GNSS_CONFIG_BUFFER_SIZE);
   // Send over the configuration settings
   HAL_UART_Transmit_DMA (gnss_self->gnss_uart_handle, &(config_array[0]), message_size);
-  __HAL_DMA_DISABLE_IT(gnss_self->gnss_tx_dma_handle, DMA_IT_HT);
 
   // Grab the acknowledgment message
   HAL_UART_Receive_DMA (gnss_self->gnss_uart_handle, &(gnss_self->config_response_buf[0]),
   GNSS_CONFIG_BUFFER_SIZE);
-  __HAL_DMA_DISABLE_IT(gnss_self->gnss_rx_dma_handle, DMA_IT_HT);
   if ( tx_event_flags_get (gnss_self->irq_flags, GNSS_CONFIG_RECVD, TX_OR_CLEAR, &actual_flags,
                            ticks_to_receive_msgs)
        != TX_SUCCESS )

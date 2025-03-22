@@ -75,8 +75,9 @@ void UART4_IRQHandler(void);
 void LPUART1_IRQHandler(void);
 void OCTOSPI1_IRQHandler(void);
 void SDMMC1_IRQHandler(void);
-void LPDMA1_Channel0_IRQHandler(void);
-void LPDMA1_Channel1_IRQHandler(void);
+void GPDMA1_Channel8_IRQHandler(void);
+void GPDMA1_Channel9_IRQHandler(void);
+void FPU_IRQHandler(void);
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */

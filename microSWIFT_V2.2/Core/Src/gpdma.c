@@ -52,6 +52,10 @@ void MX_GPDMA1_Init(void)
     HAL_NVIC_EnableIRQ(GPDMA1_Channel6_IRQn);
     HAL_NVIC_SetPriority(GPDMA1_Channel7_IRQn, 14, 0);
     HAL_NVIC_EnableIRQ(GPDMA1_Channel7_IRQn);
+    HAL_NVIC_SetPriority(GPDMA1_Channel8_IRQn, 13, 0);
+    HAL_NVIC_EnableIRQ(GPDMA1_Channel8_IRQn);
+    HAL_NVIC_SetPriority(GPDMA1_Channel9_IRQn, 13, 0);
+    HAL_NVIC_EnableIRQ(GPDMA1_Channel9_IRQn);
 
   /* USER CODE BEGIN GPDMA1_Init 1 */
 
