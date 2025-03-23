@@ -295,7 +295,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   // Create the logger thread. Low priority priority level and no preemption possible
   ret = tx_thread_create(&logger_thread, "logger thread", logger_thread_entry, 0, pointer, M_STACK,
-                         LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
+                         LOW_PRIORITY, LOW_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -384,9 +384,9 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
-  // Create the waves thread. HIGH priority, but can be preempted by any other thread
+  // Create the waves thread. Lowest priority, can be preempted by any other thread
   ret = tx_thread_create(&waves_thread, "waves thread", waves_thread_entry, 0, pointer, XL_STACK,
-                         HIGH_PRIORITY, LOWEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
+                         LOWEST_PRIORITY, LOWEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -1964,8 +1964,6 @@ static void iridium_thread_entry ( ULONG thread_input )
   watchdog_register_thread (IRIDIUM_THREAD);
   watchdog_check_in (IRIDIUM_THREAD);
 
-#warning"Figure out a fail early case to skip this if GNSS failed to get a fix"
-
   iridium.wake ();
   iridium.charge_caps (IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
 
@@ -1994,6 +1992,8 @@ static void iridium_thread_entry ( ULONG thread_input )
   if ( !iridium_apply_config (&iridium) )
   {
     // Need to save the message
+    error_bits = get_current_flags (&error_flags);
+    error_bits |= IRIDIUM_INIT_ERROR;
     persistent_ram_save_message (WAVES_TELEMETRY, (uint8_t*) &sbd_message);
     iridium_error_out (&iridium, IRIDIUM_UART_COMMS_ERROR, this_thread,
                        "Iridium modem UART communication error.");

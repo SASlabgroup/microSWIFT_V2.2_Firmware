@@ -212,7 +212,7 @@ void persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t *msg )
             if ( !persistent_self.turbidity_storage.msg_queue[i].valid[j] )
             {
               // copy the message over
-              memcpy (&(persistent_self.turbidity_storage.msg_queue[i].payload), msg,
+              memcpy (&(persistent_self.turbidity_storage.msg_queue[i].payload.elements[j]), msg,
                       sizeof(sbd_message_type_53_element));
               // Make the entry valid
               persistent_self.turbidity_storage.msg_queue[i].valid[j] = true;
@@ -236,7 +236,7 @@ void persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t *msg )
             if ( !persistent_self.light_storage.msg_queue[i].valid[j] )
             {
               // copy the message over
-              memcpy (&(persistent_self.light_storage.msg_queue[i].payload), msg,
+              memcpy (&(persistent_self.light_storage.msg_queue[i].payload.elements[j]), msg,
                       sizeof(sbd_message_type_54_element));
               // Make the entry valid
               persistent_self.light_storage.msg_queue[i].valid[j] = true;

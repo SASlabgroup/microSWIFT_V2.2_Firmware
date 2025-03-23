@@ -51,6 +51,7 @@
 #define GNSS_TIMER_INSTANCE TIM16
 // UBX message definitions
 #define RESOLVED_TIME_BITS ((1 << 0) | (1 << 2)) // Only resolve to the time of day
+#define LAT_LON_INVALID_BIT 1U
 #define UBX_NAV_PVT_YEAR_INDEX 4
 #define UBX_NAV_PVT_MONTH_INDEX 6
 #define UBX_NAV_PVT_DAY_INDEX 7
@@ -70,6 +71,7 @@
 #define UBX_NAV_PVT_V_DOWN_INDEX 56
 #define UBX_NAV_PVT_SACC_INDEX 68
 #define UBX_NAV_PVT_PDOP_INDEX 76
+#define UBX_NAV_PVT_FLAGS3_INDEX 78
 #define UBX_ACK_ACK_CLSID_INDEX 0
 #define UBX_ACK_ACK_MSGID_INDEX 1
 #define HIGH_PERFORMANCE_QUERY_SIZE 28

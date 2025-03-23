@@ -91,11 +91,12 @@ int32_t pcf2131_get_date_time ( dev_ctx_t *dev_handle, struct tm *return_date_ti
   return_date_time->tm_mon = BCD_TO_DEC_SPLIT(((time_date[6].months.month & 0x10) >> 4),
       (time_date[6].months.month & 0x0F))
                              - 1;
-  return_date_time->tm_year = BCD_TO_DEC_SPLIT(time_date[7].years.tens_place,
+  return_date_time->tm_year = (BCD_TO_DEC_SPLIT(time_date[7].years.tens_place,
       time_date[7].years.units_place)
-                              + 100;
+                               + 2000)
+                              - 1900;
   return_date_time->tm_yday = 0;
-  return_date_time->tm_isdst = 0;
+  return_date_time->tm_isdst = -1;
 
   return ret;
 }
@@ -427,11 +428,15 @@ int32_t pcf2131_get_timestamp ( dev_ctx_t *dev_handle, pcf2131_timestamp_t which
   return_date_time->tm_mday = BCD_TO_DEC_SPLIT(timestamp[3].timestamp_1_day.tens_place,
                                                timestamp[3].timestamp_1_day.units_place);
   return_date_time->tm_mon = timestamp[4].timestamp_1_month.month;
-  return_date_time->tm_year = BCD_TO_DEC_SPLIT(timestamp[5].timestamp_1_year.tens_place,
-                                               timestamp[5].timestamp_1_year.units_place);
+  return_date_time->tm_year = (BCD_TO_DEC_SPLIT(timestamp[5].timestamp_1_year.tens_place,
+      timestamp[5].timestamp_1_year.units_place)
+                               + 2000)
+                              - 1900;
   return_date_time->tm_wday = __weekday_from_date (return_date_time->tm_year,
                                                    return_date_time->tm_mon,
                                                    return_date_time->tm_mday);
+  return_date_time->tm_yday = 0;
+  return_date_time->tm_isdst = -1;
 
   return ret;
 }

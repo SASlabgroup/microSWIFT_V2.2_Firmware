@@ -366,7 +366,7 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
     return_code = __send_basic_command_message (ack, ACK_MESSAGE_SIZE);
     if ( return_code != uSWIFT_SUCCESS )
     {
-      return return_code;
+      goto io_error;
     }
 
     // get the checksum
@@ -451,8 +451,7 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
                                           strlen (send_sbd), IRIDIUM_MAX_UART_TX_TICKS)
          != UART_OK )
     {
-      __reset_uart ();
-      return uSWIFT_IO_ERROR;
+      goto io_error;
     }
 
     if ( iridium_self->uart_driver.read (&iridium_self->uart_driver,
@@ -461,8 +460,7 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
                                          IRIDIUM_MAX_UART_RX_TICKS_TX)
          != UART_OK )
     {
-      __reset_uart ();
-      return uSWIFT_IO_ERROR;
+      goto io_error;
     }
 
     watchdog_check_in (IRIDIUM_THREAD);
@@ -487,12 +485,14 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
 
     if ( iridium_self->timer_timeout )
     {
+      return_code = uSWIFT_TIMEOUT;
       break;
     }
     // Make sure we've got enough time left to try again
     else if ( get_timer_remaining_ticks (iridium_self->timer)
               < (MODEM_SLEEP_TIME + IRIDIUM_TOP_UP_CAP_CHARGE_TIME + (TX_TIMER_TICKS_PER_SECOND * 5)) )
     {
+      return_code = uSWIFT_TIMEOUT;
       break;
     }
 
@@ -502,6 +502,7 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
 
     if ( iridium_self->timer_timeout )
     {
+      return_code = uSWIFT_TIMEOUT;
       break;
     }
 
