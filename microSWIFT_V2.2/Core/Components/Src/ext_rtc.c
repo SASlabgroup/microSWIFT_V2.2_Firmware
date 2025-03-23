@@ -200,6 +200,8 @@ static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
     return uSWIFT_IO_ERROR;
   }
 
+#warning"Likely need to set watchdog timer registers before this call"
+
   // Interrupts: Int B will be used for alarm, Int A for watchdog
   ret = pcf2131_config_interrupts (&(rtc_self->dev_ctx), &rtc_self->irq_config);
   if ( ret != PCF2131_OK )
@@ -232,6 +234,7 @@ static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
  */
 static uSWIFT_return_code_t _ext_rtc_config_watchdog ( uint32_t period_ms )
 {
+#warning"Need to validate this"
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   watchdog_time_source_t clock_select;
 

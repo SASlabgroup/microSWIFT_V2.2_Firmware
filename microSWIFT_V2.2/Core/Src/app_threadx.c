@@ -1049,7 +1049,7 @@ static void control_thread_entry ( ULONG thread_input )
   {
     if ( ++watchdog_counter % TX_TIMER_TICKS_PER_SECOND == 0 )
     {
-      watchdog_check_in (CONTROL_THREAD);
+//      watchdog_check_in (CONTROL_THREAD);
     }
 
     control.monitor_and_handle_errors ();
@@ -1070,7 +1070,7 @@ static void control_thread_entry ( ULONG thread_input )
       heartbeat_started = true;
     }
 
-    tx_thread_relinquish ();
+    tx_thread_sleep (1);
   }
 
 }
@@ -1102,7 +1102,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   UINT tx_return;
   ULONG actual_flags;
   int timer_ticks_to_get_message = round (
-      ((float) TX_TIMER_TICKS_PER_SECOND / (float) configuration.gnss_sampling_rate) + 25);
+      ((float) TX_TIMER_TICKS_PER_SECOND / (float) configuration.gnss_sampling_rate) + 50);
   uint32_t two_mins_remaining_sample_count = abs (
       (2 * 60 * configuration.gnss_sampling_rate) - configuration.gnss_samples_per_window);
   bool two_mins_out_msg_sent = false, start_flag_sent = false;
@@ -1205,7 +1205,7 @@ static void gnss_thread_entry ( ULONG thread_input )
       watchdog_check_in (GNSS_THREAD);
     }
 
-    if ( (total_samples > 0) && (!start_flag_sent) && gnss.current_fix_is_good )
+    if ( (total_samples > 0) && (!start_flag_sent) )
     {
       (void) tx_event_flags_set (&complete_flags, GNSS_SAMPLING_STARTED_FIX_GOOD, TX_OR);
       start_flag_sent = true;
@@ -1275,12 +1275,12 @@ static void gnss_thread_entry ( ULONG thread_input )
   memcpy (&sbd_message.Lat, &last_lat, sizeof(float));
   memcpy (&sbd_message.Lon, &last_lon, sizeof(float));
 
-  //  sbd_port = ((gnss.total_samples_averaged / 10) >= 255) ?
-  //      255 : (gnss.total_samples_averaged / 10);
+  sbd_port = ((gnss.total_samples_averaged / 10) >= 255) ?
+      255 : (gnss.total_samples_averaged / 10);
 
   // We were using the "port" field to encode how many samples were averaged divided by 10, but
   // now we are using it to store the firmware version
-  sbd_port = *((uint8_t*) &configuration.firmware_version);
+//  sbd_port = *((uint8_t*) &configuration.firmware_version);
   memcpy (&sbd_message.port, &sbd_port, sizeof(uint8_t));
 
   // Deinit -- this will shut down UART port and DMA channels
@@ -1295,7 +1295,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   watchdog_deregister_thread (GNSS_THREAD);
 
   // The logger gets weird if there is no break here...
-  tx_thread_sleep (25);
+  tx_thread_sleep (LOGGER_MAX_TICKS_TO_TX_MSG);
 
   (void) tx_event_flags_set (&complete_flags, GNSS_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
@@ -1440,6 +1440,9 @@ static void ct_thread_entry ( ULONG thread_input )
   watchdog_check_in (CT_THREAD);
   watchdog_deregister_thread (CT_THREAD);
 
+  // The logger gets weird if there is no break here...
+  tx_thread_sleep (LOGGER_MAX_TICKS_TO_TX_MSG);
+
   (void) tx_event_flags_set (&complete_flags, CT_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
 }
@@ -1547,6 +1550,9 @@ static void temperature_thread_entry ( ULONG thread_input )
 
   watchdog_check_in (TEMPERATURE_THREAD);
   watchdog_deregister_thread (TEMPERATURE_THREAD);
+
+  // The logger gets weird if there is no break here...
+  tx_thread_sleep (LOGGER_MAX_TICKS_TO_TX_MSG);
 
   (void) tx_event_flags_set (&complete_flags, TEMPERATURE_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
@@ -1674,6 +1680,9 @@ static void light_thread_entry ( ULONG thread_input )
   watchdog_check_in (LIGHT_THREAD);
   watchdog_deregister_thread (LIGHT_THREAD);
 
+  // The logger gets weird if there is no break here...
+  tx_thread_sleep (LOGGER_MAX_TICKS_TO_TX_MSG);
+
   (void) tx_event_flags_set (&complete_flags, LIGHT_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
 }
@@ -1788,6 +1797,9 @@ static void turbidity_thread_entry ( ULONG thread_input )
   watchdog_check_in (TURBIDITY_THREAD);
   watchdog_deregister_thread (TURBIDITY_THREAD);
 
+  // The logger gets weird if there is no break here...
+  tx_thread_sleep (LOGGER_MAX_TICKS_TO_TX_MSG);
+
   (void) tx_event_flags_set (&complete_flags, TURBIDITY_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
 }
@@ -1876,6 +1888,9 @@ static void waves_thread_entry ( ULONG thread_input )
   watchdog_check_in (WAVES_THREAD);
   watchdog_deregister_thread (WAVES_THREAD);
 
+  // The logger gets weird if there is no break here...
+  tx_thread_sleep (LOGGER_MAX_TICKS_TO_TX_MSG);
+
   (void) tx_event_flags_set (&complete_flags, WAVES_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);
 }
@@ -1946,6 +1961,8 @@ static void iridium_thread_entry ( ULONG thread_input )
   /******************************* Control thread resumes this thread *****************************/
   watchdog_register_thread (IRIDIUM_THREAD);
   watchdog_check_in (IRIDIUM_THREAD);
+
+#warning"Figure out a fail early case to skip this if GNSS failed to get a fix"
 
   iridium.wake ();
   iridium.charge_caps (IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
@@ -2046,7 +2063,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   watchdog_deregister_thread (IRIDIUM_THREAD);
 
   // The logger gets weird if there is no break here...
-  tx_thread_sleep (25);
+  tx_thread_sleep (LOGGER_MAX_TICKS_TO_TX_MSG);
 
   (void) tx_event_flags_set (&complete_flags, IRIDIUM_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate (this_thread);

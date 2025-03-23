@@ -35,7 +35,7 @@
 #define UBX_NAV_PVT_PAYLOAD_LENGTH 92
 #define UBX_ACK_MESSAGE_LENGTH 10
 #define MAX_ACCEPTABLE_SACC 250 // need to confirm with Jim what this should be
-#define MAX_ACCEPTABLE_PDOP 1000 // (units = 0.01) greater than 10 means fair fix accuracy
+#define MAX_ACCEPTABLE_PDOP 600 // (units = 0.01) greater than 6 means poor fix accuracy
 #define MAX_EMPTY_QUEUE_WAIT 50 // wait for max 50ms
 #define MAX_EMPTY_CYCLES 5*60*10 // no data for 10 mins
 #define MAX_FRAME_SYNC_ATTEMPTS 10
@@ -130,6 +130,8 @@ typedef struct GNSS
   uint32_t                  total_samples;
   // We'll keep track of how many times we had to sub in a running average
   uint32_t                  total_samples_averaged;
+  // Number of messages which could not be parsed
+  uint32_t                  num_bad_messages;
   // How many times we've had to skip a sample - gets reset with valid data
   uint32_t                  number_cycles_without_data;
   // Flags

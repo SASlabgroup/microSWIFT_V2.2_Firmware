@@ -84,6 +84,7 @@ int main ( void )
 
   // Need to delay in order for the RTC oscillator to stabilize. Default is to output 32768Hz clock, and this
   // will be used to calibrate the MSIS when switching over to that clock source as the primary in SystemClock_Config().
+#warning "Only need to do this on initial boot..."
   rtc_init_delay ();
 
   // Setup the persistent ram if needed

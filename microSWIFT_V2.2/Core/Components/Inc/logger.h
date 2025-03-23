@@ -19,7 +19,8 @@
 
 #define MUTEX_LOCK_TICKS 5
 
-#define LOGGER_MAX_TICKS_TO_TX_MSG 500 // ~17ms for buffer size 256 bytes @ 115200 baud, we'll add a few ms
+#warning "Fix this..."
+#define LOGGER_MAX_TICKS_TO_TX_MSG 50 // ~17ms for buffer size 256 bytes @ 115200 baud, we'll add a few ms
 
 // This macro is what all threads will call to log information
 #define LOG(fmt, ...) (uart_log(fmt, ##__VA_ARGS__))

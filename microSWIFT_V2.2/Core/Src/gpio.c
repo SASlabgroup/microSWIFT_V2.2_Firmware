@@ -211,9 +211,6 @@ void MX_GPIO_Init(void)
   HAL_NVIC_SetPriority(EXTI0_IRQn, 15, 0);
   HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 
-  HAL_NVIC_SetPriority(EXTI2_IRQn, 15, 0);
-  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
-
 }
 
 /* USER CODE BEGIN 2 */

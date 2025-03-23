@@ -802,6 +802,7 @@ static void _gnss_process_message ( void )
   if ( !message_checksum_valid )
   {
     gnss_self->get_running_average_velocities ();
+    gnss_self->num_bad_messages++;
   }
 }
 
@@ -1236,6 +1237,7 @@ static void __reset_struct_fields ( void )
   gnss_self->sample_window_freq = 0.0;
   gnss_self->total_samples = 0;
   gnss_self->total_samples_averaged = 0;
+  gnss_self->num_bad_messages = 0;
   gnss_self->number_cycles_without_data = 0;
   gnss_self->current_fix_is_good = false;
   gnss_self->all_resolution_stages_complete = false;
@@ -1260,38 +1262,48 @@ static uSWIFT_return_code_t __start_GNSS_UART_DMA ( uint8_t *buffer, size_t msg_
 {
   uSWIFT_return_code_t return_code = uSWIFT_SUCCESS;
   HAL_StatusTypeDef hal_return_code = HAL_OK;
+  int32_t try_counter = 0;
 
-  memset (&(buffer[0]), 0, UBX_MESSAGE_SIZE * 2);
-
-  HAL_DMA_Abort (gnss_self->gnss_rx_dma_handle);
-  HAL_DMA_Abort (gnss_self->gnss_tx_dma_handle);
-
-  lpuart1_deinit ();
-  lpuart1_init ();
-
-  hal_return_code = MX_gnss_dma_linked_list_Config ();
-
-  if ( hal_return_code != HAL_OK )
+  while ( try_counter++ < 25 )
   {
-    return_code = uSWIFT_IO_ERROR;
-  }
 
-  __HAL_LINKDMA(gnss_self->gnss_uart_handle, hdmarx, *gnss_self->gnss_rx_dma_handle);
+    memset (&(buffer[0]), 0, UBX_MESSAGE_SIZE * 2);
 
-  hal_return_code = HAL_DMAEx_List_LinkQ (gnss_self->gnss_rx_dma_handle, &gnss_dma_linked_list);
-  if ( hal_return_code != HAL_OK )
-  {
-    return_code = uSWIFT_IO_ERROR;
-  }
+    HAL_DMA_Abort (gnss_self->gnss_rx_dma_handle);
+    HAL_DMA_Abort (gnss_self->gnss_tx_dma_handle);
 
-  tx_thread_sleep (25);
+    gnss_self->reset_uart ();
 
-  hal_return_code = HAL_UARTEx_ReceiveToIdle_DMA (gnss_self->gnss_uart_handle,
-                                                  (uint8_t*) &(buffer[0]), msg_size);
+    hal_return_code = MX_gnss_dma_linked_list_Config ();
 
-  if ( hal_return_code != HAL_OK )
-  {
-    return_code = uSWIFT_IO_ERROR;
+    if ( hal_return_code != HAL_OK )
+    {
+      return_code = uSWIFT_IO_ERROR;
+    }
+
+    __HAL_LINKDMA(gnss_self->gnss_uart_handle, hdmarx, *gnss_self->gnss_rx_dma_handle);
+
+    hal_return_code = HAL_DMAEx_List_LinkQ (gnss_self->gnss_rx_dma_handle, &gnss_dma_linked_list);
+    if ( hal_return_code != HAL_OK )
+    {
+      return_code = uSWIFT_IO_ERROR;
+    }
+
+    tx_thread_sleep (25);
+
+    hal_return_code = HAL_UART_Receive_DMA (gnss_self->gnss_uart_handle, (uint8_t*) &(buffer[0]),
+                                            msg_size);
+
+    if ( hal_return_code != HAL_OK )
+    {
+      return_code = uSWIFT_IO_ERROR;
+    }
+
+    if ( return_code == uSWIFT_SUCCESS )
+    {
+      break;
+    }
+
   }
 
   return return_code;
