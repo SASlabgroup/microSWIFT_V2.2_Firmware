@@ -384,9 +384,9 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   {
     return ret;
   }
-  // Create the waves thread. HIGH priority, no preemption-threshold
+  // Create the waves thread. HIGH priority, but can be preempted by any other thread
   ret = tx_thread_create(&waves_thread, "waves thread", waves_thread_entry, 0, pointer, XL_STACK,
-                         HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
+                         HIGH_PRIORITY, LOWEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -1228,6 +1228,8 @@ static void gnss_thread_entry ( ULONG thread_input )
 
       if ( gnss_return_code == uSWIFT_NO_SAMPLES_ERROR )
       {
+#warning "Likely won't use DMA Receive to Idle, rework this to reflect. Can keep GNSS_TOO_MANY_PARTIAL_MSGS,\
+          but might have to check in GNSS for this. Make sure to get the instance above as well during resolution."
         // If we get a full minute worth of dropped or incomplete messages, fail out
         if ( ++number_of_no_sample_errors == configuration.gnss_sampling_rate * 60 )
         {
