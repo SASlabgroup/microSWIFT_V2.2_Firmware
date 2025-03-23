@@ -1914,6 +1914,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   TX_THREAD *this_thread = &iridium_thread;
   Iridium iridium =
     { 0 };
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   int32_t iridium_thread_timeout = configuration.iridium_max_transmit_time;
   char ascii_7 = '7';
   uint8_t sbd_type = 52;
@@ -2010,10 +2011,14 @@ static void iridium_thread_entry ( ULONG thread_input )
 
     if ( !current_message_sent )
     {
-      if ( iridium.transmit_message (&(msg_buffer[0]), sizeof(sbd_message_type_52))
-           == uSWIFT_SUCCESS )
+      ret = iridium.transmit_message (&(msg_buffer[0]), sizeof(sbd_message_type_52));
+      if ( ret == uSWIFT_SUCCESS )
       {
         current_message_sent = true;
+      }
+      else if ( ret == uSWIFT_TIMEOUT )
+      {
+        break;
       }
 
       continue;

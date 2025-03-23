@@ -49,8 +49,6 @@ static void                  __cycle_power ( void );
 static void                  __reset_uart ( void );
 static int32_t               __uart_read_dma ( void *driver_ptr, uint8_t *read_buf, uint16_t size, uint32_t timeout_ticks );
 static int32_t               __uart_write_dma ( void *driver_ptr, uint8_t *write_buf, uint16_t size, uint32_t timeout_ticks );
-//static int32_t               __uart_read_it ( void *driver_ptr, uint8_t *read_buf, uint16_t size, uint32_t timeout_ticks );
-//static int32_t               __uart_write_it ( void *driver_ptr, uint8_t *write_buf, uint16_t size, uint32_t timeout_ticks );
 
 // AT commands
 static const char *ack                          = "AT\r";
@@ -360,6 +358,8 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
   strcat (load_sbd, payload_size_str);
   strcat (load_sbd, "\r");
 
+#warning"need to double check this is working as expected. Saw what looked like no sleep between transmissions."
+
   while ( !iridium_self->timer_timeout )
   {
 
@@ -475,7 +475,8 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
       // Success case
       __send_basic_command_message (clear_MO, SBDD_RESPONSE_SIZE);
       LOG("Iridium transmission successful.");
-      return uSWIFT_SUCCESS;
+      return_code = uSWIFT_SUCCESS;
+      break;
     }
 
     LOG("Iridium transmission unsuccessful. MO status: %d", SBDIX_response_code);
@@ -511,6 +512,10 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
     watchdog_check_in (IRIDIUM_THREAD);
 
     memset (&(iridium_self->response_buffer[0]), 0, IRIDIUM_MAX_RESPONSE_SIZE);
+  }
+
+  if ( iridium_self->timer_timeout )
+  {
     return_code = uSWIFT_TIMEOUT;
   }
 
@@ -606,42 +611,4 @@ static int32_t __uart_write_dma ( void *driver_ptr, uint8_t *write_buf, uint16_t
 
   return UART_OK;
 }
-
-//static int32_t __uart_read_it ( void *driver_ptr, uint8_t *read_buf, uint16_t size,
-//                                uint32_t timeout_ticks )
-//{
-//  generic_uart_driver *driver_handle = (generic_uart_driver*) driver_ptr;
-//
-//  if ( HAL_UART_Receive_IT (driver_handle->uart_handle, read_buf, size) != HAL_OK )
-//  {
-//    return UART_ERR;
-//  }
-//
-//  if ( tx_semaphore_get (driver_handle->uart_sema, timeout_ticks) != TX_SUCCESS )
-//  {
-//    HAL_UART_Abort (driver_handle->uart_handle);
-//    return UART_ERR;
-//  }
-//
-//  return UART_OK;
-//}
-//
-//static int32_t __uart_write_it ( void *driver_ptr, uint8_t *write_buf, uint16_t size,
-//                                 uint32_t timeout_ticks )
-//{
-//  generic_uart_driver *driver_handle = (generic_uart_driver*) driver_ptr;
-//
-//  if ( HAL_UART_Transmit_IT (driver_handle->uart_handle, write_buf, size) != HAL_OK )
-//  {
-//    return UART_ERR;
-//  }
-//
-//  if ( tx_semaphore_get (driver_handle->uart_sema, timeout_ticks) != TX_SUCCESS )
-//  {
-//    HAL_UART_Abort (driver_handle->uart_handle);
-//    return UART_ERR;
-//  }
-//
-//  return UART_OK;
-//}
 
