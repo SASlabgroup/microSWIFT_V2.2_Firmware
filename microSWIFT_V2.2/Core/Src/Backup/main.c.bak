@@ -50,7 +50,8 @@
 /* USER CODE BEGIN PV */
 // Configuration bytes programmed using STM32 Cube programmer in the last page of flash
 static microSWIFT_configuration flash_config __attribute__ ((section (".uservars.CONFIGURATION")));
-//Ext_RTC rtc = { 0 };
+// Only need to con
+static bool rtc_crystal_stable_complete __attribute__((section(".sram2"))) = false;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -84,8 +85,11 @@ int main ( void )
 
   // Need to delay in order for the RTC oscillator to stabilize. Default is to output 32768Hz clock, and this
   // will be used to calibrate the MSIS when switching over to that clock source as the primary in SystemClock_Config().
-#warning "Only need to do this on initial boot..."
-  rtc_init_delay ();
+  if ( !rtc_crystal_stable_complete )
+  {
+    rtc_init_delay ();
+    rtc_crystal_stable_complete = true;
+  }
 
   // Setup the persistent ram if needed
   persistent_ram_init (&flash_config);

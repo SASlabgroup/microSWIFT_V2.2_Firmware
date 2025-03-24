@@ -51,6 +51,7 @@ uSWIFT_return_code_t file_system_server_save_log_line ( char *log_line )
   queue_msg.return_code = &ret;
 
   __internal_manage_request (&queue_msg, FILE_SYSTEM_LOG_LINE_MAX_WAIT_TICKS);
+
   uart_logger_return_line_buf ((log_line_buf*) log_line);
 
   return ret;
@@ -165,7 +166,7 @@ static void __internal_manage_request ( file_system_request_message *msg,
 
   if ( is_broken )
   {
-    *msg->return_code = uSWIFT_IO_ERROR;
+    *msg->return_code = uSWIFT_FILE_SYSTEM_ERROR;
     return;
   }
 

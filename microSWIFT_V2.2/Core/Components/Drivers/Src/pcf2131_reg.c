@@ -878,8 +878,8 @@ int32_t pcf2131_set_watchdog_timer_value ( dev_ctx_t *dev_handle, uint8_t timer_
   pcf2131_watchdog_tim_value_reg_t watchdog =
     { timer_value };
 
-  ret |= dev_handle->bus_read (NULL, 0, WATCHDOG_TIM_VALUE_REG_ADDR, (uint8_t*) &watchdog,
-                               sizeof(pcf2131_watchdog_tim_value_reg_t));
+  ret |= dev_handle->bus_write (NULL, 0, WATCHDOG_TIM_VALUE_REG_ADDR, (uint8_t*) &watchdog,
+                                sizeof(pcf2131_watchdog_tim_value_reg_t));
 
   return ret;
 }

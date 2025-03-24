@@ -98,7 +98,6 @@ void Error_Handler(void);
 #define RTC_SPI_MOSI_GPIO_Port GPIOA
 #define RTC_INT_B_Pin GPIO_PIN_2
 #define RTC_INT_B_GPIO_Port GPIOB
-#define RTC_INT_B_EXTI_IRQn EXTI2_IRQn
 #define RTC_WDOG_OR_INPUT_Pin GPIO_PIN_13
 #define RTC_WDOG_OR_INPUT_GPIO_Port GPIOF
 #define RTC_TIMESTAMP_1_Pin GPIO_PIN_14

@@ -123,7 +123,7 @@ enum interrupt_flags
   GNSS_MSG_RECEIVED             = ((ULONG) 1 << 2),
   GNSS_MSG_INCOMPLETE           = ((ULONG) 1 << 3),
   // Signal the ADC conversion has been completed
-  BATTERY_CONVERSION_COMPLETE   = ((ULONG) 1 << 4),
+  BATTERY_CONVERSION_COMPLETE   = ((ULONG) 1 << 4)
 };
 
 typedef enum error_flags

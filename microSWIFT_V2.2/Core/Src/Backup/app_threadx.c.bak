@@ -205,11 +205,11 @@ static void turbidity_thread_entry ( ULONG thread_input );
 /* USER CODE END PFP */
 
 /**
-  * @brief  Application ThreadX Initialization.
-  * @param memory_ptr: memory pointer
-  * @retval int
-  */
-UINT App_ThreadX_Init(VOID *memory_ptr)
+ * @brief  Application ThreadX Initialization.
+ * @param memory_ptr: memory pointer
+ * @retval int
+ */
+UINT App_ThreadX_Init ( VOID *memory_ptr )
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -295,7 +295,7 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   }
   // Create the logger thread. Low priority priority level and no preemption possible
   ret = tx_thread_create(&logger_thread, "logger thread", logger_thread_entry, 0, pointer, M_STACK,
-                         LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
+                         LOW_PRIORITY, LOW_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -384,9 +384,9 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   {
     return ret;
   }
-  // Create the waves thread. HIGH priority, no preemption-threshold
+  // Create the waves thread. Lowest priority, can be preempted by any other thread
   ret = tx_thread_create(&waves_thread, "waves thread", waves_thread_entry, 0, pointer, XL_STACK,
-                         HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
+                         LOWEST_PRIORITY, LOWEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -688,18 +688,18 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   return ret;
 }
 
-  /**
-  * @brief  Function that implements the kernel's initialization.
-  * @param  None
-  * @retval None
-  */
-void MX_ThreadX_Init(void)
+/**
+ * @brief  Function that implements the kernel's initialization.
+ * @param  None
+ * @retval None
+ */
+void MX_ThreadX_Init ( void )
 {
   /* USER CODE BEGIN Before_Kernel_Start */
 
   /* USER CODE END Before_Kernel_Start */
 
-  tx_kernel_enter();
+  tx_kernel_enter ();
 
   /* USER CODE BEGIN Kernel_Start_Error */
 
@@ -746,11 +746,9 @@ static void rtc_thread_entry ( ULONG thread_input )
 
   rtc_server_init (&rtc_messaging_queue, &rtc_complete_flags);
 
-  // Setup the RTC
+  // Setup the RTC, this will also enable the watchdog, setting a refresh period
+  // as defined by WATCHDOG_PERIOD in ext_rtc.h
   ret |= rtc.setup_rtc ();
-
-  // Initialize the watchdog
-  ret |= rtc.config_watchdog (WATCHDOG_PERIOD);
 
   if ( ret != uSWIFT_SUCCESS )
   {
@@ -1102,7 +1100,7 @@ static void gnss_thread_entry ( ULONG thread_input )
   UINT tx_return;
   ULONG actual_flags;
   int timer_ticks_to_get_message = round (
-      ((float) TX_TIMER_TICKS_PER_SECOND / (float) configuration.gnss_sampling_rate) + 25);
+      ((float) TX_TIMER_TICKS_PER_SECOND / (float) configuration.gnss_sampling_rate) + 50);
   uint32_t two_mins_remaining_sample_count = abs (
       (2 * 60 * configuration.gnss_sampling_rate) - configuration.gnss_samples_per_window);
   bool two_mins_out_msg_sent = false, start_flag_sent = false;
@@ -1205,9 +1203,8 @@ static void gnss_thread_entry ( ULONG thread_input )
       watchdog_check_in (GNSS_THREAD);
     }
 
-    if ( (total_samples > 0) && (!start_flag_sent) && gnss.current_fix_is_good )
+    if ( (total_samples > 0) && (!start_flag_sent) )
     {
-#warning "Add log line here to indicate we got a fix"
       (void) tx_event_flags_set (&complete_flags, GNSS_SAMPLING_STARTED_FIX_GOOD, TX_OR);
       start_flag_sent = true;
     }
@@ -1229,6 +1226,8 @@ static void gnss_thread_entry ( ULONG thread_input )
 
       if ( gnss_return_code == uSWIFT_NO_SAMPLES_ERROR )
       {
+#warning "Likely won't use DMA Receive to Idle, rework this to reflect. Can keep GNSS_TOO_MANY_PARTIAL_MSGS,\
+          but might have to check in GNSS for this. Make sure to get the instance above as well during resolution."
         // If we get a full minute worth of dropped or incomplete messages, fail out
         if ( ++number_of_no_sample_errors == configuration.gnss_sampling_rate * 60 )
         {
@@ -1276,12 +1275,12 @@ static void gnss_thread_entry ( ULONG thread_input )
   memcpy (&sbd_message.Lat, &last_lat, sizeof(float));
   memcpy (&sbd_message.Lon, &last_lon, sizeof(float));
 
-  //  sbd_port = ((gnss.total_samples_averaged / 10) >= 255) ?
-  //      255 : (gnss.total_samples_averaged / 10);
+  sbd_port = ((gnss.total_samples_averaged / 10) >= 255) ?
+      255 : (gnss.total_samples_averaged / 10);
 
   // We were using the "port" field to encode how many samples were averaged divided by 10, but
   // now we are using it to store the firmware version
-  sbd_port = *((uint8_t*) &configuration.firmware_version);
+//  sbd_port = *((uint8_t*) &configuration.firmware_version);
   memcpy (&sbd_message.port, &sbd_port, sizeof(uint8_t));
 
   // Deinit -- this will shut down UART port and DMA channels
@@ -1580,7 +1579,6 @@ static void light_thread_entry ( ULONG thread_input )
   sbd_message_type_54_element sbd_msg_element =
     { 0 };
   light_raw_counts raw_counts;
-  light_basic_counts basic_counts;
   int32_t light_thread_timeout = get_gnss_sample_window_timeout (&configuration); // Same timeout as GNSS
   ULONG sample_start_time = 0, thread_sleep_time = 0;
 
@@ -1913,6 +1911,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   TX_THREAD *this_thread = &iridium_thread;
   Iridium iridium =
     { 0 };
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   int32_t iridium_thread_timeout = configuration.iridium_max_transmit_time;
   char ascii_7 = '7';
   uint8_t sbd_type = 52;
@@ -1963,8 +1962,6 @@ static void iridium_thread_entry ( ULONG thread_input )
   watchdog_register_thread (IRIDIUM_THREAD);
   watchdog_check_in (IRIDIUM_THREAD);
 
-#warning"Figure out a fail early case to skip this if GNSS failed to get a fix"
-
   iridium.wake ();
   iridium.charge_caps (IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
 
@@ -1993,6 +1990,8 @@ static void iridium_thread_entry ( ULONG thread_input )
   if ( !iridium_apply_config (&iridium) )
   {
     // Need to save the message
+    error_bits = get_current_flags (&error_flags);
+    error_bits |= IRIDIUM_INIT_ERROR;
     persistent_ram_save_message (WAVES_TELEMETRY, (uint8_t*) &sbd_message);
     iridium_error_out (&iridium, IRIDIUM_UART_COMMS_ERROR, this_thread,
                        "Iridium modem UART communication error.");
@@ -2009,10 +2008,14 @@ static void iridium_thread_entry ( ULONG thread_input )
 
     if ( !current_message_sent )
     {
-      if ( iridium.transmit_message (&(msg_buffer[0]), sizeof(sbd_message_type_52))
-           == uSWIFT_SUCCESS )
+      ret = iridium.transmit_message (&(msg_buffer[0]), sizeof(sbd_message_type_52));
+      if ( ret == uSWIFT_SUCCESS )
       {
         current_message_sent = true;
+      }
+      else if ( ret == uSWIFT_TIMEOUT )
+      {
+        break;
       }
 
       continue;

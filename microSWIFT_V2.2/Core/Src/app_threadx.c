@@ -959,16 +959,6 @@ static void logger_thread_entry ( ULONG thread_input )
 
       // Need to wait until the transmission is complete before grabbing another message
       (void) tx_semaphore_get (&logger_sema, TX_WAIT_FOREVER);
-
-      // We only know the DMA complete time, not the time it has completed Tx on the wire
-      time_end = tx_time_get ();
-
-      time_elapsed = (time_end - time_start);
-
-      if ( time_elapsed < LOGGER_MAX_TICKS_TO_TX_MSG )
-      {
-        tx_thread_sleep (LOGGER_MAX_TICKS_TO_TX_MSG - time_elapsed);
-      }
     }
   }
 }
@@ -1007,8 +997,9 @@ static void control_thread_entry ( ULONG thread_input )
                    &irq_flags, &complete_flags, &control_timer, device_handles.battery_adc,
                    &sbd_message);
 
-#warning"change this to include microswift firmware version, ID, and sample window count"
-  LOG("\r\n\r\nBoot.");
+  LOG("\r\n\r\nHello World!\r\nmicroSWIFT %lu.\r\nFirmware major version %hu, minor version %hu.",
+      configuration.tracking_number, configuration.firmware_version.major_rev,
+      configuration.firmware_version.minor_rev);
 
   if ( watchdog_init (&watchdog, &watchdog_check_in_flags) != WATCHDOG_OK )
   {
@@ -1047,7 +1038,7 @@ static void control_thread_entry ( ULONG thread_input )
   {
     if ( ++watchdog_counter % TX_TIMER_TICKS_PER_SECOND == 0 )
     {
-//      watchdog_check_in (CONTROL_THREAD);
+      watchdog_check_in (CONTROL_THREAD);
     }
 
     control.monitor_and_handle_errors ();
@@ -1264,6 +1255,8 @@ static void gnss_thread_entry ( ULONG thread_input )
     }
   }
 
+  LOG("GNSS sample window completed.");
+
   watchdog_check_in (GNSS_THREAD);
 
   // Stop the timer, turn off sensor
@@ -1376,6 +1369,8 @@ static void ct_thread_entry ( ULONG thread_input )
     ct_error_out (&ct, CT_INIT_FAILED, this_thread, "CT self test failed.");
   }
 
+  LOG("CT sample window started.");
+
   // Take our samples
   while ( 1 )
   {
@@ -1408,6 +1403,8 @@ static void ct_thread_entry ( ULONG thread_input )
       break;
     }
   }
+
+  LOG("CT sample window completed.");
 
   watchdog_check_in (CT_THREAD);
 
@@ -1509,6 +1506,8 @@ static void temperature_thread_entry ( ULONG thread_input )
   watchdog_register_thread (TEMPERATURE_THREAD);
   watchdog_check_in (TEMPERATURE_THREAD);
 
+  LOG("Temperature sample window started.");
+
   while ( fail_counter < max_retries )
   {
     watchdog_check_in (TEMPERATURE_THREAD);
@@ -1536,6 +1535,8 @@ static void temperature_thread_entry ( ULONG thread_input )
         &temperature, TEMPERATURE_SAMPLING_ERROR, this_thread,
         "Unable to get readings from temperature sensor after %d failed attempts.", max_retries);
   }
+
+  LOG("Temperature sample window completed.");
 
   half_temp = floatToHalf (sampling_reading);
 
@@ -1624,6 +1625,8 @@ static void light_thread_entry ( ULONG thread_input )
 
   light.start_timer (light_thread_timeout);
 
+  LOG("Light sample window started.");
+
   // Take our samples
   while ( 1 )
   {
@@ -1665,6 +1668,8 @@ static void light_thread_entry ( ULONG thread_input )
     // Run at 0.5Hz
     tx_thread_sleep (thread_sleep_time);
   }
+
+  LOG("Light sample window completed.");
 
   light.idle ();
   light.off ();
@@ -1753,6 +1758,8 @@ static void turbidity_thread_entry ( ULONG thread_input )
 
   obs.start_timer (turbidity_thread_timeout);
 
+  LOG("Turbidity sample window started.");
+
   // Take our samples
   while ( 1 )
   {
@@ -1781,6 +1788,8 @@ static void turbidity_thread_entry ( ULONG thread_input )
     // Sleep the rest of the second away
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND - (tx_time_get () % TX_TIMER_TICKS_PER_SECOND));
   }
+
+  LOG("Turbidity sample window completed.");
 
   obs.off ();
 
@@ -1860,6 +1869,8 @@ static void waves_thread_entry ( ULONG thread_input )
   signed char b2[42];
   unsigned char check[42];
 
+  LOG("Running NEDWaves.");
+
   /* Call the entry-point 'NEDwaves_memlight'. */
   NEDwaves_memlight (waves_mem.north, waves_mem.east, waves_mem.down,
                      gnss_get_sample_window_frequency (), &Hs, &Tp, &Dp, E, &b_fmin, &b_fmax, a1,
@@ -1871,6 +1882,8 @@ static void waves_thread_entry ( ULONG thread_input )
 
   // Done with dynamic memory requirements for NEDWaves, delete the memory pool
   (void) waves_memory_pool_delete ();
+
+  LOG("NEDWaves complete.");
 
   memcpy (&sbd_message.Hs, &Hs, sizeof(real16_T));
   memcpy (&sbd_message.Tp, &Tp, sizeof(real16_T));
@@ -1927,6 +1940,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   bool current_message_sent = false;
   telemetry_type_t next_message_type;
   uint32_t next_message_size = 0;
+  char *log_str = NULL;
 
   tx_thread_sleep (10);
 
@@ -2008,6 +2022,7 @@ static void iridium_thread_entry ( ULONG thread_input )
 
     if ( !current_message_sent )
     {
+      LOG("Attempting transmission of NEDWaves telemetry...");
       ret = iridium.transmit_message (&(msg_buffer[0]), sizeof(sbd_message_type_52));
       if ( ret == uSWIFT_SUCCESS )
       {
@@ -2024,6 +2039,7 @@ static void iridium_thread_entry ( ULONG thread_input )
     next_message_type = get_next_telemetry_message (msg_ptr, &configuration);
     if ( next_message_type == NO_MESSAGE )
     {
+      LOG("No messages messages left in cache.");
       break;
     }
 
@@ -2036,6 +2052,14 @@ static void iridium_thread_entry ( ULONG thread_input )
 
     if ( next_message_size > 0 )
     {
+      log_str = (next_message_type == WAVES_TELEMETRY) ?
+          "NEDWaves " :
+                (next_message_type == TURBIDITY_TELEMETRY) ?
+                    "OBS " :
+                (next_message_type == LIGHT_TELEMETRY) ?
+                    "Light " : "Unknown ";
+      LOG("Attempting transmission of %s telemetry...", log_str);
+
       if ( iridium.transmit_message (msg_ptr, next_message_size) == uSWIFT_SUCCESS )
       {
         persistent_ram_delete_message_element (next_message_type, msg_ptr);

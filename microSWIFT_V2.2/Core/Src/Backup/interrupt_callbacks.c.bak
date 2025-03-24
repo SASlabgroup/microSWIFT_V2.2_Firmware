@@ -226,6 +226,10 @@ void HAL_ADC_ConvCpltCallback ( ADC_HandleTypeDef *hadc )
 void HAL_GPIO_EXTI_Rising_Callback ( uint16_t GPIO_Pin )
 {
   UNUSED(GPIO_Pin);
+  /*
+   * EXTI unused at this point. RTC interrupt will be used to wake from standby mode,
+   * Iridium RIn will be used when we implement 2-way comms.
+   */
 }
 
 /**
@@ -236,13 +240,10 @@ void HAL_GPIO_EXTI_Rising_Callback ( uint16_t GPIO_Pin )
 void HAL_GPIO_EXTI_Falling_Callback ( uint16_t GPIO_Pin )
 {
   UNUSED(GPIO_Pin);
-//#warning "Probably remove these in final version"
-//  if ( GPIO_Pin == RTC_INT_B_Pin )
-//  {
-//#ifdef DEBUG
-//    __asm__("BKPT");
-//#endif
-//  }
+  /*
+   * EXTI unused at this point. RTC interrupt will be used to wake from standby mode,
+   * Iridium RIn will be used when we implement 2-way comms.
+   */
 }
 
 /**

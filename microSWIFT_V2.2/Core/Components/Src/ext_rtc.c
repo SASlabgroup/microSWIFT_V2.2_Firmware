@@ -197,15 +197,15 @@ static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
     return uSWIFT_IO_ERROR;
   }
 
-  // Configure the watchdog prior to enabling interrupts
-  ret = __config_watchdog (WATCHDOG_PERIOD);
+  // Interrupts: Int B will be used for alarm, Int A for watchdog
+  ret = pcf2131_config_interrupts (&(rtc_self->dev_ctx), &rtc_self->irq_config);
   if ( ret != PCF2131_OK )
   {
     return uSWIFT_IO_ERROR;
   }
 
-  // Interrupts: Int B will be used for alarm, Int A for watchdog
-  ret = pcf2131_config_interrupts (&(rtc_self->dev_ctx), &rtc_self->irq_config);
+  // Configure the watchdog, this will start the watchdog timer
+  ret = __config_watchdog (WATCHDOG_PERIOD);
   if ( ret != PCF2131_OK )
   {
     return uSWIFT_IO_ERROR;
