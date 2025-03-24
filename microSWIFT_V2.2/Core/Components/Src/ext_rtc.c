@@ -16,7 +16,6 @@ static Ext_RTC *rtc_self;
 
 /* Core struct functions */
 static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void );
-static uSWIFT_return_code_t _ext_rtc_config_watchdog ( uint32_t period_ms );
 static uSWIFT_return_code_t _ext_rtc_refresh_watchdog ( void );
 static uSWIFT_return_code_t _ext_rtc_set_date_time ( struct tm *input_date_time );
 static uSWIFT_return_code_t _ext_rtc_get_date_time ( struct tm *return_date_time );
@@ -36,6 +35,9 @@ static int32_t _ext_rtc_write_reg_spi ( void *unused_handle, uint16_t unused_bus
                                         uint16_t reg_address, uint8_t *write_data,
                                         uint16_t data_length );
 static void _ext_rtc_ms_delay ( uint32_t delay );
+
+/* Helper functions */
+static uSWIFT_return_code_t __config_watchdog ( uint32_t period_ms );
 static uint8_t __weekday_from_date ( int y, int m, int d );
 /**
  * @brief  Initialize the Ext_RTC struct
@@ -103,23 +105,18 @@ uSWIFT_return_code_t ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_
   rtc_self->irq_config.timestamp_4_irq_en = false;
 
   // If a mask bit is set, the associated IRQ is masked and will not fire. Start with all IRQs masked
-  *((uint8_t*) &rtc_self->irq_config.int_b_mask_1) = 0xFF;
-  *((uint8_t*) &rtc_self->irq_config.int_a_mask_1) = 0xFF;
+  *((uint8_t*) &rtc_self->irq_config.int_b_mask_1) = INT_A_MASK_1_REG_RESET_VAL;
+  *((uint8_t*) &rtc_self->irq_config.int_a_mask_1) = INT_B_MASK_1_REG_RESET_VAL;
+  *((uint8_t*) &rtc_self->irq_config.int_a_mask_2) = INT_A_MASK_2_REG_RESET_VAL;
+  *((uint8_t*) &rtc_self->irq_config.int_b_mask_2) = INT_B_MASK_2_REG_RESET_VAL;
 
   // Int A will be used for Watchdog
   rtc_self->irq_config.int_a_mask_1.watchdog_irq_mask = false;
-  rtc_self->irq_config.int_a_mask_1.dash_bit = 0b00;
-  *((uint8_t*) &rtc_self->irq_config.int_a_mask_2) = 0xFF;
-  rtc_self->irq_config.int_a_mask_2.dash_bit = 0b0000;
 
   // Int B will be used for the Alarm
   rtc_self->irq_config.int_b_mask_1.alarm_irq_mask = false;
-  rtc_self->irq_config.int_b_mask_1.dash_bit = 0b00;
-  *((uint8_t*) &rtc_self->irq_config.int_b_mask_2) = 0xFF;
-  rtc_self->irq_config.int_b_mask_2.dash_bit = 0b0000;
 
   rtc_self->setup_rtc = _ext_rtc_setup_rtc;
-  rtc_self->config_watchdog = _ext_rtc_config_watchdog;
   rtc_self->refresh_watchdog = _ext_rtc_refresh_watchdog;
   rtc_self->set_date_time = _ext_rtc_set_date_time;
   rtc_self->get_date_time = _ext_rtc_get_date_time;
@@ -200,7 +197,12 @@ static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
     return uSWIFT_IO_ERROR;
   }
 
-#warning"Likely need to set watchdog timer registers before this call"
+  // Configure the watchdog prior to enabling interrupts
+  ret = __config_watchdog (WATCHDOG_PERIOD);
+  if ( ret != PCF2131_OK )
+  {
+    return uSWIFT_IO_ERROR;
+  }
 
   // Interrupts: Int B will be used for alarm, Int A for watchdog
   ret = pcf2131_config_interrupts (&(rtc_self->dev_ctx), &rtc_self->irq_config);
@@ -232,9 +234,8 @@ static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
  * @param  period_ms:= Watchdog refresh interval in milliseconds
  * @retval uSWIFT_return_code_t
  */
-static uSWIFT_return_code_t _ext_rtc_config_watchdog ( uint32_t period_ms )
+static uSWIFT_return_code_t __config_watchdog ( uint32_t period_ms )
 {
-#warning"Need to validate this"
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   watchdog_time_source_t clock_select;
 
@@ -244,31 +245,36 @@ static uSWIFT_return_code_t _ext_rtc_config_watchdog ( uint32_t period_ms )
     return uSWIFT_PARAMETERS_INVALID;
   }
 
+#warning"Need to validate this"
   // Figure out what watchdog clock rate to use
   // Reference Table 59 in datasheet
   if ( period_ms > PCF2131_1_4HZ_CLK_MAX_PERIOD_MS )
   {
     clock_select = HZ_1_64;
-    rtc_self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
-        round (((float) period_ms) * (1.0f / 64.0f)) + 1));
+    rtc_self->watchdog_refresh_time_val = (uint8_t) (round (
+        ((float) MILLISECONDS_TO_SECONDS(period_ms)) * (1.0f / 64.0f))
+                                                     + 1);
   }
   else if ( period_ms > (PCF2131_4HZ_CLK_MAX_PERIOD_MS) )
   {
     clock_select = HZ_1_4;
-    rtc_self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
-        round (((float) period_ms) * (1.0f / 4.0f)) + 1));
+    rtc_self->watchdog_refresh_time_val = (uint8_t) (round (
+        ((float) MILLISECONDS_TO_SECONDS(period_ms)) * (1.0f / 4.0f))
+                                                     + 1);
   }
   else if ( period_ms > PCF2131_64HZ_CLK_MAX_PERIOD_MS )
   {
     clock_select = HZ_4;
-    rtc_self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
-        round (((float) period_ms) * 4.0f) + 1));
+    rtc_self->watchdog_refresh_time_val = (uint8_t) (round (
+        ((float) MILLISECONDS_TO_SECONDS(period_ms)) * 4.0f)
+                                                     + 1);
   }
   else
   {
     clock_select = HZ_64;
-    rtc_self->watchdog_refresh_time_val = (uint8_t) (MILLISECONDS_TO_SECONDS(
-        round (((float) period_ms) * 64.0f) + 1));
+    rtc_self->watchdog_refresh_time_val = (uint8_t) (round (
+        ((float) MILLISECONDS_TO_SECONDS(period_ms)) * 64.0f)
+                                                     + 1);
   }
 
   ret = pcf2131_watchdog_config_time_source (&rtc_self->dev_ctx, clock_select);

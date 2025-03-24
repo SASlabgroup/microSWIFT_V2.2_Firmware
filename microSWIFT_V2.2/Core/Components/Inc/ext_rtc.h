@@ -44,7 +44,6 @@ typedef struct
   pcf2131_irq_config_struct irq_config;
 
   uSWIFT_return_code_t      (*setup_rtc) ( void );
-  uSWIFT_return_code_t      (*config_watchdog) ( uint32_t period_ms );
   uSWIFT_return_code_t      (*refresh_watchdog) ( void );
   uSWIFT_return_code_t      (*set_date_time) ( struct tm *input_date_time );
   uSWIFT_return_code_t      (*get_date_time) ( struct tm *return_date_time );

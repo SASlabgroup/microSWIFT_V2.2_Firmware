@@ -746,11 +746,9 @@ static void rtc_thread_entry ( ULONG thread_input )
 
   rtc_server_init (&rtc_messaging_queue, &rtc_complete_flags);
 
-  // Setup the RTC
+  // Setup the RTC, this will also enable the watchdog, setting a refresh period
+  // as defined by WATCHDOG_PERIOD in ext_rtc.h
   ret |= rtc.setup_rtc ();
-
-  // Initialize the watchdog
-  ret |= rtc.config_watchdog (WATCHDOG_PERIOD);
 
   if ( ret != uSWIFT_SUCCESS )
   {
@@ -1581,7 +1579,6 @@ static void light_thread_entry ( ULONG thread_input )
   sbd_message_type_54_element sbd_msg_element =
     { 0 };
   light_raw_counts raw_counts;
-  light_basic_counts basic_counts;
   int32_t light_thread_timeout = get_gnss_sample_window_timeout (&configuration); // Same timeout as GNSS
   ULONG sample_start_time = 0, thread_sleep_time = 0;
 
