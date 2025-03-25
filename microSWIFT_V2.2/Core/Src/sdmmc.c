@@ -41,9 +41,9 @@ void MX_SDMMC1_SD_Init ( void )
   hsd1.Instance = SDMMC1;
   hsd1.Init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
   hsd1.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_ENABLE;
-  hsd1.Init.BusWide = SDMMC_BUS_WIDE_1B;
+  hsd1.Init.BusWide = SDMMC_BUS_WIDE_4B;
   hsd1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_ENABLE;
-  hsd1.Init.ClockDiv = 8;
+  hsd1.Init.ClockDiv = 0;
   if ( HAL_SD_Init (&hsd1) != HAL_OK )
   {
     Error_Handler ();
@@ -84,10 +84,13 @@ void HAL_SD_MspInit ( SD_HandleTypeDef *sdHandle )
     __HAL_RCC_GPIOD_CLK_ENABLE();
     /**SDMMC1 GPIO Configuration
      PC8     ------> SDMMC1_D0
+     PC9     ------> SDMMC1_D1
+     PC10     ------> SDMMC1_D2
+     PC11     ------> SDMMC1_D3
      PC12     ------> SDMMC1_CK
      PD2     ------> SDMMC1_CMD
      */
-    GPIO_InitStruct.Pin = SD_CARD_D0_Pin | SD_CARD_SCK_Pin;
+    GPIO_InitStruct.Pin = SD_CARD_D0_Pin | GPIO_PIN_9 | GPIO_PIN_10 | GPIO_PIN_11 | SD_CARD_SCK_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
@@ -123,10 +126,14 @@ void HAL_SD_MspDeInit ( SD_HandleTypeDef *sdHandle )
 
     /**SDMMC1 GPIO Configuration
      PC8     ------> SDMMC1_D0
+     PC9     ------> SDMMC1_D1
+     PC10     ------> SDMMC1_D2
+     PC11     ------> SDMMC1_D3
      PC12     ------> SDMMC1_CK
      PD2     ------> SDMMC1_CMD
      */
-    HAL_GPIO_DeInit (GPIOC, SD_CARD_D0_Pin | SD_CARD_SCK_Pin);
+    HAL_GPIO_DeInit (GPIOC,
+                     SD_CARD_D0_Pin | GPIO_PIN_9 | GPIO_PIN_10 | GPIO_PIN_11 | SD_CARD_SCK_Pin);
 
     HAL_GPIO_DeInit (SD_CARD_CMD_GPIO_Port, SD_CARD_CMD_Pin);
 
@@ -146,9 +153,9 @@ int32_t sdmmc1_init ( void )
   hsd1.Instance = SDMMC1;
   hsd1.Init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
   hsd1.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_ENABLE;
-  hsd1.Init.BusWide = SDMMC_BUS_WIDE_1B;
+  hsd1.Init.BusWide = SDMMC_BUS_WIDE_4B;
   hsd1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_ENABLE;
-  hsd1.Init.ClockDiv = 8;
+  hsd1.Init.ClockDiv = 0;
   if ( HAL_SD_Init (&hsd1) != HAL_OK )
   {
     ret = SDMMC_ERROR;

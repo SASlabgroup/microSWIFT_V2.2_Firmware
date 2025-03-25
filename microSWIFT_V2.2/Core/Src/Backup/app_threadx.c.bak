@@ -990,12 +990,6 @@ static void control_thread_entry ( ULONG thread_input )
     tests.control_test (NULL);
   }
 
-#warning "remove this"
-  while ( 1 )
-  {
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
-  }
-
   // Let RTC and Logger thread init
   tx_thread_sleep (10);
 

@@ -157,19 +157,13 @@ void fx_thread_entry ( ULONG thread_input )
   file_system_request_message msg =
     { 0 };
   UINT tx_ret;
-  uSWIFT_return_code_t ret;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
   tx_thread_sleep (10);
 
   file_system_init (&file_system, &(fx_sd_media_memory[0]), &sd_card, &configuration);
   file_system_server_init (&file_system_messaging_queue, &file_system_complete_flags,
                            &configuration);
-
-#warning"remove this"
-  while ( file_system.initialize_card () != uSWIFT_SUCCESS )
-  {
-
-  }
 
   if ( file_system.initialize_card () != uSWIFT_SUCCESS )
   {

@@ -29,6 +29,8 @@ static uSWIFT_return_code_t _file_system_save_light_raw ( Light_Sensor *light );
 static uSWIFT_return_code_t _file_system_save_turbidity_raw ( Turbidity_Sensor *obs );
 
 // Helper functions
+static void __sd_card_on ( void );
+static void __sd_card_off ( void );
 static bool __open_sd_card ( void );
 static bool __close_sd_card ( void );
 static bool __write_file_header ( char *header, file_index_t file_index );
@@ -104,6 +106,8 @@ static uSWIFT_return_code_t _file_system_initialize_card ( void )
 {
   UINT fx_ret;
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
+
+  __sd_card_on ();
 
   // Initialize the SDMMC interface
   if ( sdmmc1_init () != SDMMC_OK )
@@ -182,7 +186,7 @@ static uSWIFT_return_code_t _file_system_initialize_card ( void )
 
 done:
   __close_sd_card ();
-  sdmmc1_deinit ();
+
   return ret;
 }
 
@@ -764,13 +768,23 @@ done:
   return ret;
 }
 
+static void __sd_card_on ( void )
+{
+  gpio_write_pin (file_sys_self->fet_pin, GPIO_PIN_SET);
+}
+
+static void __sd_card_off ( void )
+{
+  gpio_write_pin (file_sys_self->fet_pin, GPIO_PIN_SET);
+}
+
 static bool __open_sd_card ( void )
 {
   UINT fx_ret;
   char card_name[32] =
     { 0 };
 
-//  gpio_write_pin (file_sys_self->fet_pin, GPIO_PIN_SET);
+  __sd_card_on ();
 
   snprintf (&(card_name[0]), 32, "microSWIFT %lu", file_sys_self->global_config->tracking_number);
 
@@ -789,7 +803,7 @@ static bool __close_sd_card ( void )
 
   fx_ret = fx_media_close (file_sys_self->sd_card);
 
-//  gpio_write_pin (file_sys_self->fet_pin, GPIO_PIN_RESET);
+  __sd_card_off ();
 
   return (fx_ret == FX_SUCCESS);
 }
