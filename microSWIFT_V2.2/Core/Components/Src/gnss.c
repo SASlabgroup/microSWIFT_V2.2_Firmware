@@ -674,7 +674,7 @@ static void _gnss_process_message ( void )
   int32_t message_id = 0;
   int32_t num_payload_bytes = 0;
   int32_t lat, lon, vnorth, veast, vdown;
-  int16_t pDOP, flags3;
+  int16_t flags3;
   bool is_ubx_nav_pvt_msg, message_checksum_valid = false;
   bool velocities_non_zero;
 
@@ -726,7 +726,6 @@ static void _gnss_process_message ( void )
     // Grab a bunch of things from the message
     lon = (int32_t) get_four_bytes (payload, UBX_NAV_PVT_LON_INDEX, AS_LITTLE_ENDIAN);
     lat = (int32_t) get_four_bytes (payload, UBX_NAV_PVT_LAT_INDEX, AS_LITTLE_ENDIAN);
-    pDOP = (int16_t) get_two_bytes (payload, UBX_NAV_PVT_PDOP_INDEX, AS_LITTLE_ENDIAN);
     flags3 = (int16_t) get_two_bytes (payload, UBX_NAV_PVT_FLAGS3_INDEX, AS_LITTLE_ENDIAN);
     vnorth = (int32_t) get_four_bytes (payload, UBX_NAV_PVT_V_NORTH_INDEX, AS_LITTLE_ENDIAN);
     veast = (int32_t) get_four_bytes (payload, UBX_NAV_PVT_V_EAST_INDEX, AS_LITTLE_ENDIAN);

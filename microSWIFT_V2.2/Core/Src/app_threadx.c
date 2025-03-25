@@ -1928,7 +1928,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   int32_t iridium_thread_timeout = configuration.iridium_max_transmit_time;
   char ascii_7 = '7';
   uint8_t sbd_type = 52;
-  uint16_t sbd_size = 327;
+  uint16_t sbd_size = 331;
   uint32_t sbd_timestamp = 0;
   uint32_t error_bits = 0;
   struct tm time_struct =
@@ -1991,7 +1991,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   // finish filling out the SBD message
   rtc_server_get_time (&time_struct, IRIDIUM_REQUEST_COMPLETE);
   time_now = mktime (&time_struct);
-  sbd_timestamp = (uint32_t) time_now;
+  sbd_timestamp = (float) time_now;
   error_bits = control_get_accumulated_error_flags ();
   memcpy (&sbd_message.legacy_number_7, &ascii_7, sizeof(char));
   memcpy (&sbd_message.type, &sbd_type, sizeof(uint8_t));
