@@ -106,7 +106,7 @@ static uSWIFT_return_code_t _file_system_initialize_card ( void )
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
   // Initialize the SDMMC interface
-  if ( !sdmmc1_init () )
+  if ( sdmmc1_init () != SDMMC_OK )
   {
     ret = uSWIFT_IO_ERROR;
     goto done;
@@ -770,7 +770,7 @@ static bool __open_sd_card ( void )
   char card_name[32] =
     { 0 };
 
-  gpio_write_pin (file_sys_self->fet_pin, GPIO_PIN_SET);
+//  gpio_write_pin (file_sys_self->fet_pin, GPIO_PIN_SET);
 
   snprintf (&(card_name[0]), 32, "microSWIFT %lu", file_sys_self->global_config->tracking_number);
 
@@ -789,7 +789,7 @@ static bool __close_sd_card ( void )
 
   fx_ret = fx_media_close (file_sys_self->sd_card);
 
-  gpio_write_pin (file_sys_self->fet_pin, GPIO_PIN_RESET);
+//  gpio_write_pin (file_sys_self->fet_pin, GPIO_PIN_RESET);
 
   return (fx_ret == FX_SUCCESS);
 }

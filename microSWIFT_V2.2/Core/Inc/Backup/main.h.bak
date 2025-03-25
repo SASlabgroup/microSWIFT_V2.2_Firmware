@@ -144,8 +144,6 @@ void Error_Handler(void);
 #define GNSS_LPUART_RX_GPIO_Port GPIOG
 #define SD_CARD_D0_Pin GPIO_PIN_8
 #define SD_CARD_D0_GPIO_Port GPIOC
-#define SD_CARD_D1_Pin GPIO_PIN_9
-#define SD_CARD_D1_GPIO_Port GPIOC
 #define CT_UART_TX_Pin GPIO_PIN_9
 #define CT_UART_TX_GPIO_Port GPIOA
 #define CT_UART_RX_Pin GPIO_PIN_10
@@ -156,10 +154,6 @@ void Error_Handler(void);
 #define DEBUG_SWCLK_GPIO_Port GPIOA
 #define EXP_UART_RX_Pin GPIO_PIN_15
 #define EXP_UART_RX_GPIO_Port GPIOA
-#define SD_CARD_D2_Pin GPIO_PIN_10
-#define SD_CARD_D2_GPIO_Port GPIOC
-#define SD_CARD_D3_Pin GPIO_PIN_11
-#define SD_CARD_D3_GPIO_Port GPIOC
 #define SD_CARD_SCK_Pin GPIO_PIN_12
 #define SD_CARD_SCK_GPIO_Port GPIOC
 #define IRIDIUM_RI_N_Pin GPIO_PIN_0

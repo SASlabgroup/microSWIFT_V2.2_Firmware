@@ -380,6 +380,9 @@ static void _control_enter_processor_standby_mode ( void )
     // Configure the sleep pin for the modem
     HAL_PWREx_EnablePullUpPullDownConfig ();
     HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_G, IRIDIUM_OnOff_Pin);
+    HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_D, BUS_5V_FET_Pin);
+    HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_D, RS232_FORCEOFF_Pin);
+
   }
 
   // Enable wakeup on the RTC alarm pin: PWR_WAKEUP_PIN1_LOW_1 = PB2 low polarity = RTC Int B
