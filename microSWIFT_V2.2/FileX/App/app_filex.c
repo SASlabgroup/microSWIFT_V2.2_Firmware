@@ -71,20 +71,20 @@ void fx_thread_entry ( ULONG thread_input );
 /* USER CODE END PFP */
 
 /**
-  * @brief  Application FileX Initialization.
-  * @param memory_ptr: memory pointer
-  * @retval int
-*/
-UINT MX_FileX_Init(VOID *memory_ptr)
+ * @brief  Application FileX Initialization.
+ * @param memory_ptr: memory pointer
+ * @retval int
+ */
+UINT MX_FileX_Init ( VOID *memory_ptr )
 {
   UINT ret = FX_SUCCESS;
-  TX_BYTE_POOL *byte_pool = (TX_BYTE_POOL*)memory_ptr;
+  TX_BYTE_POOL *byte_pool = (TX_BYTE_POOL*) memory_ptr;
 
   /* USER CODE BEGIN MX_FileX_MEM_POOL */
   VOID *pointer;
   /* USER CODE END MX_FileX_MEM_POOL */
 
-/* USER CODE BEGIN MX_FileX_Init */
+  /* USER CODE BEGIN MX_FileX_Init */
   //
   // Allocate stack for the file system thread
   ret = tx_byte_allocate (byte_pool, &pointer, XL_STACK, TX_NO_WAIT);
@@ -136,14 +136,14 @@ UINT MX_FileX_Init(VOID *memory_ptr)
   {
     return ret;
   }
-/* USER CODE END MX_FileX_Init */
+  /* USER CODE END MX_FileX_Init */
 
-/* Initialize FileX.  */
-  fx_system_initialize();
+  /* Initialize FileX.  */
+  fx_system_initialize ();
 
-/* USER CODE BEGIN MX_FileX_Init 1*/
+  /* USER CODE BEGIN MX_FileX_Init 1*/
 
-/* USER CODE END MX_FileX_Init 1*/
+  /* USER CODE END MX_FileX_Init 1*/
 
   return ret;
 }
@@ -164,6 +164,12 @@ void fx_thread_entry ( ULONG thread_input )
   file_system_init (&file_system, &(fx_sd_media_memory[0]), &sd_card, &configuration);
   file_system_server_init (&file_system_messaging_queue, &file_system_complete_flags,
                            &configuration);
+
+#warning"remove this"
+  while ( file_system.initialize_card () != uSWIFT_SUCCESS )
+  {
+
+  }
 
   if ( file_system.initialize_card () != uSWIFT_SUCCESS )
   {

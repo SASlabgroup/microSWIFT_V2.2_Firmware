@@ -182,6 +182,7 @@ static uSWIFT_return_code_t _file_system_initialize_card ( void )
 
 done:
   __close_sd_card ();
+  sdmmc1_deinit ();
   return ret;
 }
 
@@ -773,7 +774,7 @@ static bool __open_sd_card ( void )
 
   snprintf (&(card_name[0]), 32, "microSWIFT %lu", file_sys_self->global_config->tracking_number);
 
-  tx_thread_sleep (1);
+  tx_thread_sleep (50);
 
   fx_ret = fx_media_open(file_sys_self->sd_card, &(card_name[0]), fx_stm32_sd_driver,
                          (VOID *)FX_NULL, (VOID *) file_sys_self->media_sector_cache,
@@ -788,7 +789,7 @@ static bool __close_sd_card ( void )
 
   fx_ret = fx_media_close (file_sys_self->sd_card);
 
-  gpio_write_pin (file_sys_self->fet_pin, GPIO_PIN_SET);
+  gpio_write_pin (file_sys_self->fet_pin, GPIO_PIN_RESET);
 
   return (fx_ret == FX_SUCCESS);
 }

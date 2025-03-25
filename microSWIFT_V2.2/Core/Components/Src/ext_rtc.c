@@ -110,8 +110,10 @@ uSWIFT_return_code_t ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_
   *((uint8_t*) &rtc_self->irq_config.int_a_mask_2) = INT_A_MASK_2_REG_RESET_VAL;
   *((uint8_t*) &rtc_self->irq_config.int_b_mask_2) = INT_B_MASK_2_REG_RESET_VAL;
 
+#ifndef DEBUG
   // Int A will be used for Watchdog
   rtc_self->irq_config.int_a_mask_1.watchdog_irq_mask = false;
+#endif
 
   // Int B will be used for the Alarm
   rtc_self->irq_config.int_b_mask_1.alarm_irq_mask = false;
