@@ -1011,7 +1011,7 @@ static void control_thread_entry ( ULONG thread_input )
   {
     if ( first_window )
     {
-      control.shutdown_all_peripherals ();
+      control.shutdown_procedure ();
 
       led_light_sequence (TEST_FAILED_LED_SEQUENCE, LED_SEQUENCE_FOREVER);
       tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 30);

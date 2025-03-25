@@ -431,14 +431,15 @@ telemetry_type_t get_next_telemetry_message ( uint8_t *msg_buffer,
   // First case, both light and turbidity sensors are enabled
   if ( config->turbidity_enabled && config->light_enabled )
   {
-    if ( (num_waves_msgs >= num_turbidity_msgs) && (num_waves_msgs >= num_light_msgs) )
+    // First priority is light telemetry as it contains the most elements
+    if ( (num_light_msgs >= num_waves_msgs) && (num_light_msgs >= num_turbidity_msgs) )
     {
-      msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
+      msg_buffer = persistent_ram_get_prioritized_unsent_message (LIGHT_TELEMETRY);
       return (msg_buffer == NULL) ?
           NO_MESSAGE : WAVES_TELEMETRY;
     }
-    // Second priority is turbidity as there are fewer elements per message than light
-    else if ( (num_turbidity_msgs >= num_light_msgs) )
+    // Second priority is turbidity as there are fewer per message than light and more than waves
+    else if ( (num_turbidity_msgs >= num_waves_msgs) )
     {
       msg_buffer = persistent_ram_get_prioritized_unsent_message (TURBIDITY_TELEMETRY);
       return (msg_buffer == NULL) ?
@@ -446,7 +447,7 @@ telemetry_type_t get_next_telemetry_message ( uint8_t *msg_buffer,
     }
     else
     {
-      msg_buffer = persistent_ram_get_prioritized_unsent_message (LIGHT_TELEMETRY);
+      msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
       return (msg_buffer == NULL) ?
           NO_MESSAGE : LIGHT_TELEMETRY;
     }
@@ -454,15 +455,15 @@ telemetry_type_t get_next_telemetry_message ( uint8_t *msg_buffer,
   // Only turbidity enabled
   else if ( config->turbidity_enabled )
   {
-    if ( (num_waves_msgs >= num_turbidity_msgs) )
+    if ( (num_turbidity_msgs >= num_waves_msgs) )
     {
-      msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
+      msg_buffer = persistent_ram_get_prioritized_unsent_message (TURBIDITY_TELEMETRY);
       return (msg_buffer == NULL) ?
           NO_MESSAGE : WAVES_TELEMETRY;
     }
     else
     {
-      msg_buffer = persistent_ram_get_prioritized_unsent_message (TURBIDITY_TELEMETRY);
+      msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
       return (msg_buffer == NULL) ?
           NO_MESSAGE : TURBIDITY_TELEMETRY;
     }
@@ -470,15 +471,15 @@ telemetry_type_t get_next_telemetry_message ( uint8_t *msg_buffer,
   // Only light enabled
   else if ( config->light_enabled )
   {
-    if ( (num_waves_msgs >= num_light_msgs) )
+    if ( (num_light_msgs >= num_waves_msgs) )
     {
-      msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
+      msg_buffer = persistent_ram_get_prioritized_unsent_message (LIGHT_TELEMETRY);
       return (msg_buffer == NULL) ?
           NO_MESSAGE : WAVES_TELEMETRY;
     }
     else
     {
-      msg_buffer = persistent_ram_get_prioritized_unsent_message (LIGHT_TELEMETRY);
+      msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
       return (msg_buffer == NULL) ?
           NO_MESSAGE : LIGHT_TELEMETRY;
     }

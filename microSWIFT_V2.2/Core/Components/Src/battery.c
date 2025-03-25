@@ -90,7 +90,7 @@ static uSWIFT_return_code_t __battery_start_conversion ( void )
 
   /** Configure the internal voltage reference buffer voltage scale
    */
-  HAL_SYSCFG_VREFBUF_VoltageScalingConfig (SYSCFG_VREFBUF_VOLTAGE_SCALE1);
+  HAL_SYSCFG_VREFBUF_VoltageScalingConfig (SYSCFG_VREFBUF_VOLTAGE_SCALE2);
 
   /** Enable the Internal Voltage Reference buffer
    */
@@ -98,10 +98,7 @@ static uSWIFT_return_code_t __battery_start_conversion ( void )
 
   /** Configure the internal voltage reference buffer high impedance mode
    */
-  HAL_SYSCFG_VREFBUF_HighImpedanceConfig (SYSCFG_VREFBUF_HIGH_IMPEDANCE_DISABLE);
-
-  // Enable VDDA, power supply to ADC
-  HAL_PWREx_EnableVddA ();
+  HAL_SYSCFG_VREFBUF_HighImpedanceConfig (SYSCFG_VREFBUF_HIGH_IMPEDANCE_ENABLE);
 
   tx_thread_sleep (1);
 
@@ -128,6 +125,6 @@ static uSWIFT_return_code_t __battery_start_conversion ( void )
 
 void battery_set_voltage ( float voltage )
 {
-  self->voltage = voltage;
+  self->voltage = (float) ((voltage + ADC_CALIBRATION_CONSTANT_MICROVOLTS) * VSNS_V_PER_V);
 }
 

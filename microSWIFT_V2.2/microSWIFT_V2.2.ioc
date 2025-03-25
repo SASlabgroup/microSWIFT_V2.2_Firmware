@@ -1,7 +1,9 @@
 #MicroXplorer Configuration settings - do not modify
 ADC1.Channel-0\#ChannelRegularConversion=ADC_CHANNEL_1
-ADC1.IPParameters=Rank-0\#ChannelRegularConversion,Channel-0\#ChannelRegularConversion,SamplingTime-0\#ChannelRegularConversion,OffsetNumber-0\#ChannelRegularConversion,MonitoredBy-0\#ChannelRegularConversion,NbrOfConversionFlag,master
+ADC1.ContinuousConvMode=ENABLE
+ADC1.IPParameters=Rank-0\#ChannelRegularConversion,Channel-0\#ChannelRegularConversion,SamplingTime-0\#ChannelRegularConversion,OffsetNumber-0\#ChannelRegularConversion,MonitoredBy-0\#ChannelRegularConversion,NbrOfConversionFlag,master,ContinuousConvMode,NbrOfConversion
 ADC1.MonitoredBy-0\#ChannelRegularConversion=__NULL
+ADC1.NbrOfConversion=1
 ADC1.NbrOfConversionFlag=1
 ADC1.OffsetNumber-0\#ChannelRegularConversion=ADC_OFFSET_NONE
 ADC1.Rank-0\#ChannelRegularConversion=1
@@ -541,7 +543,7 @@ PF10.Signal=OCTOSPIM_P1_CLK
 PF13.GPIOParameters=PinState,GPIO_Label
 PF13.GPIO_Label=RTC_WDOG_OR_INPUT
 PF13.Locked=true
-PF13.PinState=GPIO_PIN_RESET
+PF13.PinState=GPIO_PIN_SET
 PF13.Signal=GPIO_Output
 PF14.GPIOParameters=PinState,GPIO_Label
 PF14.GPIO_Label=RTC_TIMESTAMP_1

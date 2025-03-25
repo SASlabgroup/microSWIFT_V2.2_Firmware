@@ -750,7 +750,6 @@ static void _gnss_process_message ( void )
     gnss_self->current_latitude = lat;
     gnss_self->current_longitude = lon;
 
-    // vAcc was within acceptable range, still need to check
     // individual velocities are less than MAX_POSSIBLE_VELOCITY
     velocities_non_zero = (vnorth != 0) && (veast != 0) && (vdown != 0);
 

@@ -190,32 +190,19 @@ void HAL_TIM_PeriodElapsedCallback ( TIM_HandleTypeDef *htim )
  */
 void HAL_ADC_ConvCpltCallback ( ADC_HandleTypeDef *hadc )
 {
-  static uint32_t number_of_conversions = 0;
-  static uint64_t v_sum = 0;
+  uint32_t conversion = HAL_ADC_GetValue (hadc);
 
-  if ( number_of_conversions < NUMBER_OF_ADC_SAMPLES )
-  {
-    uint32_t sample = HAL_ADC_GetValue (hadc);
-    v_sum += (sample * ADC_MICROVOLTS_PER_BIT)
-             + HAL_ADCEx_Calibration_GetValue (hadc, ADC_SINGLE_ENDED);
-    number_of_conversions++;
-  }
-  else
-  {
-    // Write the voltage to the battery struct
-    battery_set_voltage (
-        (float) ((((float) v_sum / (float) NUMBER_OF_ADC_SAMPLES)
-                  + ADC_CALIBRATION_CONSTANT_MICROVOLTS)
-                 / MICROVOLTS_PER_VOLT));
-    // Reset static variables
-    v_sum = 0;
-    number_of_conversions = 0;
-    // Set the conversion complete flag
-    tx_event_flags_set (&irq_flags, BATTERY_CONVERSION_COMPLETE, TX_OR);
-    // Done with our samples, shut it down.
-    HAL_ADC_Stop_IT (hadc);
-  }
+  conversion += HAL_ADCEx_Calibration_GetValue (hadc, ADC_SINGLE_ENDED);
+  conversion *= ADC_MICROVOLTS_PER_BIT;
 
+  // Write the voltage to the battery struct
+  battery_set_voltage ((float) conversion);
+
+  // Set the conversion complete flag
+  tx_event_flags_set (&irq_flags, BATTERY_CONVERSION_COMPLETE, TX_OR);
+
+  // Done with our samples, shut it down.
+  HAL_ADC_Stop_IT (hadc);
 }
 
 /**

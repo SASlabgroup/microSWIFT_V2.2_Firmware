@@ -35,6 +35,7 @@ typedef enum
   uSWIFT_SYNC_ERROR             = -19,
   uSWIFT_LOCATION_ERROR         = -20,
   uSWIFT_TIME_ERROR             = -21,
+  uSWIFT_FILE_SYSTEM_ERROR      = -22,
 
   uSWIFT_OBJECT_SPECIFIC_1      = -90,
   uSWIFT_OBJECT_SPECIFIC_2      = -91,

@@ -358,8 +358,6 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
   strcat (load_sbd, payload_size_str);
   strcat (load_sbd, "\r");
 
-#warning"need to double check this is working as expected. Saw what looked like no sleep between transmissions."
-
   while ( !iridium_self->timer_timeout )
   {
 

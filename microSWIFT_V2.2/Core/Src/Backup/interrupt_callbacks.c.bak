@@ -199,6 +199,8 @@ void HAL_ADC_ConvCpltCallback ( ADC_HandleTypeDef *hadc )
     v_sum += (sample * ADC_MICROVOLTS_PER_BIT)
              + HAL_ADCEx_Calibration_GetValue (hadc, ADC_SINGLE_ENDED);
     number_of_conversions++;
+
+    HAL_ADC_Start_IT (hadc);
   }
   else
   {

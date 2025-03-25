@@ -205,7 +205,8 @@ static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
   }
 
   // Configure the watchdog, this will start the watchdog timer
-  ret = __config_watchdog (WATCHDOG_PERIOD);
+#warning"change this back"
+  ret = __config_watchdog (600000);
   if ( ret != PCF2131_OK )
   {
     return uSWIFT_IO_ERROR;
@@ -245,7 +246,6 @@ static uSWIFT_return_code_t __config_watchdog ( uint32_t period_ms )
     return uSWIFT_PARAMETERS_INVALID;
   }
 
-#warning"Need to validate this"
   // Figure out what watchdog clock rate to use
   // Reference Table 59 in datasheet
   if ( period_ms > PCF2131_1_4HZ_CLK_MAX_PERIOD_MS )
