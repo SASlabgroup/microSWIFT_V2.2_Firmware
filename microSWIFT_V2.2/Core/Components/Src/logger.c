@@ -42,11 +42,11 @@ void uart_log ( const char *fmt, ... )
   }
 
   log_line_buf *log_buf = TX_NULL;
-  logger_message msg;
+  logger_message msg =
+    { 0 };
   int32_t bytes_remaining = sizeof(log_line_buf), str_len = 0;
   va_list args;
   va_start(args, fmt);
-
   UINT tx_ret;
 
   tx_ret = _logger_get_buffer (&log_buf);
@@ -58,21 +58,28 @@ void uart_log ( const char *fmt, ... )
     return;
   }
 
-  str_len = vsnprintf (&(log_buf->line_buf[sizeof(log_line_buf) - bytes_remaining]),
-                       bytes_remaining, fmt, args);
+  str_len = vsnprintf (&(log_buf->line_buf[0]), bytes_remaining, fmt, args);
 
   va_end(args);
 
   bytes_remaining -= str_len;
 
-  // Put a break line at the end
-  strncat (&log_buf->line_buf[0], "\r\n", bytes_remaining);
-
-  bytes_remaining = (bytes_remaining >= 2) ?
-      bytes_remaining - 2 : bytes_remaining;
+  if ( bytes_remaining >= 2 )
+  {
+    bytes_remaining -= 2;
+    // Put a break line at the end
+    strncat (&log_buf->line_buf[0], "\r\n", bytes_remaining);
+  }
 
   msg.str_buf = log_buf;
   msg.strlen = sizeof(log_line_buf) - bytes_remaining;
+
+  // Make sure its a valid size
+  if ( msg.strlen < 0 )
+  {
+    (void) tx_mutex_put (logger_self->lock);
+    return;
+  }
 
   (void) tx_queue_send (logger_self->msg_que, (VOID*) &msg, TX_NO_WAIT);
 

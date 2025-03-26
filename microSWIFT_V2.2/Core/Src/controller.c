@@ -229,8 +229,8 @@ static bool _control_startup_procedure ( void )
       break;
     }
 
-    tx_thread_sleep (1);
-    init_wait_ticks -= 1;
+    tx_thread_sleep (10);
+    init_wait_ticks -= 10;
   }
 
   return (tx_return == TX_SUCCESS);
@@ -392,7 +392,7 @@ static void _control_enter_processor_standby_mode ( void )
   __HAL_PWR_CLEAR_FLAG(PWR_FLAG_SBF);
   __HAL_PWR_CLEAR_FLAG(PWR_WAKEUP_FLAG1);
 
-#warning "Remove this in final version."
+#warning "!!! Remove this, and disable debug in low power modes in build settings prior to deployment !!!"
 #ifndef DEBUG
   DBGMCU->CR = 0; // Disable debug, trace and IWDG in low-power modes
 #else

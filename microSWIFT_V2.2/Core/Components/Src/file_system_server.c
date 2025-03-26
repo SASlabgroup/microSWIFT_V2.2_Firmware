@@ -32,8 +32,6 @@ void file_system_server_init ( TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP *co
   file_server_self.request_queue = request_queue;
   file_server_self.complete_flags = complete_flags;
   file_server_self.global_config = global_config;
-
-  is_broken = false;
 }
 
 uSWIFT_return_code_t file_system_server_save_log_line ( char *log_line )
@@ -232,6 +230,7 @@ static void __internal_manage_request ( file_system_request_message *msg,
                                         ULONG operation_wait_time )
 {
   ULONG event_flags;
+  *msg->return_code = uSWIFT_SUCCESS;
 
   if ( tx_queue_send (file_server_self.request_queue, msg,
   FILE_SYSTEM_QUEUE_MAX_WAIT_TICKS)

@@ -1033,7 +1033,7 @@ static void control_thread_entry ( ULONG thread_input )
 
   while ( 1 )
   {
-    if ( ++watchdog_counter % TX_TIMER_TICKS_PER_SECOND == 0 )
+    if ( ++watchdog_counter % (TX_TIMER_TICKS_PER_SECOND / 10) == 0 )
     {
       watchdog_check_in (CONTROL_THREAD);
     }
@@ -1056,7 +1056,7 @@ static void control_thread_entry ( ULONG thread_input )
       heartbeat_started = true;
     }
 
-    tx_thread_sleep (1);
+    tx_thread_sleep (10);
   }
 
 }

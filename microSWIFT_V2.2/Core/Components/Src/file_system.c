@@ -194,12 +194,16 @@ static uSWIFT_return_code_t _file_system_save_log_line ( char *line, uint32_t le
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   UINT fx_ret;
   static bool first_time = true, file_creation_failed = false;
+  bool open_sd_card_failed = false, file_open_failed = false, file_seek_failed = false,
+      file_write_failed = false, file_close_failed = false, media_flush_failed = false,
+      close_sd_card_failed = false;
   static uint32_t seek_index = 0;
 
   if ( !__open_sd_card () )
   {
+    open_sd_card_failed = true;
     ret = uSWIFT_IO_ERROR;
-    goto done;
+    goto error;
   }
 
   if ( first_time )
@@ -212,36 +216,39 @@ static uSWIFT_return_code_t _file_system_save_log_line ( char *line, uint32_t le
     {
       file_creation_failed = true;
       ret = uSWIFT_IO_ERROR;
-      goto done;
+      goto error;
     }
   }
 
   if ( file_creation_failed )
   {
     ret = uSWIFT_IO_ERROR;
-    goto done;
+    goto error;
   }
 
   fx_ret = fx_file_open(file_sys_self->sd_card, &file_sys_self->files[LOG_FILE],
                         &(file_sys_self->file_names[LOG_FILE][0]), FX_OPEN_FOR_WRITE);
   if ( fx_ret != FX_SUCCESS )
   {
+    file_open_failed = true;
     ret = uSWIFT_IO_ERROR;
-    goto done;
+    goto error;
   }
 
   fx_ret = fx_file_seek (&file_sys_self->files[LOG_FILE], seek_index);
   if ( fx_ret != FX_SUCCESS )
   {
+    file_seek_failed = true;
     ret = uSWIFT_IO_ERROR;
-    goto done;
+    goto error;
   }
 
   fx_ret = fx_file_write (&file_sys_self->files[LOG_FILE], line, len);
   if ( fx_ret != FX_SUCCESS )
   {
+    file_write_failed = true;
     ret = uSWIFT_IO_ERROR;
-    goto done;
+    goto error;
   }
 
   seek_index += len;
@@ -249,19 +256,28 @@ static uSWIFT_return_code_t _file_system_save_log_line ( char *line, uint32_t le
   fx_ret = fx_file_close (&file_sys_self->files[LOG_FILE]);
   if ( fx_ret != FX_SUCCESS )
   {
+    file_close_failed = true;
     ret = uSWIFT_IO_ERROR;
-    goto done;
+    goto error;
   }
 
   fx_ret = fx_media_flush (file_sys_self->sd_card);
   if ( fx_ret != FX_SUCCESS )
   {
+    media_flush_failed = true;
     ret = uSWIFT_IO_ERROR;
-    goto done;
+    goto error;
   }
 
-done:
-  __close_sd_card ();
+  if ( !__close_sd_card () )
+  {
+    close_sd_card_failed = true;
+    ret = uSWIFT_IO_ERROR;
+  }
+  return ret;
+
+error:
+  (void) __close_sd_card ();
   return ret;
 }
 
@@ -333,7 +349,11 @@ static uSWIFT_return_code_t _file_system_save_gnss_velocities ( GNSS *gnss )
   }
 
 done:
-  __close_sd_card ();
+  if ( !__close_sd_card () )
+  {
+
+    ret = uSWIFT_IO_ERROR;
+  }
   return ret;
 }
 
@@ -493,7 +513,10 @@ static uSWIFT_return_code_t _file_system_save_gnss_breadcrumb_track ( GNSS *gnss
   }
 
 done:
-  __close_sd_card ();
+  if ( !__close_sd_card () )
+  {
+    ret = uSWIFT_IO_ERROR;
+  }
   return ret;
 }
 
@@ -558,7 +581,10 @@ static uSWIFT_return_code_t _file_system_save_temperature_raw ( Temperature *tem
   }
 
 done:
-  __close_sd_card ();
+  if ( !__close_sd_card () )
+  {
+    ret = uSWIFT_IO_ERROR;
+  }
   return ret;
 }
 
@@ -621,7 +647,10 @@ static uSWIFT_return_code_t _file_system_save_ct_raw ( CT *ct )
   }
 
 done:
-  __close_sd_card ();
+  if ( !__close_sd_card () )
+  {
+    ret = uSWIFT_IO_ERROR;
+  }
   return ret;
 }
 
@@ -696,7 +725,10 @@ static uSWIFT_return_code_t _file_system_save_light_raw ( Light_Sensor *light )
   }
 
 done:
-  __close_sd_card ();
+  if ( !__close_sd_card () )
+  {
+    ret = uSWIFT_IO_ERROR;
+  }
   return ret;
 }
 
@@ -763,7 +795,10 @@ static uSWIFT_return_code_t _file_system_save_turbidity_raw ( Turbidity_Sensor *
   }
 
 done:
-  __close_sd_card ();
+  if ( !__close_sd_card () )
+  {
+    ret = uSWIFT_IO_ERROR;
+  }
   return ret;
 }
 

@@ -71,20 +71,20 @@ void fx_thread_entry ( ULONG thread_input );
 /* USER CODE END PFP */
 
 /**
-  * @brief  Application FileX Initialization.
-  * @param memory_ptr: memory pointer
-  * @retval int
-*/
-UINT MX_FileX_Init(VOID *memory_ptr)
+ * @brief  Application FileX Initialization.
+ * @param memory_ptr: memory pointer
+ * @retval int
+ */
+UINT MX_FileX_Init ( VOID *memory_ptr )
 {
   UINT ret = FX_SUCCESS;
-  TX_BYTE_POOL *byte_pool = (TX_BYTE_POOL*)memory_ptr;
+  TX_BYTE_POOL *byte_pool = (TX_BYTE_POOL*) memory_ptr;
 
   /* USER CODE BEGIN MX_FileX_MEM_POOL */
   VOID *pointer;
   /* USER CODE END MX_FileX_MEM_POOL */
 
-/* USER CODE BEGIN MX_FileX_Init */
+  /* USER CODE BEGIN MX_FileX_Init */
   //
   // Allocate stack for the file system thread
   ret = tx_byte_allocate (byte_pool, &pointer, XL_STACK, TX_NO_WAIT);
@@ -136,14 +136,14 @@ UINT MX_FileX_Init(VOID *memory_ptr)
   {
     return ret;
   }
-/* USER CODE END MX_FileX_Init */
+  /* USER CODE END MX_FileX_Init */
 
-/* Initialize FileX.  */
-  fx_system_initialize();
+  /* Initialize FileX.  */
+  fx_system_initialize ();
 
-/* USER CODE BEGIN MX_FileX_Init 1*/
+  /* USER CODE BEGIN MX_FileX_Init 1*/
 
-/* USER CODE END MX_FileX_Init 1*/
+  /* USER CODE END MX_FileX_Init 1*/
 
   return ret;
 }
@@ -156,7 +156,7 @@ void fx_thread_entry ( ULONG thread_input )
     { 0 };
   file_system_request_message msg =
     { 0 };
-  UINT tx_ret;
+  UINT tx_ret, num_errors = 0;
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
   tx_thread_sleep (10);
@@ -167,7 +167,7 @@ void fx_thread_entry ( ULONG thread_input )
 
   if ( file_system.initialize_card () != uSWIFT_SUCCESS )
   {
-    filex_error_out (this_thread, "SD card failed to initialize.");
+    filex_error_out (this_thread, "SD card failed to initialize. File system unavailable.");
   }
 
   LOG("SD card peripheral initialization successful.");
@@ -214,9 +214,17 @@ void fx_thread_entry ( ULONG thread_input )
 
       if ( ret != uSWIFT_SUCCESS )
       {
-        filex_error_out (this_thread,
-                         "File system failed to service request %d, returning code %d.",
-                         (int) msg.request, (int) ret);
+        if ( ++num_errors >= 5 )
+        {
+          filex_error_out (this_thread,
+                           "File system failed to service request %d, returning code %d.",
+                           (int) msg.request, (int) ret);
+        }
+        else
+        {
+          LOG("File system failed to service request %d, returning code %d.", (int ) msg.request,
+              (int ) ret);
+        }
       }
 
       if ( msg.return_code != NULL )

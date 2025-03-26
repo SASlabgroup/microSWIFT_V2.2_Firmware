@@ -33,6 +33,7 @@ Busses
 General
 *******
   
+[ ] !!! Disable debug in low power modes in build settings prior to deployment !!!
 [ ] Test OCTOSPI with V2.2 hardware
 	[ ] Finish out code to use as memory mapped external RAM
     
@@ -86,7 +87,6 @@ OBS
 ****************************************************************************************************
 ThreadX
 *******
-
 
     
 ****************************************************************************************************
