@@ -86,7 +86,7 @@ void light_sensor_init ( Light_Sensor *struct_ptr, microSWIFT_configuration *glo
 
   light_self->as7341_current_reg_bank = REG_BANK_UNKNOWN;
 
-  light_self->sensor_gain = GAIN_4X;
+  light_self->sensor_gain = GAIN_2X;
 
   light_self->timer_timeout = false;
 

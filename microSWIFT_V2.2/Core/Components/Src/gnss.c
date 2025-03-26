@@ -1263,8 +1263,6 @@ static uSWIFT_return_code_t __start_GNSS_UART_DMA ( uint8_t *buffer, size_t msg_
   HAL_StatusTypeDef hal_return_code = HAL_OK;
   int32_t try_counter = 0;
 
-#warning"might want to try getting a full second's worth of data and parsing it all in process msg"
-
   while ( try_counter++ < 25 )
   {
 
