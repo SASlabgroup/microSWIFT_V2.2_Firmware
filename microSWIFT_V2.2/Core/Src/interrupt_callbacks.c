@@ -190,19 +190,32 @@ void HAL_TIM_PeriodElapsedCallback ( TIM_HandleTypeDef *htim )
  */
 void HAL_ADC_ConvCpltCallback ( ADC_HandleTypeDef *hadc )
 {
-  uint32_t conversion = HAL_ADC_GetValue (hadc);
+  static int16_t num_conversions = 0;
+  static uint32_t conversion_accumulator = 0;
+  static uint32_t calibration_offset = 0;
 
-  conversion += HAL_ADCEx_Calibration_GetValue (hadc, ADC_SINGLE_ENDED);
-  conversion *= ADC_MICROVOLTS_PER_BIT;
+  if ( num_conversions == 0 )
+  {
+    calibration_offset = HAL_ADCEx_Calibration_GetValue (hadc, ADC_SINGLE_ENDED);
+  }
 
-  // Write the voltage to the battery struct
-  battery_set_voltage ((float) conversion);
+  if ( num_conversions++ < 100 )
+  {
+    conversion_accumulator += HAL_ADC_GetValue (hadc) + calibration_offset;
+  }
+  else
+  {
+    conversion_accumulator /= 100;
 
-  // Set the conversion complete flag
-  tx_event_flags_set (&irq_flags, BATTERY_CONVERSION_COMPLETE, TX_OR);
+    // Write the voltage to the battery struct
+    battery_set_voltage (conversion_accumulator);
 
-  // Done with our samples, shut it down.
-  HAL_ADC_Stop_IT (hadc);
+    // Set the conversion complete flag
+    tx_event_flags_set (&irq_flags, BATTERY_CONVERSION_COMPLETE, TX_OR);
+
+    // Done with our samples, shut it down.
+    HAL_ADC_Stop_IT (hadc);
+  }
 }
 
 /**

@@ -9,7 +9,7 @@
 #include "adc.h"
 #include "stdbool.h"
 // Object intance pointer
-static Battery *self;
+static Battery *battery_self;
 
 static uSWIFT_return_code_t _battery_get_voltage ( real16_T *voltage );
 static uSWIFT_return_code_t __battery_start_conversion ( void );
@@ -19,20 +19,20 @@ static bool adc_init_status = false;
 void battery_init ( Battery *struct_ptr, ADC_HandleTypeDef *adc_handle,
                     TX_EVENT_FLAGS_GROUP *irq_flags )
 {
-  self = struct_ptr;
-  self->adc_handle = adc_handle;
-  self->irq_flags = irq_flags;
-  self->voltage = 0;
+  battery_self = struct_ptr;
+  battery_self->adc_handle = adc_handle;
+  battery_self->irq_flags = irq_flags;
+  battery_self->voltage = 0;
 
-  self->get_voltage = _battery_get_voltage;
+  battery_self->get_voltage = _battery_get_voltage;
 }
 
 void battery_deinit ( void )
 {
   if ( adc_init_status )
   {
-    (void) HAL_ADC_Stop_IT (self->adc_handle);
-    (void) HAL_ADC_DeInit (self->adc_handle);
+    (void) HAL_ADC_Stop_IT (battery_self->adc_handle);
+    (void) HAL_ADC_DeInit (battery_self->adc_handle);
 
     (void) HAL_SYSCFG_DisableVREFBUF ();
 
@@ -58,7 +58,7 @@ static uSWIFT_return_code_t _battery_get_voltage ( real16_T *voltage )
   }
 
   // If it either takes too long or an EDC error is detected, set the battery voltage to the error value
-  if ( (tx_event_flags_get (self->irq_flags, BATTERY_CONVERSION_COMPLETE, TX_OR_CLEAR,
+  if ( (tx_event_flags_get (battery_self->irq_flags, BATTERY_CONVERSION_COMPLETE, TX_OR_CLEAR,
                             &actual_flags, max_ticks_to_get_voltage)
         != TX_SUCCESS) )
   {
@@ -66,7 +66,7 @@ static uSWIFT_return_code_t _battery_get_voltage ( real16_T *voltage )
     return uSWIFT_TIMEOUT;
   }
 
-  *voltage = floatToHalf (self->voltage);
+  *voltage = floatToHalf (battery_self->voltage);
   return uSWIFT_SUCCESS;
 }
 
@@ -102,7 +102,7 @@ static uSWIFT_return_code_t __battery_start_conversion ( void )
 
   tx_thread_sleep (1);
 
-  if ( HAL_ADCEx_Calibration_Start (self->adc_handle, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED)
+  if ( HAL_ADCEx_Calibration_Start (battery_self->adc_handle, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED)
        != HAL_OK )
   {
     return_code = uSWIFT_CALIBRATION_ERROR;
@@ -111,9 +111,10 @@ static uSWIFT_return_code_t __battery_start_conversion ( void )
   // Need at least a 4 ADC clock cycle delay after calibration before doing anything else with the
   // ADC -- 10ms ought to do.
   tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-  self->calibration_offset = HAL_ADCEx_Calibration_GetValue (self->adc_handle, ADC_SINGLE_ENDED);
+  battery_self->calibration_offset = HAL_ADCEx_Calibration_GetValue (battery_self->adc_handle,
+  ADC_SINGLE_ENDED);
 
-  if ( HAL_ADC_Start_IT (self->adc_handle) != HAL_OK )
+  if ( HAL_ADC_Start_IT (battery_self->adc_handle) != HAL_OK )
   {
     return_code = uSWIFT_INITIALIZATION_ERROR;
     return return_code;
@@ -123,8 +124,8 @@ static uSWIFT_return_code_t __battery_start_conversion ( void )
   return return_code;
 }
 
-void battery_set_voltage ( float voltage )
+void battery_set_voltage ( uint32_t adc_raw_counts )
 {
-  self->voltage = (float) ((voltage + ADC_CALIBRATION_CONSTANT_MICROVOLTS) * VSNS_V_PER_V);
+  battery_self->voltage = ((float) ((adc_raw_counts * ADC_SLOPE) + ADC_OFFSET));
 }
 

@@ -172,6 +172,12 @@ static bool _control_startup_procedure ( void )
 
   tx_thread_sleep (2);
 
+  // Grab the battery voltage before we start turning everything on
+  voltage = controller_self->get_battery_voltage ();
+  memcpy (&controller_self->current_message->mean_voltage, &voltage, sizeof(real16_T));
+
+  battery_deinit ();
+
   // Set the RF switch to GNSS port
   controller_self->rf_switch.set_gnss_port ();
 
@@ -210,12 +216,6 @@ static bool _control_startup_procedure ( void )
   {
     led_light_sequence (INITIAL_LED_SEQUENCE, 10);
   }
-
-  // Grab the battery voltage
-  voltage = controller_self->get_battery_voltage ();
-  memcpy (&controller_self->current_message->mean_voltage, &voltage, sizeof(real16_T));
-
-  battery_deinit ();
 
   while ( init_wait_ticks > 0 )
   {
@@ -310,7 +310,7 @@ static real16_T _control_get_battery_voltage ( void )
   }
   else
   {
-    LOG("Battery Voltage = %2.2f", halfToFloat (battery_voltage));
+    LOG("Battery Voltage = %2.2f Volts", halfToFloat (battery_voltage));
   }
 
   return battery_voltage;
@@ -392,12 +392,14 @@ static void _control_enter_processor_standby_mode ( void )
   __HAL_PWR_CLEAR_FLAG(PWR_FLAG_SBF);
   __HAL_PWR_CLEAR_FLAG(PWR_WAKEUP_FLAG1);
 
-#warning "!!! Remove this, and disable debug in low power modes in build settings prior to deployment !!!"
-#ifndef DEBUG
-  DBGMCU->CR = 0; // Disable debug, trace and IWDG in low-power modes
-#else
-  HAL_EnableDBGStandbyMode ();
-#endif
+//#warning "!!! Remove this, and disable debug in low power modes in build settings prior to deployment !!!"
+//#ifndef DEBUG
+//  DBGMCU->CR = 0; // Disable debug, trace and IWDG in low-power modes
+//#else
+//  HAL_EnableDBGStandbyMode ();
+//#endif
+
+  DBGMCU->CR = 0;
 
   /* Select Standby mode */
   MODIFY_REG(PWR->CR1, PWR_CR1_LPMS, PWR_CR1_LPMS_2);
