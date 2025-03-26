@@ -1116,6 +1116,9 @@ static void gnss_thread_entry ( ULONG thread_input )
              &irq_flags, &error_flags, &gnss_timer, north, east, down);
 
   gnss.on ();
+
+  tx_thread_sleep (SOFT_START_DELAY);
+
   // Run tests if needed
   if ( tests.gnss_thread_test != NULL )
   {
@@ -1360,6 +1363,8 @@ static void ct_thread_entry ( ULONG thread_input )
   watchdog_register_thread (CT_THREAD);
   watchdog_check_in (CT_THREAD);
 
+  tx_thread_sleep (SOFT_START_DELAY);
+
   // Turn on the CT sensor, warm it up, and frame sync
   if ( !ct_self_test (&ct, true, &ct_readings) )
   {
@@ -1465,7 +1470,7 @@ static void temperature_thread_entry ( ULONG thread_input )
   int32_t temperature_thread_timeout = 2; // minutes
   int32_t fail_counter = 0, max_retries = 10;
 
-  tx_thread_sleep (10);
+  tx_thread_sleep (SOFT_START_DELAY);
 
   // Set the mean salinity and temp values to error values in the event the sensor fails
   half_temp.bitPattern = TEMPERATURE_VALUES_ERROR_CODE;
@@ -1495,13 +1500,17 @@ static void temperature_thread_entry ( ULONG thread_input )
 
   // No need to turn off temperature sensor, it automatically enters standby mode when not actively
   // taking a measurement and the FET dissipates far more power than the sensor in standby mode.
-
+  temperature.off ();
   tx_thread_suspend (this_thread);
 
   /******************************* Control thread resumes this thread *****************************/
   temperature.start_timer (temperature_thread_timeout);
   watchdog_register_thread (TEMPERATURE_THREAD);
   watchdog_check_in (TEMPERATURE_THREAD);
+
+  temperature.on ();
+
+  tx_thread_sleep (SOFT_START_DELAY);
 
   LOG("Temperature sample window started.");
 
@@ -1582,7 +1591,7 @@ static void light_thread_entry ( ULONG thread_input )
 
   light_sensor_init (&light, &configuration, &(light_sensor_sample_buffer[0]), &light_timer);
 
-  tx_thread_sleep (10);
+  tx_thread_sleep (SOFT_START_DELAY);
 
   //
   // Run tests if needed
@@ -1610,6 +1619,7 @@ static void light_thread_entry ( ULONG thread_input )
   (void) tx_event_flags_set (&initialization_flags, LIGHT_INIT_SUCCESS, TX_OR);
 
   light.idle ();
+  light.off ();
   tx_thread_suspend (this_thread);
 
   /******************************* Control thread resumes this thread *****************************/
@@ -1617,8 +1627,15 @@ static void light_thread_entry ( ULONG thread_input )
   watchdog_register_thread (LIGHT_THREAD);
   watchdog_check_in (LIGHT_THREAD);
 
-  tx_thread_sleep (1);
-  light.standby ();
+  light.on ();
+
+  tx_thread_sleep (SOFT_START_DELAY);
+
+  if ( !light_self_test (&light) )
+  {
+    light_error_out (&light, LIGHT_INIT_FAILED, this_thread,
+                     "Light sensor failed prior to sampling.");
+  }
 
   light.start_timer (light_thread_timeout);
 
@@ -1717,7 +1734,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
 
   obs.on ();
 
-  tx_thread_sleep (10);
+  tx_thread_sleep (SOFT_START_DELAY);
 
   //
   // Run tests if needed
@@ -1740,12 +1757,24 @@ static void turbidity_thread_entry ( ULONG thread_input )
   (void) tx_event_flags_set (&initialization_flags, TURBIDITY_INIT_SUCCESS, TX_OR);
 
   obs.idle ();
+  obs.off ();
+
   tx_thread_suspend (this_thread);
 
   /******************************* Control thread resumes this thread *****************************/
 
   watchdog_register_thread (TURBIDITY_THREAD);
   watchdog_check_in (TURBIDITY_THREAD);
+
+  obs.on ();
+
+  tx_thread_sleep (SOFT_START_DELAY);
+
+  if ( !turbidity_self_test (&obs) )
+  {
+    turbidity_error_out (&obs, TURBIDITY_INIT_FAILED, this_thread,
+                         "Turbidity sensor self failed prior to sampling.");
+  }
 
   turbidity_reset_sample_counter ();
 

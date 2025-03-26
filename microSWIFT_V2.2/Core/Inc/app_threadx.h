@@ -44,6 +44,8 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
 
+#define SOFT_START_DELAY 25
+
 // @formatter:off
 enum thread_priorities
 {
