@@ -1094,6 +1094,8 @@ static void gnss_thread_entry ( ULONG thread_input )
   bool two_mins_out_msg_sent = false, start_flag_sent = false;
   uint32_t total_samples = 0;
 
+  tx_thread_sleep (10);
+
   if ( lpuart1_init () != UART_OK )
   {
     gnss_error_out (&gnss, GNSS_INIT_FAILED, this_thread, "GNSS UART port failed to initialize.");
@@ -1336,7 +1338,7 @@ static void ct_thread_entry ( ULONG thread_input )
            device_handles.ct_uart_rx_dma_handle, &ct_uart_sema, &error_flags, &ct_timer);
 
   ct.on ();
-
+  tx_thread_sleep (SOFT_START_DELAY);
   //
   // Run tests if needed
   if ( tests.ct_thread_test != NULL )
@@ -1470,7 +1472,7 @@ static void temperature_thread_entry ( ULONG thread_input )
   int32_t temperature_thread_timeout = 2; // minutes
   int32_t fail_counter = 0, max_retries = 10;
 
-  tx_thread_sleep (SOFT_START_DELAY);
+  tx_thread_sleep (10);
 
   // Set the mean salinity and temp values to error values in the event the sensor fails
   half_temp.bitPattern = TEMPERATURE_VALUES_ERROR_CODE;
@@ -1480,7 +1482,7 @@ static void temperature_thread_entry ( ULONG thread_input )
   temperature_init (&temperature, &configuration, &error_flags, &temperature_timer, true);
 
   temperature.on ();
-
+  tx_thread_sleep (SOFT_START_DELAY);
   //
   // Run tests if needed
   if ( tests.temperature_thread_test != NULL )
@@ -1509,7 +1511,6 @@ static void temperature_thread_entry ( ULONG thread_input )
   watchdog_check_in (TEMPERATURE_THREAD);
 
   temperature.on ();
-
   tx_thread_sleep (SOFT_START_DELAY);
 
   LOG("Temperature sample window started.");
@@ -1589,9 +1590,9 @@ static void light_thread_entry ( ULONG thread_input )
   int32_t light_thread_timeout = get_gnss_sample_window_timeout (&configuration); // Same timeout as GNSS
   ULONG sample_start_time = 0, thread_sleep_time = 0;
 
-  light_sensor_init (&light, &configuration, &(light_sensor_sample_buffer[0]), &light_timer);
+  tx_thread_sleep (10);
 
-  tx_thread_sleep (SOFT_START_DELAY);
+  light_sensor_init (&light, &configuration, &(light_sensor_sample_buffer[0]), &light_timer);
 
   //
   // Run tests if needed
@@ -1601,6 +1602,7 @@ static void light_thread_entry ( ULONG thread_input )
   }
 
   light.on ();
+  tx_thread_sleep (SOFT_START_DELAY);
 
   if ( !light_self_test (&light) )
   {
@@ -1623,12 +1625,11 @@ static void light_thread_entry ( ULONG thread_input )
   tx_thread_suspend (this_thread);
 
   /******************************* Control thread resumes this thread *****************************/
-
+  light.start_timer (light_thread_timeout);
   watchdog_register_thread (LIGHT_THREAD);
   watchdog_check_in (LIGHT_THREAD);
 
   light.on ();
-
   tx_thread_sleep (SOFT_START_DELAY);
 
   if ( !light_self_test (&light) )
@@ -1636,8 +1637,6 @@ static void light_thread_entry ( ULONG thread_input )
     light_error_out (&light, LIGHT_INIT_FAILED, this_thread,
                      "Light sensor failed prior to sampling.");
   }
-
-  light.start_timer (light_thread_timeout);
 
   LOG("Light sample window started.");
 
@@ -1728,6 +1727,8 @@ static void turbidity_thread_entry ( ULONG thread_input )
     { 0 };
   int32_t turbidity_thread_timeout = get_gnss_sample_window_timeout (&configuration); // Same timeout as GNSS
 
+  tx_thread_sleep (10);
+
   turbidity_sensor_init (&obs, &configuration, &turbidity_timer,
                          &turbidity_sensor_ambient_buffer[0],
                          &turbidity_sensor_proximity_buffer[0]);
@@ -1762,12 +1763,11 @@ static void turbidity_thread_entry ( ULONG thread_input )
   tx_thread_suspend (this_thread);
 
   /******************************* Control thread resumes this thread *****************************/
-
+  obs.start_timer (turbidity_thread_timeout);
   watchdog_register_thread (TURBIDITY_THREAD);
   watchdog_check_in (TURBIDITY_THREAD);
 
   obs.on ();
-
   tx_thread_sleep (SOFT_START_DELAY);
 
   if ( !turbidity_self_test (&obs) )
@@ -1779,10 +1779,6 @@ static void turbidity_thread_entry ( ULONG thread_input )
   turbidity_reset_sample_counter ();
 
   gnss_get_current_lat_lon (&obs.start_lat, &obs.start_lon);
-
-  obs.standby ();
-
-  obs.start_timer (turbidity_thread_timeout);
 
   LOG("Turbidity sample window started.");
 

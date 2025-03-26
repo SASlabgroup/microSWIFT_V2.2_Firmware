@@ -214,7 +214,7 @@ void fx_thread_entry ( ULONG thread_input )
 
       if ( ret != uSWIFT_SUCCESS )
       {
-        if ( ++num_errors >= 5 )
+        if ( ++num_errors >= 3 )
         {
           filex_error_out (this_thread,
                            "File system failed to service request %d, returning code %d.",
