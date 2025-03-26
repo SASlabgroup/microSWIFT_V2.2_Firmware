@@ -392,6 +392,7 @@ static void _control_enter_processor_standby_mode ( void )
   __HAL_PWR_CLEAR_FLAG(PWR_FLAG_SBF);
   __HAL_PWR_CLEAR_FLAG(PWR_WAKEUP_FLAG1);
 
+#warning "Remove this in final version."
 #ifndef DEBUG
   DBGMCU->CR = 0; // Disable debug, trace and IWDG in low-power modes
 #else

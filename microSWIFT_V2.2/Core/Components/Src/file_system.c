@@ -787,7 +787,7 @@ static bool __open_sd_card ( void )
 
   snprintf (&(card_name[0]), 32, "microSWIFT %lu", file_sys_self->global_config->tracking_number);
 
-  tx_thread_sleep (50);
+  tx_thread_sleep (SOFT_START_DELAY);
 
   fx_ret = fx_media_open(file_sys_self->sd_card, &(card_name[0]), fx_stm32_sd_driver,
                          (VOID *)FX_NULL, (VOID *) file_sys_self->media_sector_cache,
