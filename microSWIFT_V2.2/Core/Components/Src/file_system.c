@@ -88,7 +88,6 @@ void file_system_init ( File_System_SD_Card *file_system, uint32_t *media_sector
 
 void file_system_deinit ( void )
 {
-  __close_sd_card ();
   sdmmc1_deinit ();
 }
 

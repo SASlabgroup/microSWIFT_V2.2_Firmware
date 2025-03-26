@@ -937,7 +937,6 @@ static void logger_thread_entry ( ULONG thread_input )
   UINT tx_ret;
   uart_logger logger =
     { 0 };
-  ULONG time_start, time_end, time_elapsed;
 
   uart_logger_init (&logger, &logger_block_pool, &logger_message_queue, &logger_mutex,
                     device_handles.logger_uart_handle);
@@ -950,8 +949,6 @@ static void logger_thread_entry ( ULONG thread_input )
     tx_ret = tx_queue_receive (&logger_message_queue, &msg, TX_WAIT_FOREVER);
     if ( tx_ret == TX_SUCCESS )
     {
-      time_start = tx_time_get ();
-
       logger.send_log_line (&(msg.str_buf[0]), msg.strlen);
 
       // Pass the buffer down to the file system for saving to SD card
@@ -981,7 +978,7 @@ static void control_thread_entry ( ULONG thread_input )
   struct watchdog_t watchdog =
     { 0 };
   bool first_window = is_first_sample_window (), heartbeat_started = false;
-  uint32_t watchdog_counter = 0;
+  uint32_t watchdog_counter = 0, sample_window = persistent_ram_get_sample_window_counter ();
   ULONG start_time = 0;
 
   // Run tests if needed
@@ -999,7 +996,7 @@ static void control_thread_entry ( ULONG thread_input )
 
   LOG("\r\n\r\nHello World!\r\nmicroSWIFT %lu.\r\nFirmware major version %hu, minor version %hu.\r\nSample window %lu",
       configuration.tracking_number, configuration.firmware_version.major_rev,
-      configuration.firmware_version.minor_rev, persistent_ram_get_sample_window_counter ());
+      configuration.firmware_version.minor_rev, sample_window);
 
   if ( watchdog_init (&watchdog, &watchdog_check_in_flags) != WATCHDOG_OK )
   {
@@ -2030,6 +2027,7 @@ static void iridium_thread_entry ( ULONG thread_input )
       }
       else if ( ret == uSWIFT_TIMEOUT )
       {
+        tx_thread_sleep (LOGGER_MAX_TICKS_TO_TX_MSG);
         break;
       }
 

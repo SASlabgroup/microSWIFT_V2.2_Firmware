@@ -270,8 +270,8 @@ static void _control_shutdown_procedure ( void )
       (int ) alarm_settings.alarm_hour, (int ) alarm_settings.alarm_minute,
       (int ) alarm_settings.alarm_second);
 
-  // Give the logger time to complete
-  tx_thread_sleep (500);
+  // Give the logger and file system time to complete
+  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
 
   // Deinit all enabled peripherals
   controller_self->shutdown_all_interfaces ();
@@ -374,15 +374,15 @@ static void _control_enter_processor_standby_mode ( void )
   // Clear the backup ram retention bit
   CLEAR_BIT(PWR->BDCR1, PWR_BDCR1_BREN);
 
+  HAL_PWREx_EnablePullUpPullDownConfig ();
+  HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_D, BUS_5V_FET_Pin);
+  HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_D, RS232_FORCEOFF_Pin);
+
   // If using Iridium Modem Version V3D, configure a pull down to keep the modem off during sleep
   if ( !controller_self->global_config->iridium_v3f )
   {
     // Configure the sleep pin for the modem
-    HAL_PWREx_EnablePullUpPullDownConfig ();
     HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_G, IRIDIUM_OnOff_Pin);
-    HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_D, BUS_5V_FET_Pin);
-    HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_D, RS232_FORCEOFF_Pin);
-
   }
 
   // Enable wakeup on the RTC alarm pin: PWR_WAKEUP_PIN1_LOW_1 = PB2 low polarity = RTC Int B
