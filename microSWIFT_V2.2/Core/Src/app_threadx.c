@@ -1008,10 +1008,11 @@ static void control_thread_entry ( ULONG thread_input )
   {
     if ( first_window )
     {
-      control.shutdown_procedure ();
 
       led_light_sequence (TEST_FAILED_LED_SEQUENCE, LED_SEQUENCE_FOREVER);
       tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 30);
+
+      control.shutdown_procedure ();
 
       Error_Handler ();
     }
@@ -2052,14 +2053,13 @@ static void iridium_thread_entry ( ULONG thread_input )
       }
       else if ( ret == uSWIFT_TIMEOUT )
       {
-        tx_thread_sleep (LOGGER_MAX_TICKS_TO_TX_MSG);
         break;
       }
 
       continue;
     }
 
-    next_message_type = get_next_telemetry_message (msg_ptr, &configuration);
+    next_message_type = get_next_telemetry_message (&msg_ptr, &configuration);
     if ( next_message_type == NO_MESSAGE )
     {
       LOG("No messages messages left in cache.");
@@ -2076,11 +2076,11 @@ static void iridium_thread_entry ( ULONG thread_input )
     if ( next_message_size > 0 )
     {
       log_str = (next_message_type == WAVES_TELEMETRY) ?
-          "NEDWaves " :
+          "NEDWaves" :
                 (next_message_type == TURBIDITY_TELEMETRY) ?
-                    "OBS " :
+                    "OBS" :
                 (next_message_type == LIGHT_TELEMETRY) ?
-                    "Light " : "Unknown ";
+                    "Light" : "Unknown";
       LOG("Attempting transmission of %s telemetry...", log_str);
 
       if ( iridium.transmit_message (msg_ptr, next_message_size) == uSWIFT_SUCCESS )
@@ -2091,6 +2091,8 @@ static void iridium_thread_entry ( ULONG thread_input )
   }
 
   watchdog_check_in (IRIDIUM_THREAD);
+
+  tx_thread_sleep (LOGGER_MAX_TICKS_TO_TX_MSG);
 
   if ( !current_message_sent )
   {

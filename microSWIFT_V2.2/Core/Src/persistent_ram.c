@@ -338,6 +338,7 @@ uint8_t* persistent_ram_get_prioritized_unsent_message ( telemetry_type_t msg_ty
         if ( msg_full )
         {
           ret_ptr = (uint8_t*) &persistent_self.turbidity_storage.msg_queue[i].payload;
+          return ret_ptr;
         }
       }
 
@@ -369,6 +370,7 @@ uint8_t* persistent_ram_get_prioritized_unsent_message ( telemetry_type_t msg_ty
         if ( msg_full )
         {
           ret_ptr = (uint8_t*) &persistent_self.light_storage.msg_queue[i].payload;
+          return ret_ptr;
         }
       }
 
@@ -402,6 +404,7 @@ void persistent_ram_delete_message_element ( telemetry_type_t msg_type, uint8_t 
           // Zero out the message
           memset (msg_ptr, 0, sizeof(Iridium_Message_Storage_Element_t));
           persistent_self.waves_storage.num_telemetry_msgs_enqueued--;
+          break;
         }
       }
 
@@ -417,6 +420,7 @@ void persistent_ram_delete_message_element ( telemetry_type_t msg_type, uint8_t 
           // Zero out the message
           memset (msg_ptr, 0, sizeof(Turbidity_Message_Storage_Element_t));
           persistent_self.turbidity_storage.num_msg_elements_enqueued -= TURBIDITY_MSGS_PER_SBD;
+          break;
         }
       }
 
@@ -432,6 +436,7 @@ void persistent_ram_delete_message_element ( telemetry_type_t msg_type, uint8_t 
           // Zero out the message
           memset (msg_ptr, 0, sizeof(Light_Message_Storage_Element_t));
           persistent_self.light_storage.num_msg_elements_enqueued -= LIGHT_MSGS_PER_SBD;
+          break;
         }
       }
 

@@ -52,62 +52,66 @@ typedef struct
 } sbd_message_type_52;
 
 // Message definition for turbidity (OBS) measurements
-typedef struct
+typedef struct __packed
 {
-  __packed  int32_t     start_lat;
-  __packed  int32_t     start_lon;
-  __packed  int32_t     end_lat;
-  __packed  int32_t     end_lon;
-  __packed  uint32_t    start_timestamp;
-  __packed  uint32_t    end_timestamp;
-  __packed  uint16_t    backscatter_avgs[17];
-  __packed  uint16_t    ambient_avgs[17];
+  int32_t     start_lat;
+  int32_t     start_lon;
+  int32_t     end_lat;
+  int32_t     end_lon;
+  uint32_t    start_timestamp;
+  uint32_t    end_timestamp;
+  uint16_t    backscatter_avgs[17];
+  uint16_t    ambient_avgs[17];
 } sbd_message_type_53_element;
 
 #define TURBIDITY_MSGS_PER_SBD ((IRIDIUM_SBD_MAX_LENGTH - IRIDIUM_SBD_OVERHEAD_BYTES) / sizeof(sbd_message_type_53_element))
 
 // Definition for the SBD message with multiple sample windows
-typedef struct
+typedef struct __packed
 {
-            char                        legacy_number_7;
-            uint8_t                     type;
-            sbd_message_type_53_element elements[TURBIDITY_MSGS_PER_SBD];
-            iridium_checksum_t          checksum;
+  char                        legacy_number_7;
+  uint8_t                     type;
+  uint8_t                     port;
+  uint16_t                    size;
+  sbd_message_type_53_element elements[TURBIDITY_MSGS_PER_SBD];
+  iridium_checksum_t          checksum;
 } sbd_message_type_53;
 
 // Message definition for light measurements
-typedef struct
+typedef struct __packed
 {
-  __packed  int32_t     start_lat;
-  __packed  int32_t     start_lon;
-  __packed  int32_t     end_lat;
-  __packed  int32_t     end_lon;
-  __packed  uint32_t    start_timestamp;
-  __packed  uint32_t    end_timestamp;
-  __packed  uint16_t    max_reading_clear;
-  __packed  uint16_t    min_reading_clear;
-  __packed  uint16_t    avg_clear;
-  __packed  uint16_t    avg_f1;
-  __packed  uint16_t    avg_f2;
-  __packed  uint16_t    avg_f3;
-  __packed  uint16_t    avg_f4;
-  __packed  uint16_t    avg_f5;
-  __packed  uint16_t    avg_f6;
-  __packed  uint16_t    avg_f7;
-  __packed  uint16_t    avg_f8;
-  __packed  uint16_t    avg_dark;
-  __packed  uint16_t    avg_nir;
+  int32_t     start_lat;
+  int32_t     start_lon;
+  int32_t     end_lat;
+  int32_t     end_lon;
+  uint32_t    start_timestamp;
+  uint32_t    end_timestamp;
+  uint16_t    max_reading_clear;
+  uint16_t    min_reading_clear;
+  uint16_t    avg_clear;
+  uint16_t    avg_f1;
+  uint16_t    avg_f2;
+  uint16_t    avg_f3;
+  uint16_t    avg_f4;
+  uint16_t    avg_f5;
+  uint16_t    avg_f6;
+  uint16_t    avg_f7;
+  uint16_t    avg_f8;
+  uint16_t    avg_dark;
+  uint16_t    avg_nir;
 } sbd_message_type_54_element;
 
 #define LIGHT_MSGS_PER_SBD ((IRIDIUM_SBD_MAX_LENGTH - IRIDIUM_SBD_OVERHEAD_BYTES) / sizeof(sbd_message_type_54_element))
 
 // Definition for the SBD message with multiple sample windows
-typedef struct
+typedef struct __packed
 {
-            char                        legacy_number_7;
-            uint8_t                     type;
-            sbd_message_type_54_element elements[LIGHT_MSGS_PER_SBD];
-            iridium_checksum_t          checksum;
+  char                        legacy_number_7;
+  uint8_t                     type;
+  uint8_t                     port;
+  uint16_t                    size;
+  sbd_message_type_54_element elements[LIGHT_MSGS_PER_SBD];
+  iridium_checksum_t          checksum;
 } sbd_message_type_54;
 // @formatter:on
 #endif /* INC_SBD_H_ */

@@ -242,9 +242,6 @@ static void _control_shutdown_procedure ( void )
 
   led_light_sequence (LIGHTS_OFF, LED_SEQUENCE_FOREVER);
 
-  // Make sure everything is shut down
-  controller_self->shutdown_all_peripherals ();
-
   // Make extra sure the alarm flag is cleared
   if ( rtc_server_clear_flag (ALARM_FLAG, CONTROL_REQUEST_COMPLETE) != uSWIFT_SUCCESS )
   {
@@ -272,6 +269,9 @@ static void _control_shutdown_procedure ( void )
 
   // Give the logger and file system time to complete
   tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
+
+  // Make sure everything is shut down
+  controller_self->shutdown_all_peripherals ();
 
   // Deinit all enabled peripherals
   controller_self->shutdown_all_interfaces ();
