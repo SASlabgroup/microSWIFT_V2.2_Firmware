@@ -2020,6 +2020,13 @@ static void iridium_thread_entry ( ULONG thread_input )
   LOG("Iridium modem initialized successfully.");
   (void) tx_event_flags_set (&initialization_flags, IRIDIUM_INIT_SUCCESS, TX_OR);
 
+  //
+  // Run tests if needed
+  if ( tests.iridium_thread_test != NULL )
+  {
+    tests.iridium_thread_test (NULL);
+  }
+
   iridium.sleep ();
 
   tx_thread_suspend (this_thread);
@@ -2032,13 +2039,6 @@ static void iridium_thread_entry ( ULONG thread_input )
   iridium.charge_caps (IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
 
   iridium.start_timer (iridium_thread_timeout);
-
-  //
-  // Run tests if needed
-  if ( tests.iridium_thread_test != NULL )
-  {
-    tests.iridium_thread_test (NULL);
-  }
 
   // finish filling out the SBD message
   rtc_server_get_time (&time_struct, IRIDIUM_REQUEST_COMPLETE);
