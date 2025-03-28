@@ -982,12 +982,6 @@ static void control_thread_entry ( ULONG thread_input )
   uint32_t watchdog_counter = 0, sample_window = persistent_ram_get_sample_window_counter ();
   ULONG start_time = 0;
 
-  // Run tests if needed
-  if ( tests.control_test != NULL )
-  {
-    tests.control_test (NULL);
-  }
-
   // Let RTC and Logger thread init
   tx_thread_sleep (10);
 
@@ -998,6 +992,12 @@ static void control_thread_entry ( ULONG thread_input )
   LOG("\r\n\r\nHello World!\r\nmicroSWIFT %lu.\r\nFirmware major version %hu, minor version %hu.\r\nSample window %lu",
       configuration.tracking_number, configuration.firmware_version.major_rev,
       configuration.firmware_version.minor_rev, sample_window);
+
+  // Run tests if needed
+  if ( tests.control_test != NULL )
+  {
+    tests.control_test (NULL);
+  }
 
   if ( watchdog_init (&watchdog, &watchdog_check_in_flags) != WATCHDOG_OK )
   {
@@ -2010,7 +2010,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   // Run tests if needed
   if ( tests.iridium_thread_test != NULL )
   {
-    tests.iridium_thread_test (NULL);
+    tests.iridium_thread_test (&iridium);
   }
 
   iridium.sleep ();

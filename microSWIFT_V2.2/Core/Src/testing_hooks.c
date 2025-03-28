@@ -35,7 +35,7 @@ void tests_init ( void )
   tests.light_thread_test = NULL;
   tests.turbidity_thread_test = NULL;
   tests.waves_thread_test = NULL;
-  tests.iridium_thread_test = test_iridium_queueing;
+  tests.iridium_thread_test = NULL;
   tests.filex_test = NULL;
   tests.shutdown_test = NULL;
 }
@@ -53,6 +53,8 @@ bool test_iridium_queueing ( void *iridium_ptr )
   sbd_message_type_52 sbd_message =
     { 0 };
   sbd_message_type_54_element light_message =
+    { 0 };
+  uint8_t msg_buffer[342] =
     { 0 };
   uint8_t *msg_ptr;
   real16_T E[42];
@@ -94,6 +96,8 @@ bool test_iridium_queueing ( void *iridium_ptr )
     persistent_ram_save_message (WAVES_TELEMETRY, (uint8_t*) &sbd_message);
   }
 
+  memcpy (&(msg_buffer[0]), &sbd_message, sizeof(sbd_message_type_52));
+
   for ( int i = 0; i < 10 * LIGHT_MSGS_PER_SBD; i++ )
   {
     memset (&light_message.start_lat, i + 1, sizeof(uint8_t));
@@ -126,7 +130,7 @@ bool test_iridium_queueing ( void *iridium_ptr )
     if ( !current_message_sent )
     {
       LOG("Attempting transmission of NEDWaves telemetry...");
-      ret = iridium->transmit_message (((uint8_t*) &sbd_message), sizeof(sbd_message_type_52));
+      ret = iridium->transmit_message (&(msg_buffer[0]), sizeof(sbd_message_type_52));
       if ( ret == uSWIFT_SUCCESS )
       {
         current_message_sent = true;
@@ -169,4 +173,6 @@ bool test_iridium_queueing ( void *iridium_ptr )
       }
     }
   }
+
+  return true;
 }
