@@ -690,9 +690,6 @@ static void _gnss_process_message ( void )
                                                   ->sample_window_stop_time)
                                                             - ((double) gnss_self
                                                                 ->sample_window_start_time)))));
-
-    LOG("GNSS sample window complete.");
-
     return;
   }
 
