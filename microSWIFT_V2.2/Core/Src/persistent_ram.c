@@ -271,7 +271,7 @@ void persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t *msg )
 uint8_t* persistent_ram_get_prioritized_unsent_message ( telemetry_type_t msg_type )
 {
   float most_significant_wave_height = 0.0;
-  float msg_wave_height = 0.0;
+  float msg_wave_height = -1.0;
   real16_T msg_wave_half_float =
     { 0 };
   int32_t msg_index = 0;
