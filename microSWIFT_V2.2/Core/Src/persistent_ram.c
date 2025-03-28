@@ -7,6 +7,7 @@
 
 #include <ext_rtc_server.h>
 #include "persistent_ram.h"
+#include "logger.h"
 #include "math.h"
 #include "string.h"
 #include "time.h"
@@ -127,14 +128,20 @@ uint32_t persistent_ram_get_num_msgs_enqueued ( telemetry_type_t msg_type )
   switch ( msg_type )
   {
     case WAVES_TELEMETRY:
+      LOG("Number of queued Waves messages: %lu",
+          persistent_self.waves_storage.num_telemetry_msgs_enqueued);
       return persistent_self.waves_storage.num_telemetry_msgs_enqueued;
       break;
 
     case TURBIDITY_TELEMETRY:
+      LOG("Number of queued OBS messages: %lu",
+          persistent_self.turbidity_storage.num_msg_elements_enqueued);
       return persistent_self.turbidity_storage.num_msg_elements_enqueued / TURBIDITY_MSGS_PER_SBD;
       break;
 
     case LIGHT_TELEMETRY:
+      LOG("Number of queued Light messages: %lu",
+          persistent_self.light_storage.num_msg_elements_enqueued);
       return persistent_self.light_storage.num_msg_elements_enqueued / LIGHT_MSGS_PER_SBD;
       break;
 
