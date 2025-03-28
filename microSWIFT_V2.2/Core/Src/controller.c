@@ -109,11 +109,11 @@ ULONG control_get_accumulated_error_flags ( void )
 
 static bool _control_startup_procedure ( void )
 {
-  UINT tx_return;
+  UINT tx_return = TX_SUCCESS;
   ULONG init_success_flags = (RTC_INIT_SUCCESS | GNSS_INIT_SUCCESS | WAVES_THREAD_INIT_SUCCESS
                               | IRIDIUM_INIT_SUCCESS);
-  ULONG current_flags;
-  uint32_t reset_reason;
+  ULONG current_flags = 0;
+  uint32_t reset_reason = 0, watchdog_counter = 0;
   real16_T voltage =
     { 0 };
   bool initial_powerup = is_first_sample_window ();
@@ -219,6 +219,11 @@ static bool _control_startup_procedure ( void )
 
   while ( init_wait_ticks > 0 )
   {
+    if ( ++watchdog_counter % (TX_TIMER_TICKS_PER_SECOND / 10) == 0 )
+    {
+      watchdog_check_in (CONTROL_THREAD);
+    }
+
     tx_return = tx_event_flags_get (controller_self->init_flags, init_success_flags, TX_AND_CLEAR,
                                     &current_flags, TX_NO_WAIT);
 

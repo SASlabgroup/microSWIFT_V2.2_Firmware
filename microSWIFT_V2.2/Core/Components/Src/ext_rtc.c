@@ -207,8 +207,7 @@ static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
   }
 
   // Configure the watchdog, this will start the watchdog timer
-#warning"change this back"
-  ret = __config_watchdog (600000);
+  ret = __config_watchdog (WATCHDOG_PERIOD);
   if ( ret != PCF2131_OK )
   {
     return uSWIFT_IO_ERROR;

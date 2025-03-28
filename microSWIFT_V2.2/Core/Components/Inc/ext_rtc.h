@@ -18,7 +18,7 @@
 //@formatter:off
 
 
-#define WATCHDOG_PERIOD 60000 // 1 min (in ms)
+#define WATCHDOG_PERIOD 90000 // 1 min (in ms)
 #define RTC_SPI_TIMEOUT 25
 #define RTC_SPI_BUF_SIZE 32
 #define RTC_WATCHDOG_MIN_REFRESH 10000

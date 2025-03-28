@@ -1004,6 +1004,8 @@ static void control_thread_entry ( ULONG thread_input )
     Error_Handler ();
   }
 
+  watchdog_check_in (CONTROL_THREAD);
+
   // Run the self test
   if ( !control.startup_procedure () )
   {
