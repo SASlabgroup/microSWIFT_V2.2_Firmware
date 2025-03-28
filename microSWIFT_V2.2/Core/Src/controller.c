@@ -578,8 +578,8 @@ static void _control_manage_state ( void )
   if ( ret != TX_SUCCESS )
   {
     controller_self->shutdown_all_peripherals ();
-    persistent_ram_deinit ();
-    HAL_Delay (10);
+
+    tx_thread_sleep (10);
     Error_Handler ();
   }
 }

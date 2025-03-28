@@ -394,14 +394,15 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
 
   //
   // Allocate stack for the Iridium thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, L_STACK, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XL_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the Iridium thread. HIGH priority, no preemption-threshold
   ret = tx_thread_create(&iridium_thread, "iridium thread", iridium_thread_entry, 0, pointer,
-                         L_STACK, HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
+                         XL_STACK, HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
+                         TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -1961,7 +1962,7 @@ static void iridium_thread_entry ( ULONG thread_input )
     { 0 };
   uint8_t *msg_ptr = (uint8_t*) &sbd_message;
   bool current_message_sent = false;
-  telemetry_type_t next_message_type;
+  uint32_t next_message_type;
   uint32_t next_message_size = 0;
   char *log_str = NULL;
 

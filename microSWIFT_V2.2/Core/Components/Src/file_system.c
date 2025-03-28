@@ -194,14 +194,10 @@ static uSWIFT_return_code_t _file_system_save_log_line ( char *line, uint32_t le
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   UINT fx_ret;
   static bool first_time = true, file_creation_failed = false;
-  bool open_sd_card_failed = false, file_open_failed = false, file_seek_failed = false,
-      file_write_failed = false, file_close_failed = false, media_flush_failed = false,
-      close_sd_card_failed = false;
   static uint32_t seek_index = 0;
 
   if ( !__open_sd_card () )
   {
-    open_sd_card_failed = true;
     ret = uSWIFT_IO_ERROR;
     goto error;
   }
@@ -230,7 +226,6 @@ static uSWIFT_return_code_t _file_system_save_log_line ( char *line, uint32_t le
                         &(file_sys_self->file_names[LOG_FILE][0]), FX_OPEN_FOR_WRITE);
   if ( fx_ret != FX_SUCCESS )
   {
-    file_open_failed = true;
     ret = uSWIFT_IO_ERROR;
     goto error;
   }
@@ -238,7 +233,6 @@ static uSWIFT_return_code_t _file_system_save_log_line ( char *line, uint32_t le
   fx_ret = fx_file_seek (&file_sys_self->files[LOG_FILE], seek_index);
   if ( fx_ret != FX_SUCCESS )
   {
-    file_seek_failed = true;
     ret = uSWIFT_IO_ERROR;
     goto error;
   }
@@ -246,7 +240,6 @@ static uSWIFT_return_code_t _file_system_save_log_line ( char *line, uint32_t le
   fx_ret = fx_file_write (&file_sys_self->files[LOG_FILE], line, len);
   if ( fx_ret != FX_SUCCESS )
   {
-    file_write_failed = true;
     ret = uSWIFT_IO_ERROR;
     goto error;
   }
@@ -256,7 +249,6 @@ static uSWIFT_return_code_t _file_system_save_log_line ( char *line, uint32_t le
   fx_ret = fx_file_close (&file_sys_self->files[LOG_FILE]);
   if ( fx_ret != FX_SUCCESS )
   {
-    file_close_failed = true;
     ret = uSWIFT_IO_ERROR;
     goto error;
   }
@@ -264,14 +256,12 @@ static uSWIFT_return_code_t _file_system_save_log_line ( char *line, uint32_t le
   fx_ret = fx_media_flush (file_sys_self->sd_card);
   if ( fx_ret != FX_SUCCESS )
   {
-    media_flush_failed = true;
     ret = uSWIFT_IO_ERROR;
     goto error;
   }
 
   if ( !__close_sd_card () )
   {
-    close_sd_card_failed = true;
     ret = uSWIFT_IO_ERROR;
   }
   return ret;
