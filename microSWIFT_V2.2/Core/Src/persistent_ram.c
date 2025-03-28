@@ -270,11 +270,12 @@ void persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t *msg )
  */
 uint8_t* persistent_ram_get_prioritized_unsent_message ( telemetry_type_t msg_type )
 {
-  float most_significant_wave_height = 0.0;
-  float msg_wave_height = -1.0;
+  // Set to float min value to ensure any message significant wave height will be greater than or equal to
+  float most_significant_wave_height = ((float) 0xFF7FFFFF);
+  float msg_wave_height = 0.0;
   real16_T msg_wave_half_float =
     { 0 };
-  int32_t msg_index = 0;
+  int32_t pri_msg_index = 0, valid_msg_index = -1;
   bool msg_full = false;
   uint8_t *ret_ptr = NULL;
 
@@ -300,21 +301,30 @@ uint8_t* persistent_ram_get_prioritized_unsent_message ( telemetry_type_t msg_ty
       {
         if ( persistent_self.waves_storage.msg_queue[i].valid )
         {
+          valid_msg_index = i;
           msg_wave_half_float = persistent_self.waves_storage.msg_queue[i].payload.Hs;
           msg_wave_height = fabsf (halfToFloat (msg_wave_half_float));
 
-          if ( msg_wave_height > most_significant_wave_height )
+          if ( msg_wave_height >= most_significant_wave_height )
           {
             most_significant_wave_height = msg_wave_height;
-            msg_index = i;
+            pri_msg_index = i;
           }
         }
       }
 
-      // Make sure we don't go out of bounds
-      if ( (msg_index > 0) && (msg_index < (MAX_NUM_WAVES_MSGS_STORED - 1)) )
+      // Make sure we don't go out of bounds. Take the priority message first, otherwise, any valid message
+      if ( (pri_msg_index >= 0) && (pri_msg_index <= (MAX_NUM_WAVES_MSGS_STORED - 1)) )
       {
-        ret_ptr = (uint8_t*) &persistent_self.waves_storage.msg_queue[msg_index].payload;
+        ret_ptr = (uint8_t*) &persistent_self.waves_storage.msg_queue[pri_msg_index].payload;
+      }
+      else if ( (valid_msg_index >= 0) && (valid_msg_index <= (MAX_NUM_WAVES_MSGS_STORED - 1)) )
+      {
+        ret_ptr = (uint8_t*) &persistent_self.waves_storage.msg_queue[valid_msg_index].payload;
+      }
+      else
+      {
+        ret_ptr = NULL;
       }
 
       break;

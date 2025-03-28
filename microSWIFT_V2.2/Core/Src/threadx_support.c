@@ -16,7 +16,7 @@
 
 bool gnss_apply_config ( GNSS *gnss )
 {
-  int fail_counter = 0, max_retries = 20;
+  int fail_counter = 0, max_retries = 25U;
   uSWIFT_return_code_t gnss_return_code = uSWIFT_SUCCESS;
 
   while ( fail_counter < max_retries )
@@ -34,9 +34,6 @@ bool gnss_apply_config ( GNSS *gnss )
       gnss->off ();
       tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
       gnss->on ();
-      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-      fail_counter++;
-      continue;
     }
 
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);

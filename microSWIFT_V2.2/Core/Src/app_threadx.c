@@ -1853,6 +1853,18 @@ static void waves_thread_entry ( ULONG thread_input )
   TX_THREAD *this_thread = &waves_thread;
   NEDWaves_memory waves_mem =
     { 0 };
+  // Function return parameters
+  real16_T E[42];
+  real16_T Dp;
+  real16_T Hs;
+  real16_T Tp;
+  real16_T b_fmax;
+  real16_T b_fmin;
+  signed char a1[42];
+  signed char a2[42];
+  signed char b1[42];
+  signed char b2[42];
+  unsigned char check[42];
 
   tx_thread_sleep (1);
 
@@ -1864,6 +1876,33 @@ static void waves_thread_entry ( ULONG thread_input )
 
   (void) tx_event_flags_set (&initialization_flags, WAVES_THREAD_INIT_SUCCESS, TX_OR);
   LOG("NED Waves initialization successful.");
+
+  // Set the SBD fields to error values in the event GNSS has a failure
+  Dp.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+  Hs.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+  Tp.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+  b_fmax.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+  b_fmin.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+  for ( int i = 0; i < 42; i++ )
+  {
+    E[i].bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+    a1[i] = TELEMETRY_FIELD_ERROR_CODE;
+    a2[i] = TELEMETRY_FIELD_ERROR_CODE;
+    b1[i] = TELEMETRY_FIELD_ERROR_CODE;
+    b2[i] = TELEMETRY_FIELD_ERROR_CODE;
+    check[i] = TELEMETRY_FIELD_ERROR_CODE;
+  }
+  memcpy (&sbd_message.Hs, &Hs, sizeof(real16_T));
+  memcpy (&sbd_message.Tp, &Tp, sizeof(real16_T));
+  memcpy (&sbd_message.Dp, &Dp, sizeof(real16_T));
+  memcpy (&(sbd_message.E_array[0]), &(E[0]), 42 * sizeof(real16_T));
+  memcpy (&sbd_message.f_min, &b_fmin, sizeof(real16_T));
+  memcpy (&sbd_message.f_max, &b_fmax, sizeof(real16_T));
+  memcpy (&(sbd_message.a1_array[0]), &(a1[0]), 42 * sizeof(signed char));
+  memcpy (&(sbd_message.b1_array[0]), &(b1[0]), 42 * sizeof(signed char));
+  memcpy (&(sbd_message.a2_array[0]), &(a2[0]), 42 * sizeof(signed char));
+  memcpy (&(sbd_message.b2_array[0]), &(b2[0]), 42 * sizeof(signed char));
+  memcpy (&(sbd_message.cf_array[0]), &(check[0]), 42 * sizeof(unsigned char));
 
   tx_thread_suspend (this_thread);
 
@@ -1879,19 +1918,6 @@ static void waves_thread_entry ( ULONG thread_input )
   }
 
   watchdog_check_in (WAVES_THREAD);
-
-  // Function return parameters
-  real16_T E[42];
-  real16_T Dp;
-  real16_T Hs;
-  real16_T Tp;
-  real16_T b_fmax;
-  real16_T b_fmin;
-  signed char a1[42];
-  signed char a2[42];
-  signed char b1[42];
-  signed char b2[42];
-  unsigned char check[42];
 
   LOG("Running NEDWaves.");
 
