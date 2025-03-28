@@ -1885,26 +1885,12 @@ static void waves_thread_entry ( ULONG thread_input )
   Tp.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
   b_fmax.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
   b_fmin.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
-  for ( int i = 0; i < 42; i++ )
-  {
-    E[i].bitPattern = TELEMETRY_FIELD_ERROR_CODE;
-    a1[i] = TELEMETRY_FIELD_ERROR_CODE;
-    a2[i] = TELEMETRY_FIELD_ERROR_CODE;
-    b1[i] = TELEMETRY_FIELD_ERROR_CODE;
-    b2[i] = TELEMETRY_FIELD_ERROR_CODE;
-    check[i] = TELEMETRY_FIELD_ERROR_CODE;
-  }
+
   memcpy (&sbd_message.Hs, &Hs, sizeof(real16_T));
   memcpy (&sbd_message.Tp, &Tp, sizeof(real16_T));
   memcpy (&sbd_message.Dp, &Dp, sizeof(real16_T));
-  memcpy (&(sbd_message.E_array[0]), &(E[0]), 42 * sizeof(real16_T));
   memcpy (&sbd_message.f_min, &b_fmin, sizeof(real16_T));
   memcpy (&sbd_message.f_max, &b_fmax, sizeof(real16_T));
-  memcpy (&(sbd_message.a1_array[0]), &(a1[0]), 42 * sizeof(signed char));
-  memcpy (&(sbd_message.b1_array[0]), &(b1[0]), 42 * sizeof(signed char));
-  memcpy (&(sbd_message.a2_array[0]), &(a2[0]), 42 * sizeof(signed char));
-  memcpy (&(sbd_message.b2_array[0]), &(b2[0]), 42 * sizeof(signed char));
-  memcpy (&(sbd_message.cf_array[0]), &(check[0]), 42 * sizeof(unsigned char));
 
   tx_thread_suspend (this_thread);
 
@@ -2091,7 +2077,7 @@ static void iridium_thread_entry ( ULONG thread_input )
     next_message_type = get_next_telemetry_message (&msg_ptr, &configuration);
     if ( next_message_type == NO_MESSAGE )
     {
-      LOG("No messages messages left in cache.");
+      LOG("No cached messages ready to transmit.");
       break;
     }
 

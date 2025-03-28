@@ -13,6 +13,7 @@
 #include "iridium.h"
 #include "logger.h"
 #include "file_system_server.h"
+#include "watchdog.h"
 #include "math.h"
 
 testing_hooks tests;
@@ -51,7 +52,7 @@ bool test_iridium_queueing ( void *iridium_ptr )
   char *log_str;
   sbd_message_type_52 sbd_message =
     { 0 };
-  sbd_message_type_54 light_message =
+  sbd_message_type_54_element light_message =
     { 0 };
   uint8_t *msg_ptr;
   real16_T E[42];
@@ -70,15 +71,7 @@ bool test_iridium_queueing ( void *iridium_ptr )
   Tp.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
   b_fmax.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
   b_fmin.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
-  for ( int i = 0; i < 42; i++ )
-  {
-    E[i].bitPattern = TELEMETRY_FIELD_ERROR_CODE;
-    a1[i] = TELEMETRY_FIELD_ERROR_CODE;
-    a2[i] = TELEMETRY_FIELD_ERROR_CODE;
-    b1[i] = TELEMETRY_FIELD_ERROR_CODE;
-    b2[i] = TELEMETRY_FIELD_ERROR_CODE;
-    check[i] = TELEMETRY_FIELD_ERROR_CODE;
-  }
+
   memcpy (&sbd_message.Tp, &Tp, sizeof(real16_T));
   memcpy (&sbd_message.Dp, &Dp, sizeof(real16_T));
   memcpy (&(sbd_message.E_array[0]), &(E[0]), 42 * sizeof(real16_T));
@@ -98,7 +91,7 @@ bool test_iridium_queueing ( void *iridium_ptr )
         TELEMETRY_FIELD_ERROR_CODE : 0x4248 + i;
     memcpy (&sbd_message.Hs, &Hs, sizeof(real16_T));
 
-    persistent_ram_save_message (WAVES_TELEMETRY, &sbd_message);
+    persistent_ram_save_message (WAVES_TELEMETRY, (uint8_t*) &sbd_message);
   }
 
   for ( int i = 0; i < 10 * LIGHT_MSGS_PER_SBD; i++ )
@@ -123,7 +116,7 @@ bool test_iridium_queueing ( void *iridium_ptr )
     memset (&light_message.avg_dark, i + 1, sizeof(uint8_t));
     memset (&light_message.avg_nir, i + 1, sizeof(uint8_t));
 
-    persistent_ram_save_message (LIGHT_TELEMETRY, &light_message);
+    persistent_ram_save_message (LIGHT_TELEMETRY, (uint8_t*) &light_message);
   }
 
   watchdog_check_in (IRIDIUM_THREAD);
@@ -133,7 +126,7 @@ bool test_iridium_queueing ( void *iridium_ptr )
     if ( !current_message_sent )
     {
       LOG("Attempting transmission of NEDWaves telemetry...");
-      ret = iridium.transmit_message (&(msg_buffer[0]), sizeof(sbd_message_type_52));
+      ret = iridium->transmit_message (((uint8_t*) &sbd_message), sizeof(sbd_message_type_52));
       if ( ret == uSWIFT_SUCCESS )
       {
         current_message_sent = true;
@@ -170,7 +163,7 @@ bool test_iridium_queueing ( void *iridium_ptr )
                     "Light" : "Unknown";
       LOG("Attempting transmission of %s telemetry...", log_str);
 
-      if ( iridium.transmit_message (msg_ptr, next_message_size) == uSWIFT_SUCCESS )
+      if ( iridium->transmit_message (msg_ptr, next_message_size) == uSWIFT_SUCCESS )
       {
         persistent_ram_delete_message_element (next_message_type, msg_ptr);
       }

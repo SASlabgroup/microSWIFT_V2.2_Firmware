@@ -14,6 +14,7 @@
 #include "ct_sensor.h"
 #include "leds.h"
 #include "sdmmc.h"
+#include "watchdog.h"
 
 // @formatter:off
 static Control  *controller_self;
