@@ -52,12 +52,14 @@ typedef struct
 {
   Turbidity_Message_Storage_Element_t   msg_queue[MAX_NUM_NON_WAVES_MSGS_STORED];
   uint32_t                              num_msg_elements_enqueued;
+  uint32_t                              current_msg_index;
 } Turbidity_Message_Storage;
 
 typedef struct
 {
   Light_Message_Storage_Element_t       msg_queue[MAX_NUM_NON_WAVES_MSGS_STORED];
   uint32_t                              num_msg_elements_enqueued;
+  uint32_t                              current_msg_index;
 } Light_Message_Storage;
 
 // All of the things we need to retain in standby mode

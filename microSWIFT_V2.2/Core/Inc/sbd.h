@@ -26,28 +26,28 @@ typedef struct
 // Primary message type for wave dynamic measurements
 typedef struct __packed
 {
-            char                legacy_number_7;
-            uint8_t             type;
-            uint8_t             port;
-    uint16_t            size;
-  __packed  real16_T            Hs;
-  __packed  real16_T            Tp;
-  __packed  real16_T            Dp;
-  __packed  real16_T            E_array[42];
-  __packed  real16_T            f_min;
-  __packed  real16_T            f_max;
-  signed    char                a1_array[42];
-  signed    char                b1_array[42];
-  signed    char                a2_array[42];
-  signed    char                b2_array[42];
-  unsigned  char                cf_array[42];
-  __packed  float               Lat;
-  __packed  float               Lon;
-  __packed  real16_T            mean_temp;
-  __packed  real16_T            mean_salinity;
-  __packed  real16_T            mean_voltage;
-  __packed  float               timestamp;
-  __packed  uint32_t            error_bits;
+  char                legacy_number_7;
+  uint8_t             type;
+  uint8_t             port;
+  uint16_t            size;
+  real16_T            Hs;
+  real16_T            Tp;
+  real16_T            Dp;
+  real16_T            E_array[42];
+  real16_T            f_min;
+  real16_T            f_max;
+  signed    char      a1_array[42];
+  signed    char      b1_array[42];
+  signed    char      a2_array[42];
+  signed    char      b2_array[42];
+  unsigned  char      cf_array[42];
+  float               Lat;
+  float               Lon;
+  real16_T            mean_temp;
+  real16_T            mean_salinity;
+  real16_T            mean_voltage;
+  float               timestamp;
+  uint32_t            error_bits;
             iridium_checksum_t  checksum;
 } sbd_message_type_52;
 

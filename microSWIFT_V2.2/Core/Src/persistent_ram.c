@@ -158,6 +158,8 @@ uint32_t persistent_ram_get_num_msgs_enqueued ( telemetry_type_t msg_type )
  */
 void persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t *msg )
 {
+  int i = 0, j = 0;
+
   // Corruption, lack of initialization check
   if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
   {
@@ -170,7 +172,7 @@ void persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t *msg )
       // If the storage queue is full, see if we can replace an element
       if ( persistent_self.waves_storage.num_telemetry_msgs_enqueued == MAX_NUM_WAVES_MSGS_STORED )
       {
-        for ( int i = 0; i < MAX_NUM_WAVES_MSGS_STORED; i++ )
+        for ( i = 0; i < MAX_NUM_WAVES_MSGS_STORED; i++ )
         {
           // Want to make sure we are comparing absolute values, though wave height should always be positive
           if ( (fabsf (halfToFloat (persistent_self.waves_storage.msg_queue[i].payload.Hs)))
@@ -188,7 +190,7 @@ void persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t *msg )
       else
       {
         // Not full, just need to find an open slot
-        for ( int i = 0; i < MAX_NUM_WAVES_MSGS_STORED; i++ )
+        for ( i = 0; i < MAX_NUM_WAVES_MSGS_STORED; i++ )
         {
           if ( !persistent_self.waves_storage.msg_queue[i].valid )
           {
@@ -210,22 +212,38 @@ void persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t *msg )
       if ( !(persistent_self.turbidity_storage.num_msg_elements_enqueued
              == MAX_NUM_TURBIDITY_MSGS_STORED) )
       {
-        for ( int i = 0; i < MAX_NUM_NON_WAVES_MSGS_STORED; i++ )
+        // First check if there is room in the current message index
+        for ( i = 0; i < TURBIDITY_MSGS_PER_SBD; i++ )
         {
-
-          for ( int j = 0; j < TURBIDITY_MSGS_PER_SBD; j++ )
+          if ( !persistent_self.turbidity_storage.msg_queue[persistent_self.turbidity_storage
+              .current_msg_index].valid[i] )
           {
+            // copy the message over
+            memcpy (
+                &(persistent_self.turbidity_storage.msg_queue[persistent_self.turbidity_storage
+                    .current_msg_index].payload.elements[i]),
+                msg, sizeof(sbd_message_type_54_element));
+            // Make the entry valid
+            persistent_self.turbidity_storage.msg_queue[persistent_self.turbidity_storage
+                .current_msg_index].valid[i] = true;
+            persistent_self.turbidity_storage.num_msg_elements_enqueued++;
+            return;
+          }
+        }
 
-            if ( !persistent_self.turbidity_storage.msg_queue[i].valid[j] )
-            {
-              // copy the message over
-              memcpy (&(persistent_self.turbidity_storage.msg_queue[i].payload.elements[j]), msg,
-                      sizeof(sbd_message_type_53_element));
-              // Make the entry valid
-              persistent_self.turbidity_storage.msg_queue[i].valid[j] = true;
-              persistent_self.turbidity_storage.num_msg_elements_enqueued++;
-              return;
-            }
+        // Need to start a new message
+        for ( i = 0; i < MAX_NUM_NON_WAVES_MSGS_STORED; i++ )
+        {
+          if ( !persistent_self.turbidity_storage.msg_queue[i].valid[0] )
+          {
+            // copy the message over
+            memcpy (&(persistent_self.turbidity_storage.msg_queue[i].payload.elements[0]), msg,
+                    sizeof(sbd_message_type_53_element));
+            // Make the entry valid
+            persistent_self.turbidity_storage.msg_queue[i].valid[0] = true;
+            persistent_self.turbidity_storage.num_msg_elements_enqueued++;
+            persistent_self.turbidity_storage.current_msg_index = i;
+            return;
           }
         }
       }
@@ -236,20 +254,38 @@ void persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t *msg )
       // If the storage queue is full, then just skip
       if ( !(persistent_self.light_storage.num_msg_elements_enqueued == MAX_NUM_LIGHT_MSGS_STORED) )
       {
-        for ( int i = 0; i < MAX_NUM_NON_WAVES_MSGS_STORED; i++ )
+        // First check if there is room in the current message index
+        for ( i = 0; i < LIGHT_MSGS_PER_SBD; i++ )
         {
-          for ( int j = 0; j < LIGHT_MSGS_PER_SBD; j++ )
+          if ( !persistent_self.light_storage.msg_queue[persistent_self.light_storage
+              .current_msg_index].valid[i] )
           {
-            if ( !persistent_self.light_storage.msg_queue[i].valid[j] )
-            {
-              // copy the message over
-              memcpy (&(persistent_self.light_storage.msg_queue[i].payload.elements[j]), msg,
-                      sizeof(sbd_message_type_54_element));
-              // Make the entry valid
-              persistent_self.light_storage.msg_queue[i].valid[j] = true;
-              persistent_self.light_storage.num_msg_elements_enqueued++;
-              return;
-            }
+            // copy the message over
+            memcpy (
+                &(persistent_self.light_storage.msg_queue[persistent_self.light_storage
+                    .current_msg_index].payload.elements[i]),
+                msg, sizeof(sbd_message_type_54_element));
+            // Make the entry valid
+            persistent_self.light_storage.msg_queue[persistent_self.light_storage.current_msg_index]
+                .valid[i] = true;
+            persistent_self.light_storage.num_msg_elements_enqueued++;
+            return;
+          }
+        }
+
+        // Need to start a new message
+        for ( i = 0; i < MAX_NUM_NON_WAVES_MSGS_STORED; i++ )
+        {
+          if ( !persistent_self.light_storage.msg_queue[i].valid[0] )
+          {
+            // copy the message over
+            memcpy (&(persistent_self.light_storage.msg_queue[i].payload.elements[0]), msg,
+                    sizeof(sbd_message_type_54_element));
+            // Make the entry valid
+            persistent_self.light_storage.msg_queue[i].valid[0] = true;
+            persistent_self.light_storage.num_msg_elements_enqueued++;
+            persistent_self.light_storage.current_msg_index = i;
+            return;
           }
         }
       }
