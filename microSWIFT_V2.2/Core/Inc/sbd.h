@@ -24,12 +24,12 @@ typedef struct
 } iridium_checksum_t;
 
 // Primary message type for wave dynamic measurements
-typedef struct
+typedef struct __packed
 {
             char                legacy_number_7;
             uint8_t             type;
             uint8_t             port;
-  __packed  uint16_t            size;
+    uint16_t            size;
   __packed  real16_T            Hs;
   __packed  real16_T            Tp;
   __packed  real16_T            Dp;
