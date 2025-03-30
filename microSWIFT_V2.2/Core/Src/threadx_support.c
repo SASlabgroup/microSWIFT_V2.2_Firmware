@@ -8,18 +8,20 @@
 #include "threadx_support.h"
 #include "stdarg.h"
 #include "stdio.h"
+#include "stdlib.h"
 #include "watchdog.h"
 #include "sdmmc.h"
 #include "logger.h"
 #include "app_threadx.h"
 #include "file_system.h"
 
+uint32_t gnss_init_fail_counter = 0;
 bool gnss_apply_config ( GNSS *gnss )
 {
-  int fail_counter = 0, max_retries = 25U;
   uSWIFT_return_code_t gnss_return_code = uSWIFT_SUCCESS;
+  ULONG start_time = tx_time_get (), max_time = (TX_TIMER_TICKS_PER_SECOND * 28);
 
-  while ( fail_counter < max_retries )
+  while ( (tx_time_get () - start_time) < max_time )
   {
     gnss_return_code = gnss->config ();
 
@@ -28,16 +30,13 @@ bool gnss_apply_config ( GNSS *gnss )
       break;
     }
 
-    // After 5 failures, power cycle the GNSS
-    if ( fail_counter % 5 == 0 )
-    {
-      gnss->off ();
-      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-      gnss->on ();
-    }
+    gnss_init_fail_counter++;
 
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    fail_counter++;
+    gnss->off ();
+    tx_thread_sleep (50 + (rand () % 50));
+    gnss->on ();
+    tx_thread_sleep (SOFT_START_DELAY);
+
   }
 
   return (gnss_return_code == uSWIFT_SUCCESS);

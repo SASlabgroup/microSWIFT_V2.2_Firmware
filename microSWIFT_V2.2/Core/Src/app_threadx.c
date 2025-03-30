@@ -996,7 +996,7 @@ static void control_thread_entry ( ULONG thread_input )
   // Run tests if needed
   if ( tests.control_test != NULL )
   {
-    tests.control_test (NULL);
+    tests.control_test (&control);
   }
 
   if ( watchdog_init (&watchdog, &watchdog_check_in_flags) != WATCHDOG_OK )

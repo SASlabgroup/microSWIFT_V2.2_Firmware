@@ -9,6 +9,7 @@
 #include "stddef.h"
 #include "ext_rtc.h"
 #include "app_threadx.h"
+#include "controller.h"
 #include "gnss.h"
 #include "iridium.h"
 #include "logger.h"
@@ -22,6 +23,8 @@ testing_hooks tests;
 /*################################## Test Declarations ###########################################*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 bool test_iridium_queueing ( void *iridium_ptr );
+bool test_gnss_config ( void *gnss );
+bool gnss_test_control_supplement ( void *control );
 /**************************************************************************************************/
 /*********************************** Init --> Assign Tests ****************************************/
 /**************************************************************************************************/
@@ -175,4 +178,38 @@ bool test_iridium_queueing ( void *iridium_ptr )
   }
 
   return true;
+}
+
+uint32_t num_gnss_configs_passed = 0;
+uint32_t num_gnss_configs_failed = 0;
+bool test_gnss_config ( void *gnss )
+{
+  GNSS *gnss_ptr = (GNSS*) gnss;
+
+  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 20);
+
+  for ( int i = 0; i < 100; i++ )
+  {
+    if ( !gnss_apply_config (gnss_ptr) )
+    {
+      num_gnss_configs_failed++;
+    }
+    else
+    {
+      num_gnss_configs_passed++;
+    }
+  }
+  return true;
+}
+
+bool gnss_test_control_supplement ( void *control )
+{
+  Control *controller_self = (Control*) control;
+  (void) tx_thread_resume (controller_self->thread_handles->gnss_thread);
+  (void) tx_thread_resume (controller_self->thread_handles->waves_thread);
+  while ( 1 )
+  {
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 1);
+  }
+
 }

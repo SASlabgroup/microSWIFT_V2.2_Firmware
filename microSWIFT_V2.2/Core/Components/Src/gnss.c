@@ -243,14 +243,14 @@ static uSWIFT_return_code_t _gnss_config ( void )
     config_array[163] = 0xC2;
   }
 
-  return_code = gnss_self->software_stop ();
-  if ( return_code != uSWIFT_SUCCESS )
-  {
-    gnss_self->reset_uart ();
-    return return_code;
-  }
+//  return_code = gnss_self->software_stop ();
+//  if ( return_code != uSWIFT_SUCCESS )
+//  {
+//    gnss_self->reset_uart ();
+//    return return_code;
+//  }
 
-  // Send over the configuration settings for RAM
+// Send over the configuration settings for RAM
   return_code = __send_config (&(config_array[0]), CONFIGURATION_ARRAY_SIZE, UBX_CFG_VALSET_CLASS,
   UBX_CFG_VALSET_ID);
 
@@ -285,12 +285,12 @@ static uSWIFT_return_code_t _gnss_config ( void )
     return return_code;
   }
 
-  return_code = gnss_self->software_start ();
-  if ( return_code != uSWIFT_SUCCESS )
-  {
-    gnss_self->reset_uart ();
-    return return_code;
-  }
+//  return_code = gnss_self->software_start ();
+//  if ( return_code != uSWIFT_SUCCESS )
+//  {
+//    gnss_self->reset_uart ();
+//    return return_code;
+//  }
 
   gnss_self->reset_uart ();
 
@@ -855,7 +855,7 @@ static uSWIFT_return_code_t __send_config ( uint8_t *config_array, size_t messag
       (((float) ((float) GNSS_CONFIG_BUFFER_SIZE / (float) UBX_NAV_PVT_MESSAGE_LENGTH))
        * ((float) ((float) TX_TIMER_TICKS_PER_SECOND
                    / (float) gnss_self->global_config->gnss_sampling_rate)))
-      + 10);
+      + 250);
   ;
   ULONG actual_flags;
   char payload[UBX_NAV_PVT_PAYLOAD_LENGTH];
@@ -920,6 +920,16 @@ static uSWIFT_return_code_t __send_config ( uint8_t *config_array, size_t messag
           return uSWIFT_SUCCESS;
         }
       }
+    }
+    // Check if it's a NAVPVT msg
+    else if ( (num_payload_bytes == UBX_NAV_PVT_PAYLOAD_LENGTH)
+              || (message_class == UBX_NAV_PVT_MESSAGE_CLASS)
+              || (message_id == UBX_NAV_PVT_MESSAGE_ID) )
+    {
+      // GNSS is already configured, so we're good
+      gnss_self->reset_uart ();
+      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+      return uSWIFT_SUCCESS;
     }
     // Adjust pointers to continue searching the buffer
     buf_length -= buf_end - buf_start;
