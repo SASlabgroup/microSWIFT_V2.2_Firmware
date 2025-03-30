@@ -15,11 +15,11 @@
 #include "app_threadx.h"
 #include "file_system.h"
 
-uint32_t gnss_init_fail_counter = 0;
 bool gnss_apply_config ( GNSS *gnss )
 {
   uSWIFT_return_code_t gnss_return_code = uSWIFT_SUCCESS;
-  ULONG start_time = tx_time_get (), max_time = (TX_TIMER_TICKS_PER_SECOND * 28);
+  ULONG start_time = tx_time_get (), max_time = (TX_TIMER_TICKS_PER_SECOND * 58);
+  uint32_t fail_counter = 0;
 
   while ( (tx_time_get () - start_time) < max_time )
   {
@@ -30,12 +30,13 @@ bool gnss_apply_config ( GNSS *gnss )
       break;
     }
 
-    gnss_init_fail_counter++;
-
-    gnss->off ();
-    tx_thread_sleep (50 + (rand () % 50));
-    gnss->on ();
-    tx_thread_sleep (SOFT_START_DELAY);
+    if ( fail_counter++ % 3 == 0 )
+    {
+      gnss->off ();
+      tx_thread_sleep (25 + (rand () % 75));
+      gnss->on ();
+      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
+    }
 
   }
 

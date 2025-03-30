@@ -10,6 +10,7 @@
 #include "gnss.h"
 #include "byte_array.h"
 #include "app_threadx.h"
+#include "threadx_support.h"
 #include "tx_api.h"
 #include "main.h"
 #include "string.h"
@@ -243,13 +244,6 @@ static uSWIFT_return_code_t _gnss_config ( void )
     config_array[163] = 0xC2;
   }
 
-//  return_code = gnss_self->software_stop ();
-//  if ( return_code != uSWIFT_SUCCESS )
-//  {
-//    gnss_self->reset_uart ();
-//    return return_code;
-//  }
-
 // Send over the configuration settings for RAM
   return_code = __send_config (&(config_array[0]), CONFIGURATION_ARRAY_SIZE, UBX_CFG_VALSET_CLASS,
   UBX_CFG_VALSET_ID);
@@ -260,45 +254,42 @@ static uSWIFT_return_code_t _gnss_config ( void )
     return return_code;
   }
 
-  // Only one value (configuration layer) and the checksum change between RAM
-  // and Battery-backed-RAM, so we'll adjust that now
-  config_array[7] = 0x02;
-
-  if ( gnss_self->global_config->gnss_sampling_rate == 4 )
+  // Only need to program battery backed RAM once on first power up
+  if ( is_first_sample_window () )
   {
-    config_array[162] = 0x4B;
-    config_array[163] = 0x5D;
-  }
-  else
-  { // 4Hz
-    config_array[162] = 0x19;
-    config_array[163] = 0xF7;
-  }
+    // Only one value (configuration layer) and the checksum change between RAM
+    // and Battery-backed-RAM, so we'll adjust that now
+    config_array[7] = 0x02;
 
-  // Send over the Battery Backed Ram (BBR) config settings
-  return_code = __send_config (&(config_array[0]), CONFIGURATION_ARRAY_SIZE, UBX_CFG_VALSET_CLASS,
-  UBX_CFG_VALSET_ID);
+    if ( gnss_self->global_config->gnss_sampling_rate == 4 )
+    {
+      config_array[162] = 0x4B;
+      config_array[163] = 0x5D;
+    }
+    else
+    { // 4Hz
+      config_array[162] = 0x19;
+      config_array[163] = 0xF7;
+    }
 
-  if ( return_code != uSWIFT_SUCCESS )
-  {
+    // Send over the Battery Backed Ram (BBR) config settings
+    return_code = __send_config (&(config_array[0]), CONFIGURATION_ARRAY_SIZE, UBX_CFG_VALSET_CLASS,
+    UBX_CFG_VALSET_ID);
+
+    if ( return_code != uSWIFT_SUCCESS )
+    {
+      gnss_self->reset_uart ();
+      return return_code;
+    }
+
     gnss_self->reset_uart ();
-    return return_code;
-  }
 
-//  return_code = gnss_self->software_start ();
-//  if ( return_code != uSWIFT_SUCCESS )
-//  {
-//    gnss_self->reset_uart ();
-//    return return_code;
-//  }
-
-  gnss_self->reset_uart ();
-
-  // Now set high performance mode (if enabled)
-  if ( gnss_self->global_config->gnss_high_performance_mode )
-  {
-    // First check to see if it has already been set
-    return_code = __enable_high_performance_mode ();
+    // Now set high performance mode (if enabled)
+    if ( gnss_self->global_config->gnss_high_performance_mode )
+    {
+      // First check to see if it has already been set
+      return_code = __enable_high_performance_mode ();
+    }
   }
 
   tx_thread_sleep (20);
@@ -880,6 +871,7 @@ static uSWIFT_return_code_t __send_config ( uint8_t *config_array, size_t messag
   // Grab the acknowledgment message
   HAL_UART_Receive_DMA (gnss_self->gnss_uart_handle, &(gnss_self->config_response_buf[0]),
   GNSS_CONFIG_BUFFER_SIZE);
+
   if ( tx_event_flags_get (gnss_self->irq_flags, GNSS_CONFIG_RECVD, TX_OR_CLEAR, &actual_flags,
                            ticks_to_receive_msgs)
        != TX_SUCCESS )

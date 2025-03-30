@@ -186,8 +186,6 @@ bool test_gnss_config ( void *gnss )
 {
   GNSS *gnss_ptr = (GNSS*) gnss;
 
-  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 20);
-
   for ( int i = 0; i < 100; i++ )
   {
     if ( !gnss_apply_config (gnss_ptr) )
@@ -205,8 +203,11 @@ bool test_gnss_config ( void *gnss )
 bool gnss_test_control_supplement ( void *control )
 {
   Control *controller_self = (Control*) control;
+  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 10);
+
   (void) tx_thread_resume (controller_self->thread_handles->gnss_thread);
   (void) tx_thread_resume (controller_self->thread_handles->waves_thread);
+//  (void) tx_thread_resume (controller_self->thread_handles->iridium_thread);
   while ( 1 )
   {
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 1);
