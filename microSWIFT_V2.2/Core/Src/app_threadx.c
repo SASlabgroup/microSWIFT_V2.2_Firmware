@@ -1049,7 +1049,7 @@ static void control_thread_entry ( ULONG thread_input )
     if ( control_get_timeout_status () )
     {
       LOG("Duty cycle timeout. Starting shutdown sequence.");
-      tx_thread_sleep (1);
+      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
       control.shutdown_procedure ();
     }
 
@@ -1518,6 +1518,8 @@ static void temperature_thread_entry ( ULONG thread_input )
   tx_thread_sleep (SOFT_START_DELAY);
 
   LOG("Temperature sample window started.");
+
+#warning "The temperature start timestamp is never set, resulting in files with timestamps of 0."
 
   while ( fail_counter < max_retries )
   {
