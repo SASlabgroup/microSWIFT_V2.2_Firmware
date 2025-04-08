@@ -34,18 +34,11 @@ void file_system_server_init ( TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP *co
   file_server_self.global_config = global_config;
 }
 
-uSWIFT_return_code_t file_system_server_save_log_line ( char *log_line )
+void file_system_server_save_log_line ( char *log_line )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   file_system_request_message queue_msg =
     { 0 };
-  static bool is_broken = false;
-
-  if ( is_broken )
-  {
-    uart_logger_return_line_buf ((log_line_buf*) log_line);
-    return uSWIFT_FILE_SYSTEM_ERROR;
-  }
 
   queue_msg.request = SAVE_LOG_LINE;
   queue_msg.size = strlen (log_line);
@@ -53,15 +46,12 @@ uSWIFT_return_code_t file_system_server_save_log_line ( char *log_line )
   queue_msg.complete_flag = SAVE_LOG_LINE_COMPLETE;
   queue_msg.return_code = &ret;
 
-  __internal_manage_request (&queue_msg, FILE_SYSTEM_LOG_LINE_MAX_WAIT_TICKS);
-  if ( *queue_msg.return_code != uSWIFT_SUCCESS )
+  if ( tx_queue_send (file_server_self.request_queue, &queue_msg,
+  FILE_SYSTEM_QUEUE_MAX_WAIT_TICKS)
+       != TX_SUCCESS )
   {
-    is_broken = true;
+    *queue_msg.return_code = uSWIFT_MESSAGE_QUEUE_ERROR;
   }
-
-  uart_logger_return_line_buf ((log_line_buf*) log_line);
-
-  return ret;
 }
 
 uSWIFT_return_code_t file_system_server_save_gnss_raw ( GNSS *gnss )

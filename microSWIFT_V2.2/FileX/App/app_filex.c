@@ -181,6 +181,7 @@ void fx_thread_entry ( ULONG thread_input )
       {
         case SAVE_LOG_LINE:
           ret = file_system.save_log_line (msg.object_pointer, msg.size);
+          uart_logger_return_line_buf ((log_line_buf*) msg.object_pointer);
           break;
 
         case SAVE_GNSS_RAW:

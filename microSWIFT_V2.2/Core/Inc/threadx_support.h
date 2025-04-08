@@ -39,6 +39,7 @@ bool                temperature_self_test ( Temperature *temperature, float *sel
 bool                turbidity_self_test ( Turbidity_Sensor *obs );
 bool                light_self_test ( Light_Sensor *light);
 bool                iridium_apply_config ( Iridium *iridium );
+bool                iridium_self_test ( Iridium *iridium );
 
 void                gnss_error_out(GNSS *gnss, ULONG error_flag, TX_THREAD *gnss_thread, const char *fmt, ...);
 void                ct_error_out(CT* ct, ULONG error_flag, TX_THREAD *ct_thread, const char *fmt, ...);

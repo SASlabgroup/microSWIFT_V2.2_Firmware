@@ -953,7 +953,7 @@ static void logger_thread_entry ( ULONG thread_input )
       logger.send_log_line (&(msg.str_buf[0]), msg.strlen);
 
       // Pass the buffer down to the file system for saving to SD card
-      (void) file_system_server_save_log_line ((char*) &(msg.str_buf[0]));
+      file_system_server_save_log_line ((char*) &(msg.str_buf[0]));
 
       // Need to wait until the transmission is complete before grabbing another message
       (void) tx_semaphore_get (&logger_sema, TX_WAIT_FOREVER);
@@ -1969,7 +1969,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   char ascii_7 = '7';
   uint8_t sbd_type = 52;
   uint16_t sbd_size = 331;
-  uint32_t sbd_timestamp = 0;
+  float sbd_timestamp = 0;
   uint32_t error_bits = 0;
   struct tm time_struct =
     { 0 };
@@ -1996,8 +1996,7 @@ static void iridium_thread_entry ( ULONG thread_input )
 
   iridium.on ();
   iridium.wake ();
-  iridium.charge_caps ((is_first_sample_window ()) ?
-      IRIDIUM_INITIAL_CAP_CHARGE_TIME : IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
+  iridium.charge_caps (IRIDIUM_INITIAL_CAP_CHARGE_TIME);
 
   if ( !iridium_apply_config (&iridium) )
   {
@@ -2041,7 +2040,7 @@ static void iridium_thread_entry ( ULONG thread_input )
 
   msg_ptr = (uint8_t*) &sbd_message;
 
-  if ( !iridium_apply_config (&iridium) )
+  if ( !iridium_self_test (&iridium) )
   {
     // Need to save the message
     error_bits = get_current_flags (&error_flags);
@@ -2125,7 +2124,6 @@ static void iridium_thread_entry ( ULONG thread_input )
 // Turn off the modem
   iridium.stop_timer ();
   iridium.sleep ();
-  iridium.off ();
 
   iridium_deinit ();
 

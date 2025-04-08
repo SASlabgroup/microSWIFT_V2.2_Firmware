@@ -43,6 +43,8 @@ General
 	[ ] Finish out code to use as memory mapped external RAM
 [ ] DMA Receive to Idle not working in first rev of V2.2. Retaining all code as desire is to use
     this feature on future revs when we work out the spurious idle line detection issue.
+[ ] Change sample widndow counter to increment with every window regardless of RTC or GNSS fix.
+	[ ] Fins some other method of determining first sample window
     
 ****************************************************************************************************
 Control

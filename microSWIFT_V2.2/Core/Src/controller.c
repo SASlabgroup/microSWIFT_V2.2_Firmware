@@ -381,15 +381,9 @@ static void _control_enter_processor_standby_mode ( void )
   CLEAR_BIT(PWR->BDCR1, PWR_BDCR1_BREN);
 
   HAL_PWREx_EnablePullUpPullDownConfig ();
-  HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_D, BUS_5V_FET_Pin);
+  HAL_PWREx_EnableGPIOPullUp (PWR_GPIO_D, BUS_5V_FET_Pin);
   HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_D, RS232_FORCEOFF_Pin);
-
-  // If using Iridium Modem Version V3D, configure a pull down to keep the modem off during sleep
-  if ( !controller_self->global_config->iridium_v3f )
-  {
-    // Configure the sleep pin for the modem
-    HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_G, IRIDIUM_OnOff_Pin);
-  }
+  HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_G, IRIDIUM_OnOff_Pin);
 
   // Enable wakeup on the RTC alarm pin: PWR_WAKEUP_PIN1_LOW_1 = PB2 low polarity = RTC Int B
   HAL_PWR_EnableWakeUpPin (PWR_WAKEUP_PIN1_LOW_1);
@@ -458,7 +452,7 @@ static void _control_manage_state ( void )
     controller_self->thread_status.ct_complete = true;
 
     LOG("CT thread complete, now terminating.");
-    tx_thread_sleep (10);
+    tx_thread_sleep (25);
   }
 
   if ( (current_flags & TEMPERATURE_THREAD_COMPLETED_SUCCESSFULLY)
@@ -467,7 +461,7 @@ static void _control_manage_state ( void )
     controller_self->thread_status.temperature_complete = true;
 
     LOG("Temperature thread complete, now terminating.");
-    tx_thread_sleep (10);
+    tx_thread_sleep (25);
   }
 
   if ( (current_flags & TURBIDITY_THREAD_COMPLETED_SUCCESSFULLY)
@@ -476,7 +470,7 @@ static void _control_manage_state ( void )
     controller_self->thread_status.turbidity_complete = true;
 
     LOG("Turbidity thread complete, now terminating.");
-    tx_thread_sleep (10);
+    tx_thread_sleep (25);
   }
 
   if ( (current_flags & LIGHT_THREAD_COMPLETED_SUCCESSFULLY)
@@ -485,7 +479,7 @@ static void _control_manage_state ( void )
     controller_self->thread_status.light_complete = true;
 
     LOG("Light thread complete, now terminating.");
-    tx_thread_sleep (10);
+    tx_thread_sleep (25);
   }
 
   if ( (current_flags & WAVES_THREAD_COMPLETED_SUCCESSFULLY)
@@ -494,7 +488,7 @@ static void _control_manage_state ( void )
     controller_self->thread_status.waves_complete = true;
 
     LOG("NED Waves thread complete, now terminating.");
-    tx_thread_sleep (10);
+    tx_thread_sleep (25);
   }
 
   // When the GNSS has resolved time, has a fix, and has started sampling, signal the light
@@ -534,7 +528,7 @@ static void _control_manage_state ( void )
     ret |= tx_thread_resume (controller_self->thread_handles->waves_thread);
 
     LOG("GNSS thread complete, now terminating.");
-    tx_thread_sleep (10);
+    tx_thread_sleep (25);
   }
 
   // If GNSS thread errors out, do not run waves
@@ -553,7 +547,7 @@ static void _control_manage_state ( void )
     }
 
     LOG("GNSS thread complete, now terminating.");
-    tx_thread_sleep (10);
+    tx_thread_sleep (25);
   }
 
   iridium_ready = controller_self->thread_status.gnss_complete
@@ -585,7 +579,7 @@ static void _control_manage_state ( void )
   {
     controller_self->shutdown_all_peripherals ();
 
-    tx_thread_sleep (10);
+    tx_thread_sleep (25);
     Error_Handler ();
   }
 }

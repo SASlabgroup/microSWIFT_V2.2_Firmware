@@ -40,12 +40,12 @@ static void                  _iridium_sleep ( void );
 static void                  _iridium_wake ( void );
 static void                  _iridium_on ( void );
 static void                  _iridium_off ( void );
+static void                  _iridium_cycle_power ( void );
 
 // Helper functions
 static uSWIFT_return_code_t  __send_basic_command_message ( const char *command, uint8_t response_size );
 static uSWIFT_return_code_t  __internal_transmit_message ( uint8_t *payload, uint16_t payload_size );
 static iridium_checksum_t    __get_checksum ( uint8_t *payload, size_t payload_size );
-static void                  __cycle_power ( void );
 static void                  __reset_uart ( void );
 static int32_t               __uart_read_dma ( void *driver_ptr, uint8_t *read_buf, uint16_t size, uint32_t timeout_ticks );
 static int32_t               __uart_write_dma ( void *driver_ptr, uint8_t *write_buf, uint16_t size, uint32_t timeout_ticks );
@@ -56,6 +56,7 @@ static const char *disable_flow_control         = "AT&K0\r";
 static const char *enable_ring_indications      = "AT+SBDMTA=1\r";
 static const char *store_config                 = "AT&W0\r";
 static const char *select_power_up_profile      = "AT&Y0\r";
+static const char *flush_to_eeprom              = "AT*F\r";
 static const char *clear_MO                     = "AT+SBDD0\r";
 static const char *send_sbd                     = "AT+SBDIX\r";
 // @formatter:on
@@ -98,6 +99,7 @@ void iridium_init ( Iridium *struct_ptr, microSWIFT_configuration *global_config
   iridium_self->wake = _iridium_wake;
   iridium_self->on = _iridium_on;
   iridium_self->off = _iridium_off;
+  iridium_self->cycle_power = _iridium_cycle_power;
 
   generic_uart_register_io_functions (&iridium_self->uart_driver, iridium_uart_handle, uart_sema,
                                       uart4_init, uart4_deinit, __uart_read_dma, __uart_write_dma);
@@ -251,7 +253,7 @@ static uSWIFT_return_code_t _iridium_transmit_message ( uint8_t *msg, uint32_t m
 
   if ( return_code == uSWIFT_IO_ERROR )
   {
-    __cycle_power ();
+    iridium_self->cycle_power ();
   }
 
   return return_code;
@@ -276,6 +278,7 @@ static void _iridium_charge_caps ( uint32_t caps_charge_time_ticks )
  */
 static void _iridium_sleep ( void )
 {
+  __send_basic_command_message (flush_to_eeprom, FLUSH_TO_EPPROM_SIZE);
   HAL_GPIO_WritePin (iridium_self->sleep_pin.port, iridium_self->sleep_pin.pin, GPIO_PIN_RESET);
 }
 
@@ -304,6 +307,21 @@ static void _iridium_on ( void )
 static void _iridium_off ( void )
 {
   HAL_GPIO_WritePin (iridium_self->bus_5v_fet.port, iridium_self->bus_5v_fet.pin, GPIO_PIN_RESET);
+}
+
+/**
+ *
+ * @return void
+ */
+static void _iridium_cycle_power ( void )
+{
+  iridium_self->sleep ();
+  iridium_self->off ();
+  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 2);
+
+  iridium_self->on ();
+  iridium_self->wake ();
+  tx_thread_sleep (250);
 }
 
 /**
@@ -546,21 +564,6 @@ static iridium_checksum_t __get_checksum ( uint8_t *payload, size_t payload_size
   checksum.checksum_b = (uint8_t) (temp_checksum & 0xFF);
 
   return checksum;
-}
-
-/**
- *
- * @return void
- */
-static void __cycle_power ( void )
-{
-  iridium_self->sleep ();
-  iridium_self->off ();
-  tx_thread_sleep (250);
-
-  iridium_self->on ();
-  iridium_self->wake ();
-  tx_thread_sleep (250);
 }
 
 static void __reset_uart ( void )

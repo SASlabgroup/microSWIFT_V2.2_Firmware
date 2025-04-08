@@ -45,6 +45,7 @@ extern "C" {
 /* USER CODE BEGIN ET */
 
 #define SOFT_START_DELAY 25
+#define ONE_SECOND 1000U
 
 // @formatter:off
 enum thread_priorities

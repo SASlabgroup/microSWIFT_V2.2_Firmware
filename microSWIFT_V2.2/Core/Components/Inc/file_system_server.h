@@ -60,7 +60,7 @@ typedef struct
 
 void                    file_system_server_init ( TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP *complete_flags,
                                                   microSWIFT_configuration *global_config );
-uSWIFT_return_code_t    file_system_server_save_log_line ( char *log_line );
+void                    file_system_server_save_log_line ( char *log_line );
 uSWIFT_return_code_t    file_system_server_save_gnss_raw ( GNSS *gnss );
 uSWIFT_return_code_t    file_system_server_save_gnss_track ( GNSS *gnss );
 uSWIFT_return_code_t    file_system_server_save_temperature_raw ( Temperature *temp );
