@@ -222,8 +222,8 @@ static uSWIFT_return_code_t _ct_get_averages ( ct_sample *readings )
     temp += ct_self->samples[i].temp;
   }
 
-  ct_self->samples_averages.temp = (float) (salinity / ((double) ct_self->total_samples));
-  ct_self->samples_averages.salinity = (float) (temp / ((double) ct_self->total_samples));
+  ct_self->samples_averages.temp = (float) (temp / ((double) ct_self->total_samples));
+  ct_self->samples_averages.salinity = (float) (salinity / ((double) ct_self->total_samples));
 
   readings->temp = ct_self->samples_averages.temp;
   readings->salinity = ct_self->samples_averages.salinity;
@@ -257,7 +257,7 @@ static uSWIFT_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *opt
 
   index = strstr (ct_self->data_buf, temp_units);
   // Make the message was received in the right alignment
-  if ( index == NULL || index > &(ct_self->data_buf[0]) + TEMP_MEASUREMENT_START_INDEX )
+  if ( index == NULL || (index > &(ct_self->data_buf[0]) + TEMP_MEASUREMENT_START_INDEX) )
   {
     return_code = uSWIFT_PROCESSING_ERROR;
     return return_code;

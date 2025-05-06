@@ -50,7 +50,7 @@ bool gnss_apply_config ( GNSS *gnss )
 
 bool ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings )
 {
-  int32_t fail_counter = 0, max_retries = 10;
+  int32_t fail_counter = 0, max_retries = 25;
   uSWIFT_return_code_t ct_return_code;
 
   while ( fail_counter < max_retries )
@@ -63,7 +63,7 @@ bool ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings 
     }
 
     ct->off ();
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+    tx_thread_sleep (13);
     ct->on ();
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
 
