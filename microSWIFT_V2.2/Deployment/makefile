@@ -94,7 +94,7 @@ clean:
 	-@echo ' '
 
 post-build:
-	sh /Users/philbush/STM32CubeIDE/microSWIFT/microSWIFT_V2.2/microSWIFT_V2.2/run_python_programmer.sh dd
+	sh /Users/philbush/STM32CubeIDE/microSWIFT/microSWIFT_V2.2/microSWIFT_V2.2/run_python_programmer.sh deploy
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)

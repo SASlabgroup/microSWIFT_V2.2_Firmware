@@ -83,11 +83,11 @@ typedef enum
   NO_MESSAGE            = 3
 } telemetry_type_t;
 
-void                    persistent_ram_init ( microSWIFT_configuration *config, microSWIFT_firmware_version_t *version );
+void                    persistent_ram_init ( const microSWIFT_configuration *config, const microSWIFT_firmware_version_t *version );
 void                    persistent_ram_deinit ( void );
-void                    persistent_ram_set_device_config ( microSWIFT_configuration *config );
+void                    persistent_ram_set_device_config ( const microSWIFT_configuration *config );
 void                    persistent_ram_get_device_config ( microSWIFT_configuration *config );
-void                    persistent_ram_set_firmware_version ( microSWIFT_firmware_version_t *version );
+void                    persistent_ram_set_firmware_version ( const microSWIFT_firmware_version_t *version );
 void                    persistent_ram_get_firmware_version ( microSWIFT_firmware_version_t *version );
 uint32_t                persistent_ram_get_sample_window_counter ( void );
 void                    persistent_ram_reset_sample_window_counter ( void );

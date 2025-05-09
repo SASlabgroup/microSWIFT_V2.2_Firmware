@@ -2,16 +2,13 @@
 
 set -x
 
-rm /Users/philbush/STM32CubeIDE/microSWIFT/microSWIFT_Configurator/firmware/microSWIFT_V2.2.elf
+rm /Users/philbush/STM32CubeIDE/microSWIFT/microSWIFT-programmer/firmware/microSWIFT_V2.2.elf
 
-if [ "$1" == "d" ]; then
-	cp /Users/philbush/STM32CubeIDE/microSWIFT/microSWIFT_V2.2/microSWIFT_V2.2/Debug/microSWIFT_V2.2.elf /Users/philbush/STM32CubeIDE/microSWIFT/microSWIFT_Configurator/firmware
+if [ "$1" == "debug" ]; then
+	cp /Users/philbush/STM32CubeIDE/microSWIFT/microSWIFT_V2.2/microSWIFT_V2.2/Debug/microSWIFT_V2.2.elf /Users/philbush/STM32CubeIDE/microSWIFT/microSWIFT-programmer/firmware
 
-elif [ "$1" == "dd" ]; then
-	cp '/Users/philbush/STM32CubeIDE/microSWIFT/microSWIFT_V2.2/microSWIFT_V2.2/Debug without debugging/microSWIFT_V2.2.elf' /Users/philbush/STM32CubeIDE/microSWIFT/microSWIFT_Configurator/firmware
-
-elif [ "$1" == "r" ]; then
-	cp /Users/philbush/STM32CubeIDE/microSWIFT/microSWIFT_V2.2/microSWIFT_V2.2/Release/microSWIFT_V2.2.elf /Users/philbush/STM32CubeIDE/microSWIFT/microSWIFT_Configurator/firmware
+elif [ "$1" == "deploy" ]; then
+	cp /Users/philbush/STM32CubeIDE/microSWIFT/microSWIFT_V2.2/microSWIFT_V2.2/Deployment/microSWIFT_V2.2.elf /Users/philbush/STM32CubeIDE/microSWIFT/microSWIFT-programmer/firmware
 
 else
 	echo "Arg not caputred."
@@ -19,5 +16,5 @@ else
 fi
 
 
-cd /Users/philbush/STM32CubeIDE/microSWIFT/microSWIFT_Configurator/
-python3 microSWIFT_programmer.py
+cd /Users/philbush/STM32CubeIDE/microSWIFT/microSWIFT-programmer/
+python3 microSWIFT_programmer.py --no_firmware_update

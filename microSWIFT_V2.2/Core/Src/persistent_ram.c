@@ -23,8 +23,8 @@ static void _persistent_ram_clear ( void );
  *
  * @return void
  */
-void persistent_ram_init ( microSWIFT_configuration *config,
-                           microSWIFT_firmware_version_t *version )
+void persistent_ram_init ( const microSWIFT_configuration *config,
+                           const microSWIFT_firmware_version_t *version )
 {
   // The ram section "persistent_self" resides in is a NOLOAD section. Contents remain persistent through
   // standby mode.
@@ -65,7 +65,7 @@ void persistent_ram_deinit ( void )
  *
  * @return void
  */
-void persistent_ram_set_device_config ( microSWIFT_configuration *config )
+void persistent_ram_set_device_config ( const microSWIFT_configuration *config )
 {
   memcpy (&persistent_self.device_config, config, sizeof(microSWIFT_configuration));
 }
@@ -85,7 +85,7 @@ void persistent_ram_get_device_config ( microSWIFT_configuration *config )
  *
  * @return void
  */
-void persistent_ram_set_firmware_version ( microSWIFT_firmware_version_t *version )
+void persistent_ram_set_firmware_version ( const microSWIFT_firmware_version_t *version )
 {
   memcpy (&persistent_self.version, version, sizeof(microSWIFT_firmware_version_t));
 }
