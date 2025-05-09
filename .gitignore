@@ -57,6 +57,7 @@ dkms.conf
 *.metadata
 **/microSWIFT_V2.2/Debug
 **/microSWIFT_V2.2/Release
+**/microSWIFT_V2.2/Deployment
 **/test_bench/Debug
 *.cyclo
 *.proxy_cache
