@@ -61,3 +61,6 @@ dkms.conf
 *.cyclo
 *.proxy_cache
 *.launch
+
+#Mac Things
+.DS_Store
