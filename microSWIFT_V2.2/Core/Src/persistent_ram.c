@@ -23,7 +23,8 @@ static void _persistent_ram_clear ( void );
  *
  * @return void
  */
-void persistent_ram_init ( microSWIFT_configuration *config )
+void persistent_ram_init ( microSWIFT_configuration *config,
+                           microSWIFT_firmware_version_t *version )
 {
   // The ram section "persistent_self" resides in is a NOLOAD section. Contents remain persistent through
   // standby mode.
@@ -31,6 +32,7 @@ void persistent_ram_init ( microSWIFT_configuration *config )
   {
     _persistent_ram_clear ();
     persistent_ram_set_device_config (config);
+    persistent_ram_set_firmware_version (version);
 
     persistent_self.magic_number = PERSISTENT_RAM_MAGIC_DOUBLE_WORD;
   }
@@ -76,6 +78,26 @@ void persistent_ram_set_device_config ( microSWIFT_configuration *config )
 void persistent_ram_get_device_config ( microSWIFT_configuration *config )
 {
   memcpy (config, &persistent_self.device_config, sizeof(microSWIFT_configuration));
+}
+
+/**
+ * Copy over the firmware version from supplied pointer into the persistent ram.
+ *
+ * @return void
+ */
+void persistent_ram_set_firmware_version ( microSWIFT_firmware_version_t *version )
+{
+  memcpy (&persistent_self.version, version, sizeof(microSWIFT_firmware_version_t));
+}
+
+/**
+ * Copy the current firmware version to the supplied pointer.
+ *
+ * @return void
+ */
+void persistent_ram_get_firmware_version ( microSWIFT_firmware_version_t *version )
+{
+  memcpy (version, &persistent_self.version, sizeof(microSWIFT_firmware_version_t));
 }
 
 /**

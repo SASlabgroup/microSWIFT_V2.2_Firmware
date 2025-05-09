@@ -5,6 +5,8 @@
  *      Author: Phil
  */
 
+#include "ct_sensor.h"
+
 #include "app_threadx.h"
 #include "ext_rtc_server.h"
 #include "tx_api.h"
@@ -17,7 +19,6 @@
 #include "stdio.h"
 #include "stdbool.h"
 #include "configuration.h"
-#include "ct_sensor.h"
 #include "stdarg.h"
 #include "sbd.h"
 
@@ -138,7 +139,7 @@ static uSWIFT_return_code_t _ct_parse_sample ( void )
   char *index;
 
   // Samples array overflow safety check
-  if ( ct_self->total_samples >= ct_self->global_config->total_ct_samples )
+  if ( ct_self->total_samples >= TOTAL_CT_SAMPLES )
   {
 
     return_code = uSWIFT_DONE_SAMPLING;

@@ -48,9 +48,22 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+/***************************************************************************************************
+ ***************************************************************************************************
+ **********************************    Firmware Version    *****************************************
+ ***************************************************************************************************
+ **************************************************************************************************/
+
+#define HARDWARE_VERSION 2U
+#define FIRMWARE_VERSION 0U
+
+static const microSWIFT_firmware_version_t firmware_version __attribute__ ((section (".uservars")))
+=
+  { HARDWARE_VERSION, FIRMWARE_VERSION };
+
 // Configuration bytes programmed using STM32 Cube programmer in the last page of flash
 static microSWIFT_configuration flash_config __attribute__ ((section (".uservars.CONFIGURATION")));
-// Only need to con
+// Needed to make sure we only wait on the crystal to stabilize on first boot
 static bool rtc_crystal_stable_complete __attribute__((section(".sram2"))) = false;
 /* USER CODE END PV */
 
@@ -92,7 +105,7 @@ int main ( void )
   }
 
   // Setup the persistent ram if needed
-  persistent_ram_init (&flash_config);
+  persistent_ram_init (&flash_config, &firmware_version);
 
   /* USER CODE END Init */
 

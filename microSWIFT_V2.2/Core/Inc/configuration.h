@@ -13,8 +13,8 @@
 
 typedef struct
 {
-  uint8_t major_rev :4;
-  uint8_t minor_rev :4;
+  uint8_t major_rev :3;
+  uint8_t minor_rev :5;
 } microSWIFT_firmware_version_t;
 
 typedef struct __attribute__((packed)) microSWIFT_configuration
@@ -25,9 +25,8 @@ typedef struct __attribute__((packed)) microSWIFT_configuration
   uint32_t iridium_max_transmit_time;
   uint32_t gnss_max_acquisition_wait_time;
   uint32_t gnss_sampling_rate;
-  uint32_t total_ct_samples;
-  uint32_t total_temp_samples;
   uint32_t total_light_samples;
+  uint32_t light_sensor_gain;
   uint32_t total_turbidity_samples;
 
   bool iridium_v3f;
@@ -36,8 +35,6 @@ typedef struct __attribute__((packed)) microSWIFT_configuration
   bool temperature_enabled;
   bool light_enabled;
   bool turbidity_enabled;
-
-  const microSWIFT_firmware_version_t firmware_version;
 
   const char compile_date_flash[11];
   const char compile_time_flash[9];

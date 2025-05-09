@@ -981,6 +981,10 @@ static void control_thread_entry ( ULONG thread_input )
   bool first_window = is_first_sample_window (), heartbeat_started = false;
   uint32_t watchdog_counter = 0, sample_window = persistent_ram_get_sample_window_counter ();
   ULONG start_time = 0;
+  microSWIFT_firmware_version_t version =
+    { 0 };
+
+  persistent_ram_get_firmware_version (&version);
 
   // Let RTC and Logger thread init
   tx_thread_sleep (10);
@@ -990,8 +994,7 @@ static void control_thread_entry ( ULONG thread_input )
                    &sbd_message);
 
   LOG("\r\n\r\nHello World!\r\nmicroSWIFT %lu.\r\nFirmware major version %hu, minor version %hu.\r\nSample window %lu",
-      configuration.tracking_number, configuration.firmware_version.major_rev,
-      configuration.firmware_version.minor_rev, sample_window);
+      configuration.tracking_number, version.major_rev, version.minor_rev, sample_window);
 
   // Run tests if needed
   if ( tests.control_test != NULL )
@@ -1088,7 +1091,6 @@ static void gnss_thread_entry ( ULONG thread_input )
   int number_of_no_sample_errors = 0;
   float last_lat = 0;
   float last_lon = 0;
-  uint8_t sbd_port;
   UINT tx_return;
   ULONG actual_flags;
   int timer_ticks_to_get_message = round (
@@ -1274,13 +1276,12 @@ static void gnss_thread_entry ( ULONG thread_input )
   memcpy (&sbd_message.Lat, &last_lat, sizeof(float));
   memcpy (&sbd_message.Lon, &last_lon, sizeof(float));
 
-  sbd_port = ((gnss.total_samples_averaged / 10) >= 255) ?
-      255 : (gnss.total_samples_averaged / 10);
-
   // We were using the "port" field to encode how many samples were averaged divided by 10, but
-  // now we are using it to store the firmware version
-//  sbd_port = *((uint8_t*) &configuration.firmware_version);
-  memcpy (&sbd_message.port, &sbd_port, sizeof(uint8_t));
+  // now we are using it to store the firmware version, done in Iridium thread. Leaving this in case
+  // we decide to use it again.
+//  sbd_port = ((gnss.total_samples_averaged / 10) >= 255) ?
+//      255 : (gnss.total_samples_averaged / 10);
+//  memcpy (&sbd_message.port, &sbd_port, sizeof(uint8_t));
 
   // Deinit -- this will shut down UART port and DMA channels
   gnss_deinit ();
@@ -1969,6 +1970,8 @@ static void iridium_thread_entry ( ULONG thread_input )
   char ascii_7 = '7';
   uint8_t sbd_type = 52;
   uint16_t sbd_size = 331;
+  microSWIFT_firmware_version_t sbd_port =
+    { 0 }; // We're using the Type 52 field "port" to hold firmware version
   float sbd_timestamp = 0;
   uint32_t error_bits = 0;
   struct tm time_struct =
@@ -2031,10 +2034,12 @@ static void iridium_thread_entry ( ULONG thread_input )
   rtc_server_get_time (&time_struct, IRIDIUM_REQUEST_COMPLETE);
   time_now = mktime (&time_struct);
   sbd_timestamp = (float) time_now;
+  persistent_ram_get_firmware_version (&sbd_port);
   error_bits = control_get_accumulated_error_flags ();
   memcpy (&sbd_message.legacy_number_7, &ascii_7, sizeof(char));
   memcpy (&sbd_message.type, &sbd_type, sizeof(uint8_t));
   memcpy (&sbd_message.size, &sbd_size, sizeof(uint16_t));
+  memcpy (&sbd_message.port, (uint8_t*) &sbd_port, sizeof(uint8_t));
   memcpy (&sbd_message.timestamp, &sbd_timestamp, sizeof(float));
   memcpy (&sbd_message.error_bits, &error_bits, sizeof(uint32_t));
 

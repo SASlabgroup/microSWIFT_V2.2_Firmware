@@ -65,13 +65,14 @@ typedef struct
 // All of the things we need to retain in standby mode
 typedef struct
 {
-  uint64_t                  magic_number;
-  int32_t                   sample_window_counter;
-  bool                      rtc_time_set;
-  Waves_Message_Storage     waves_storage;
-  Turbidity_Message_Storage turbidity_storage;
-  Light_Message_Storage     light_storage;
-  microSWIFT_configuration  device_config;
+  uint64_t                      magic_number;
+  int32_t                       sample_window_counter;
+  bool                          rtc_time_set;
+  Waves_Message_Storage         waves_storage;
+  Turbidity_Message_Storage     turbidity_storage;
+  Light_Message_Storage         light_storage;
+  microSWIFT_configuration      device_config;
+  microSWIFT_firmware_version_t version;
 } Persistent_Storage;
 
 typedef enum
@@ -82,10 +83,12 @@ typedef enum
   NO_MESSAGE            = 3
 } telemetry_type_t;
 
-void                    persistent_ram_init ( microSWIFT_configuration *config );
+void                    persistent_ram_init ( microSWIFT_configuration *config, microSWIFT_firmware_version_t *version );
 void                    persistent_ram_deinit ( void );
 void                    persistent_ram_set_device_config ( microSWIFT_configuration *config );
 void                    persistent_ram_get_device_config ( microSWIFT_configuration *config );
+void                    persistent_ram_set_firmware_version ( microSWIFT_firmware_version_t *version );
+void                    persistent_ram_get_firmware_version ( microSWIFT_firmware_version_t *version );
 uint32_t                persistent_ram_get_sample_window_counter ( void );
 void                    persistent_ram_reset_sample_window_counter ( void );
 void                    persistent_ram_set_rtc_time_set ( void );
