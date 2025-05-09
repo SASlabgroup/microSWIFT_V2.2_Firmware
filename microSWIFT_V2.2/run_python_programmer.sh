@@ -1,4 +1,5 @@
 #!/bin/zsh
+#!/opt/homebrew/bin/python3.13
 
 set -x
 
@@ -17,4 +18,4 @@ fi
 
 
 cd /Users/philbush/STM32CubeIDE/microSWIFT/microSWIFT-programmer/
-python3 microSWIFT_programmer.py --no_firmware_update
+/opt/homebrew/bin/python3.13 microSWIFT_programmer.py --no_firmware_update
