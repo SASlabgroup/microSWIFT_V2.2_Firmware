@@ -612,7 +612,7 @@ static uSWIFT_return_code_t _file_system_save_ct_raw ( CT *ct )
     size_remaining = LINE_BUF_SIZE - str_index;
     // Write the sample values
     size_req = snprintf (&(line[str_index]), size_remaining, ct_line_format,
-                         ct->samples[sample_index]);
+                         ct->samples[sample_index].salinity, ct->samples[sample_index].temp);
     // Make sure we got everything
     if ( size_req > size_remaining )
     {

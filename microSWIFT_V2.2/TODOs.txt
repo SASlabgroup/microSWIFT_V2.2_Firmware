@@ -39,12 +39,14 @@ $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 ****************************************************************************************************
 General
 *******
+
 [ ] Test OCTOSPI with V2.2 hardware
 	[ ] Finish out code to use as memory mapped external RAM
 [ ] DMA Receive to Idle not working in first rev of V2.2. Retaining all code as desire is to use
     this feature on future revs when we work out the spurious idle line detection issue.
 [ ] Change sample widndow counter to increment with every window regardless of RTC or GNSS fix.
-	[ ] Fins some other method of determining first sample window
+	[ ] Find some other method of determining first sample window
+	[ ] Possibility to keep this the way it is and write files with names by timestamp...
     
 ****************************************************************************************************
 Control
@@ -53,6 +55,9 @@ Control
 ****************************************************************************************************
 RTC
 ***
+
+[ ] Enable Seconds timer and use this to keep track of system time
+	[ ] Internal requests for timestamps can then go through through our own system tick/time counter
 
 ****************************************************************************************************
 GNSS
@@ -71,7 +76,7 @@ Iridium
 CT
 **
 
-[ ] Test with V2.2 hardware
+[x] Test with V2.2 hardware
 
 ****************************************************************************************************
 Temperature
@@ -101,10 +106,16 @@ ThreadX
 Logger
 ******
 
+[ ] Once system time is implemented through the RTC seconds interrupt timer, add timestamps to
+    to all log lines
 
 ****************************************************************************************************
 FileX
 *****
+
+[ ] Once system time is implemented through the RTC seconds interrupt timer, start naming files by
+    to include the time in the filename.
+    [ ] Update file time when writing to files.
 
 $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -55,13 +55,13 @@
  **************************************************************************************************/
 
 #define HARDWARE_VERSION 2U
-#define FIRMWARE_VERSION 0U
+#define FIRMWARE_VERSION 1U
 
 static const microSWIFT_firmware_version_t firmware_version =
   { HARDWARE_VERSION, FIRMWARE_VERSION };
 
 // Configuration bytes programmed using STM32 Cube programmer in the last page of flash
-static const microSWIFT_configuration flash_config __attribute__ ((section (".uservars.CONFIGURATION")));
+static microSWIFT_configuration flash_config __attribute__ ((section (".uservars.CONFIGURATION")));
 
 // Needed to make sure we only wait on the crystal to stabilize on first boot
 static bool rtc_crystal_stable_complete __attribute__((section(".sram2"))) = false;
