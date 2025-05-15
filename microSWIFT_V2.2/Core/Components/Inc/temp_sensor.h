@@ -58,7 +58,7 @@ typedef struct Temperature
   uint32_t                  adc;
 
   uSWIFT_return_code_t      (*self_test) ( float *optional_reading );
-  uSWIFT_return_code_t      (*get_readings) ( bool get_single_reading, float *temperature );
+  uSWIFT_return_code_t      (*take_samples) ( float *averaged_temp );
   uSWIFT_return_code_t      (*start_timer) ( uint16_t timeout_in_minutes );
   uSWIFT_return_code_t      (*stop_timer) ( void );
   void                      (*on) ( void );

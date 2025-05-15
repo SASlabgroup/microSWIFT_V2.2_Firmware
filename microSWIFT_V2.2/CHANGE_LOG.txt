@@ -15,12 +15,6 @@ Logger
 
 [ ] Once system time is implemented through the RTC seconds interrupt timer, add timestamps to
     to all log lines
-    
-****************************************************************************************************
-Iridium
-*******
-
-[ ] Implement receive message functions to take in a configuration struct
 
 ****************************************************************************************************
 FileX
@@ -44,4 +38,5 @@ FileX
 Temperature
 ************
 
-[ ] Fix timestamping
+[x] Fix timestamping
+[x] Refactored sampling scheme

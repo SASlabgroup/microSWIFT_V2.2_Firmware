@@ -1526,7 +1526,7 @@ static void temperature_thread_entry ( ULONG thread_input )
   {
     watchdog_check_in (TEMPERATURE_THREAD);
 
-    temp_return_code = temperature.get_readings (false, &sampling_reading);
+    temp_return_code = temperature.take_samples (&sampling_reading);
 
     if ( temp_return_code == uSWIFT_SUCCESS )
     {

@@ -24,7 +24,7 @@ static Temperature *temperature_self;
 
 // Struct functions
 static uSWIFT_return_code_t _temperature_self_test ( float *optional_reading );
-static uSWIFT_return_code_t _temperature_get_readings ( bool get_single_reading, float *temperature );
+static uSWIFT_return_code_t _temperature_take_samples ( float *averaged_temp  );
 static uSWIFT_return_code_t _temperature_start_timer ( uint16_t timeout_in_minutes );
 static uSWIFT_return_code_t _temperature_stop_timer ( void );
 static void                 _temperature_on ( void );
@@ -34,7 +34,9 @@ static uSWIFT_return_code_t _temperature_i2c_read ( uint8_t dev_addr, uint8_t re
 static uSWIFT_return_code_t _temperature_i2c_write( uint8_t dev_addr, uint8_t reg_addr, uint8_t *write_buf, uint16_t size );
 // Helper functions
 static uSWIFT_return_code_t __init_sensor ( void );
+static uSWIFT_return_code_t __get_reading ( float *temperature );
 static float                __calculate_temp ( void );
+static time_t               __get_timestamp ( void );
 static void                 __reset_struct_fields ( bool reset_calibration );
 // @formatter:on
 
@@ -52,7 +54,7 @@ void temperature_init ( Temperature *struct_ptr, microSWIFT_configuration *globa
   temperature_self->pwr_gpio.pin = TEMPERATURE_FET_Pin;
 
   temperature_self->self_test = _temperature_self_test;
-  temperature_self->get_readings = _temperature_get_readings;
+  temperature_self->take_samples = _temperature_take_samples;
   temperature_self->start_timer = _temperature_start_timer;
   temperature_self->stop_timer = _temperature_stop_timer;
   temperature_self->on = _temperature_on;
@@ -74,6 +76,7 @@ bool temperature_get_timeout_status ( void )
 static uSWIFT_return_code_t _temperature_self_test ( float *optional_reading )
 {
   uSWIFT_return_code_t ret;
+  float reading = 0.0f;
 
   ret = __init_sensor ();
 
@@ -85,62 +88,54 @@ static uSWIFT_return_code_t _temperature_self_test ( float *optional_reading )
     }
     else
     {
-      return _temperature_get_readings (true, optional_reading);
+      ret = __get_reading (&reading);
+
+      if ( optional_reading != NULL )
+      {
+        *optional_reading = reading;
+      }
+
+      return ret;
     }
   }
 
   return ret;
 }
 
-static uSWIFT_return_code_t _temperature_get_readings ( bool get_single_reading,
-                                                        float *temperature )
+static uSWIFT_return_code_t _temperature_take_samples ( float *averaged_temp )
 {
-  uSWIFT_return_code_t return_code = uSWIFT_SUCCESS;
-  uint8_t command;
-  uint8_t read_data[3] =
-    { 0 };
-  int32_t num_readings = (get_single_reading) ?
-      1 : TOTAL_TEMPERATURE_SAMPLES;
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
+  float temp_accumulator = 0.0f;
+
+  temperature_self->start_timestamp = __get_timestamp ();
 
   while ( temperature_self->samples_counter < TOTAL_TEMPERATURE_SAMPLES )
   {
+    ret = __get_reading (&temperature_self->samples[temperature_self->samples_counter]);
 
-    command = TSYS01_ADC_TEMP_CONV;
-    return_code = _temperature_i2c_write (TSYS01_ADDR, 0, &command, 0);
-    if ( return_code != uSWIFT_SUCCESS )
+    if ( ret == uSWIFT_SUCCESS )
     {
-      return return_code;
+      temperature_self->samples_counter++;
     }
-
-    // Conversion takes 8.22ms
-    tx_thread_sleep (10);
-
-    command = TSYS01_ADC_READ;
-
-    return_code = _temperature_i2c_read (TSYS01_ADDR, command, &(read_data[0]), sizeof(read_data));
-    if ( return_code != uSWIFT_SUCCESS )
+    else
     {
-      return return_code;
+      temperature_self->samples_counter = 0U;
+      return ret;
     }
-
-    temperature_self->D1 = (read_data[0] << 16) | (read_data[1] << 8) | read_data[2];
-
-    temperature_self->samples[temperature_self->samples_counter] = __calculate_temp ();
-
-    temperature_self->samples_counter++;
   }
 
-  temperature_self->averaged_temp = 0.0f;
-  for ( int i = 0; i < num_readings; i++ )
+  for ( int i = 0; i < TOTAL_TEMPERATURE_SAMPLES; i++ )
   {
-    temperature_self->averaged_temp += temperature_self->samples[i];
+    temp_accumulator += temperature_self->samples[i];
   }
 
-  temperature_self->averaged_temp /= num_readings;
+  temperature_self->averaged_temp = temp_accumulator / TOTAL_TEMPERATURE_SAMPLES;
 
-  *temperature = temperature_self->averaged_temp;
+  *averaged_temp = temperature_self->averaged_temp;
 
-  return return_code;
+  temperature_self->stop_timestamp = __get_timestamp ();
+
+  return ret;
 }
 
 static uSWIFT_return_code_t _temperature_start_timer ( uint16_t timeout_in_minutes )
@@ -176,6 +171,18 @@ static void _temperature_on ( void )
 static void _temperature_off ( void )
 {
   gpio_write_pin (temperature_self->pwr_gpio, GPIO_PIN_RESET);
+}
+
+static uSWIFT_return_code_t _temperature_i2c_read ( uint8_t dev_addr, uint8_t reg_addr,
+                                                    uint8_t *read_buf, uint16_t size )
+{
+  return shared_i2c_read (dev_addr, reg_addr, read_buf, size, TEMPERATURE_REQUEST_PROCESSED);
+}
+
+static uSWIFT_return_code_t _temperature_i2c_write ( uint8_t dev_addr, uint8_t reg_addr,
+                                                     uint8_t *write_buf, uint16_t size )
+{
+  return shared_i2c_write (dev_addr, reg_addr, write_buf, size, TEMPERATURE_REQUEST_PROCESSED);
 }
 
 static uSWIFT_return_code_t __init_sensor ( void )
@@ -215,6 +222,38 @@ static uSWIFT_return_code_t __init_sensor ( void )
   return ret;
 }
 
+static uSWIFT_return_code_t __get_reading ( float *temperature )
+{
+  uSWIFT_return_code_t return_code = uSWIFT_SUCCESS;
+  uint8_t command;
+  uint8_t read_data[3] =
+    { 0 };
+
+  command = TSYS01_ADC_TEMP_CONV;
+  return_code = _temperature_i2c_write (TSYS01_ADDR, 0, &command, 0);
+  if ( return_code != uSWIFT_SUCCESS )
+  {
+    return return_code;
+  }
+
+  // Conversion takes 8.22ms
+  tx_thread_sleep (10);
+
+  command = TSYS01_ADC_READ;
+
+  return_code = _temperature_i2c_read (TSYS01_ADDR, command, &(read_data[0]), sizeof(read_data));
+  if ( return_code != uSWIFT_SUCCESS )
+  {
+    return return_code;
+  }
+
+  temperature_self->D1 = (read_data[0] << 16) | (read_data[1] << 8) | read_data[2];
+
+  *temperature = __calculate_temp ();
+
+  return return_code;
+}
+
 static float __calculate_temp ( void )
 {
   float temp = 0.0;
@@ -226,6 +265,20 @@ static float __calculate_temp ( void )
          + 1.0f * temperature_self->C[4] / 1000000.0f * temperature_self->adc
          + (-1.5f) * temperature_self->C[5] / 100.0f;
   return temp;
+}
+
+static time_t __get_timestamp ( void )
+{
+  uSWIFT_return_code_t rtc_ret = uSWIFT_SUCCESS;
+  struct tm time;
+
+  rtc_ret = rtc_server_get_time (&time, TEMPERATURE_REQUEST_PROCESSED);
+  if ( rtc_ret != uSWIFT_SUCCESS )
+  {
+    return -1;
+  }
+
+  return mktime (&time);
 }
 
 static void __reset_struct_fields ( bool reset_calibration )
@@ -244,18 +297,6 @@ static void __reset_struct_fields ( bool reset_calibration )
   temperature_self->averaged_temp = 0.0f;
   temperature_self->D1 = 0;
   temperature_self->adc = 0;
-}
-
-static uSWIFT_return_code_t _temperature_i2c_read ( uint8_t dev_addr, uint8_t reg_addr,
-                                                    uint8_t *read_buf, uint16_t size )
-{
-  return shared_i2c_read (dev_addr, reg_addr, read_buf, size, TEMPERATURE_REQUEST_PROCESSED);
-}
-
-static uSWIFT_return_code_t _temperature_i2c_write ( uint8_t dev_addr, uint8_t reg_addr,
-                                                     uint8_t *write_buf, uint16_t size )
-{
-  return shared_i2c_write (dev_addr, reg_addr, write_buf, size, TEMPERATURE_REQUEST_PROCESSED);
 }
 
 // @formatter:on
