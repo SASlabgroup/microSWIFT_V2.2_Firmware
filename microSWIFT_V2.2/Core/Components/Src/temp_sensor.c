@@ -17,6 +17,7 @@
 #include "shared_i2c_bus.h"
 #include "app_threadx.h"
 #include "ext_rtc_server.h"
+#include "threadx_support.h"
 
 // @formatter:off
 // Object instance pointer
@@ -36,7 +37,6 @@ static uSWIFT_return_code_t _temperature_i2c_write( uint8_t dev_addr, uint8_t re
 static uSWIFT_return_code_t __init_sensor ( void );
 static uSWIFT_return_code_t __get_reading ( float *temperature );
 static float                __calculate_temp ( void );
-static time_t               __get_timestamp ( void );
 static void                 __reset_struct_fields ( bool reset_calibration );
 // @formatter:on
 
@@ -107,7 +107,7 @@ static uSWIFT_return_code_t _temperature_take_samples ( float *averaged_temp )
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   float temp_accumulator = 0.0f;
 
-  temperature_self->start_timestamp = __get_timestamp ();
+  temperature_self->start_timestamp = get_system_time ();
 
   while ( temperature_self->samples_counter < TOTAL_TEMPERATURE_SAMPLES )
   {
@@ -133,7 +133,7 @@ static uSWIFT_return_code_t _temperature_take_samples ( float *averaged_temp )
 
   *averaged_temp = temperature_self->averaged_temp;
 
-  temperature_self->stop_timestamp = __get_timestamp ();
+  temperature_self->stop_timestamp = get_system_time ();
 
   return ret;
 }
@@ -265,20 +265,6 @@ static float __calculate_temp ( void )
          + 1.0f * temperature_self->C[4] / 1000000.0f * temperature_self->adc
          + (-1.5f) * temperature_self->C[5] / 100.0f;
   return temp;
-}
-
-static time_t __get_timestamp ( void )
-{
-  uSWIFT_return_code_t rtc_ret = uSWIFT_SUCCESS;
-  struct tm time;
-
-  rtc_ret = rtc_server_get_time (&time, TEMPERATURE_REQUEST_PROCESSED);
-  if ( rtc_ret != uSWIFT_SUCCESS )
-  {
-    return -1;
-  }
-
-  return mktime (&time);
 }
 
 static void __reset_struct_fields ( bool reset_calibration )

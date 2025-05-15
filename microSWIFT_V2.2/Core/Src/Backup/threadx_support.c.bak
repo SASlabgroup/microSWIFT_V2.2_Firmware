@@ -8,18 +8,21 @@
 #include "threadx_support.h"
 #include "stdarg.h"
 #include "stdio.h"
+#include "stdlib.h"
 #include "watchdog.h"
 #include "sdmmc.h"
 #include "logger.h"
 #include "app_threadx.h"
 #include "file_system.h"
 
+uint32_t gnss_config_fail_counter = 0;
 bool gnss_apply_config ( GNSS *gnss )
 {
-  int fail_counter = 0, max_retries = 20;
   uSWIFT_return_code_t gnss_return_code = uSWIFT_SUCCESS;
+  ULONG start_time = tx_time_get (), max_time = (TX_TIMER_TICKS_PER_SECOND * 58);
+  uint32_t fail_counter = 0;
 
-  while ( fail_counter < max_retries )
+  while ( (tx_time_get () - start_time) < max_time )
   {
     gnss_return_code = gnss->config ();
 
@@ -28,19 +31,18 @@ bool gnss_apply_config ( GNSS *gnss )
       break;
     }
 
-    // After 5 failures, power cycle the GNSS
-    if ( fail_counter % 5 == 0 )
+    gnss_config_fail_counter++;
+
+    if ( fail_counter++ % 3 == 0 )
     {
       gnss->off ();
-      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
+      tx_thread_sleep (25 + (rand () % 75));
       gnss->on ();
-      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-      fail_counter++;
-      continue;
+      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 2);
     }
 
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
-    fail_counter++;
+    tx_thread_sleep (rand () % (TX_TIMER_TICKS_PER_SECOND / 2));
+
   }
 
   return (gnss_return_code == uSWIFT_SUCCESS);
@@ -48,7 +50,7 @@ bool gnss_apply_config ( GNSS *gnss )
 
 bool ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings )
 {
-  int32_t fail_counter = 0, max_retries = 10;
+  int32_t fail_counter = 0, max_retries = 25;
   uSWIFT_return_code_t ct_return_code;
 
   while ( fail_counter < max_retries )
@@ -61,7 +63,7 @@ bool ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings 
     }
 
     ct->off ();
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
+    tx_thread_sleep (13);
     ct->on ();
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 10);
 
@@ -142,28 +144,12 @@ bool iridium_apply_config ( Iridium *iridium )
   int32_t fail_counter = 0, max_retries = 10;
   uSWIFT_return_code_t iridium_return_code;
 
-  while ( fail_counter < max_retries )
-  {
-    iridium_return_code = iridium->self_test ();
-
-    if ( iridium_return_code == uSWIFT_SUCCESS )
-    {
-      break;
-    }
-
-    iridium->off ();
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-    iridium->on ();
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-    fail_counter++;
-  }
-
-  if ( iridium_return_code != uSWIFT_SUCCESS )
+  if ( !iridium_self_test (iridium) )
   {
     return false;
   }
 
-  // Send the configuration settings to the modem
+// Send the configuration settings to the modem
   fail_counter = 0;
   while ( fail_counter < max_retries )
   {
@@ -174,10 +160,28 @@ bool iridium_apply_config ( Iridium *iridium )
       break;
     }
 
-    iridium->off ();
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
-    iridium->on ();
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND / 4);
+    iridium->cycle_power ();
+    fail_counter++;
+  }
+
+  return (iridium_return_code == uSWIFT_SUCCESS);
+}
+
+bool iridium_self_test ( Iridium *iridium )
+{
+  int32_t fail_counter = 0, max_retries = 10;
+  uSWIFT_return_code_t iridium_return_code;
+
+  while ( fail_counter < max_retries )
+  {
+    iridium_return_code = iridium->self_test ();
+
+    if ( iridium_return_code == uSWIFT_SUCCESS )
+    {
+      break;
+    }
+
+    iridium->cycle_power ();
     fail_counter++;
   }
 
@@ -411,86 +415,127 @@ ULONG get_gnss_sample_window_timeout ( microSWIFT_configuration *config )
   return sample_window_timeout;
 }
 
-telemetry_type_t get_next_telemetry_message ( uint8_t *msg_buffer,
-                                              microSWIFT_configuration *config )
+uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configuration *config )
 {
   uint32_t num_waves_msgs = persistent_ram_get_num_msgs_enqueued (WAVES_TELEMETRY);
   uint32_t num_turbidity_msgs = persistent_ram_get_num_msgs_enqueued (TURBIDITY_TELEMETRY);
   uint32_t num_light_msgs = persistent_ram_get_num_msgs_enqueued (LIGHT_TELEMETRY);
+  uint32_t msg_type = NO_MESSAGE;
+  char legacy_number_7 = '7';
+  uint8_t type = 0;
+  uint8_t port = 0;
+  uint16_t size = 0;
 
-  // Put simply, we're going to grab from whichever message queue has the most elements,
-  // considering which sensors are enabled. In case of a tie, Waves telemetry messages
-  // have priority as they produce a full SBD message every sample window.
+// Put simply, we're going to grab from whichever message queue has the most elements,
+// considering which sensors are enabled. In case of a tie, Waves telemetry messages
+// have priority as they produce a full SBD message every sample window.
 
   if ( (num_waves_msgs == 0) && (num_turbidity_msgs == 0) && (num_light_msgs == 0) )
   {
-    msg_buffer = NULL;
+    *msg_buffer = NULL;
     return NO_MESSAGE;
+
   }
 
-  // First case, both light and turbidity sensors are enabled
+// First case, both light and turbidity sensors are enabled
   if ( config->turbidity_enabled && config->light_enabled )
   {
     // First priority is light telemetry as it contains the most elements
     if ( (num_light_msgs >= num_waves_msgs) && (num_light_msgs >= num_turbidity_msgs) )
     {
-      msg_buffer = persistent_ram_get_prioritized_unsent_message (LIGHT_TELEMETRY);
-      return (msg_buffer == NULL) ?
-          NO_MESSAGE : WAVES_TELEMETRY;
+      *msg_buffer = persistent_ram_get_prioritized_unsent_message (LIGHT_TELEMETRY);
+      msg_type = LIGHT_TELEMETRY;
     }
     // Second priority is turbidity as there are fewer per message than light and more than waves
     else if ( (num_turbidity_msgs >= num_waves_msgs) )
     {
-      msg_buffer = persistent_ram_get_prioritized_unsent_message (TURBIDITY_TELEMETRY);
-      return (msg_buffer == NULL) ?
-          NO_MESSAGE : TURBIDITY_TELEMETRY;
+      *msg_buffer = persistent_ram_get_prioritized_unsent_message (TURBIDITY_TELEMETRY);
+      msg_type = TURBIDITY_TELEMETRY;
     }
     else
     {
-      msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
-      return (msg_buffer == NULL) ?
-          NO_MESSAGE : LIGHT_TELEMETRY;
+      *msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
+      msg_type = WAVES_TELEMETRY;
     }
   }
-  // Only turbidity enabled
+// Only turbidity enabled
   else if ( config->turbidity_enabled )
   {
     if ( (num_turbidity_msgs >= num_waves_msgs) )
     {
-      msg_buffer = persistent_ram_get_prioritized_unsent_message (TURBIDITY_TELEMETRY);
-      return (msg_buffer == NULL) ?
-          NO_MESSAGE : WAVES_TELEMETRY;
+      *msg_buffer = persistent_ram_get_prioritized_unsent_message (TURBIDITY_TELEMETRY);
+      msg_type = TURBIDITY_TELEMETRY;
     }
     else
     {
-      msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
-      return (msg_buffer == NULL) ?
-          NO_MESSAGE : TURBIDITY_TELEMETRY;
+      *msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
+      msg_type = WAVES_TELEMETRY;
     }
   }
-  // Only light enabled
+// Only light enabled
   else if ( config->light_enabled )
   {
     if ( (num_light_msgs >= num_waves_msgs) )
     {
-      msg_buffer = persistent_ram_get_prioritized_unsent_message (LIGHT_TELEMETRY);
-      return (msg_buffer == NULL) ?
-          NO_MESSAGE : WAVES_TELEMETRY;
+      *msg_buffer = persistent_ram_get_prioritized_unsent_message (LIGHT_TELEMETRY);
+      msg_type = LIGHT_TELEMETRY;
     }
     else
     {
-      msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
-      return (msg_buffer == NULL) ?
-          NO_MESSAGE : LIGHT_TELEMETRY;
+      *msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
+      msg_type = WAVES_TELEMETRY;
     }
   }
-  // Neither turbidity nor light sensors are enabled
+// Neither turbidity nor light sensors are enabled
   else
   {
-    msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
-    return (msg_buffer == NULL) ?
-        NO_MESSAGE : WAVES_TELEMETRY;
+    *msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
+    msg_type = WAVES_TELEMETRY;
   }
+
+  if ( *msg_buffer == NULL )
+  {
+    msg_type = NO_MESSAGE;
+  }
+
+// Fill in remaining bytes
+  switch ( msg_type )
+  {
+    case WAVES_TELEMETRY:
+      // Message is already filled out in Iridium thread, nothing to add
+      break;
+
+    case LIGHT_TELEMETRY:
+
+      type = 54;
+      size = 303;
+
+      memcpy (&(((sbd_message_type_54*) *msg_buffer)->legacy_number_7), &legacy_number_7,
+              sizeof(char));
+      memcpy (&(((sbd_message_type_54*) *msg_buffer)->type), &type, sizeof(uint8_t));
+      memcpy (&(((sbd_message_type_54*) *msg_buffer)->port), &port, sizeof(uint8_t));
+      memcpy (&(((sbd_message_type_54*) *msg_buffer)->size), &size, sizeof(uint16_t));
+      break;
+
+    case TURBIDITY_TELEMETRY:
+
+      type = 53;
+      size = 280;
+
+      memcpy (&(((sbd_message_type_53*) *msg_buffer)->legacy_number_7), &legacy_number_7,
+              sizeof(char));
+      memcpy (&(((sbd_message_type_53*) *msg_buffer)->type), &type, sizeof(uint8_t));
+      memcpy (&(((sbd_message_type_53*) *msg_buffer)->port), &port, sizeof(uint8_t));
+      memcpy (&(((sbd_message_type_53*) *msg_buffer)->size), &size, sizeof(uint16_t));
+      break;
+
+    default:
+
+      msg_type = NO_MESSAGE;
+      break;
+  }
+
+  return msg_type;
 }
 
 bool is_first_sample_window ( void )

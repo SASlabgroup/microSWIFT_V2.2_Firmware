@@ -14,6 +14,7 @@
 #include "ct_sensor.h"
 #include "leds.h"
 #include "sdmmc.h"
+#include "watchdog.h"
 
 // @formatter:off
 static Control  *controller_self;
@@ -109,11 +110,11 @@ ULONG control_get_accumulated_error_flags ( void )
 
 static bool _control_startup_procedure ( void )
 {
-  UINT tx_return;
+  UINT tx_return = TX_SUCCESS;
   ULONG init_success_flags = (RTC_INIT_SUCCESS | GNSS_INIT_SUCCESS | WAVES_THREAD_INIT_SUCCESS
                               | IRIDIUM_INIT_SUCCESS);
-  ULONG current_flags;
-  uint32_t reset_reason;
+  ULONG current_flags = 0;
+  uint32_t reset_reason = 0, watchdog_counter = 0;
   real16_T voltage =
     { 0 };
   bool initial_powerup = is_first_sample_window ();
@@ -172,6 +173,12 @@ static bool _control_startup_procedure ( void )
 
   tx_thread_sleep (2);
 
+  // Grab the battery voltage before we start turning everything on
+  voltage = controller_self->get_battery_voltage ();
+  memcpy (&controller_self->current_message->mean_voltage, &voltage, sizeof(real16_T));
+
+  battery_deinit ();
+
   // Set the RF switch to GNSS port
   controller_self->rf_switch.set_gnss_port ();
 
@@ -211,14 +218,13 @@ static bool _control_startup_procedure ( void )
     led_light_sequence (INITIAL_LED_SEQUENCE, 10);
   }
 
-  // Grab the battery voltage
-  voltage = controller_self->get_battery_voltage ();
-  memcpy (&controller_self->current_message->mean_voltage, &voltage, sizeof(real16_T));
-
-  battery_deinit ();
-
   while ( init_wait_ticks > 0 )
   {
+    if ( ++watchdog_counter % (TX_TIMER_TICKS_PER_SECOND / 10) == 0 )
+    {
+      watchdog_check_in (CONTROL_THREAD);
+    }
+
     tx_return = tx_event_flags_get (controller_self->init_flags, init_success_flags, TX_AND_CLEAR,
                                     &current_flags, TX_NO_WAIT);
 
@@ -229,8 +235,8 @@ static bool _control_startup_procedure ( void )
       break;
     }
 
-    tx_thread_sleep (1);
-    init_wait_ticks -= 1;
+    tx_thread_sleep (10);
+    init_wait_ticks -= 10;
   }
 
   return (tx_return == TX_SUCCESS);
@@ -241,9 +247,6 @@ static void _control_shutdown_procedure ( void )
   rtc_alarm_struct alarm_settings;
 
   led_light_sequence (LIGHTS_OFF, LED_SEQUENCE_FOREVER);
-
-  // Make sure everything is shut down
-  controller_self->shutdown_all_peripherals ();
 
   // Make extra sure the alarm flag is cleared
   if ( rtc_server_clear_flag (ALARM_FLAG, CONTROL_REQUEST_COMPLETE) != uSWIFT_SUCCESS )
@@ -270,8 +273,11 @@ static void _control_shutdown_procedure ( void )
       (int ) alarm_settings.alarm_hour, (int ) alarm_settings.alarm_minute,
       (int ) alarm_settings.alarm_second);
 
-  // Give the logger time to complete
-  tx_thread_sleep (500);
+  // Give the logger and file system time to complete
+  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
+
+  // Make sure everything is shut down
+  controller_self->shutdown_all_peripherals ();
 
   // Deinit all enabled peripherals
   controller_self->shutdown_all_interfaces ();
@@ -310,7 +316,7 @@ static real16_T _control_get_battery_voltage ( void )
   }
   else
   {
-    LOG("Battery Voltage = %2.2f", halfToFloat (battery_voltage));
+    LOG("Battery Voltage = %2.2f Volts", halfToFloat (battery_voltage));
   }
 
   return battery_voltage;
@@ -374,16 +380,10 @@ static void _control_enter_processor_standby_mode ( void )
   // Clear the backup ram retention bit
   CLEAR_BIT(PWR->BDCR1, PWR_BDCR1_BREN);
 
-  // If using Iridium Modem Version V3D, configure a pull down to keep the modem off during sleep
-  if ( !controller_self->global_config->iridium_v3f )
-  {
-    // Configure the sleep pin for the modem
-    HAL_PWREx_EnablePullUpPullDownConfig ();
-    HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_G, IRIDIUM_OnOff_Pin);
-    HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_D, BUS_5V_FET_Pin);
-    HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_D, RS232_FORCEOFF_Pin);
-
-  }
+  HAL_PWREx_EnablePullUpPullDownConfig ();
+  HAL_PWREx_EnableGPIOPullUp (PWR_GPIO_D, BUS_5V_FET_Pin);
+  HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_D, RS232_FORCEOFF_Pin);
+  HAL_PWREx_EnableGPIOPullDown (PWR_GPIO_G, IRIDIUM_OnOff_Pin);
 
   // Enable wakeup on the RTC alarm pin: PWR_WAKEUP_PIN1_LOW_1 = PB2 low polarity = RTC Int B
   HAL_PWR_EnableWakeUpPin (PWR_WAKEUP_PIN1_LOW_1);
@@ -392,11 +392,14 @@ static void _control_enter_processor_standby_mode ( void )
   __HAL_PWR_CLEAR_FLAG(PWR_FLAG_SBF);
   __HAL_PWR_CLEAR_FLAG(PWR_WAKEUP_FLAG1);
 
-#ifndef DEBUG
-  DBGMCU->CR = 0; // Disable debug, trace and IWDG in low-power modes
-#else
-  HAL_EnableDBGStandbyMode ();
-#endif
+//#warning "!!! Remove this, and disable debug in low power modes in build settings prior to deployment !!!"
+//#ifndef DEBUG
+//  DBGMCU->CR = 0; // Disable debug, trace and IWDG in low-power modes
+//#else
+//  HAL_EnableDBGStandbyMode ();
+//#endif
+
+  DBGMCU->CR = 0;
 
   /* Select Standby mode */
   MODIFY_REG(PWR->CR1, PWR_CR1_LPMS, PWR_CR1_LPMS_2);
@@ -449,7 +452,7 @@ static void _control_manage_state ( void )
     controller_self->thread_status.ct_complete = true;
 
     LOG("CT thread complete, now terminating.");
-    tx_thread_sleep (10);
+    tx_thread_sleep (25);
   }
 
   if ( (current_flags & TEMPERATURE_THREAD_COMPLETED_SUCCESSFULLY)
@@ -458,7 +461,7 @@ static void _control_manage_state ( void )
     controller_self->thread_status.temperature_complete = true;
 
     LOG("Temperature thread complete, now terminating.");
-    tx_thread_sleep (10);
+    tx_thread_sleep (25);
   }
 
   if ( (current_flags & TURBIDITY_THREAD_COMPLETED_SUCCESSFULLY)
@@ -467,7 +470,7 @@ static void _control_manage_state ( void )
     controller_self->thread_status.turbidity_complete = true;
 
     LOG("Turbidity thread complete, now terminating.");
-    tx_thread_sleep (10);
+    tx_thread_sleep (25);
   }
 
   if ( (current_flags & LIGHT_THREAD_COMPLETED_SUCCESSFULLY)
@@ -476,7 +479,7 @@ static void _control_manage_state ( void )
     controller_self->thread_status.light_complete = true;
 
     LOG("Light thread complete, now terminating.");
-    tx_thread_sleep (10);
+    tx_thread_sleep (25);
   }
 
   if ( (current_flags & WAVES_THREAD_COMPLETED_SUCCESSFULLY)
@@ -485,7 +488,7 @@ static void _control_manage_state ( void )
     controller_self->thread_status.waves_complete = true;
 
     LOG("NED Waves thread complete, now terminating.");
-    tx_thread_sleep (10);
+    tx_thread_sleep (25);
   }
 
   // When the GNSS has resolved time, has a fix, and has started sampling, signal the light
@@ -525,7 +528,7 @@ static void _control_manage_state ( void )
     ret |= tx_thread_resume (controller_self->thread_handles->waves_thread);
 
     LOG("GNSS thread complete, now terminating.");
-    tx_thread_sleep (10);
+    tx_thread_sleep (25);
   }
 
   // If GNSS thread errors out, do not run waves
@@ -544,7 +547,7 @@ static void _control_manage_state ( void )
     }
 
     LOG("GNSS thread complete, now terminating.");
-    tx_thread_sleep (10);
+    tx_thread_sleep (25);
   }
 
   iridium_ready = controller_self->thread_status.gnss_complete
@@ -575,8 +578,8 @@ static void _control_manage_state ( void )
   if ( ret != TX_SUCCESS )
   {
     controller_self->shutdown_all_peripherals ();
-    persistent_ram_deinit ();
-    HAL_Delay (10);
+
+    tx_thread_sleep (25);
     Error_Handler ();
   }
 }

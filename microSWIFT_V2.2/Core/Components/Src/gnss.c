@@ -73,7 +73,6 @@ static uSWIFT_return_code_t __send_config ( uint8_t *config_array, size_t messag
 static uSWIFT_return_code_t __enable_high_performance_mode ( void );
 static uSWIFT_return_code_t __query_high_performance_mode ( void );
 static uSWIFT_return_code_t __start_GNSS_UART_DMA ( uint8_t *buffer, size_t buffer_size );
-static time_t               __get_timestamp ( void );
 static void                 __cycle_power ( void );
 static void                 __process_frame_sync_messages ( uint8_t *process_buf );
 static void                 __reset_struct_fields ( void );
@@ -687,7 +686,7 @@ static void _gnss_process_message ( void )
   if ( gnss_self->total_samples >= gnss_self->global_config->gnss_samples_per_window )
   {
     HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
-    gnss_self->sample_window_stop_time = __get_timestamp ();
+    gnss_self->sample_window_stop_time = get_system_time ();
     gnss_self->all_samples_processed = true;
     gnss_self->sample_window_freq = (double) (((double) gnss_self->global_config
         ->gnss_samples_per_window)
@@ -766,7 +765,7 @@ static void _gnss_process_message ( void )
     if ( (gnss_self->total_samples == 0) && velocities_non_zero )
     {
       gnss_self->all_resolution_stages_complete = true;
-      gnss_self->sample_window_start_time = __get_timestamp ();
+      gnss_self->sample_window_start_time = get_system_time ();
 
       LOG("GNSS sample window started.");
     }
@@ -1203,25 +1202,6 @@ static uSWIFT_return_code_t __query_high_performance_mode ( void )
   }
 
   return uSWIFT_CONFIGURATION_ERROR;
-}
-
-/**
- * Helper method to generate a timestamp from the RTC.
- *
- * @return timestamp as time_t
- */
-static time_t __get_timestamp ( void )
-{
-  uSWIFT_return_code_t rtc_ret = uSWIFT_SUCCESS;
-  struct tm time;
-
-  rtc_ret = rtc_server_get_time (&time, GNSS_REQUEST_PROCESSED);
-  if ( rtc_ret != uSWIFT_SUCCESS )
-  {
-    return -1;
-  }
-
-  return mktime (&time);
 }
 
 /**

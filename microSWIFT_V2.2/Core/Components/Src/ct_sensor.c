@@ -38,7 +38,6 @@ static void                 _ct_off ( void );
 
 // Helper functions
 static void                 __reset_ct_struct_fields ( void );
-static time_t               __get_timestamp ( void );
 
 // Search terms
 static const char *temp_units =     "Deg.C";
@@ -141,7 +140,7 @@ static uSWIFT_return_code_t _ct_parse_sample ( void )
   // Samples array overflow safety check
   if ( ct_self->total_samples >= TOTAL_CT_SAMPLES )
   {
-
+    ct_self->stop_timestamp = get_system_time ();
     return_code = uSWIFT_DONE_SAMPLING;
     return return_code;
   }
@@ -197,7 +196,7 @@ static uSWIFT_return_code_t _ct_parse_sample ( void )
 
     if ( ct_self->total_samples == 1 )
     {
-      ct_self->start_timestamp = __get_timestamp ();
+      ct_self->start_timestamp = get_system_time ();
     }
 
     return_code = uSWIFT_SUCCESS;
@@ -408,23 +407,4 @@ static void __reset_ct_struct_fields ( void )
 
   // zero out the buffer
   memset (&(ct_self->data_buf[0]), 0, CT_DATA_ARRAY_SIZE);
-}
-
-/**
- * Helper method to generate a timestamp from the RTC.
- *
- * @return timestamp as time_t
- */
-static time_t __get_timestamp ( void )
-{
-  uSWIFT_return_code_t rtc_ret = uSWIFT_SUCCESS;
-  struct tm time;
-
-  rtc_ret = rtc_server_get_time (&time, CT_REQUEST_PROCESSED);
-  if ( rtc_ret != uSWIFT_SUCCESS )
-  {
-    return -1;
-  }
-
-  return mktime (&time);
 }

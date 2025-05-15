@@ -46,6 +46,11 @@ static char *csv_time_format = "%x %X,";
 void file_system_init ( File_System_SD_Card *file_system, uint32_t *media_sector_cache,
                         FX_MEDIA *sd_card, microSWIFT_configuration *global_config )
 {
+  char time_str[64] =
+    { 0 };
+  time_t sys_time_now = get_system_time ();
+  struct tm time_now = *gmtime (&sys_time_now);
+
   file_sys_self = file_system;
 
   file_sys_self->sd_card = sd_card;
@@ -60,21 +65,24 @@ void file_system_init ( File_System_SD_Card *file_system, uint32_t *media_sector
 
   file_sys_self->sample_window_counter = persistent_ram_get_sample_window_counter ();
 
+  // Get a string of the system time
+  (void) strftime (&time_str[0], sizeof(time_str), "%y-%m-%d_%H-%M-%S", &time_now);
+
   // Fill in the file names
-  snprintf (&(file_sys_self->file_names[LOG_FILE][0]), FILE_MAX_NAME_LEN, "Logs/Log_%lu.txt",
-            file_sys_self->sample_window_counter);
+  snprintf (&(file_sys_self->file_names[LOG_FILE][0]), FILE_MAX_NAME_LEN, "Logs/Log_%s.txt",
+            &time_str[0]);
   snprintf (&(file_sys_self->file_names[GNSS_VELOCITIES][0]), FILE_MAX_NAME_LEN,
-            "GNSS/Velocity_%lu.csv", file_sys_self->sample_window_counter);
+            "GNSS/Velocity_%s.csv", &time_str[0]);
   snprintf (&(file_sys_self->file_names[GNSS_BREADCRUMB_TRACK][0]), FILE_MAX_NAME_LEN,
-            "Tracks/Track_%lu.kml", file_sys_self->sample_window_counter);
+            "Tracks/Track_%s.kml", &time_str[0]);
   snprintf (&(file_sys_self->file_names[TEMPERATURE_FILE][0]), FILE_MAX_NAME_LEN,
-            "Temperature/Temp_%lu.csv", file_sys_self->sample_window_counter);
-  snprintf (&(file_sys_self->file_names[CT_FILE][0]), FILE_MAX_NAME_LEN, "CT/CT_%lu.csv",
-            file_sys_self->sample_window_counter);
-  snprintf (&(file_sys_self->file_names[LIGHT_FILE][0]), FILE_MAX_NAME_LEN, "Light/Light_%lu.csv",
-            file_sys_self->sample_window_counter);
+            "Temperature/Temp_%s.csv", &time_str[0]);
+  snprintf (&(file_sys_self->file_names[CT_FILE][0]), FILE_MAX_NAME_LEN, "CT/CT_%s.csv",
+            &time_str[0]);
+  snprintf (&(file_sys_self->file_names[LIGHT_FILE][0]), FILE_MAX_NAME_LEN, "Light/Light_%s.csv",
+            &time_str[0]);
   snprintf (&(file_sys_self->file_names[TURBIDITY_FILE][0]), FILE_MAX_NAME_LEN,
-            "Turbidity/Turbidity_%lu.csv", file_sys_self->sample_window_counter);
+            "Turbidity/Turbidity_%s.csv", &time_str[0]);
 
   file_sys_self->initialize_card = _file_system_initialize_card;
   file_sys_self->save_log_line = _file_system_save_log_line;

@@ -7,6 +7,7 @@
 
 #include <ext_rtc_server.h>
 #include "persistent_ram.h"
+#include "logger.h"
 #include "math.h"
 #include "string.h"
 #include "time.h"
@@ -22,7 +23,8 @@ static void _persistent_ram_clear ( void );
  *
  * @return void
  */
-void persistent_ram_init ( microSWIFT_configuration *config )
+void persistent_ram_init ( const microSWIFT_configuration *config,
+                           const microSWIFT_firmware_version_t *version )
 {
   // The ram section "persistent_self" resides in is a NOLOAD section. Contents remain persistent through
   // standby mode.
@@ -30,6 +32,7 @@ void persistent_ram_init ( microSWIFT_configuration *config )
   {
     _persistent_ram_clear ();
     persistent_ram_set_device_config (config);
+    persistent_ram_set_firmware_version (version);
 
     persistent_self.magic_number = PERSISTENT_RAM_MAGIC_DOUBLE_WORD;
   }
@@ -62,7 +65,7 @@ void persistent_ram_deinit ( void )
  *
  * @return void
  */
-void persistent_ram_set_device_config ( microSWIFT_configuration *config )
+void persistent_ram_set_device_config ( const microSWIFT_configuration *config )
 {
   memcpy (&persistent_self.device_config, config, sizeof(microSWIFT_configuration));
 }
@@ -75,6 +78,26 @@ void persistent_ram_set_device_config ( microSWIFT_configuration *config )
 void persistent_ram_get_device_config ( microSWIFT_configuration *config )
 {
   memcpy (config, &persistent_self.device_config, sizeof(microSWIFT_configuration));
+}
+
+/**
+ * Copy over the firmware version from supplied pointer into the persistent ram.
+ *
+ * @return void
+ */
+void persistent_ram_set_firmware_version ( const microSWIFT_firmware_version_t *version )
+{
+  memcpy (&persistent_self.version, version, sizeof(microSWIFT_firmware_version_t));
+}
+
+/**
+ * Copy the current firmware version to the supplied pointer.
+ *
+ * @return void
+ */
+void persistent_ram_get_firmware_version ( microSWIFT_firmware_version_t *version )
+{
+  memcpy (version, &persistent_self.version, sizeof(microSWIFT_firmware_version_t));
 }
 
 /**
@@ -127,14 +150,20 @@ uint32_t persistent_ram_get_num_msgs_enqueued ( telemetry_type_t msg_type )
   switch ( msg_type )
   {
     case WAVES_TELEMETRY:
+      LOG("Number of queued Waves messages: %lu",
+          persistent_self.waves_storage.num_telemetry_msgs_enqueued);
       return persistent_self.waves_storage.num_telemetry_msgs_enqueued;
       break;
 
     case TURBIDITY_TELEMETRY:
+      LOG("Number of queued OBS messages: %lu",
+          persistent_self.turbidity_storage.num_msg_elements_enqueued);
       return persistent_self.turbidity_storage.num_msg_elements_enqueued / TURBIDITY_MSGS_PER_SBD;
       break;
 
     case LIGHT_TELEMETRY:
+      LOG("Number of queued Light messages: %lu",
+          persistent_self.light_storage.num_msg_elements_enqueued);
       return persistent_self.light_storage.num_msg_elements_enqueued / LIGHT_MSGS_PER_SBD;
       break;
 
@@ -151,6 +180,8 @@ uint32_t persistent_ram_get_num_msgs_enqueued ( telemetry_type_t msg_type )
  */
 void persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t *msg )
 {
+  int i = 0, j = 0;
+
   // Corruption, lack of initialization check
   if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
   {
@@ -163,7 +194,7 @@ void persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t *msg )
       // If the storage queue is full, see if we can replace an element
       if ( persistent_self.waves_storage.num_telemetry_msgs_enqueued == MAX_NUM_WAVES_MSGS_STORED )
       {
-        for ( int i = 0; i < MAX_NUM_WAVES_MSGS_STORED; i++ )
+        for ( i = 0; i < MAX_NUM_WAVES_MSGS_STORED; i++ )
         {
           // Want to make sure we are comparing absolute values, though wave height should always be positive
           if ( (fabsf (halfToFloat (persistent_self.waves_storage.msg_queue[i].payload.Hs)))
@@ -181,7 +212,7 @@ void persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t *msg )
       else
       {
         // Not full, just need to find an open slot
-        for ( int i = 0; i < MAX_NUM_WAVES_MSGS_STORED; i++ )
+        for ( i = 0; i < MAX_NUM_WAVES_MSGS_STORED; i++ )
         {
           if ( !persistent_self.waves_storage.msg_queue[i].valid )
           {
@@ -203,22 +234,38 @@ void persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t *msg )
       if ( !(persistent_self.turbidity_storage.num_msg_elements_enqueued
              == MAX_NUM_TURBIDITY_MSGS_STORED) )
       {
-        for ( int i = 0; i < MAX_NUM_NON_WAVES_MSGS_STORED; i++ )
+        // First check if there is room in the current message index
+        for ( i = 0; i < TURBIDITY_MSGS_PER_SBD; i++ )
         {
-
-          for ( int j = 0; j < TURBIDITY_MSGS_PER_SBD; j++ )
+          if ( !persistent_self.turbidity_storage.msg_queue[persistent_self.turbidity_storage
+              .current_msg_index].valid[i] )
           {
+            // copy the message over
+            memcpy (
+                &(persistent_self.turbidity_storage.msg_queue[persistent_self.turbidity_storage
+                    .current_msg_index].payload.elements[i]),
+                msg, sizeof(sbd_message_type_54_element));
+            // Make the entry valid
+            persistent_self.turbidity_storage.msg_queue[persistent_self.turbidity_storage
+                .current_msg_index].valid[i] = true;
+            persistent_self.turbidity_storage.num_msg_elements_enqueued++;
+            return;
+          }
+        }
 
-            if ( !persistent_self.turbidity_storage.msg_queue[i].valid[j] )
-            {
-              // copy the message over
-              memcpy (&(persistent_self.turbidity_storage.msg_queue[i].payload.elements[j]), msg,
-                      sizeof(sbd_message_type_53_element));
-              // Make the entry valid
-              persistent_self.turbidity_storage.msg_queue[i].valid[j] = true;
-              persistent_self.turbidity_storage.num_msg_elements_enqueued++;
-              return;
-            }
+        // Need to start a new message
+        for ( i = 0; i < MAX_NUM_NON_WAVES_MSGS_STORED; i++ )
+        {
+          if ( !persistent_self.turbidity_storage.msg_queue[i].valid[0] )
+          {
+            // copy the message over
+            memcpy (&(persistent_self.turbidity_storage.msg_queue[i].payload.elements[0]), msg,
+                    sizeof(sbd_message_type_53_element));
+            // Make the entry valid
+            persistent_self.turbidity_storage.msg_queue[i].valid[0] = true;
+            persistent_self.turbidity_storage.num_msg_elements_enqueued++;
+            persistent_self.turbidity_storage.current_msg_index = i;
+            return;
           }
         }
       }
@@ -229,20 +276,38 @@ void persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t *msg )
       // If the storage queue is full, then just skip
       if ( !(persistent_self.light_storage.num_msg_elements_enqueued == MAX_NUM_LIGHT_MSGS_STORED) )
       {
-        for ( int i = 0; i < MAX_NUM_NON_WAVES_MSGS_STORED; i++ )
+        // First check if there is room in the current message index
+        for ( i = 0; i < LIGHT_MSGS_PER_SBD; i++ )
         {
-          for ( int j = 0; j < LIGHT_MSGS_PER_SBD; j++ )
+          if ( !persistent_self.light_storage.msg_queue[persistent_self.light_storage
+              .current_msg_index].valid[i] )
           {
-            if ( !persistent_self.light_storage.msg_queue[i].valid[j] )
-            {
-              // copy the message over
-              memcpy (&(persistent_self.light_storage.msg_queue[i].payload.elements[j]), msg,
-                      sizeof(sbd_message_type_54_element));
-              // Make the entry valid
-              persistent_self.light_storage.msg_queue[i].valid[j] = true;
-              persistent_self.light_storage.num_msg_elements_enqueued++;
-              return;
-            }
+            // copy the message over
+            memcpy (
+                &(persistent_self.light_storage.msg_queue[persistent_self.light_storage
+                    .current_msg_index].payload.elements[i]),
+                msg, sizeof(sbd_message_type_54_element));
+            // Make the entry valid
+            persistent_self.light_storage.msg_queue[persistent_self.light_storage.current_msg_index]
+                .valid[i] = true;
+            persistent_self.light_storage.num_msg_elements_enqueued++;
+            return;
+          }
+        }
+
+        // Need to start a new message
+        for ( i = 0; i < MAX_NUM_NON_WAVES_MSGS_STORED; i++ )
+        {
+          if ( !persistent_self.light_storage.msg_queue[i].valid[0] )
+          {
+            // copy the message over
+            memcpy (&(persistent_self.light_storage.msg_queue[i].payload.elements[0]), msg,
+                    sizeof(sbd_message_type_54_element));
+            // Make the entry valid
+            persistent_self.light_storage.msg_queue[i].valid[0] = true;
+            persistent_self.light_storage.num_msg_elements_enqueued++;
+            persistent_self.light_storage.current_msg_index = i;
+            return;
           }
         }
       }
@@ -263,11 +328,12 @@ void persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t *msg )
  */
 uint8_t* persistent_ram_get_prioritized_unsent_message ( telemetry_type_t msg_type )
 {
-  float most_significant_wave_height = 0.0;
+  // Set to float min value to ensure any message significant wave height will be greater than or equal to
+  float most_significant_wave_height = ((float) -3.4028234e+38);
   float msg_wave_height = 0.0;
   real16_T msg_wave_half_float =
     { 0 };
-  int32_t msg_index = 0;
+  int32_t pri_msg_index = 0, valid_msg_index = -1;
   bool msg_full = false;
   uint8_t *ret_ptr = NULL;
 
@@ -293,21 +359,30 @@ uint8_t* persistent_ram_get_prioritized_unsent_message ( telemetry_type_t msg_ty
       {
         if ( persistent_self.waves_storage.msg_queue[i].valid )
         {
+          valid_msg_index = i;
           msg_wave_half_float = persistent_self.waves_storage.msg_queue[i].payload.Hs;
           msg_wave_height = fabsf (halfToFloat (msg_wave_half_float));
 
-          if ( msg_wave_height > most_significant_wave_height )
+          if ( msg_wave_height >= most_significant_wave_height )
           {
             most_significant_wave_height = msg_wave_height;
-            msg_index = i;
+            pri_msg_index = i;
           }
         }
       }
 
-      // Make sure we don't go out of bounds
-      if ( (msg_index > 0) && (msg_index < (MAX_NUM_WAVES_MSGS_STORED - 1)) )
+      // Make sure we don't go out of bounds. Take the priority message first, otherwise, any valid message
+      if ( (pri_msg_index >= 0) && (pri_msg_index <= (MAX_NUM_WAVES_MSGS_STORED - 1)) )
       {
-        ret_ptr = (uint8_t*) &persistent_self.waves_storage.msg_queue[msg_index].payload;
+        ret_ptr = (uint8_t*) &persistent_self.waves_storage.msg_queue[pri_msg_index].payload;
+      }
+      else if ( (valid_msg_index >= 0) && (valid_msg_index <= (MAX_NUM_WAVES_MSGS_STORED - 1)) )
+      {
+        ret_ptr = (uint8_t*) &persistent_self.waves_storage.msg_queue[valid_msg_index].payload;
+      }
+      else
+      {
+        ret_ptr = NULL;
       }
 
       break;
@@ -338,6 +413,7 @@ uint8_t* persistent_ram_get_prioritized_unsent_message ( telemetry_type_t msg_ty
         if ( msg_full )
         {
           ret_ptr = (uint8_t*) &persistent_self.turbidity_storage.msg_queue[i].payload;
+          return ret_ptr;
         }
       }
 
@@ -369,6 +445,7 @@ uint8_t* persistent_ram_get_prioritized_unsent_message ( telemetry_type_t msg_ty
         if ( msg_full )
         {
           ret_ptr = (uint8_t*) &persistent_self.light_storage.msg_queue[i].payload;
+          return ret_ptr;
         }
       }
 
@@ -402,6 +479,7 @@ void persistent_ram_delete_message_element ( telemetry_type_t msg_type, uint8_t 
           // Zero out the message
           memset (msg_ptr, 0, sizeof(Iridium_Message_Storage_Element_t));
           persistent_self.waves_storage.num_telemetry_msgs_enqueued--;
+          break;
         }
       }
 
@@ -417,6 +495,7 @@ void persistent_ram_delete_message_element ( telemetry_type_t msg_type, uint8_t 
           // Zero out the message
           memset (msg_ptr, 0, sizeof(Turbidity_Message_Storage_Element_t));
           persistent_self.turbidity_storage.num_msg_elements_enqueued -= TURBIDITY_MSGS_PER_SBD;
+          break;
         }
       }
 
@@ -432,6 +511,7 @@ void persistent_ram_delete_message_element ( telemetry_type_t msg_type, uint8_t 
           // Zero out the message
           memset (msg_ptr, 0, sizeof(Light_Message_Storage_Element_t));
           persistent_self.light_storage.num_msg_elements_enqueued -= LIGHT_MSGS_PER_SBD;
+          break;
         }
       }
 

@@ -13,6 +13,7 @@
 #include "time.h"
 #include "string.h"
 #include "stdio.h"
+#include "threadx_support.h"
 
 static uart_logger *logger_self;
 
@@ -48,6 +49,9 @@ void uart_log ( const char *fmt, ... )
   va_list args;
   va_start(args, fmt);
   UINT tx_ret;
+  time_t sys_timestamp = get_system_time ();
+  struct tm sys_time =
+    { 0 };
 
   tx_ret = _logger_get_buffer (&log_buf);
 
@@ -58,7 +62,13 @@ void uart_log ( const char *fmt, ... )
     return;
   }
 
-  str_len = vsnprintf (&(log_buf->line_buf[0]), bytes_remaining, fmt, args);
+  // Put a timestamp in first
+  sys_time = *gmtime (&sys_timestamp);
+  str_len = strftime (&(log_buf->line_buf[0]), bytes_remaining, "%x %X: ", &sys_time);
+  bytes_remaining -= str_len;
+
+  str_len = vsnprintf (&(log_buf->line_buf[sizeof(log_line_buf) - bytes_remaining]),
+                       bytes_remaining, fmt, args);
 
   va_end(args);
 

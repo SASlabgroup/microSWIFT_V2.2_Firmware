@@ -15,7 +15,7 @@
 #include "tx_api.h"
 #include "sbd.h"
 
-#define STARTUP_SEQUENCE_MAX_WAIT_TICKS (TX_TIMER_TICKS_PER_SECOND * 30)
+#define STARTUP_SEQUENCE_MAX_WAIT_TICKS (TX_TIMER_TICKS_PER_SECOND * 60)
 #define BOOT_TIME_TIMESTAMP TIMESTAMP_1
 
 // @formatter:off

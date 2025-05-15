@@ -55,6 +55,10 @@ void                filex_error_out (TX_THREAD *filex_thread, const char *fmt, .
 ULONG               get_gnss_acquisition_timeout (microSWIFT_configuration *config);
 ULONG               get_gnss_sample_window_timeout (microSWIFT_configuration *config);
 
+void                set_system_time ( time_t timestamp );
+time_t              get_system_time ( void );
+void                increment_system_time ( void );
+
 uint32_t            get_next_telemetry_message (uint8_t** msg_buffer, microSWIFT_configuration *config);
 
 bool                is_first_sample_window ( void );

@@ -10,6 +10,7 @@
 #include "shared_i2c_bus.h"
 #include "ext_rtc_server.h"
 #include "gnss.h"
+#include "threadx_support.h"
 
 // @formatter:off
 static Turbidity_Sensor *turbidity_self;
@@ -38,7 +39,6 @@ static void                 _turbidity_sensor_ms_delay ( uint32_t delay );
 // Helper functions
 static uSWIFT_return_code_t __turbidity_sensor_get_proximity_reading (uint16_t *reading);
 static uSWIFT_return_code_t __turbidity_sensor_get_ambient_reading (uint16_t *reading);
-static time_t               __get_timestamp (void);
 // @formatter:on
 
 void turbidity_sensor_init ( Turbidity_Sensor *struct_ptr, microSWIFT_configuration *global_config,
@@ -159,13 +159,13 @@ static uSWIFT_return_code_t _turbidity_sensor_take_measurement ( void )
   if ( turbidity_self->samples_counter == 1 )
   {
     gnss_get_current_lat_lon (&turbidity_self->start_lat, &turbidity_self->start_lon);
-    turbidity_self->start_timestamp = __get_timestamp ();
+    turbidity_self->start_timestamp = get_system_time ();
   }
 
   if ( turbidity_self->samples_counter == turbidity_self->global_config->total_turbidity_samples )
   {
     gnss_get_current_lat_lon (&turbidity_self->end_lat, &turbidity_self->end_lon);
-    turbidity_self->stop_timestamp = __get_timestamp ();
+    turbidity_self->stop_timestamp = get_system_time ();
     ret = uSWIFT_DONE_SAMPLING;
   }
 
@@ -366,23 +366,4 @@ static uSWIFT_return_code_t __turbidity_sensor_get_ambient_reading ( uint16_t *r
   ret = vcnl4010_get_ambient_reading (&turbidity_self->dev_ctx, reading);
 
   return ret;
-}
-
-/**
- * Helper method to generate a timestamp from the RTC.
- *
- * @return timestamp as time_t
- */
-static time_t __get_timestamp ( void )
-{
-  uSWIFT_return_code_t rtc_ret = uSWIFT_SUCCESS;
-  struct tm time;
-
-  rtc_ret = rtc_server_get_time (&time, TURBIDITY_REQUEST_PROCESSED);
-  if ( rtc_ret != uSWIFT_SUCCESS )
-  {
-    return -1;
-  }
-
-  return mktime (&time);
 }

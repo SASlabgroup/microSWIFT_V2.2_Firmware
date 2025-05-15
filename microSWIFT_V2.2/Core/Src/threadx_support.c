@@ -15,7 +15,8 @@
 #include "app_threadx.h"
 #include "file_system.h"
 
-uint32_t gnss_config_fail_counter = 0;
+static time_t sys_time = 0;
+
 bool gnss_apply_config ( GNSS *gnss )
 {
   uSWIFT_return_code_t gnss_return_code = uSWIFT_SUCCESS;
@@ -30,8 +31,6 @@ bool gnss_apply_config ( GNSS *gnss )
     {
       break;
     }
-
-    gnss_config_fail_counter++;
 
     if ( fail_counter++ % 3 == 0 )
     {
@@ -413,6 +412,21 @@ ULONG get_gnss_sample_window_timeout ( microSWIFT_configuration *config )
                                  + GNSS_WINDOW_BUFFER_TIME);
 
   return sample_window_timeout;
+}
+
+void set_system_time ( time_t timestamp )
+{
+  sys_time = timestamp;
+}
+
+time_t get_system_time ( void )
+{
+  return sys_time;
+}
+
+void increment_system_time ( void )
+{
+  sys_time++;
 }
 
 uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configuration *config )

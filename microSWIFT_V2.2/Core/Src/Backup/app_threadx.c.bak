@@ -205,11 +205,11 @@ static void turbidity_thread_entry ( ULONG thread_input );
 /* USER CODE END PFP */
 
 /**
-  * @brief  Application ThreadX Initialization.
-  * @param memory_ptr: memory pointer
-  * @retval int
-  */
-UINT App_ThreadX_Init(VOID *memory_ptr)
+ * @brief  Application ThreadX Initialization.
+ * @param memory_ptr: memory pointer
+ * @retval int
+ */
+UINT App_ThreadX_Init ( VOID *memory_ptr )
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -394,14 +394,15 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
 
   //
   // Allocate stack for the Iridium thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, L_STACK, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XL_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the Iridium thread. HIGH priority, no preemption-threshold
   ret = tx_thread_create(&iridium_thread, "iridium thread", iridium_thread_entry, 0, pointer,
-                         L_STACK, HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
+                         XL_STACK, HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
+                         TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -688,18 +689,18 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   return ret;
 }
 
-  /**
-  * @brief  Function that implements the kernel's initialization.
-  * @param  None
-  * @retval None
-  */
-void MX_ThreadX_Init(void)
+/**
+ * @brief  Function that implements the kernel's initialization.
+ * @param  None
+ * @retval None
+ */
+void MX_ThreadX_Init ( void )
 {
   /* USER CODE BEGIN Before_Kernel_Start */
 
   /* USER CODE END Before_Kernel_Start */
 
-  tx_kernel_enter();
+  tx_kernel_enter ();
 
   /* USER CODE BEGIN Kernel_Start_Error */
 
@@ -937,7 +938,6 @@ static void logger_thread_entry ( ULONG thread_input )
   UINT tx_ret;
   uart_logger logger =
     { 0 };
-  ULONG time_start, time_end, time_elapsed;
 
   uart_logger_init (&logger, &logger_block_pool, &logger_message_queue, &logger_mutex,
                     device_handles.logger_uart_handle);
@@ -950,12 +950,10 @@ static void logger_thread_entry ( ULONG thread_input )
     tx_ret = tx_queue_receive (&logger_message_queue, &msg, TX_WAIT_FOREVER);
     if ( tx_ret == TX_SUCCESS )
     {
-      time_start = tx_time_get ();
-
       logger.send_log_line (&(msg.str_buf[0]), msg.strlen);
 
       // Pass the buffer down to the file system for saving to SD card
-      (void) file_system_server_save_log_line ((char*) &(msg.str_buf[0]));
+      file_system_server_save_log_line ((char*) &(msg.str_buf[0]));
 
       // Need to wait until the transmission is complete before grabbing another message
       (void) tx_semaphore_get (&logger_sema, TX_WAIT_FOREVER);
@@ -981,14 +979,12 @@ static void control_thread_entry ( ULONG thread_input )
   struct watchdog_t watchdog =
     { 0 };
   bool first_window = is_first_sample_window (), heartbeat_started = false;
-  uint32_t watchdog_counter = 0;
+  uint32_t watchdog_counter = 0, sample_window = persistent_ram_get_sample_window_counter ();
   ULONG start_time = 0;
+  microSWIFT_firmware_version_t version =
+    { 0 };
 
-  // Run tests if needed
-  if ( tests.control_test != NULL )
-  {
-    tests.control_test (NULL);
-  }
+  persistent_ram_get_firmware_version (&version);
 
   // Let RTC and Logger thread init
   tx_thread_sleep (10);
@@ -997,24 +993,32 @@ static void control_thread_entry ( ULONG thread_input )
                    &irq_flags, &complete_flags, &control_timer, device_handles.battery_adc,
                    &sbd_message);
 
-  LOG("\r\n\r\nHello World!\r\nmicroSWIFT %lu.\r\nFirmware major version %hu, minor version %hu.",
-      configuration.tracking_number, configuration.firmware_version.major_rev,
-      configuration.firmware_version.minor_rev);
+  LOG("\r\n\r\nHello World!\r\nmicroSWIFT %lu.\r\nFirmware major version %hu, minor version %hu.\r\nSample window %lu",
+      configuration.tracking_number, version.major_rev, version.minor_rev, sample_window);
+
+  // Run tests if needed
+  if ( tests.control_test != NULL )
+  {
+    tests.control_test (&control);
+  }
 
   if ( watchdog_init (&watchdog, &watchdog_check_in_flags) != WATCHDOG_OK )
   {
     Error_Handler ();
   }
 
+  watchdog_check_in (CONTROL_THREAD);
+
   // Run the self test
   if ( !control.startup_procedure () )
   {
     if ( first_window )
     {
-      control.shutdown_procedure ();
 
       led_light_sequence (TEST_FAILED_LED_SEQUENCE, LED_SEQUENCE_FOREVER);
       tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 30);
+
+      control.shutdown_procedure ();
 
       Error_Handler ();
     }
@@ -1036,7 +1040,7 @@ static void control_thread_entry ( ULONG thread_input )
 
   while ( 1 )
   {
-    if ( ++watchdog_counter % TX_TIMER_TICKS_PER_SECOND == 0 )
+    if ( ++watchdog_counter % (TX_TIMER_TICKS_PER_SECOND / 10) == 0 )
     {
       watchdog_check_in (CONTROL_THREAD);
     }
@@ -1048,7 +1052,7 @@ static void control_thread_entry ( ULONG thread_input )
     if ( control_get_timeout_status () )
     {
       LOG("Duty cycle timeout. Starting shutdown sequence.");
-      tx_thread_sleep (1);
+      tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
       control.shutdown_procedure ();
     }
 
@@ -1059,7 +1063,7 @@ static void control_thread_entry ( ULONG thread_input )
       heartbeat_started = true;
     }
 
-    tx_thread_sleep (1);
+    tx_thread_sleep (10);
   }
 
 }
@@ -1087,7 +1091,6 @@ static void gnss_thread_entry ( ULONG thread_input )
   int number_of_no_sample_errors = 0;
   float last_lat = 0;
   float last_lon = 0;
-  uint8_t sbd_port;
   UINT tx_return;
   ULONG actual_flags;
   int timer_ticks_to_get_message = round (
@@ -1096,6 +1099,8 @@ static void gnss_thread_entry ( ULONG thread_input )
       (2 * 60 * configuration.gnss_sampling_rate) - configuration.gnss_samples_per_window);
   bool two_mins_out_msg_sent = false, start_flag_sent = false;
   uint32_t total_samples = 0;
+
+  tx_thread_sleep (10);
 
   if ( lpuart1_init () != UART_OK )
   {
@@ -1119,6 +1124,9 @@ static void gnss_thread_entry ( ULONG thread_input )
              &irq_flags, &error_flags, &gnss_timer, north, east, down);
 
   gnss.on ();
+
+  tx_thread_sleep (SOFT_START_DELAY);
+
   // Run tests if needed
   if ( tests.gnss_thread_test != NULL )
   {
@@ -1268,13 +1276,12 @@ static void gnss_thread_entry ( ULONG thread_input )
   memcpy (&sbd_message.Lat, &last_lat, sizeof(float));
   memcpy (&sbd_message.Lon, &last_lon, sizeof(float));
 
-  sbd_port = ((gnss.total_samples_averaged / 10) >= 255) ?
-      255 : (gnss.total_samples_averaged / 10);
-
   // We were using the "port" field to encode how many samples were averaged divided by 10, but
-  // now we are using it to store the firmware version
-//  sbd_port = *((uint8_t*) &configuration.firmware_version);
-  memcpy (&sbd_message.port, &sbd_port, sizeof(uint8_t));
+  // now we are using it to store the firmware version, done in Iridium thread. Leaving this in case
+  // we decide to use it again.
+//  sbd_port = ((gnss.total_samples_averaged / 10) >= 255) ?
+//      255 : (gnss.total_samples_averaged / 10);
+//  memcpy (&sbd_message.port, &sbd_port, sizeof(uint8_t));
 
   // Deinit -- this will shut down UART port and DMA channels
   gnss_deinit ();
@@ -1336,7 +1343,7 @@ static void ct_thread_entry ( ULONG thread_input )
            device_handles.ct_uart_rx_dma_handle, &ct_uart_sema, &error_flags, &ct_timer);
 
   ct.on ();
-
+  tx_thread_sleep (SOFT_START_DELAY);
   //
   // Run tests if needed
   if ( tests.ct_thread_test != NULL )
@@ -1362,6 +1369,8 @@ static void ct_thread_entry ( ULONG thread_input )
   ct.start_timer (ct_thread_timeout);
   watchdog_register_thread (CT_THREAD);
   watchdog_check_in (CT_THREAD);
+
+  tx_thread_sleep (SOFT_START_DELAY);
 
   // Turn on the CT sensor, warm it up, and frame sync
   if ( !ct_self_test (&ct, true, &ct_readings) )
@@ -1478,7 +1487,7 @@ static void temperature_thread_entry ( ULONG thread_input )
   temperature_init (&temperature, &configuration, &error_flags, &temperature_timer, true);
 
   temperature.on ();
-
+  tx_thread_sleep (SOFT_START_DELAY);
   //
   // Run tests if needed
   if ( tests.temperature_thread_test != NULL )
@@ -1498,7 +1507,7 @@ static void temperature_thread_entry ( ULONG thread_input )
 
   // No need to turn off temperature sensor, it automatically enters standby mode when not actively
   // taking a measurement and the FET dissipates far more power than the sensor in standby mode.
-
+  temperature.off ();
   tx_thread_suspend (this_thread);
 
   /******************************* Control thread resumes this thread *****************************/
@@ -1506,13 +1515,18 @@ static void temperature_thread_entry ( ULONG thread_input )
   watchdog_register_thread (TEMPERATURE_THREAD);
   watchdog_check_in (TEMPERATURE_THREAD);
 
+  temperature.on ();
+  tx_thread_sleep (SOFT_START_DELAY);
+
   LOG("Temperature sample window started.");
+
+#warning "The temperature start timestamp is never set, resulting in files with timestamps of 0."
 
   while ( fail_counter < max_retries )
   {
     watchdog_check_in (TEMPERATURE_THREAD);
 
-    temp_return_code = temperature.get_readings (false, &sampling_reading);
+    temp_return_code = temperature.take_samples (&sampling_reading);
 
     if ( temp_return_code == uSWIFT_SUCCESS )
     {
@@ -1583,9 +1597,9 @@ static void light_thread_entry ( ULONG thread_input )
   int32_t light_thread_timeout = get_gnss_sample_window_timeout (&configuration); // Same timeout as GNSS
   ULONG sample_start_time = 0, thread_sleep_time = 0;
 
-  light_sensor_init (&light, &configuration, &(light_sensor_sample_buffer[0]), &light_timer);
-
   tx_thread_sleep (10);
+
+  light_sensor_init (&light, &configuration, &(light_sensor_sample_buffer[0]), &light_timer);
 
   //
   // Run tests if needed
@@ -1595,6 +1609,7 @@ static void light_thread_entry ( ULONG thread_input )
   }
 
   light.on ();
+  tx_thread_sleep (SOFT_START_DELAY);
 
   if ( !light_self_test (&light) )
   {
@@ -1613,17 +1628,22 @@ static void light_thread_entry ( ULONG thread_input )
   (void) tx_event_flags_set (&initialization_flags, LIGHT_INIT_SUCCESS, TX_OR);
 
   light.idle ();
+  light.off ();
   tx_thread_suspend (this_thread);
 
   /******************************* Control thread resumes this thread *****************************/
-
+  light.start_timer (light_thread_timeout);
   watchdog_register_thread (LIGHT_THREAD);
   watchdog_check_in (LIGHT_THREAD);
 
-  tx_thread_sleep (1);
-  light.standby ();
+  light.on ();
+  tx_thread_sleep (SOFT_START_DELAY);
 
-  light.start_timer (light_thread_timeout);
+  if ( !light_self_test (&light) )
+  {
+    light_error_out (&light, LIGHT_INIT_FAILED, this_thread,
+                     "Light sensor failed prior to sampling.");
+  }
 
   LOG("Light sample window started.");
 
@@ -1714,13 +1734,15 @@ static void turbidity_thread_entry ( ULONG thread_input )
     { 0 };
   int32_t turbidity_thread_timeout = get_gnss_sample_window_timeout (&configuration); // Same timeout as GNSS
 
+  tx_thread_sleep (10);
+
   turbidity_sensor_init (&obs, &configuration, &turbidity_timer,
                          &turbidity_sensor_ambient_buffer[0],
                          &turbidity_sensor_proximity_buffer[0]);
 
   obs.on ();
 
-  tx_thread_sleep (10);
+  tx_thread_sleep (SOFT_START_DELAY);
 
   //
   // Run tests if needed
@@ -1743,20 +1765,27 @@ static void turbidity_thread_entry ( ULONG thread_input )
   (void) tx_event_flags_set (&initialization_flags, TURBIDITY_INIT_SUCCESS, TX_OR);
 
   obs.idle ();
+  obs.off ();
+
   tx_thread_suspend (this_thread);
 
   /******************************* Control thread resumes this thread *****************************/
-
+  obs.start_timer (turbidity_thread_timeout);
   watchdog_register_thread (TURBIDITY_THREAD);
   watchdog_check_in (TURBIDITY_THREAD);
+
+  obs.on ();
+  tx_thread_sleep (SOFT_START_DELAY);
+
+  if ( !turbidity_self_test (&obs) )
+  {
+    turbidity_error_out (&obs, TURBIDITY_INIT_FAILED, this_thread,
+                         "Turbidity sensor self failed prior to sampling.");
+  }
 
   turbidity_reset_sample_counter ();
 
   gnss_get_current_lat_lon (&obs.start_lat, &obs.start_lon);
-
-  obs.standby ();
-
-  obs.start_timer (turbidity_thread_timeout);
 
   LOG("Turbidity sample window started.");
 
@@ -1829,6 +1858,18 @@ static void waves_thread_entry ( ULONG thread_input )
   TX_THREAD *this_thread = &waves_thread;
   NEDWaves_memory waves_mem =
     { 0 };
+  // Function return parameters
+  real16_T E[42];
+  real16_T Dp;
+  real16_T Hs;
+  real16_T Tp;
+  real16_T b_fmax;
+  real16_T b_fmin;
+  signed char a1[42];
+  signed char a2[42];
+  signed char b1[42];
+  signed char b2[42];
+  unsigned char check[42];
 
   tx_thread_sleep (1);
 
@@ -1840,6 +1881,19 @@ static void waves_thread_entry ( ULONG thread_input )
 
   (void) tx_event_flags_set (&initialization_flags, WAVES_THREAD_INIT_SUCCESS, TX_OR);
   LOG("NED Waves initialization successful.");
+
+  // Set the SBD fields to error values in the event GNSS has a failure
+  Dp.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+  Hs.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+  Tp.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+  b_fmax.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+  b_fmin.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+
+  memcpy (&sbd_message.Hs, &Hs, sizeof(real16_T));
+  memcpy (&sbd_message.Tp, &Tp, sizeof(real16_T));
+  memcpy (&sbd_message.Dp, &Dp, sizeof(real16_T));
+  memcpy (&sbd_message.f_min, &b_fmin, sizeof(real16_T));
+  memcpy (&sbd_message.f_max, &b_fmax, sizeof(real16_T));
 
   tx_thread_suspend (this_thread);
 
@@ -1855,19 +1909,6 @@ static void waves_thread_entry ( ULONG thread_input )
   }
 
   watchdog_check_in (WAVES_THREAD);
-
-  // Function return parameters
-  real16_T E[42];
-  real16_T Dp;
-  real16_T Hs;
-  real16_T Tp;
-  real16_T b_fmax;
-  real16_T b_fmin;
-  signed char a1[42];
-  signed char a2[42];
-  signed char b1[42];
-  signed char b2[42];
-  unsigned char check[42];
 
   LOG("Running NEDWaves.");
 
@@ -1929,7 +1970,9 @@ static void iridium_thread_entry ( ULONG thread_input )
   char ascii_7 = '7';
   uint8_t sbd_type = 52;
   uint16_t sbd_size = 331;
-  uint32_t sbd_timestamp = 0;
+  microSWIFT_firmware_version_t sbd_port =
+    { 0 }; // We're using the Type 52 field "port" to hold firmware version
+  float sbd_timestamp = 0;
   uint32_t error_bits = 0;
   struct tm time_struct =
     { 0 };
@@ -1938,9 +1981,10 @@ static void iridium_thread_entry ( ULONG thread_input )
     { 0 };
   uint8_t *msg_ptr = (uint8_t*) &sbd_message;
   bool current_message_sent = false;
-  telemetry_type_t next_message_type;
+  uint32_t next_message_type;
   uint32_t next_message_size = 0;
   char *log_str = NULL;
+  GPIO_PinState ri_status;
 
   tx_thread_sleep (10);
 
@@ -1956,8 +2000,9 @@ static void iridium_thread_entry ( ULONG thread_input )
 
   iridium.on ();
   iridium.wake ();
-  iridium.charge_caps ((is_first_sample_window ()) ?
-      IRIDIUM_INITIAL_CAP_CHARGE_TIME : IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
+  iridium.charge_caps (IRIDIUM_INITIAL_CAP_CHARGE_TIME);
+
+  ri_status = HAL_GPIO_ReadPin (IRIDIUM_RI_N_GPIO_Port, IRIDIUM_RI_N_Pin);
 
   if ( !iridium_apply_config (&iridium) )
   {
@@ -1967,6 +2012,13 @@ static void iridium_thread_entry ( ULONG thread_input )
 
   LOG("Iridium modem initialized successfully.");
   (void) tx_event_flags_set (&initialization_flags, IRIDIUM_INIT_SUCCESS, TX_OR);
+
+  //
+  // Run tests if needed
+  if ( tests.iridium_thread_test != NULL )
+  {
+    tests.iridium_thread_test (&iridium);
+  }
 
   iridium.sleep ();
 
@@ -1981,27 +2033,24 @@ static void iridium_thread_entry ( ULONG thread_input )
 
   iridium.start_timer (iridium_thread_timeout);
 
-  //
-  // Run tests if needed
-  if ( tests.iridium_thread_test != NULL )
-  {
-    tests.iridium_thread_test (NULL);
-  }
+  ri_status = HAL_GPIO_ReadPin (IRIDIUM_RI_N_GPIO_Port, IRIDIUM_RI_N_Pin);
 
   // finish filling out the SBD message
   rtc_server_get_time (&time_struct, IRIDIUM_REQUEST_COMPLETE);
   time_now = mktime (&time_struct);
   sbd_timestamp = (float) time_now;
+  persistent_ram_get_firmware_version (&sbd_port);
   error_bits = control_get_accumulated_error_flags ();
   memcpy (&sbd_message.legacy_number_7, &ascii_7, sizeof(char));
   memcpy (&sbd_message.type, &sbd_type, sizeof(uint8_t));
   memcpy (&sbd_message.size, &sbd_size, sizeof(uint16_t));
+  memcpy (&sbd_message.port, (uint8_t*) &sbd_port, sizeof(uint8_t));
   memcpy (&sbd_message.timestamp, &sbd_timestamp, sizeof(float));
   memcpy (&sbd_message.error_bits, &error_bits, sizeof(uint32_t));
 
   msg_ptr = (uint8_t*) &sbd_message;
 
-  if ( !iridium_apply_config (&iridium) )
+  if ( !iridium_self_test (&iridium) )
   {
     // Need to save the message
     error_bits = get_current_flags (&error_flags);
@@ -2036,10 +2085,10 @@ static void iridium_thread_entry ( ULONG thread_input )
       continue;
     }
 
-    next_message_type = get_next_telemetry_message (msg_ptr, &configuration);
+    next_message_type = get_next_telemetry_message (&msg_ptr, &configuration);
     if ( next_message_type == NO_MESSAGE )
     {
-      LOG("No messages messages left in cache.");
+      LOG("No cached messages ready to transmit.");
       break;
     }
 
@@ -2053,11 +2102,11 @@ static void iridium_thread_entry ( ULONG thread_input )
     if ( next_message_size > 0 )
     {
       log_str = (next_message_type == WAVES_TELEMETRY) ?
-          "NEDWaves " :
+          "NEDWaves" :
                 (next_message_type == TURBIDITY_TELEMETRY) ?
-                    "OBS " :
+                    "OBS" :
                 (next_message_type == LIGHT_TELEMETRY) ?
-                    "Light " : "Unknown ";
+                    "Light" : "Unknown";
       LOG("Attempting transmission of %s telemetry...", log_str);
 
       if ( iridium.transmit_message (msg_ptr, next_message_size) == uSWIFT_SUCCESS )
@@ -2068,6 +2117,8 @@ static void iridium_thread_entry ( ULONG thread_input )
   }
 
   watchdog_check_in (IRIDIUM_THREAD);
+
+  tx_thread_sleep (LOGGER_MAX_TICKS_TO_TX_MSG);
 
   if ( !current_message_sent )
   {
@@ -2083,7 +2134,6 @@ static void iridium_thread_entry ( ULONG thread_input )
 // Turn off the modem
   iridium.stop_timer ();
   iridium.sleep ();
-  iridium.off ();
 
   iridium_deinit ();
 

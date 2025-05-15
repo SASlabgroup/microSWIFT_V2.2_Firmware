@@ -92,11 +92,11 @@ uSWIFT_return_code_t ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_
   rtc_self->watchdog_refresh_time_val = 0;
 
   // Interrupt configuration
-  rtc_self->irq_config.sec_irq_en = false;
+  rtc_self->irq_config.sec_irq_en = true;
   rtc_self->irq_config.min_irq_en = false;
-  rtc_self->irq_config.sec_min_pulsed_irq_en = false;
+  rtc_self->irq_config.sec_min_pulsed_irq_en = true;
   rtc_self->irq_config.watchdog_irq_en = true;
-  rtc_self->irq_config.alarm_irq_en = true;
+  rtc_self->irq_config.alarm_irq_en = false;
   rtc_self->irq_config.batt_flag_irq_en = false;
   rtc_self->irq_config.batt_low_irq_en = false;
   rtc_self->irq_config.timestamp_1_irq_en = false;
@@ -115,8 +115,8 @@ uSWIFT_return_code_t ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_
   rtc_self->irq_config.int_a_mask_1.watchdog_irq_mask = false;
 #endif
 
-  // Int B will be used for the Alarm
-  rtc_self->irq_config.int_b_mask_1.alarm_irq_mask = false;
+  // Int B will be used for the Second interrupt and later for the alarm
+  rtc_self->irq_config.int_b_mask_1.sec_irq_mask = false;
 
   rtc_self->setup_rtc = _ext_rtc_setup_rtc;
   rtc_self->refresh_watchdog = _ext_rtc_refresh_watchdog;
@@ -148,6 +148,8 @@ static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   uint8_t register_read = 0;
+  struct tm rtc_time =
+    { 0 };
 
   // Perform OTP refresh, only on first start
   if ( is_first_sample_window () )
@@ -206,6 +208,10 @@ static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
     return uSWIFT_IO_ERROR;
   }
 
+  // Enable the interrupt for Int B pin
+  HAL_NVIC_SetPriority (EXTI2_IRQn, 15, 0);
+  HAL_NVIC_EnableIRQ (EXTI2_IRQn);
+
   // Configure the watchdog, this will start the watchdog timer
   ret = __config_watchdog (WATCHDOG_PERIOD);
   if ( ret != PCF2131_OK )
@@ -225,6 +231,13 @@ static uSWIFT_return_code_t _ext_rtc_setup_rtc ( void )
   if ( ret != PCF2131_OK )
   {
     return uSWIFT_IO_ERROR;
+  }
+
+  // If the time has been set previously, set system time accordingly
+  if ( persistent_ram_get_rtc_time_set () )
+  {
+    (void) _ext_rtc_get_date_time (&rtc_time);
+    set_system_time (mktime (&rtc_time));
   }
 
   return ret;
@@ -323,12 +336,17 @@ static uSWIFT_return_code_t _ext_rtc_refresh_watchdog ( void )
 static uSWIFT_return_code_t _ext_rtc_set_date_time ( struct tm *input_date_time )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
+  struct tm date_time_as_dec =
+    { 0 };
 
   input_date_time->tm_wday =
       (input_date_time->tm_wday == WEEKDAY_UNKNOWN) ?
           __weekday_from_date (input_date_time->tm_year, input_date_time->tm_mon,
                                input_date_time->tm_mday) :
           (uint8_t) input_date_time->tm_wday;
+
+  // Save a copy of the input date time before converting to BCD format
+  memcpy (&date_time_as_dec, input_date_time, sizeof(struct tm));
 
   // Convert to BCD format
   struct_tm_dec_to_bcd (input_date_time);
@@ -342,15 +360,20 @@ static uSWIFT_return_code_t _ext_rtc_set_date_time ( struct tm *input_date_time 
 
   ret = pcf2131_set_date_time (&rtc_self->dev_ctx, input_date_time);
 
-  if ( ret != PCF2131_OK )
-  {
-    ret = uSWIFT_IO_ERROR;
-  }
-
-  if ( ret == uSWIFT_SUCCESS )
+  if ( ret == PCF2131_OK )
   {
     // Retrain in persistent memory that we have set the RTC time.
     persistent_ram_set_rtc_time_set ();
+
+    date_time_as_dec.tm_isdst = -1;
+    date_time_as_dec.tm_mon--;
+    date_time_as_dec.tm_year = date_time_as_dec.tm_year - 1900;
+
+    set_system_time (mktime (&date_time_as_dec));
+  }
+  else
+  {
+    ret = uSWIFT_IO_ERROR;
   }
 
   return ret;
@@ -458,6 +481,26 @@ static uSWIFT_return_code_t _ext_rtc_set_alarm ( rtc_alarm_struct alarm_setting 
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
+  // Turn off the seconds interrupt
+  rtc_self->irq_config.sec_irq_en = false;
+  rtc_self->irq_config.sec_min_pulsed_irq_en = false;
+  rtc_self->irq_config.int_b_mask_1.sec_irq_mask = true; // Masked, will not fire
+
+  // Turn on the alarm interrupt
+  rtc_self->irq_config.alarm_irq_en = true;
+  rtc_self->irq_config.int_b_mask_1.alarm_irq_mask = false; // Unmasked, will fire
+
+  ret = pcf2131_config_interrupts (&(rtc_self->dev_ctx), &rtc_self->irq_config);
+  if ( ret != PCF2131_OK )
+  {
+    return uSWIFT_IO_ERROR;
+  }
+
+  // Disable EXTI interrupt (RTC Int B pin), we'll be using the alarm for wakeup which is a different interrupt
+  HAL_NVIC_DisableIRQ (EXTI2_IRQn);
+  HAL_NVIC_ClearPendingIRQ (EXTI2_IRQn);
+
+  // Now set the alarm
   ret = pcf2131_set_alarm (&rtc_self->dev_ctx, &alarm_setting);
   if ( ret != PCF2131_OK )
   {

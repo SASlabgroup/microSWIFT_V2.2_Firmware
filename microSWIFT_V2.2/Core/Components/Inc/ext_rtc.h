@@ -53,7 +53,7 @@ typedef struct
   uSWIFT_return_code_t      (*clear_flag) ( rtc_flag_t which_flag );
 } Ext_RTC;
 
-uSWIFT_return_code_t ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus, TX_SEMAPHORE *rtc_spi_sema );
+uSWIFT_return_code_t    ext_rtc_init ( Ext_RTC *struct_ptr, SPI_HandleTypeDef *rtc_spi_bus, TX_SEMAPHORE *rtc_spi_sema );
 
 //@formatter:on
 #endif /* COMPONENTS_INC_EXT_RTC_H_ */

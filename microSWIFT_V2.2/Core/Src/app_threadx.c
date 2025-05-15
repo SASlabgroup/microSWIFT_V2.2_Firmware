@@ -1984,6 +1984,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   uint32_t next_message_type;
   uint32_t next_message_size = 0;
   char *log_str = NULL;
+  GPIO_PinState ri_status;
 
   tx_thread_sleep (10);
 
@@ -2000,6 +2001,8 @@ static void iridium_thread_entry ( ULONG thread_input )
   iridium.on ();
   iridium.wake ();
   iridium.charge_caps (IRIDIUM_INITIAL_CAP_CHARGE_TIME);
+
+  ri_status = HAL_GPIO_ReadPin (IRIDIUM_RI_N_GPIO_Port, IRIDIUM_RI_N_Pin);
 
   if ( !iridium_apply_config (&iridium) )
   {
@@ -2063,6 +2066,13 @@ static void iridium_thread_entry ( ULONG thread_input )
   {
 
     watchdog_check_in (IRIDIUM_THREAD);
+
+    ri_status = HAL_GPIO_ReadPin (IRIDIUM_RI_N_GPIO_Port, IRIDIUM_RI_N_Pin);
+
+    if ( ri_status == GPIO_PIN_RESET )
+    {
+      tx_thread_sleep (1);
+    }
 
     if ( !current_message_sent )
     {

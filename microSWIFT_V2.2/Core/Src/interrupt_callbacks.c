@@ -11,6 +11,7 @@
 #include "gpio.h"
 #include "gnss.h"
 #include "battery.h"
+#include "ext_rtc.h"
 
 /**
  * @brief Tx Transfer completed callback.
@@ -226,10 +227,6 @@ void HAL_ADC_ConvCpltCallback ( ADC_HandleTypeDef *hadc )
 void HAL_GPIO_EXTI_Rising_Callback ( uint16_t GPIO_Pin )
 {
   UNUSED(GPIO_Pin);
-  /*
-   * EXTI unused at this point. RTC interrupt will be used to wake from standby mode,
-   * Iridium RIn will be used when we implement 2-way comms.
-   */
 }
 
 /**
@@ -239,11 +236,14 @@ void HAL_GPIO_EXTI_Rising_Callback ( uint16_t GPIO_Pin )
  */
 void HAL_GPIO_EXTI_Falling_Callback ( uint16_t GPIO_Pin )
 {
-  UNUSED(GPIO_Pin);
-  /*
-   * EXTI unused at this point. RTC interrupt will be used to wake from standby mode,
-   * Iridium RIn will be used when we implement 2-way comms.
-   */
+  if ( GPIO_Pin == RTC_INT_B_Pin )
+  {
+    increment_system_time ();
+  }
+//  else if ( GPIO_Pin == IRIDIUM_RI_N_Pin )
+//  {
+//    // Inform Iridium thread there is a message
+//  }
 }
 
 /**

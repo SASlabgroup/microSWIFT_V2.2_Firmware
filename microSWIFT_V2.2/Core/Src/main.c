@@ -125,6 +125,10 @@ int main ( void )
   MX_GPDMA1_Init ();
   /* USER CODE BEGIN 2 */
 
+  // Disable the RTC Int B pin interrupt for now until we set up the RTC
+  HAL_NVIC_DisableIRQ (EXTI2_IRQn);
+  HAL_NVIC_ClearPendingIRQ (EXTI2_IRQn);
+
   // Change the gpio configuration based on which modem type we're using
   configure_iridium_onoff_pin (flash_config.iridium_v3f);
 

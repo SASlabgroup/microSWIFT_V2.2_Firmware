@@ -29,8 +29,9 @@ typedef enum
   SET_TIME          = 2,
   SET_TIMESTAMP     = 3,
   GET_TIMESTAMP     = 4,
-  SET_ALARM         = 5,
-  CLEAR_FLAG        = 6
+  GET_SYS_TIME      = 5,
+  SET_ALARM         = 6,
+  CLEAR_FLAG        = 7
 } rtc_request_t;
 
 typedef enum
@@ -59,6 +60,7 @@ typedef struct
   struct tm *time_struct;
 } rtc_set_time_t;
 
+// Message struct for SET_TIMESTAMP request
 typedef struct
 {
   pcf2131_timestamp_t   which_timestamp;

@@ -26,7 +26,7 @@
 
 typedef struct
 {
-  char line_buf[256];
+  char line_buf[320];
 } log_line_buf;
 
 typedef struct
