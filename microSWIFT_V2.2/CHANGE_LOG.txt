@@ -22,7 +22,7 @@ FileX
 
 [x] Once system time is implemented through the RTC seconds interrupt timer, start naming files by
     time in the filename.
-    [ ] Update file time when writing to files.
+    [x] Update file time when writing to files.
     
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 #########################################  V2.1 Bug Fixes  #########################################
