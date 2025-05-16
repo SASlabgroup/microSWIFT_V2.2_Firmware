@@ -6,22 +6,22 @@
 RTC
 ***
 
-[ ] Enable Seconds timer and use this to keep track of system time
-	[ ] Internal requests for timestamps can then go through through our own system tick/time counter
+[x] Enable Seconds timer and use this to keep track of system time
+	[x] Internal requests for timestamps can go through through our own system tick/time counter
 	
 ****************************************************************************************************
 Logger
 ******
 
-[ ] Once system time is implemented through the RTC seconds interrupt timer, add timestamps to
+[x] Once system time is implemented through the RTC seconds interrupt timer, add timestamps to
     to all log lines
 
 ****************************************************************************************************
 FileX
 *****
 
-[ ] Once system time is implemented through the RTC seconds interrupt timer, start naming files by
-    to include the time in the filename.
+[x] Once system time is implemented through the RTC seconds interrupt timer, start naming files by
+    time in the filename.
     [ ] Update file time when writing to files.
     
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@

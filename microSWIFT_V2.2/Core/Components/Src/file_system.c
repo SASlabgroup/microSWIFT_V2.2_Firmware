@@ -203,11 +203,13 @@ static uSWIFT_return_code_t _file_system_save_log_line ( char *line, uint32_t le
   UINT fx_ret;
   static bool first_time = true, file_creation_failed = false;
   static uint32_t seek_index = 0;
+  time_t timestamp_now = get_system_time ();
+  struct tm time_now = *gmtime (&timestamp_now);
 
   if ( !__open_sd_card () )
   {
     ret = uSWIFT_IO_ERROR;
-    goto error;
+    goto done;
   }
 
   if ( first_time )
@@ -220,14 +222,14 @@ static uSWIFT_return_code_t _file_system_save_log_line ( char *line, uint32_t le
     {
       file_creation_failed = true;
       ret = uSWIFT_IO_ERROR;
-      goto error;
+      goto done;
     }
   }
 
   if ( file_creation_failed )
   {
     ret = uSWIFT_IO_ERROR;
-    goto error;
+    goto done;
   }
 
   fx_ret = fx_file_open(file_sys_self->sd_card, &file_sys_self->files[LOG_FILE],
@@ -235,47 +237,36 @@ static uSWIFT_return_code_t _file_system_save_log_line ( char *line, uint32_t le
   if ( fx_ret != FX_SUCCESS )
   {
     ret = uSWIFT_IO_ERROR;
-    goto error;
+    goto done;
   }
 
   fx_ret = fx_file_seek (&file_sys_self->files[LOG_FILE], seek_index);
   if ( fx_ret != FX_SUCCESS )
   {
     ret = uSWIFT_IO_ERROR;
-    goto error;
+    goto done;
   }
 
   fx_ret = fx_file_write (&file_sys_self->files[LOG_FILE], line, len);
   if ( fx_ret != FX_SUCCESS )
   {
     ret = uSWIFT_IO_ERROR;
-    goto error;
+    goto done;
   }
 
   seek_index += len;
 
-  fx_ret = fx_file_close (&file_sys_self->files[LOG_FILE]);
-  if ( fx_ret != FX_SUCCESS )
+  if ( !__close_out_file (NULL, LOG_FILE) )
   {
     ret = uSWIFT_IO_ERROR;
-    goto error;
+    goto done;
   }
 
-  fx_ret = fx_media_flush (file_sys_self->sd_card);
-  if ( fx_ret != FX_SUCCESS )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto error;
-  }
-
+done:
   if ( !__close_sd_card () )
   {
     ret = uSWIFT_IO_ERROR;
   }
-  return ret;
-
-error:
-  (void) __close_sd_card ();
   return ret;
 }
 
@@ -349,7 +340,6 @@ static uSWIFT_return_code_t _file_system_save_gnss_velocities ( GNSS *gnss )
 done:
   if ( !__close_sd_card () )
   {
-
     ret = uSWIFT_IO_ERROR;
   }
   return ret;
@@ -902,20 +892,14 @@ static bool __update_file_timestamp ( file_index_t file_index )
 {
   uSWIFT_return_code_t rtc_ret = uSWIFT_SUCCESS;
   UINT fx_ret;
-  struct tm time;
-
-  rtc_ret = rtc_server_get_time (&time, FILE_SYSTEM_REQUEST_PROCESSES);
-  if ( rtc_ret != uSWIFT_SUCCESS )
-  {
-    return false;
-  }
-
-  mktime (&time);
+  time_t timestamp_now = get_system_time ();
+  struct tm time_now = *gmtime (&timestamp_now);
 
   fx_ret = fx_file_date_time_set (file_sys_self->sd_card,
-                                  &(file_sys_self->file_names[file_index][0]), time.tm_year + 1900,
-                                  time.tm_mon + 1, time.tm_mday, time.tm_hour, time.tm_min,
-                                  time.tm_sec);
+                                  &(file_sys_self->file_names[file_index][0]),
+                                  (time_now.tm_year + 1900), (time_now.tm_mon + 1),
+                                  time_now.tm_mday, time_now.tm_hour, time_now.tm_min,
+                                  time_now.tm_sec);
 
   return (fx_ret == FX_SUCCESS);
 }
