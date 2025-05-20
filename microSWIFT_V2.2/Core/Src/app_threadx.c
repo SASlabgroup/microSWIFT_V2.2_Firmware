@@ -717,16 +717,10 @@ void MX_ThreadX_Init ( void )
  * @brief  RTC thread. Manages all RTC operations.
  *
  * @note   This is a server style thread to manage shared hardware. Multiple threads require access
- *         to the RTC, so all operations happen in this thread. There are two methods of notifying
- *         this thread that there is work to do:
+ *         to the RTC, so all operations happen in this thread.
  *
- *         1) A watchdog semaphore -- if this semaphore ever has a count greater than 0, the
- *            RTC will refresh the watchdog.
- *
- *         2) For all other RTC requests, functions in ext_rtc_api.h are called which place a
- *            rtc_request_message on the queue, which contains all the required information for an
- *            RTC operation. The return code is written back via pointer provided in the queue
- *            message.
+ *         Threads call functions defined in ext_rtc_server.h which place requests on the rtc queue
+ *         which are then handled here.
  *
  * @param  ULONG thread_input - unused
  * @retval void
