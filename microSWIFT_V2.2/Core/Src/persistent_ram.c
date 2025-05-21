@@ -37,7 +37,6 @@ void persistent_ram_init ( const microSWIFT_configuration *config,
     persistent_ram_set_firmware_version (version);
 
     persistent_self.magic_number = PERSISTENT_RAM_MAGIC_DOUBLE_WORD;
-    persistent_self.reset_reason = reset_reason;
   }
   // If a watchdog reset occurred (identified as a hardware pin reset), clear out but retain
   // the rtc_time_set flag
@@ -52,8 +51,9 @@ void persistent_ram_init ( const microSWIFT_configuration *config,
     persistent_self.magic_number = PERSISTENT_RAM_MAGIC_DOUBLE_WORD;
 
     persistent_self.rtc_time_set = rtc_time_set;
-    persistent_self.reset_reason = reset_reason;
   }
+
+  persistent_self.reset_reason = reset_reason;
 
   // If the RTC has not been set, then reset the sample window counter
   if ( !persistent_ram_get_rtc_time_set () )
@@ -118,6 +118,16 @@ void persistent_ram_set_firmware_version ( const microSWIFT_firmware_version_t *
 void persistent_ram_get_firmware_version ( microSWIFT_firmware_version_t *version )
 {
   memcpy (version, &persistent_self.version, sizeof(microSWIFT_firmware_version_t));
+}
+
+/**
+ * Copy the current firmware version to the supplied pointer.
+ *
+ * @return void
+ */
+bool persistent_ram_get_ota_update_status ( void )
+{
+  return persistent_self.ota_update_received;
 }
 
 /**

@@ -36,8 +36,8 @@ typedef struct __attribute__((packed)) microSWIFT_configuration
   bool light_enabled;
   bool turbidity_enabled;
 
-  const char compile_date_flash[11];
-  const char compile_time_flash[9];
+  const char compile_date[11];
+  const char compile_time[9];
 } microSWIFT_configuration;
 
 #endif /* INC_CONFIGURATION_H_ */

@@ -171,6 +171,12 @@ static bool _control_startup_procedure ( void )
     }
   }
 
+  if ( persistent_ram_get_ota_update_status () )
+  {
+    LOG("Running on configuration settings updated over-the-air, dated: %s %s",
+        controller_self->global_config->compile_date, controller_self->global_config->compile_time);
+  }
+
   tx_thread_sleep (2);
 
   // Grab the battery voltage before we start turning everything on

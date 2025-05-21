@@ -267,8 +267,6 @@ done:
     ret = uSWIFT_IO_ERROR;
   }
 
-  uart_logger_return_line_buf ((log_line_buf*) line);
-
   return ret;
 }
 
@@ -895,6 +893,11 @@ static bool __update_file_timestamp ( file_index_t file_index )
   UINT fx_ret;
   time_t timestamp_now = get_system_time ();
   struct tm time_now = *gmtime (&timestamp_now);
+
+  if ( time_now.tm_year < 100 )
+  {
+    time_now.tm_year = 100;
+  }
 
   fx_ret = fx_file_date_time_set (file_sys_self->sd_card,
                                   &(file_sys_self->file_names[file_index][0]),

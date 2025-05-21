@@ -91,6 +91,7 @@ void                    persistent_ram_set_device_config ( const microSWIFT_conf
 void                    persistent_ram_get_device_config ( microSWIFT_configuration *config );
 void                    persistent_ram_set_firmware_version ( const microSWIFT_firmware_version_t *version );
 void                    persistent_ram_get_firmware_version ( microSWIFT_firmware_version_t *version );
+bool                    persistent_ram_get_ota_update_status ( void );
 uint32_t                persistent_ram_get_sample_window_counter ( void );
 void                    persistent_ram_reset_sample_window_counter ( void );
 void                    persistent_ram_set_rtc_time_set ( void );
