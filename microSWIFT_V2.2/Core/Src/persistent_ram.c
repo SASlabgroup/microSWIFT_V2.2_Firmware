@@ -26,15 +26,33 @@ static void _persistent_ram_clear ( void );
 void persistent_ram_init ( const microSWIFT_configuration *config,
                            const microSWIFT_firmware_version_t *version )
 {
-  // The ram section "persistent_self" resides in is a NOLOAD section. Contents remain persistent through
-  // standby mode.
+  uint32_t reset_reason = HAL_RCC_GetResetSource ();
+  bool rtc_time_set = false;
+
+  // If this has not been initialized previously
   if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
   {
     _persistent_ram_clear ();
-    persistent_ram_set_device_config (config);
+    persistent_ram_set_device_config (config, false);
     persistent_ram_set_firmware_version (version);
 
     persistent_self.magic_number = PERSISTENT_RAM_MAGIC_DOUBLE_WORD;
+    persistent_self.reset_reason = reset_reason;
+  }
+  // If a watchdog reset occurred (identified as a hardware pin reset), clear out but retain
+  // the rtc_time_set flag
+  else if ( reset_reason == RCC_RESET_FLAG_PIN )
+  {
+    rtc_time_set = persistent_ram_get_rtc_time_set ();
+
+    _persistent_ram_clear ();
+    persistent_ram_set_device_config (config, false);
+    persistent_ram_set_firmware_version (version);
+
+    persistent_self.magic_number = PERSISTENT_RAM_MAGIC_DOUBLE_WORD;
+
+    persistent_self.rtc_time_set = rtc_time_set;
+    persistent_self.reset_reason = reset_reason;
   }
 
   // If the RTC has not been set, then reset the sample window counter
@@ -65,9 +83,11 @@ void persistent_ram_deinit ( void )
  *
  * @return void
  */
-void persistent_ram_set_device_config ( const microSWIFT_configuration *config )
+void persistent_ram_set_device_config ( const microSWIFT_configuration *config, bool ota_update )
 {
   memcpy (&persistent_self.device_config, config, sizeof(microSWIFT_configuration));
+
+  persistent_self.ota_update_received = ota_update;
 }
 
 /**
@@ -138,6 +158,16 @@ void persistent_ram_set_rtc_time_set ( void )
 bool persistent_ram_get_rtc_time_set ( void )
 {
   return persistent_self.rtc_time_set;
+}
+
+/**
+ * Get the reset reason code, defined in @defgroup RCC_Reset_Flag Reset Flag within stm32u5xx_hal_rcc.h.
+ *
+ * @return rtc_time_set flag
+ */
+uint32_t persistent_ram_get_reset_reason ( void )
+{
+  return persistent_self.reset_reason;
 }
 
 /**

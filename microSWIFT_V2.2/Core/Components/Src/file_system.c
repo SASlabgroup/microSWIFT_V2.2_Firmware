@@ -203,8 +203,6 @@ static uSWIFT_return_code_t _file_system_save_log_line ( char *line, uint32_t le
   UINT fx_ret;
   static bool first_time = true, file_creation_failed = false;
   static uint32_t seek_index = 0;
-  time_t timestamp_now = get_system_time ();
-  struct tm time_now = *gmtime (&timestamp_now);
 
   if ( !__open_sd_card () )
   {
@@ -890,7 +888,6 @@ static bool __close_out_file ( char *optional_footer, file_index_t file_index )
 
 static bool __update_file_timestamp ( file_index_t file_index )
 {
-  uSWIFT_return_code_t rtc_ret = uSWIFT_SUCCESS;
   UINT fx_ret;
   time_t timestamp_now = get_system_time ();
   struct tm time_now = *gmtime (&timestamp_now);

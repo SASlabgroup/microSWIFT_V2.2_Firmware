@@ -158,7 +158,7 @@ static bool _control_startup_procedure ( void )
   if ( !initial_powerup )
   {
     // Set the watchdog reset or software reset flags
-    reset_reason = HAL_RCC_GetResetSource ();
+    reset_reason = persistent_ram_get_reset_reason ();
 
     if ( reset_reason & RCC_RESET_FLAG_PIN )
     {

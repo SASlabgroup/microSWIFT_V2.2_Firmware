@@ -1514,8 +1514,6 @@ static void temperature_thread_entry ( ULONG thread_input )
 
   LOG("Temperature sample window started.");
 
-#warning "The temperature start timestamp is never set, resulting in files with timestamps of 0."
-
   while ( fail_counter < max_retries )
   {
     watchdog_check_in (TEMPERATURE_THREAD);
@@ -2082,6 +2080,11 @@ static void iridium_thread_entry ( ULONG thread_input )
       }
 
       continue;
+    }
+
+    if ( iridium_get_configuration_received_status () )
+    {
+      (void) iridium.receive_configuration ();
     }
 
     next_message_type = get_next_telemetry_message (&msg_ptr, &configuration);
