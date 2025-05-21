@@ -15,6 +15,7 @@
 #include "stdio.h"
 #include "stddef.h"
 #include "gpio.h"
+#include "logger.h"
 
 #define LINE_BUF_SIZE (512U)
 
@@ -265,6 +266,9 @@ done:
   {
     ret = uSWIFT_IO_ERROR;
   }
+
+  uart_logger_return_line_buf ((log_line_buf*) line);
+
   return ret;
 }
 

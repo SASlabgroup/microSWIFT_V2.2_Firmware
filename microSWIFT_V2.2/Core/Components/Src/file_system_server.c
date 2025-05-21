@@ -32,6 +32,12 @@ void file_system_server_init ( TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP *co
   file_server_self.request_queue = request_queue;
   file_server_self.complete_flags = complete_flags;
   file_server_self.global_config = global_config;
+  file_server_self.sd_error_status = false;
+}
+
+void file_system_server_set_error_status ( void )
+{
+  file_server_self.sd_error_status = true;
 }
 
 void file_system_server_save_log_line ( char *log_line )
@@ -51,6 +57,11 @@ void file_system_server_save_log_line ( char *log_line )
        != TX_SUCCESS )
   {
     *queue_msg.return_code = uSWIFT_MESSAGE_QUEUE_ERROR;
+  }
+
+  if ( file_server_self.sd_error_status )
+  {
+    uart_logger_return_line_buf ((log_line_buf*) log_line);
   }
 }
 
