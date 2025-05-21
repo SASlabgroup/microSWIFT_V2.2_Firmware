@@ -1342,7 +1342,7 @@ static void ct_thread_entry ( ULONG thread_input )
   // Run tests if needed
   if ( tests.ct_thread_test != NULL )
   {
-    tests.ct_thread_test (NULL);
+    tests.ct_thread_test (&ct);
   }
 
   if ( !ct_self_test (&ct, false, &ct_readings) )

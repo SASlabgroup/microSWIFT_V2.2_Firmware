@@ -13,6 +13,7 @@
 #include "gnss.h"
 #include "iridium.h"
 #include "logger.h"
+#include "ct_sensor.h"
 #include "file_system_server.h"
 #include "watchdog.h"
 #include "math.h"
@@ -25,6 +26,7 @@ testing_hooks tests;
 bool test_iridium_queueing ( void *iridium_ptr );
 bool test_gnss_config ( void *gnss );
 bool gnss_test_control_supplement ( void *control );
+bool test_ct_file_writing ( void *ct );
 /**************************************************************************************************/
 /*********************************** Init --> Assign Tests ****************************************/
 /**************************************************************************************************/
@@ -213,4 +215,19 @@ bool gnss_test_control_supplement ( void *control )
     tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 1);
   }
 
+}
+
+bool test_ct_file_writing ( void *ct )
+{
+  CT *dut = (CT*) ct;
+
+  for ( int i = 0; i < TOTAL_CT_SAMPLES; i++, dut->total_samples++ )
+  {
+    dut->samples[i].temp = i * 2.0f;
+    dut->samples[i].salinity = i * 5.0f;
+  }
+
+  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 5);
+
+  return (file_system_server_save_ct_raw (dut) == uSWIFT_SUCCESS);
 }

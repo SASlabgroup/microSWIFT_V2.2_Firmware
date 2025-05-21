@@ -35,7 +35,7 @@
 #define CT_VALUES_ERROR_CODE            0x70E2
 #define CT_UART_TX_TIMEOUT_TICKS        (TX_TIMER_TICKS_PER_SECOND / 10)
 #define CT_UART_RX_TIMEOUT_TICKS        (TX_TIMER_TICKS_PER_SECOND * 3)
-#define TOTAL_CT_SAMPLES 10
+#define TOTAL_CT_SAMPLES                10
 
 typedef struct
 {
