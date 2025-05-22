@@ -369,6 +369,8 @@ void filex_error_out ( TX_THREAD *filex_thread, const char *fmt, ... )
 
   file_system_deinit ();
 
+  file_system_server_set_error_status ();
+
   vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
   va_end(args);
   LOG(&(tmp_fmt[0]));

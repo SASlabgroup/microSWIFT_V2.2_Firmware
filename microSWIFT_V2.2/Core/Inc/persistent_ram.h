@@ -70,6 +70,8 @@ typedef struct
   uint32_t                      reset_reason;
   bool                          rtc_time_set;
   bool                          ota_update_received;
+  bool                          ota_acknowledgement_sent;
+  sbd_message_type_99           ota_acknowledgement_msg;
   Waves_Message_Storage         waves_storage;
   Turbidity_Message_Storage     turbidity_storage;
   Light_Message_Storage         light_storage;
@@ -92,6 +94,10 @@ void                    persistent_ram_get_device_config ( microSWIFT_configurat
 void                    persistent_ram_set_firmware_version ( const microSWIFT_firmware_version_t *version );
 void                    persistent_ram_get_firmware_version ( microSWIFT_firmware_version_t *version );
 bool                    persistent_ram_get_ota_update_status ( void );
+bool                    persistent_ram_get_ota_ack_status ( void );
+void                    persistent_ram_set_ota_ack ( void );
+void                    persistent_self_set_ota_ack_msg ( sbd_message_type_99 *msg );
+void                    persistent_self_get_ota_ack_msg ( sbd_message_type_99 *msg );
 uint32_t                persistent_ram_get_sample_window_counter ( void );
 void                    persistent_ram_reset_sample_window_counter ( void );
 void                    persistent_ram_set_rtc_time_set ( void );

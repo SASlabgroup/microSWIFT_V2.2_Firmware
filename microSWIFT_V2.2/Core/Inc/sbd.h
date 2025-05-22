@@ -113,5 +113,13 @@ typedef struct __packed
   sbd_message_type_54_element elements[LIGHT_MSGS_PER_SBD];
   iridium_checksum_t          checksum;
 } sbd_message_type_54;
+
+typedef struct
+{
+  char      message_body[320];
+  float     latitude;
+  float     longitude;
+  uint32_t  timestamp;
+} sbd_message_type_99;
 // @formatter:on
 #endif /* INC_SBD_H_ */

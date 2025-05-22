@@ -131,6 +131,46 @@ bool persistent_ram_get_ota_update_status ( void )
 }
 
 /**
+ * Get the status of if the ota ack message has been sent.
+ *
+ * @return void
+ */
+bool persistent_ram_get_ota_ack_status ( void )
+{
+  return persistent_self.ota_acknowledgement_sent;
+}
+
+/**
+ * Set the status of if the ota ack message has been sent to true.
+ *
+ * @return void
+ */
+void persistent_ram_set_ota_ack ( void )
+{
+  persistent_self.ota_acknowledgement_sent = true;
+}
+
+/**
+ * Copy the OTA ack message to persistent ram if Tx was unsuccessful.
+ *
+ * @return void
+ */
+void persistent_self_set_ota_ack_msg ( sbd_message_type_99 *msg )
+{
+  memcpy (&persistent_self.ota_acknowledgement_msg, msg, sizeof(sbd_message_type_99));
+}
+
+/**
+ * Copy the OTA ack message to the provided return pointer if Tx was unsuccessful.
+ *
+ * @return void
+ */
+void persistent_self_get_ota_ack_msg ( sbd_message_type_99 *msg )
+{
+  memcpy (msg, &persistent_self.ota_acknowledgement_msg, sizeof(sbd_message_type_99));
+}
+
+/**
  * Return the duty cycle count (counting up from power on).
  *
  * @return sample_window_counter

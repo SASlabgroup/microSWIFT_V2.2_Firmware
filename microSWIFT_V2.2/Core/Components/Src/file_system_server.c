@@ -46,6 +46,12 @@ void file_system_server_save_log_line ( char *log_line )
   file_system_request_message queue_msg =
     { 0 };
 
+  if ( file_server_self.sd_error_status )
+  {
+    uart_logger_return_line_buf ((log_line_buf*) log_line);
+    return;
+  }
+
   queue_msg.request = SAVE_LOG_LINE;
   queue_msg.size = strlen (log_line);
   queue_msg.object_pointer = (void*) log_line;
@@ -57,11 +63,6 @@ void file_system_server_save_log_line ( char *log_line )
        != TX_SUCCESS )
   {
     *queue_msg.return_code = uSWIFT_MESSAGE_QUEUE_ERROR;
-  }
-
-  if ( file_server_self.sd_error_status )
-  {
-    uart_logger_return_line_buf ((log_line_buf*) log_line);
   }
 }
 

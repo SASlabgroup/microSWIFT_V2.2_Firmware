@@ -2082,11 +2082,6 @@ static void iridium_thread_entry ( ULONG thread_input )
       continue;
     }
 
-    if ( iridium_get_configuration_received_status () )
-    {
-      (void) iridium.receive_configuration ();
-    }
-
     next_message_type = get_next_telemetry_message (&msg_ptr, &configuration);
     if ( next_message_type == NO_MESSAGE )
     {
@@ -2119,6 +2114,11 @@ static void iridium_thread_entry ( ULONG thread_input )
   }
 
   watchdog_check_in (IRIDIUM_THREAD);
+
+  if ( iridium_get_configuration_received_status () )
+  {
+    (void) iridium.receive_configuration ();
+  }
 
   tx_thread_sleep (LOGGER_MAX_TICKS_TO_TX_MSG);
 
