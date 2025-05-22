@@ -47,6 +47,7 @@ static void                  _iridium_cycle_power ( void );
 static uSWIFT_return_code_t  __send_basic_command_message ( const char *command, uint8_t response_size );
 static uSWIFT_return_code_t  __internal_transmit_message ( uint8_t *payload, uint16_t payload_size );
 static uSWIFT_return_code_t  __internal_receive_message ( uint8_t *receive_buffer, uint16_t receive_size );
+static void                  __assemble_ota_ack_message ( microSWIFT_configuration *rcvd_config );
 static uSWIFT_return_code_t  __flush_mt_buffer ( void );
 static iridium_checksum_t    __get_checksum ( uint8_t *payload, size_t payload_size );
 static void                  __reset_uart ( void );
@@ -294,6 +295,9 @@ static uSWIFT_return_code_t _iridium_receive_configuration ( void )
     persistent_ram_set_device_config (rcvd_config, true);
     LOG("New configuration received and applied!");
     iridium_self->configuration_received = false;
+
+    // Write the acknowledgment message
+    __assemble_ota_ack_message (rcvd_config);
   }
 
   return ret;
@@ -652,6 +656,52 @@ io_error:
   return ret;
 }
 
+static void __assemble_ota_ack_message ( microSWIFT_configuration *rcvd_config )
+{
+  sbd_message_type_99 ack_msg =
+    { 0 };
+  uint32_t timestamp = (uint32_t) get_system_time ();
+  int32_t lat = 0.0f, lon = 0.0f;
+  float msg_lat, msg_lon;
+  char v3f, gnss_hi_perf, ct_en, temp_en, light_en, obs_en;
+
+  v3f = (rcvd_config->iridium_v3f) ?
+      'T' : 'F';
+  gnss_hi_perf = (rcvd_config->gnss_high_performance_mode) ?
+      'T' : 'F';
+  ct_en = (rcvd_config->ct_enabled) ?
+      'T' : 'F';
+  temp_en = (rcvd_config->temperature_enabled) ?
+      'T' : 'F';
+  light_en = (rcvd_config->light_enabled) ?
+      'T' : 'F';
+  obs_en = (rcvd_config->turbidity_enabled) ?
+      'T' : 'F';
+
+  gnss_get_current_lat_lon (&lat, &lon);
+
+  msg_lat = lat / LAT_LON_CONVERSION_FACTOR;
+  msg_lon = lon / LAT_LON_CONVERSION_FACTOR;
+
+  memcpy (&ack_msg.timestamp, &timestamp, sizeof(uint32_t));
+  memcpy (&ack_msg.latitude, &msg_lat, sizeof(float));
+  memcpy (&ack_msg.longitude, &msg_lon, sizeof(float));
+
+  (void) snprintf (
+      &(ack_msg.message_body[0]), sizeof(sbd_message_type_99), "\r\n\r\nConfig recvd:\r\n"
+      "Tracking num: %lu\r\nGNSS samples: %lu\r\nDuty cycle: %lu\r\nTx time: %lu\r\nGNSS acq "
+      "time: %lu\r\nGNSS freq: %lu\r\nLight samples: %lu\r\nLight gain: %lu\r\nOBS samples: "
+      "%lu\r\nV3f: %c\r\nGNSS hi perf: %c\r\nCT en: %c\r\nTemp en: %c\r\nLight en: %c\r\n"
+      "OBS en: %c",
+      rcvd_config->tracking_number, rcvd_config->gnss_samples_per_window, rcvd_config->duty_cycle,
+      rcvd_config->iridium_max_transmit_time, rcvd_config->gnss_max_acquisition_wait_time,
+      rcvd_config->gnss_sampling_rate, rcvd_config->total_light_samples,
+      rcvd_config->light_sensor_gain, rcvd_config->total_turbidity_samples, v3f, gnss_hi_perf,
+      ct_en, temp_en, light_en, obs_en);
+
+  persistent_ram_set_ota_ack_msg (&ack_msg);
+}
+
 static uSWIFT_return_code_t __flush_mt_buffer ( void )
 {
   uSWIFT_return_code_t ret = __internal_receive_message (
@@ -672,7 +722,7 @@ static iridium_checksum_t __get_checksum ( uint8_t *payload, size_t payload_size
     { 0 };
   uint16_t temp_checksum = 0;
 
-  // calculate checksum
+// calculate checksum
   for ( int i = 0; i < payload_size; i++ )
   {
     temp_checksum += payload[i];

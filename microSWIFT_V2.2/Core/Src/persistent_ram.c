@@ -155,7 +155,7 @@ void persistent_ram_set_ota_ack ( void )
  *
  * @return void
  */
-void persistent_self_set_ota_ack_msg ( sbd_message_type_99 *msg )
+void persistent_ram_set_ota_ack_msg ( sbd_message_type_99 *msg )
 {
   memcpy (&persistent_self.ota_acknowledgement_msg, msg, sizeof(sbd_message_type_99));
 }
@@ -165,7 +165,7 @@ void persistent_self_set_ota_ack_msg ( sbd_message_type_99 *msg )
  *
  * @return void
  */
-void persistent_self_get_ota_ack_msg ( sbd_message_type_99 *msg )
+void persistent_ram_get_ota_ack_msg ( sbd_message_type_99 *msg )
 {
   memcpy (msg, &persistent_self.ota_acknowledgement_msg, sizeof(sbd_message_type_99));
 }

@@ -442,6 +442,8 @@ uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configura
   uint8_t port = 0;
   uint16_t size = 0;
 
+#error "Add support for type 99 ack message here"
+
 // Put simply, we're going to grab from whichever message queue has the most elements,
 // considering which sensors are enabled. In case of a tie, Waves telemetry messages
 // have priority as they produce a full SBD message every sample window.

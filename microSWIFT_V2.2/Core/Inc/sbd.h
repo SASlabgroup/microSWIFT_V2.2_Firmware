@@ -116,7 +116,7 @@ typedef struct __packed
 
 typedef struct
 {
-  char      message_body[320];
+  char      message_body[TYPE_99_CHAR_BUF_LEN];
   float     latitude;
   float     longitude;
   uint32_t  timestamp;
