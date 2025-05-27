@@ -2084,22 +2084,33 @@ static void iridium_thread_entry ( ULONG thread_input )
       break;
     }
 
-    next_message_size = (next_message_type == WAVES_TELEMETRY) ?
-        sizeof(sbd_message_type_52) :
-                        (next_message_type == TURBIDITY_TELEMETRY) ?
-                            sizeof(sbd_message_type_53) :
-                        (next_message_type == LIGHT_TELEMETRY) ?
-                            sizeof(sbd_message_type_54) : 0;
+    switch ( next_message_type )
+    {
+      case WAVES_TELEMETRY:
+        next_message_size = sizeof(sbd_message_type_52);
+        log_str = "NEDWaves telemetry";
+        break;
+      case TURBIDITY_TELEMETRY:
+        next_message_size = sizeof(sbd_message_type_53);
+        log_str = "OBS telemetry";
+        break;
+      case LIGHT_TELEMETRY:
+        next_message_size = sizeof(sbd_message_type_54);
+        log_str = "Light telemetry";
+        break;
+      case OTA_ACK_MESSAGE:
+        next_message_size = sizeof(sbd_message_type_99);
+        log_str = "OTA config acknowledgment";
+        break;
+
+      default:
+        next_message_size = 0;
+        log_str = "Unknown";
+    }
 
     if ( next_message_size > 0 )
     {
-      log_str = (next_message_type == WAVES_TELEMETRY) ?
-          "NEDWaves" :
-                (next_message_type == TURBIDITY_TELEMETRY) ?
-                    "OBS" :
-                (next_message_type == LIGHT_TELEMETRY) ?
-                    "Light" : "Unknown";
-      LOG("Attempting transmission of %s telemetry...", log_str);
+      LOG("Attempting transmission of %s...", log_str);
 
       if ( iridium.transmit_message (msg_ptr, next_message_size) == uSWIFT_SUCCESS )
       {
@@ -2123,7 +2134,7 @@ static void iridium_thread_entry ( ULONG thread_input )
     tx_thread_sleep (10);
   }
 
-// Turn off the modem
+  // Turn off the modem
   iridium.stop_timer ();
   iridium.sleep ();
 

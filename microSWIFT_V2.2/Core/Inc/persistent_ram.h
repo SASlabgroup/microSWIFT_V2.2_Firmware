@@ -84,7 +84,8 @@ typedef enum
   WAVES_TELEMETRY       = 0,
   TURBIDITY_TELEMETRY   = 1,
   LIGHT_TELEMETRY       = 2,
-  NO_MESSAGE            = 3
+  OTA_ACK_MESSAGE       = 3,
+  NO_MESSAGE            = 4
 } telemetry_type_t;
 
 void                    persistent_ram_init ( const microSWIFT_configuration *config, const microSWIFT_firmware_version_t *version );
@@ -95,7 +96,6 @@ void                    persistent_ram_set_firmware_version ( const microSWIFT_f
 void                    persistent_ram_get_firmware_version ( microSWIFT_firmware_version_t *version );
 bool                    persistent_ram_get_ota_update_status ( void );
 bool                    persistent_ram_get_ota_ack_status ( void );
-void                    persistent_ram_set_ota_ack ( void );
 void                    persistent_ram_set_ota_ack_msg ( sbd_message_type_99 *msg );
 void                    persistent_ram_get_ota_ack_msg ( sbd_message_type_99 *msg );
 uint32_t                persistent_ram_get_sample_window_counter ( void );

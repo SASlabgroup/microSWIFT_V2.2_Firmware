@@ -442,11 +442,16 @@ uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configura
   uint8_t port = 0;
   uint16_t size = 0;
 
-#error "Add support for type 99 ack message here"
+  // If there was an OTA update and the ack message has not yet been sent, then we will send that first.
+  if ( persistent_ram_get_ota_update_status () && !persistent_ram_get_ota_ack_status () )
+  {
+    persistent_ram_get_ota_ack_msg (*msg_buffer);
+    return OTA_ACK_MESSAGE;
+  }
 
-// Put simply, we're going to grab from whichever message queue has the most elements,
-// considering which sensors are enabled. In case of a tie, Waves telemetry messages
-// have priority as they produce a full SBD message every sample window.
+  // Put simply, we're going to grab from whichever message queue has the most elements,
+  // considering which sensors are enabled. In case of a tie, Waves telemetry messages
+  // have priority as they produce a full SBD message every sample window.
 
   if ( (num_waves_msgs == 0) && (num_turbidity_msgs == 0) && (num_light_msgs == 0) )
   {
@@ -455,7 +460,7 @@ uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configura
 
   }
 
-// First case, both light and turbidity sensors are enabled
+  // First case, both light and turbidity sensors are enabled
   if ( config->turbidity_enabled && config->light_enabled )
   {
     // First priority is light telemetry as it contains the most elements
@@ -476,7 +481,7 @@ uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configura
       msg_type = WAVES_TELEMETRY;
     }
   }
-// Only turbidity enabled
+  // Only turbidity enabled
   else if ( config->turbidity_enabled )
   {
     if ( (num_turbidity_msgs >= num_waves_msgs) )
@@ -490,7 +495,7 @@ uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configura
       msg_type = WAVES_TELEMETRY;
     }
   }
-// Only light enabled
+  // Only light enabled
   else if ( config->light_enabled )
   {
     if ( (num_light_msgs >= num_waves_msgs) )
@@ -504,7 +509,7 @@ uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configura
       msg_type = WAVES_TELEMETRY;
     }
   }
-// Neither turbidity nor light sensors are enabled
+  // Neither turbidity nor light sensors are enabled
   else
   {
     *msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
@@ -516,7 +521,7 @@ uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configura
     msg_type = NO_MESSAGE;
   }
 
-// Fill in remaining bytes
+  // Fill in remaining bytes
   switch ( msg_type )
   {
     case WAVES_TELEMETRY:

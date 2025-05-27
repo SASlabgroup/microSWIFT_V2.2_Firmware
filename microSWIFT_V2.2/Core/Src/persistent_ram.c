@@ -141,16 +141,6 @@ bool persistent_ram_get_ota_ack_status ( void )
 }
 
 /**
- * Set the status of if the ota ack message has been sent to true.
- *
- * @return void
- */
-void persistent_ram_set_ota_ack ( void )
-{
-  persistent_self.ota_acknowledgement_sent = true;
-}
-
-/**
  * Copy the OTA ack message to persistent ram if Tx was unsuccessful.
  *
  * @return void
@@ -595,6 +585,11 @@ void persistent_ram_delete_message_element ( telemetry_type_t msg_type, uint8_t 
         }
       }
 
+      break;
+
+    case OTA_ACK_MESSAGE:
+      persistent_self.ota_acknowledgement_sent = true;
+      memset (&persistent_self.ota_acknowledgement_msg, 0, sizeof(sbd_message_type_99));
       break;
 
     default:
