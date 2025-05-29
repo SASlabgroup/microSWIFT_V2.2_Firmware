@@ -48,7 +48,7 @@ typedef struct __packed
   real16_T            mean_voltage;
   float               timestamp;
   uint32_t            error_bits;
-            iridium_checksum_t  checksum;
+  iridium_checksum_t  checksum;
 } sbd_message_type_52;
 
 // Message definition for turbidity (OBS) measurements
