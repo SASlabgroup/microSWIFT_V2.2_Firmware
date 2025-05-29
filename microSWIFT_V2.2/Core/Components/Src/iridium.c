@@ -322,7 +322,7 @@ static void _iridium_charge_caps ( uint32_t caps_charge_time_ticks )
  */
 static void _iridium_sleep ( void )
 {
-  __send_basic_command_message (flush_to_eeprom, FLUSH_TO_EPPROM_SIZE);
+//  __send_basic_command_message (flush_to_eeprom, FLUSH_TO_EPPROM_SIZE);
   HAL_GPIO_WritePin (iridium_self->sleep_pin.port, iridium_self->sleep_pin.pin, GPIO_PIN_RESET);
 }
 

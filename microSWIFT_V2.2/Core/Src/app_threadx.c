@@ -2056,11 +2056,6 @@ static void iridium_thread_entry ( ULONG thread_input )
 
     watchdog_check_in (IRIDIUM_THREAD);
 
-    if ( iridium_get_configuration_received_status () )
-    {
-      (void) iridium.receive_configuration ();
-    }
-
     if ( !current_message_sent )
     {
       LOG("Attempting transmission of NEDWaves telemetry...");
@@ -2072,6 +2067,11 @@ static void iridium_thread_entry ( ULONG thread_input )
       else if ( ret == uSWIFT_TIMEOUT )
       {
         break;
+      }
+
+      if ( iridium_get_configuration_received_status () )
+      {
+        (void) iridium.receive_configuration ();
       }
 
       continue;
@@ -2114,6 +2114,11 @@ static void iridium_thread_entry ( ULONG thread_input )
 
       if ( iridium.transmit_message (msg_ptr, next_message_size) == uSWIFT_SUCCESS )
       {
+        if ( iridium_get_configuration_received_status () )
+        {
+          (void) iridium.receive_configuration ();
+        }
+
         persistent_ram_delete_message_element (next_message_type, msg_ptr);
       }
     }

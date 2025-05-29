@@ -116,10 +116,11 @@ typedef struct __packed
 
 typedef struct
 {
-  char      message_body[TYPE_99_CHAR_BUF_LEN];
-  float     latitude;
-  float     longitude;
-  uint32_t  timestamp;
+  char                  message_body[TYPE_99_CHAR_BUF_LEN];
+  float                 latitude;
+  float                 longitude;
+  uint32_t              timestamp;
+  iridium_checksum_t    checksum;
 } sbd_message_type_99;
 // @formatter:on
 #endif /* INC_SBD_H_ */
