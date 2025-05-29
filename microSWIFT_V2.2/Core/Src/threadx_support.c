@@ -14,6 +14,7 @@
 #include "logger.h"
 #include "app_threadx.h"
 #include "file_system.h"
+#include "file_system_server.h"
 
 static time_t sys_time = 0;
 
@@ -445,7 +446,7 @@ uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configura
   // If there was an OTA update and the ack message has not yet been sent, then we will send that first.
   if ( persistent_ram_get_ota_update_status () && !persistent_ram_get_ota_ack_status () )
   {
-    persistent_ram_get_ota_ack_msg (*msg_buffer);
+    persistent_ram_get_ota_ack_msg ((sbd_message_type_99*) *msg_buffer);
     return OTA_ACK_MESSAGE;
   }
 
