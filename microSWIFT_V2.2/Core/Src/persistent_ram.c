@@ -250,7 +250,7 @@ uint32_t persistent_ram_get_num_msgs_enqueued ( telemetry_type_t msg_type )
  */
 void persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t *msg )
 {
-  int i = 0, j = 0;
+  int i = 0;
 
   // Corruption, lack of initialization check
   if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )

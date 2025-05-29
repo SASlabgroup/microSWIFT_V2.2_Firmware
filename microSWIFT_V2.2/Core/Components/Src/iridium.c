@@ -60,7 +60,7 @@ static const char *disable_flow_control         = "AT&K0\r";
 static const char *enable_ring_indications      = "AT+SBDMTA=1\r";
 static const char *store_config                 = "AT&W0\r";
 static const char *select_power_up_profile      = "AT&Y0\r";
-static const char *flush_to_eeprom              = "AT*F\r";
+//static const char *flush_to_eeprom              = "AT*F\r";
 static const char *clear_MO                     = "AT+SBDD0\r";
 static const char *send_sbd                     = "AT+SBDIX\r";
 static const char *receive_msg                  = "AT+SBDRT\r";
