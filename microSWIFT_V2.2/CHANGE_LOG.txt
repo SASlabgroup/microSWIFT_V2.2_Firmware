@@ -16,6 +16,13 @@ Iridium
     the current configuration will be discarded and overwritten with the original configuration
     saved in Flash memory. A type 99 SBD message is sent to acknowledge the new received config.
     
+****************************************************************************************************
+Turbidity/ OBS
+**************
+
+[ ] Changes self-test to output samples directly
+[ ] Removed redundant calls to get location within turbidity thread
+    
     
 -\(/.-    -\(/.-    -\(/.-   -\(/.-                            -.\)/-    -.\)/-    -.\)/-    -.\)/-         
  :oO       :oO       :oO      :oO        V2.01 Bug Fixes         Oo:       Oo:       Oo:       Oo:
@@ -23,7 +30,7 @@ Iridium
 
 ****************************************************************************************************
 File System
-*****
+***********
 
 [x] Fixed bug with logger if SD card fails
 
