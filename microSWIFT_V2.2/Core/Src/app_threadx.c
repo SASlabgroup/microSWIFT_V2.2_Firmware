@@ -1743,13 +1743,11 @@ static void turbidity_thread_entry ( ULONG thread_input )
     tests.turbidity_thread_test (NULL);
   }
 
-  if ( !turbidity_self_test (&obs) )
+  if ( !turbidity_self_test (&obs, &amb, &prox) )
   {
     turbidity_error_out (&obs, TURBIDITY_INIT_FAILED, this_thread,
                          "Turbidity sensor self test failed.");
   }
-
-  obs.get_most_recent_measurement (&amb, &prox);
 
   LOG("Turbidity sensor initialization complete. Ambient raw counts: %d, Proximity raw counts: %d.",
       amb, prox);
@@ -1769,15 +1767,13 @@ static void turbidity_thread_entry ( ULONG thread_input )
   obs.on ();
   tx_thread_sleep (SOFT_START_DELAY);
 
-  if ( !turbidity_self_test (&obs) )
+  if ( !turbidity_self_test (&obs, &amb, &prox) )
   {
     turbidity_error_out (&obs, TURBIDITY_INIT_FAILED, this_thread,
                          "Turbidity sensor self failed prior to sampling.");
   }
 
   turbidity_reset_sample_counter ();
-
-  gnss_get_current_lat_lon (&obs.start_lat, &obs.start_lon);
 
   LOG("Turbidity sample window started.");
 
@@ -1787,7 +1783,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
 
     watchdog_check_in (LIGHT_THREAD);
 
-    ret = obs.take_measurement ();
+    ret = obs.take_measurement (false);
 
     if ( ret == uSWIFT_DONE_SAMPLING )
     {
@@ -1813,8 +1809,6 @@ static void turbidity_thread_entry ( ULONG thread_input )
   LOG("Turbidity sample window completed.");
 
   obs.off ();
-
-  gnss_get_current_lat_lon (&obs.end_lat, &obs.end_lon);
 
   obs.assemble_telemetry_message_element (&sbd_msg_element);
   persistent_ram_save_message (TURBIDITY_TELEMETRY, (uint8_t*) &sbd_msg_element);

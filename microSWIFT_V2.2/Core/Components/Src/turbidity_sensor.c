@@ -16,9 +16,9 @@
 static Turbidity_Sensor *turbidity_self;
 
 // Struct functions
-static uSWIFT_return_code_t _turbidity_sensor_self_test (void);
+static uSWIFT_return_code_t _turbidity_sensor_self_test ( uint16_t *ambient, uint16_t *proximity );
 static uSWIFT_return_code_t _turbidity_sensor_setup_sensor (void);
-static uSWIFT_return_code_t _turbidity_sensor_take_measurement (void);
+static uSWIFT_return_code_t _turbidity_sensor_take_measurement ( bool self_test );
 static uSWIFT_return_code_t _turbidity_sensor_get_most_recent_measurement ( uint16_t *ambient, uint16_t *proximity );
 static uSWIFT_return_code_t _turbidity_sensor_process_measurements (void);
 static uSWIFT_return_code_t _turbidity_sensor_start_timer ( uint16_t timeout_in_minutes );
@@ -95,7 +95,7 @@ void turbidity_reset_sample_counter ( void )
   turbidity_self->samples_counter = 0;
 }
 
-static uSWIFT_return_code_t _turbidity_sensor_self_test ( void )
+static uSWIFT_return_code_t _turbidity_sensor_self_test ( uint16_t *ambient, uint16_t *proximity )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   uint8_t id = 0;
@@ -122,9 +122,14 @@ static uSWIFT_return_code_t _turbidity_sensor_self_test ( void )
   }
 
   // Throw out the first measurement
-  ret = turbidity_self->take_measurement ();
-  turbidity_self->samples_counter = 0;
-  ret = turbidity_self->take_measurement ();
+  ret = turbidity_self->take_measurement (true);
+  ret |= turbidity_self->take_measurement (true);
+
+  if ( ret == uSWIFT_SUCCESS )
+  {
+    *ambient = turbidity_self->ambient_series[0];
+    *proximity = turbidity_self->proximity_series[0];
+  }
 
   return ret;
 }
@@ -140,7 +145,7 @@ static uSWIFT_return_code_t _turbidity_sensor_setup_sensor ( void )
   return ret;
 }
 
-static uSWIFT_return_code_t _turbidity_sensor_take_measurement ( void )
+static uSWIFT_return_code_t _turbidity_sensor_take_measurement ( bool self_test )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
@@ -149,9 +154,9 @@ static uSWIFT_return_code_t _turbidity_sensor_take_measurement ( void )
   ret |= __turbidity_sensor_get_proximity_reading (
       &turbidity_self->proximity_series[turbidity_self->samples_counter]);
 
-  if ( ret != uSWIFT_SUCCESS )
+  if ( self_test || (ret != uSWIFT_SUCCESS) )
   {
-    return ret;
+    goto done;
   }
 
   turbidity_self->samples_counter++;
@@ -174,6 +179,7 @@ static uSWIFT_return_code_t _turbidity_sensor_take_measurement ( void )
     turbidity_self->process_measurements ();
   }
 
+done:
   return ret;
 }
 

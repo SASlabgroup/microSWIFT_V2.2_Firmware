@@ -47,9 +47,9 @@ typedef struct
 
   bool                      timer_timeout;
 
-  uSWIFT_return_code_t      (*self_test) (void);
+  uSWIFT_return_code_t      (*self_test) (uint16_t *ambient, uint16_t *proximity);
   uSWIFT_return_code_t      (*setup_sensor) (void);
-  uSWIFT_return_code_t      (*take_measurement) (void);
+  uSWIFT_return_code_t      (*take_measurement) (bool self_test);
   uSWIFT_return_code_t      (*get_most_recent_measurement) (uint16_t *ambient, uint16_t *proximity);
   uSWIFT_return_code_t      (*process_measurements) (void);
   uSWIFT_return_code_t      (*start_timer) (uint16_t timeout_in_minutes);

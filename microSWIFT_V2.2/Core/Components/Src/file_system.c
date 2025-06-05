@@ -67,7 +67,7 @@ void file_system_init ( File_System_SD_Card *file_system, uint32_t *media_sector
   file_sys_self->sample_window_counter = persistent_ram_get_sample_window_counter ();
 
   // Get a string of the system time
-  (void) strftime (&time_str[0], sizeof(time_str), "%y-%m-%d_%H-%M-%S", &time_now);
+  (void) strftime (&time_str[0], sizeof(time_str), "%m-%d-%y_%H-%M-%S", &time_now);
 
   // Fill in the file names
   snprintf (&(file_sys_self->file_names[LOG_FILE][0]), FILE_MAX_NAME_LEN, "Logs/Log_%s.txt",

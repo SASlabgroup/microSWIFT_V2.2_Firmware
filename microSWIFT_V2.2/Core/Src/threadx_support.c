@@ -95,14 +95,14 @@ bool temperature_self_test ( Temperature *temperature, float *self_test_temp )
   return (temp_return_code == uSWIFT_SUCCESS);
 }
 
-bool turbidity_self_test ( Turbidity_Sensor *obs )
+bool turbidity_self_test ( Turbidity_Sensor *obs, uint16_t *ambient, uint16_t *proximity )
 {
   int32_t fail_counter = 0, max_retries = 10;
   uSWIFT_return_code_t ret;
 
   while ( fail_counter < max_retries )
   {
-    ret = obs->self_test ();
+    ret = obs->self_test (ambient, proximity);
 
     if ( ret == uSWIFT_SUCCESS )
     {
