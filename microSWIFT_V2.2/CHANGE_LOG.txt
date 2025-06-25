@@ -20,8 +20,8 @@ Iridium
 Turbidity/ OBS
 **************
 
-[ ] Changes self-test to output samples directly
-[ ] Removed redundant calls to get location within turbidity thread
+[x] Changed self-test to output samples directly
+[x] Removed redundant calls to get location within turbidity thread
     
     
 -\(/.-    -\(/.-    -\(/.-   -\(/.-                            -.\)/-    -.\)/-    -.\)/-    -.\)/-         
