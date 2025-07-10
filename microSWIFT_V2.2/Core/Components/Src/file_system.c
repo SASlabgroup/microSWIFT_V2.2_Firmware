@@ -204,6 +204,7 @@ static uSWIFT_return_code_t _file_system_save_log_line ( char *line, uint32_t le
   UINT fx_ret;
   static bool first_time = true, file_creation_failed = false;
   static uint32_t seek_index = 0;
+  time_t sys_time_now = get_system_time ();
 
   if ( !__open_sd_card () )
   {
@@ -215,9 +216,26 @@ static uSWIFT_return_code_t _file_system_save_log_line ( char *line, uint32_t le
   {
     first_time = false;
 
+    if ( sys_time_now < TIMESTAMP_2025_JAN_1 )
+    {
+      snprintf (&(file_sys_self->file_names[LOG_FILE][0]), FILE_MAX_NAME_LEN, "Logs/Log_%s.txt",
+                "BOOT");
+    }
+
     // Create the file
     fx_ret = fx_file_create (file_sys_self->sd_card, &(file_sys_self->file_names[LOG_FILE][0]));
-    if ( fx_ret != FX_SUCCESS )
+    if ( fx_ret == FX_ALREADY_CREATED )
+    {
+      // Seek to the end of the file -- this is where we'll start
+      fx_ret = fx_file_relative_seek (&file_sys_self->files[LOG_FILE], 0, FX_SEEK_END);
+      if ( fx_ret != FX_SUCCESS )
+      {
+        file_creation_failed = true;
+        ret = uSWIFT_IO_ERROR;
+        goto done;
+      }
+    }
+    else if ( fx_ret != FX_SUCCESS )
     {
       file_creation_failed = true;
       ret = uSWIFT_IO_ERROR;

@@ -21,6 +21,7 @@
 // @formatter:off
 #define FILE_SYSTEM_MAX_FILES (7U)
 #define FILE_MAX_NAME_LEN (128U)
+#define TIMESTAMP_2025_JAN_1 (1735718400U)
 
 typedef enum
 {

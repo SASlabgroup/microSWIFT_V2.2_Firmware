@@ -1840,22 +1840,23 @@ static void turbidity_thread_entry ( ULONG thread_input )
  */
 static void waves_thread_entry ( ULONG thread_input )
 {
+  //@formatter:off
   UNUSED(thread_input);
   TX_THREAD *this_thread = &waves_thread;
-  NEDWaves_memory waves_mem =
-    { 0 };
+  NEDWaves_memory waves_mem = { 0 };
   // Function return parameters
-  real16_T E[42];
-  real16_T Dp;
-  real16_T Hs;
-  real16_T Tp;
-  real16_T b_fmax;
-  real16_T b_fmin;
-  signed char a1[42];
-  signed char a2[42];
-  signed char b1[42];
-  signed char b2[42];
-  unsigned char check[42];
+  real16_T E[42] = { 0 };
+  real16_T Dp = { 0 };
+  real16_T Hs = { 0 };
+  real16_T Tp = { 0 };
+  real16_T b_fmax = { 0 };
+  real16_T b_fmin = { 0 };
+  signed char a1[42] = { 0 };
+  signed char a2[42] = { 0 };
+  signed char b1[42] = { 0 };
+  signed char b2[42] = { 0 };
+  unsigned char check[42] = { 0 };
+    //@formatter:on
 
   tx_thread_sleep (1);
 
