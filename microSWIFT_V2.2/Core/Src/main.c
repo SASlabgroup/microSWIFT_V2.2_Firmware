@@ -55,7 +55,7 @@
  **************************************************************************************************/
 
 #define HARDWARE_VERSION 2U
-#define FIRMWARE_VERSION 2U
+#define FIRMWARE_VERSION 3U
 
 static const microSWIFT_firmware_version_t firmware_version =
   { HARDWARE_VERSION, FIRMWARE_VERSION };

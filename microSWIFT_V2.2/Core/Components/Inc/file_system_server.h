@@ -40,6 +40,7 @@ typedef enum
   SAVE_CT_RAW                   = 4,
   SAVE_LIGHT_RAW                = 5,
   SAVE_TURBIDITY_RAW            = 6,
+  UPDATE_DATE_TIME              = 7
 } file_system_request_t;
 
 typedef struct
@@ -69,6 +70,7 @@ uSWIFT_return_code_t    file_system_server_save_temperature_raw ( Temperature *t
 uSWIFT_return_code_t    file_system_server_save_ct_raw ( CT *ct );
 uSWIFT_return_code_t    file_system_server_save_light_raw ( Light_Sensor *light );
 uSWIFT_return_code_t    file_system_server_save_turbidity_raw ( Turbidity_Sensor *obs );
+uSWIFT_return_code_t    file_system_server_update_date_time ( void );
 
 
 

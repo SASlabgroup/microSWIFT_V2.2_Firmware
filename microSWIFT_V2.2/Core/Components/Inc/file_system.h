@@ -50,6 +50,7 @@ typedef struct
   uint32_t                  sample_window_counter;
 
   uSWIFT_return_code_t      (*initialize_card) ( void );
+  uSWIFT_return_code_t      (*set_date_time) ( void );
   uSWIFT_return_code_t      (*save_log_line) ( char* line, uint32_t len );
   uSWIFT_return_code_t      (*save_gnss_velocities) ( GNSS *gnss );
   uSWIFT_return_code_t      (*save_gnss_breadcrumb_track) ( GNSS *gnss );

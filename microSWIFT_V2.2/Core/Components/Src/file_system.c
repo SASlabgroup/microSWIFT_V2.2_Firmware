@@ -21,6 +21,7 @@
 
 // Struct functions
 static uSWIFT_return_code_t _file_system_initialize_card ( void );
+static uSWIFT_return_code_t _file_system_set_date_time ( void );
 static uSWIFT_return_code_t _file_system_save_log_line ( char *line, uint32_t len );
 static uSWIFT_return_code_t _file_system_save_gnss_velocities ( GNSS *gnss );
 static uSWIFT_return_code_t _file_system_save_gnss_breadcrumb_track ( GNSS *gnss );
@@ -86,6 +87,7 @@ void file_system_init ( File_System_SD_Card *file_system, uint32_t *media_sector
             "Turbidity/Turbidity_%s.csv", &time_str[0]);
 
   file_sys_self->initialize_card = _file_system_initialize_card;
+  file_sys_self->set_date_time = _file_system_set_date_time;
   file_sys_self->save_log_line = _file_system_save_log_line;
   file_sys_self->save_gnss_velocities = _file_system_save_gnss_velocities;
   file_sys_self->save_gnss_breadcrumb_track = _file_system_save_gnss_breadcrumb_track;
@@ -196,6 +198,20 @@ done:
   __close_sd_card ();
 
   return ret;
+}
+
+static uSWIFT_return_code_t _file_system_set_date_time ( void )
+{
+  time_t sys_time_now = get_system_time ();
+  struct tm time_struct = *gmtime (&sys_time_now);
+  UINT fx_ret;
+
+  fx_ret = fx_system_date_set (time_struct.tm_year + 1900, time_struct.tm_mon + 1,
+                               time_struct.tm_mday);
+  fx_ret |= fx_system_time_set (time_struct.tm_hour, time_struct.tm_min, time_struct.tm_sec);
+
+  return (fx_ret == FX_SUCCESS) ?
+      uSWIFT_SUCCESS : uSWIFT_FILE_SYSTEM_ERROR;
 }
 
 static uSWIFT_return_code_t _file_system_save_log_line ( char *line, uint32_t len )
@@ -888,11 +904,6 @@ static bool __close_out_file ( char *optional_footer, file_index_t file_index )
     {
       return false;
     }
-  }
-
-  if ( !__update_file_timestamp (file_index) )
-  {
-    return false;
   }
 
   fx_ret = fx_file_close (&file_sys_self->files[file_index]);

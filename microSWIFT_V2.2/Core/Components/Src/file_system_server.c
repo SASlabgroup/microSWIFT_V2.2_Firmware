@@ -10,16 +10,19 @@
 #include "app_threadx.h"
 #include "string.h"
 
+// @formatter:off
 typedef enum
 {
-  SAVE_LOG_LINE_COMPLETE = (ULONG) (1 << 0),
-  SAVE_GNSS_RAW_COMPLETE = (ULONG) (1 << 1),
-  SAVE_GNSS_BREADCRUMB_TRACK_COMPLETE = (ULONG) (1 << 2),
-  SAVE_TEMPERATURE_RAW_COMPLETE = (ULONG) (1 << 3),
-  SAVE_CT_RAW_COMPLETE = (ULONG) (1 << 4),
-  SAVE_LIGHT_RAW_COMPLETE = (ULONG) (1 << 5),
-  SAVE_TURBIDITY_RAW_COMPLETE = (ULONG) (1 << 6),
+  SAVE_LOG_LINE_COMPLETE                = (ULONG) (1 << SAVE_LOG_LINE),
+  SAVE_GNSS_RAW_COMPLETE                = (ULONG) (1 << SAVE_GNSS_RAW),
+  SAVE_GNSS_BREADCRUMB_TRACK_COMPLETE   = (ULONG) (1 << SAVE_GNSS_BREADCRUMB_TRACK),
+  SAVE_TEMPERATURE_RAW_COMPLETE         = (ULONG) (1 << SAVE_TEMPERATURE_RAW),
+  SAVE_CT_RAW_COMPLETE                  = (ULONG) (1 << SAVE_CT_RAW),
+  SAVE_LIGHT_RAW_COMPLETE               = (ULONG) (1 << SAVE_LIGHT_RAW),
+  SAVE_TURBIDITY_RAW_COMPLETE           = (ULONG) (1 << SAVE_TURBIDITY_RAW),
+  UPDATE_DATE_TIME_COMPLETE             = (ULONG) (1 << UPDATE_DATE_TIME)
 } file_system_complete_flags;
+// @formatter:on
 
 static file_system_server file_server_self;
 
@@ -224,6 +227,23 @@ uSWIFT_return_code_t file_system_server_save_turbidity_raw ( Turbidity_Sensor *o
   {
     is_broken = true;
   }
+
+  return ret;
+}
+
+uSWIFT_return_code_t file_system_server_update_date_time ( void )
+{
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
+  file_system_request_message queue_msg =
+    { 0 };
+
+  queue_msg.request = UPDATE_DATE_TIME;
+  queue_msg.size = 0;
+  queue_msg.object_pointer = NULL;
+  queue_msg.complete_flag = UPDATE_DATE_TIME_COMPLETE;
+  queue_msg.return_code = &ret;
+
+  __internal_manage_request (&queue_msg, FILE_SYSTEM_TURBIDITY_RAW_MAX_WAIT_TICKS);
 
   return ret;
 }
