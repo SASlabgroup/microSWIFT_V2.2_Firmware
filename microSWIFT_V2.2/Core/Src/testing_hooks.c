@@ -17,6 +17,8 @@
 #include "file_system_server.h"
 #include "watchdog.h"
 #include "math.h"
+#include "NEDWaves/NEDwaves_memlight.h"
+#include "NEDWaves/mem_replacements.h"
 
 testing_hooks tests;
 
@@ -27,6 +29,7 @@ bool test_iridium_queueing ( void *iridium_ptr );
 bool test_gnss_config ( void *gnss );
 bool gnss_test_control_supplement ( void *control );
 bool test_ct_file_writing ( void *ct );
+bool test_nedwaves ( void *waves_mem );
 /**************************************************************************************************/
 /*********************************** Init --> Assign Tests ****************************************/
 /**************************************************************************************************/
@@ -230,4 +233,31 @@ bool test_ct_file_writing ( void *ct )
   tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 5);
 
   return (file_system_server_save_ct_raw (dut) == uSWIFT_SUCCESS);
+}
+
+bool test_nedwaves ( void *waves_mem )
+{
+  NEDWaves_memory *waves_mem_ptr = (NEDWaves_memory*) waves_mem;
+
+  real16_T E[42];
+  real16_T Dp;
+  real16_T Hs;
+  real16_T Tp;
+  real16_T b_fmax;
+  real16_T b_fmin;
+  signed char a1[42];
+  signed char a2[42];
+  signed char b1[42];
+  signed char b2[42];
+  unsigned char check[42];
+
+  for ( int i = 0; i < waves_mem_ptr->configuration->gnss_samples_per_window; i++ )
+  {
+    waves_mem_ptr->north->data[i] = 0.0f;
+    waves_mem_ptr->east->data[i] = 0.0f;
+    waves_mem_ptr->down->data[i] = 0.0f;
+  }
+
+  NEDwaves_memlight (waves_mem_ptr->north, waves_mem_ptr->east, waves_mem_ptr->down, 0, &Hs, &Tp,
+                     &Dp, E, &b_fmin, &b_fmax, a1, b1, a2, b2, check);
 }

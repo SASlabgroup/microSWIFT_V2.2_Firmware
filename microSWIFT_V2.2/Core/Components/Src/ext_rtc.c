@@ -370,6 +370,7 @@ static uSWIFT_return_code_t _ext_rtc_set_date_time ( struct tm *input_date_time 
     date_time_as_dec.tm_year = date_time_as_dec.tm_year - 1900;
 
     set_system_time (mktime (&date_time_as_dec));
+    (void) file_system_server_update_date_time ();
   }
   else
   {

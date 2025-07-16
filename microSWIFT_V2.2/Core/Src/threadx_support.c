@@ -381,33 +381,6 @@ void filex_error_out ( TX_THREAD *filex_thread, const char *fmt, ... )
   tx_thread_suspend (filex_thread);
 }
 
-ULONG get_gnss_acquisition_timeout ( microSWIFT_configuration *config )
-{
-  int32_t max_acq_time = 10;
-
-  if ( is_first_sample_window () )
-  {
-    max_acq_time = config->gnss_max_acquisition_wait_time;
-  }
-  else if ( config->duty_cycle <= 60U )
-  {
-    max_acq_time = config->duty_cycle - config->iridium_max_transmit_time
-                   - get_gnss_sample_window_timeout (config) - 1;
-
-    if ( max_acq_time > 10 )
-    {
-      max_acq_time = 10;
-    }
-  }
-
-  if ( max_acq_time < 1 )
-  {
-    max_acq_time = 0;
-  }
-
-  return (ULONG) max_acq_time;
-}
-
 ULONG get_gnss_sample_window_timeout ( microSWIFT_configuration *config )
 {
   ULONG sample_window_timeout = (((config->gnss_samples_per_window / config->gnss_sampling_rate)

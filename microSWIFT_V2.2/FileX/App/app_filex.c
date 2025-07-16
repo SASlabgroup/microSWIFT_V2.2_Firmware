@@ -142,7 +142,8 @@ UINT MX_FileX_Init ( VOID *memory_ptr )
   fx_system_initialize ();
 
   /* USER CODE BEGIN MX_FileX_Init 1*/
-
+  file_system_server_init (&file_system_messaging_queue, &file_system_complete_flags,
+                           &configuration);
   /* USER CODE END MX_FileX_Init 1*/
 
   return ret;
@@ -159,11 +160,7 @@ void fx_thread_entry ( ULONG thread_input )
   UINT tx_ret, num_errors = 0;
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
-  tx_thread_sleep (10);
-
   file_system_init (&file_system, &(fx_sd_media_memory[0]), &sd_card, &configuration);
-  file_system_server_init (&file_system_messaging_queue, &file_system_complete_flags,
-                           &configuration);
 
   if ( file_system.initialize_card () != uSWIFT_SUCCESS )
   {
@@ -210,6 +207,7 @@ void fx_thread_entry ( ULONG thread_input )
 
         case UPDATE_DATE_TIME:
           ret = file_system.set_date_time ();
+          break;
 
         default:
           ret = uSWIFT_PARAMETERS_INVALID;
@@ -218,7 +216,7 @@ void fx_thread_entry ( ULONG thread_input )
 
       if ( ret != uSWIFT_SUCCESS )
       {
-        if ( ++num_errors >= 3 )
+        if ( ++num_errors >= 5 )
         {
           filex_error_out (this_thread,
                            "File system failed to service request %d, returning code %d.",

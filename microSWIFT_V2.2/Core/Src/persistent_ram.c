@@ -27,7 +27,6 @@ void persistent_ram_init ( const microSWIFT_configuration *config,
                            const microSWIFT_firmware_version_t *version )
 {
   uint32_t reset_reason = HAL_RCC_GetResetSource ();
-  bool rtc_time_set = false;
 
   // If this has not been initialized previously
   if ( persistent_self.magic_number != PERSISTENT_RAM_MAGIC_DOUBLE_WORD )
@@ -38,19 +37,14 @@ void persistent_ram_init ( const microSWIFT_configuration *config,
 
     persistent_self.magic_number = PERSISTENT_RAM_MAGIC_DOUBLE_WORD;
   }
-  // If a watchdog reset occurred (identified as a hardware pin reset), clear out but retain
-  // the rtc_time_set flag
+  // If a watchdog reset occurred (identified as a hardware pin reset), clear everything out
   else if ( reset_reason == RCC_RESET_FLAG_PIN )
   {
-    rtc_time_set = persistent_ram_get_rtc_time_set ();
-
     _persistent_ram_clear ();
     persistent_ram_set_device_config (config, false);
     persistent_ram_set_firmware_version (version);
 
     persistent_self.magic_number = PERSISTENT_RAM_MAGIC_DOUBLE_WORD;
-
-    persistent_self.rtc_time_set = rtc_time_set;
   }
 
   persistent_self.reset_reason = reset_reason;

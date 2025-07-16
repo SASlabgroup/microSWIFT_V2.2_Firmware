@@ -23,7 +23,13 @@ File System
 File System
 ***********
 
-[ ] Fixed file last modified timestamping issue
+[x] Fixed file last modified timestamping issue
+
+****************************************************************************************************
+Iridium
+*******
+
+[x] Fixed bug that was erasing the error bits if a message was cached.
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Version  2.02 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

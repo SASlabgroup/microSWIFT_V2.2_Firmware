@@ -17,6 +17,8 @@
 
 static uart_logger *logger_self;
 
+static bool initialized = false;
+
 static UINT _logger_get_buffer ( log_line_buf **line_buf );
 static void _logger_send_log_line ( log_line_buf *buf, size_t strlen );
 
@@ -32,10 +34,23 @@ void uart_logger_init ( uart_logger *logger, TX_BLOCK_POOL *block_pool, TX_QUEUE
   logger_self->send_log_line = _logger_send_log_line;
 
   (void) usart3_init ();
+
+  initialized = true;
 }
 
 void uart_log ( const char *fmt, ... )
 {
+  uint32_t init_wait_counter = 0;
+
+  while ( !initialized )
+  {
+    tx_thread_sleep (1);
+    if ( ++init_wait_counter > 10 )
+    {
+      return;
+    }
+  }
+
   // All threads have access to this function concurrently, need mutual exclusion
   if ( tx_mutex_get (logger_self->lock, MUTEX_LOCK_TICKS) != TX_SUCCESS )
   {

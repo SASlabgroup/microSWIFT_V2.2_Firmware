@@ -673,7 +673,6 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   device_handles.expansion_uart_rx_dma_handle = &handle_GPDMA1_Channel2;
 
   persistent_ram_get_device_config (&configuration);
-  configuration.gnss_max_acquisition_wait_time = get_gnss_acquisition_timeout (&configuration);
 
   /* USER CODE END App_ThreadX_MEM_POOL */
   /* USER CODE BEGIN App_ThreadX_Init */
@@ -734,8 +733,6 @@ static void rtc_thread_entry ( ULONG thread_input )
   uSWIFT_return_code_t ret;
   UINT tx_ret;
   rtc_request_message req;
-
-  tx_thread_sleep (10);
 
   ret = ext_rtc_init (&rtc, device_handles.core_spi_handle, &ext_rtc_spi_sema);
 
@@ -936,8 +933,6 @@ static void logger_thread_entry ( ULONG thread_input )
   uart_logger_init (&logger, &logger_block_pool, &logger_message_queue, &logger_mutex,
                     device_handles.logger_uart_handle);
 
-  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
-
   while ( 1 )
   {
 
@@ -979,9 +974,6 @@ static void control_thread_entry ( ULONG thread_input )
     { 0 };
 
   persistent_ram_get_firmware_version (&version);
-
-  // Let RTC and Logger thread init
-  tx_thread_sleep (10);
 
   controller_init (&control, &configuration, &thread_handles, &error_flags, &initialization_flags,
                    &irq_flags, &complete_flags, &control_timer, device_handles.battery_adc,
@@ -1856,7 +1848,7 @@ static void waves_thread_entry ( ULONG thread_input )
   signed char b1[42] = { 0 };
   signed char b2[42] = { 0 };
   unsigned char check[42] = { 0 };
-    //@formatter:on
+                //@formatter:on
 
   tx_thread_sleep (1);
 
@@ -1892,7 +1884,7 @@ static void waves_thread_entry ( ULONG thread_input )
   // Run tests if needed
   if ( tests.waves_thread_test != NULL )
   {
-    tests.waves_thread_test (NULL);
+    tests.waves_thread_test (&waves_mem);
   }
 
   watchdog_check_in (WAVES_THREAD);
@@ -2126,7 +2118,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   if ( !current_message_sent )
   {
     // Update the error bits
-    error_bits = get_current_flags (&error_flags);
+    error_bits = control_get_accumulated_error_flags ();
     memcpy (&sbd_message.error_bits, &error_bits, sizeof(uint32_t));
     // Save the message
     persistent_ram_save_message (WAVES_TELEMETRY, msg_ptr);

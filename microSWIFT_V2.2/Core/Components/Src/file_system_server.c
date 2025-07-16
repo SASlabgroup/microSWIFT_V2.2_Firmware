@@ -74,12 +74,6 @@ uSWIFT_return_code_t file_system_server_save_gnss_raw ( GNSS *gnss )
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   file_system_request_message queue_msg =
     { 0 };
-  static bool is_broken = false;
-
-  if ( is_broken )
-  {
-    return uSWIFT_FILE_SYSTEM_ERROR;
-  }
 
   queue_msg.request = SAVE_GNSS_RAW;
   queue_msg.size = sizeof(float) * file_server_self.global_config->gnss_samples_per_window * 3;
@@ -88,10 +82,6 @@ uSWIFT_return_code_t file_system_server_save_gnss_raw ( GNSS *gnss )
   queue_msg.return_code = &ret;
 
   __internal_manage_request (&queue_msg, FILE_SYSTEM_GNSS_VELOCITIES_MAX_WAIT_TICKS);
-  if ( *queue_msg.return_code != uSWIFT_SUCCESS )
-  {
-    is_broken = true;
-  }
 
   return ret;
 }
@@ -101,12 +91,6 @@ uSWIFT_return_code_t file_system_server_save_gnss_track ( GNSS *gnss )
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   file_system_request_message queue_msg =
     { 0 };
-  static bool is_broken = false;
-
-  if ( is_broken )
-  {
-    return uSWIFT_FILE_SYSTEM_ERROR;
-  }
 
   queue_msg.request = SAVE_GNSS_BREADCRUMB_TRACK;
   queue_msg.size = sizeof(gnss_track_point) * (gnss->breadcrumb_index + 1);
@@ -115,10 +99,6 @@ uSWIFT_return_code_t file_system_server_save_gnss_track ( GNSS *gnss )
   queue_msg.return_code = &ret;
 
   __internal_manage_request (&queue_msg, FILE_SYSTEM_GNSS_TRACK_MAX_WAIT_TICKS);
-  if ( *queue_msg.return_code != uSWIFT_SUCCESS )
-  {
-    is_broken = true;
-  }
 
   return ret;
 }
@@ -128,12 +108,6 @@ uSWIFT_return_code_t file_system_server_save_temperature_raw ( Temperature *temp
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   file_system_request_message queue_msg =
     { 0 };
-  static bool is_broken = false;
-
-  if ( is_broken )
-  {
-    return uSWIFT_FILE_SYSTEM_ERROR;
-  }
 
   queue_msg.request = SAVE_TEMPERATURE_RAW;
   queue_msg.size = temp->samples_counter * sizeof(float);
@@ -142,10 +116,6 @@ uSWIFT_return_code_t file_system_server_save_temperature_raw ( Temperature *temp
   queue_msg.return_code = &ret;
 
   __internal_manage_request (&queue_msg, FILE_SYSTEM_TEMP_RAW_MAX_WAIT_TICKS);
-  if ( *queue_msg.return_code != uSWIFT_SUCCESS )
-  {
-    is_broken = true;
-  }
 
   return ret;
 }
@@ -155,12 +125,6 @@ uSWIFT_return_code_t file_system_server_save_ct_raw ( CT *ct )
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   file_system_request_message queue_msg =
     { 0 };
-  static bool is_broken = false;
-
-  if ( is_broken )
-  {
-    return uSWIFT_FILE_SYSTEM_ERROR;
-  }
 
   queue_msg.request = SAVE_CT_RAW;
   queue_msg.size = ct->total_samples * sizeof(ct_sample);
@@ -169,10 +133,6 @@ uSWIFT_return_code_t file_system_server_save_ct_raw ( CT *ct )
   queue_msg.return_code = &ret;
 
   __internal_manage_request (&queue_msg, FILE_SYSTEM_CT_RAW_MAX_WAIT_TICKS);
-  if ( *queue_msg.return_code != uSWIFT_SUCCESS )
-  {
-    is_broken = true;
-  }
 
   return ret;
 }
@@ -182,12 +142,6 @@ uSWIFT_return_code_t file_system_server_save_light_raw ( Light_Sensor *light )
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   file_system_request_message queue_msg =
     { 0 };
-  static bool is_broken = false;
-
-  if ( is_broken )
-  {
-    return uSWIFT_FILE_SYSTEM_ERROR;
-  }
 
   queue_msg.request = SAVE_LIGHT_RAW;
   queue_msg.size = light->total_samples * (sizeof(light_basic_counts) - sizeof(uint32_t));
@@ -196,10 +150,6 @@ uSWIFT_return_code_t file_system_server_save_light_raw ( Light_Sensor *light )
   queue_msg.return_code = &ret;
 
   __internal_manage_request (&queue_msg, FILE_SYSTEM_LIGHT_RAW_MAX_WAIT_TICKS);
-  if ( *queue_msg.return_code != uSWIFT_SUCCESS )
-  {
-    is_broken = true;
-  }
 
   return ret;
 }
@@ -209,12 +159,6 @@ uSWIFT_return_code_t file_system_server_save_turbidity_raw ( Turbidity_Sensor *o
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   file_system_request_message queue_msg =
     { 0 };
-  static bool is_broken = false;
-
-  if ( is_broken )
-  {
-    return uSWIFT_FILE_SYSTEM_ERROR;
-  }
 
   queue_msg.request = SAVE_TURBIDITY_RAW;
   queue_msg.size = obs->samples_counter * (sizeof(uint16_t) * 2U);
@@ -223,10 +167,6 @@ uSWIFT_return_code_t file_system_server_save_turbidity_raw ( Turbidity_Sensor *o
   queue_msg.return_code = &ret;
 
   __internal_manage_request (&queue_msg, FILE_SYSTEM_TURBIDITY_RAW_MAX_WAIT_TICKS);
-  if ( *queue_msg.return_code != uSWIFT_SUCCESS )
-  {
-    is_broken = true;
-  }
 
   return ret;
 }
