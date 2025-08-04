@@ -394,6 +394,8 @@ static uSWIFT_return_code_t __send_basic_command_message ( const char *command,
     return uSWIFT_IO_ERROR;
   }
 
+  tx_thread_sleep (1);
+
   needle = strstr ((char*) &(iridium_self->response_buffer[1]), "OK");
   memset (&(iridium_self->response_buffer[0]), 0, IRIDIUM_MAX_RESPONSE_SIZE);
   return (needle == NULL) ?
