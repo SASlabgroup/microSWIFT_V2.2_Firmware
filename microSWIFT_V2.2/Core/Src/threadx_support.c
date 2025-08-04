@@ -517,13 +517,15 @@ uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configura
     case TURBIDITY_TELEMETRY:
 
       type = 53;
-      size = 280;
+      size = 282;
 
       memcpy (&(((sbd_message_type_53*) *msg_buffer)->legacy_number_7), &legacy_number_7,
               sizeof(char));
       memcpy (&(((sbd_message_type_53*) *msg_buffer)->type), &type, sizeof(uint8_t));
       memcpy (&(((sbd_message_type_53*) *msg_buffer)->port), &port, sizeof(uint8_t));
       memcpy (&(((sbd_message_type_53*) *msg_buffer)->size), &size, sizeof(uint16_t));
+      memcpy (&(((sbd_message_type_53*) *msg_buffer)->serial_number),
+              &config->turbidity_serial_number, sizeof(uint16_t));
       break;
 
     default:

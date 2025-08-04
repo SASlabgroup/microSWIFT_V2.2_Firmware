@@ -28,6 +28,7 @@ typedef struct __attribute__((packed)) microSWIFT_configuration
   uint32_t total_light_samples;
   uint32_t light_sensor_gain;
   uint32_t total_turbidity_samples;
+  uint16_t turbidity_serial_number;
 
   bool iridium_v3f;
   bool gnss_high_performance_mode;

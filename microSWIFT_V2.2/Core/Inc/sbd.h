@@ -73,6 +73,7 @@ typedef struct __packed
   uint8_t                     type;
   uint8_t                     port;
   uint16_t                    size;
+  uint16_t                    serial_number;
   sbd_message_type_53_element elements[TURBIDITY_MSGS_PER_SBD];
   iridium_checksum_t          checksum;
 } sbd_message_type_53;

@@ -394,8 +394,6 @@ static uSWIFT_return_code_t __send_basic_command_message ( const char *command,
     return uSWIFT_IO_ERROR;
   }
 
-  tx_thread_sleep (1);
-
   needle = strstr ((char*) &(iridium_self->response_buffer[1]), "OK");
   memset (&(iridium_self->response_buffer[0]), 0, IRIDIUM_MAX_RESPONSE_SIZE);
   return (needle == NULL) ?
@@ -752,22 +750,25 @@ static int32_t __uart_read_dma ( void *driver_ptr, uint8_t *read_buf, uint16_t s
   {
     if ( HAL_UARTEx_ReceiveToIdle_DMA (driver_handle->uart_handle, read_buf, size) != HAL_OK )
     {
-      return UART_ERR;
+      goto uart_error;
     }
   }
   else if ( HAL_UART_Receive_DMA (driver_handle->uart_handle, read_buf, size) != HAL_OK )
   {
-    return UART_ERR;
+    goto uart_error;
   }
 
   if ( tx_semaphore_get (driver_handle->uart_sema, timeout_ticks) != TX_SUCCESS )
   {
-    HAL_UART_DMAStop (driver_handle->uart_handle);
-    HAL_UART_Abort (driver_handle->uart_handle);
-    return UART_ERR;
+    goto uart_error;
   }
 
   return UART_OK;
+
+uart_error:
+  HAL_UART_DMAStop (driver_handle->uart_handle);
+  HAL_UART_Abort (driver_handle->uart_handle);
+  return UART_ERR;
 }
 
 static int32_t __uart_write_dma ( void *driver_ptr, uint8_t *write_buf, uint16_t size,
@@ -777,16 +778,19 @@ static int32_t __uart_write_dma ( void *driver_ptr, uint8_t *write_buf, uint16_t
 
   if ( HAL_UART_Transmit_DMA (driver_handle->uart_handle, write_buf, size) != HAL_OK )
   {
-    return UART_ERR;
+    goto uart_error;
   }
 
   if ( tx_semaphore_get (driver_handle->uart_sema, timeout_ticks) != TX_SUCCESS )
   {
-    HAL_UART_DMAStop (driver_handle->uart_handle);
-    HAL_UART_Abort (driver_handle->uart_handle);
-    return UART_ERR;
+    goto uart_error;
   }
 
   return UART_OK;
+
+uart_error:
+  HAL_UART_DMAStop (driver_handle->uart_handle);
+  HAL_UART_Abort (driver_handle->uart_handle);
+  return UART_ERR;
 }
 
