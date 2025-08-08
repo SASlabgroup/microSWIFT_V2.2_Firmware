@@ -11,6 +11,7 @@
 #include "app_threadx.h"
 #include "main.h"
 #include "threadx_support.h"
+#include "file_system_server.h"
 
 static Ext_RTC *rtc_self;
 
