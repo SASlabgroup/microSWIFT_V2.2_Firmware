@@ -17,8 +17,7 @@ void rtc_server_init ( TX_QUEUE *request_queue, TX_EVENT_FLAGS_GROUP *complete_f
 
 void rtc_server_refresh_watchdog ( void )
 {
-  rtc_request_message queue_msg =
-    { 0 };
+  rtc_request_message queue_msg = { 0 };
 
   queue_msg.request = REFRESH_WATCHDOG;
   queue_msg.complete_flag = 0;
@@ -31,8 +30,7 @@ void rtc_server_refresh_watchdog ( void )
 uSWIFT_return_code_t rtc_server_get_time ( struct tm *return_time_struct, ULONG complete_flag )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
-  rtc_request_message queue_msg =
-    { 0 };
+  rtc_request_message queue_msg = { 0 };
   ULONG event_flags;
 
   queue_msg.request = GET_TIME;

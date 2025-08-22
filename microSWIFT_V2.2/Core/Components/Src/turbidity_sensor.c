@@ -4,6 +4,7 @@
  *  Created on: Aug 21, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #include "turbidity_sensor.h"
 #include "app_threadx.h"
@@ -101,8 +102,9 @@ static uSWIFT_return_code_t _turbidity_sensor_self_test ( uint16_t *ambient, uin
   uint8_t id = 0;
 
   if ( vcnl4010_register_io_functions (&turbidity_self->dev_ctx, NULL,
-  NULL,
-                                       _turbidity_sensor_i2c_write, _turbidity_sensor_i2c_read,
+                                       NULL,
+                                       _turbidity_sensor_i2c_write,
+                                       _turbidity_sensor_i2c_read,
                                        _turbidity_sensor_ms_delay)
        != uSWIFT_SUCCESS )
   {

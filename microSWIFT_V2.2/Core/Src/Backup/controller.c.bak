@@ -19,6 +19,9 @@
 // @formatter:off
 static Control  *controller_self;
 
+// Q: Is there a reason that these declarations wind up here
+//    rather than in controller.h? Is it something about minimizing
+//    size?
 // Struct functions
 static bool     _control_startup_procedure ( void );
 static void     _control_shutdown_procedure ( void );
@@ -148,6 +151,8 @@ static bool _control_startup_procedure ( void )
   tx_return = tx_timer_activate (controller_self->timer);
   if ( tx_return != TX_SUCCESS )
   {
+    // NB: This log message is the same as the last one. One should probably
+    //     say "unable to change timer" and the next to say "unable to activate"
     LOG("Unable to set controller duty cycle timer.");
 
     led_light_sequence (TEST_FAILED_LED_SEQUENCE, LED_SEQUENCE_FOREVER);
@@ -158,7 +163,7 @@ static bool _control_startup_procedure ( void )
   if ( !initial_powerup )
   {
     // Set the watchdog reset or software reset flags
-    reset_reason = HAL_RCC_GetResetSource ();
+    reset_reason = persistent_ram_get_reset_reason ();
 
     if ( reset_reason & RCC_RESET_FLAG_PIN )
     {
@@ -169,6 +174,12 @@ static bool _control_startup_procedure ( void )
     {
       tx_event_flags_set (&error_flags, SOFTWARE_RESET, TX_OR);
     }
+  }
+
+  if ( persistent_ram_get_ota_update_status () )
+  {
+    LOG("Running on configuration settings updated over-the-air, dated: %s %s",
+        controller_self->global_config->compile_date, controller_self->global_config->compile_time);
   }
 
   tx_thread_sleep (2);
@@ -763,6 +774,7 @@ static void __handle_gnss_error ( ULONG error_flags )
 {
   ULONG flags = GNSS_THREAD_COMPLETED_WITH_ERRORS | WAVES_THREAD_COMPLETED_WITH_ERRORS;
 
+  // Q: Why does the GNSS error handling also touch turbidity and light?
   if ( controller_self->global_config->turbidity_enabled )
   {
     flags |= TURBIDITY_THREAD_COMPLETED_WITH_ERRORS;
@@ -781,6 +793,7 @@ static void __handle_gnss_error ( ULONG error_flags )
   // Set the GNSS_THREAD_COMPLETED_WITH_ERRORS and WAVES_THREAD_COMPLETED_WITH_ERRORS flags to prevent waves thread from running
   (void) tx_event_flags_set (controller_self->complete_flags, flags, TX_OR);
 
+  // Q: Is there any attempt to restart the thread?
   // Terminate the GNSS thread
   (void) tx_thread_suspend (controller_self->thread_handles->gnss_thread);
   (void) tx_thread_terminate (controller_self->thread_handles->gnss_thread);
