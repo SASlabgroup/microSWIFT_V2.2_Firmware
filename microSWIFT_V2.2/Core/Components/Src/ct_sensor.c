@@ -133,8 +133,10 @@ bool ct_get_timeout_status ( void )
 static uSWIFT_return_code_t _ct_parse_sample ( void )
 {
   uSWIFT_return_code_t return_code = uSWIFT_SUCCESS;
-  int fail_counter = 0, max_retries = 10;
-  double temperature, salinity;
+  int fail_counter = 0;
+  int max_retries = 10;
+  double temperature;
+  double salinity;
   char *index;
 
   // Samples array overflow safety check
@@ -147,9 +149,9 @@ static uSWIFT_return_code_t _ct_parse_sample ( void )
 
   while ( ++fail_counter < max_retries )
   {
-
-    if ( ct_self->uart_driver.read (&ct_self->uart_driver, (uint8_t*) &(ct_self->data_buf[0]),
-    CT_DATA_ARRAY_SIZE,
+    if ( ct_self->uart_driver.read (&ct_self->uart_driver,
+                                    (uint8_t*) &(ct_self->data_buf[0]),
+                                    CT_DATA_ARRAY_SIZE,
                                     CT_UART_RX_TIMEOUT_TICKS)
          != UART_OK )
     {
@@ -214,7 +216,8 @@ static uSWIFT_return_code_t _ct_parse_sample ( void )
  */
 static uSWIFT_return_code_t _ct_get_averages ( ct_sample *readings )
 {
-  double salinity = 0.0f, temp = 0.0f;
+  double salinity = 0.0f;
+  double temp = 0.0f;
 
   for ( int i = 0; i < ct_self->total_samples; i++ )
   {
@@ -245,8 +248,9 @@ static uSWIFT_return_code_t _ct_self_test ( bool add_warmup_time, ct_sample *opt
 
   start_time = tx_time_get ();
 
-  if ( ct_self->uart_driver.read (&ct_self->uart_driver, (uint8_t*) &(ct_self->data_buf[0]),
-  CT_DATA_ARRAY_SIZE,
+  if ( ct_self->uart_driver.read (&ct_self->uart_driver,
+                                  (uint8_t*) &(ct_self->data_buf[0]),
+                                  CT_DATA_ARRAY_SIZE,
                                   CT_UART_RX_TIMEOUT_TICKS)
        != UART_OK )
   {

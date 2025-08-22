@@ -54,8 +54,8 @@
  ***************************************************************************************************
  **************************************************************************************************/
 
-#define HARDWARE_VERSION 2U
-#define FIRMWARE_VERSION 1U
+#define HARDWARE_VERSION (2U)
+#define FIRMWARE_VERSION (4U)
 
 static const microSWIFT_firmware_version_t firmware_version =
   { HARDWARE_VERSION, FIRMWARE_VERSION };
@@ -125,6 +125,10 @@ int main ( void )
   MX_GPDMA1_Init ();
   /* USER CODE BEGIN 2 */
 
+  // Disable the RTC Int B pin interrupt for now until we set up the RTC
+  HAL_NVIC_DisableIRQ (EXTI2_IRQn);
+  HAL_NVIC_ClearPendingIRQ (EXTI2_IRQn);
+
   // Change the gpio configuration based on which modem type we're using
   configure_iridium_onoff_pin (flash_config.iridium_v3f);
 
@@ -132,6 +136,8 @@ int main ( void )
   toggle_rtc_timestamp1_pin ();
 
   // Shut down flash bank 2 -- no longer required
+  // (This flash bank is only used for the configuration, which was loaded
+  // into RAM in in persistent_ram_init.)
   HAL_FLASHEx_EnablePowerDown (FLASH_BANK_2);
 
   tests_init ();

@@ -14,8 +14,10 @@ static int32_t _generic_uart_write ( void *driver_ptr, uint8_t *write_buf, uint1
                                      uint32_t timeout_ticks );
 
 void generic_uart_register_io_functions ( generic_uart_driver *driver_ptr,
-                                          UART_HandleTypeDef *uart_handle, TX_SEMAPHORE *uart_sema,
-                                          uart_init_fn init, uart_deinit_fn deinit,
+                                          UART_HandleTypeDef *uart_handle,
+                                          TX_SEMAPHORE *uart_sema,
+                                          uart_init_fn init,
+                                          uart_deinit_fn deinit,
                                           uart_read_fn override_read_fn,
                                           uart_write_fn override_write_fn )
 {

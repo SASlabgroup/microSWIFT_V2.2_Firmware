@@ -14,8 +14,10 @@
 #include "logger.h"
 #include "app_threadx.h"
 #include "file_system.h"
+#include "file_system_server.h"
 
-uint32_t gnss_config_fail_counter = 0;
+static time_t sys_time = 0;
+
 bool gnss_apply_config ( GNSS *gnss )
 {
   uSWIFT_return_code_t gnss_return_code = uSWIFT_SUCCESS;
@@ -30,8 +32,6 @@ bool gnss_apply_config ( GNSS *gnss )
     {
       break;
     }
-
-    gnss_config_fail_counter++;
 
     if ( fail_counter++ % 3 == 0 )
     {
@@ -95,14 +95,15 @@ bool temperature_self_test ( Temperature *temperature, float *self_test_temp )
   return (temp_return_code == uSWIFT_SUCCESS);
 }
 
-bool turbidity_self_test ( Turbidity_Sensor *obs )
+bool turbidity_self_test ( Turbidity_Sensor *obs, uint16_t *ambient, uint16_t *proximity )
 {
-  int32_t fail_counter = 0, max_retries = 10;
+  int32_t fail_counter = 0;
+  int32_t max_retries = 10;
   uSWIFT_return_code_t ret;
 
   while ( fail_counter < max_retries )
   {
-    ret = obs->self_test ();
+    ret = obs->self_test (ambient, proximity);
 
     if ( ret == uSWIFT_SUCCESS )
     {
@@ -370,6 +371,8 @@ void filex_error_out ( TX_THREAD *filex_thread, const char *fmt, ... )
 
   file_system_deinit ();
 
+  file_system_server_set_error_status ();
+
   vsnprintf (&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
   va_end(args);
   LOG(&(tmp_fmt[0]));
@@ -379,33 +382,6 @@ void filex_error_out ( TX_THREAD *filex_thread, const char *fmt, ... )
   tx_thread_suspend (filex_thread);
 }
 
-ULONG get_gnss_acquisition_timeout ( microSWIFT_configuration *config )
-{
-  int32_t max_acq_time = 10;
-
-  if ( is_first_sample_window () )
-  {
-    max_acq_time = config->gnss_max_acquisition_wait_time;
-  }
-  else if ( config->duty_cycle <= 60U )
-  {
-    max_acq_time = config->duty_cycle - config->iridium_max_transmit_time
-                   - get_gnss_sample_window_timeout (config) - 1;
-
-    if ( max_acq_time > 10 )
-    {
-      max_acq_time = 10;
-    }
-  }
-
-  if ( max_acq_time < 1 )
-  {
-    max_acq_time = 0;
-  }
-
-  return (ULONG) max_acq_time;
-}
-
 ULONG get_gnss_sample_window_timeout ( microSWIFT_configuration *config )
 {
   ULONG sample_window_timeout = (((config->gnss_samples_per_window / config->gnss_sampling_rate)
@@ -413,6 +389,21 @@ ULONG get_gnss_sample_window_timeout ( microSWIFT_configuration *config )
                                  + GNSS_WINDOW_BUFFER_TIME);
 
   return sample_window_timeout;
+}
+
+void set_system_time ( time_t timestamp )
+{
+  sys_time = timestamp;
+}
+
+time_t get_system_time ( void )
+{
+  return sys_time;
+}
+
+void increment_system_time ( void )
+{
+  sys_time++;
 }
 
 uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configuration *config )
@@ -426,9 +417,16 @@ uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configura
   uint8_t port = 0;
   uint16_t size = 0;
 
-// Put simply, we're going to grab from whichever message queue has the most elements,
-// considering which sensors are enabled. In case of a tie, Waves telemetry messages
-// have priority as they produce a full SBD message every sample window.
+  // If there was an OTA update and the ack message has not yet been sent, then we will send that first.
+  if ( persistent_ram_get_ota_update_status () && !persistent_ram_get_ota_ack_status () )
+  {
+    persistent_ram_get_ota_ack_msg ((sbd_message_type_99*) *msg_buffer);
+    return OTA_ACK_MESSAGE;
+  }
+
+  // Put simply, we're going to grab from whichever message queue has the most elements,
+  // considering which sensors are enabled. In case of a tie, Waves telemetry messages
+  // have priority as they produce a full SBD message every sample window.
 
   if ( (num_waves_msgs == 0) && (num_turbidity_msgs == 0) && (num_light_msgs == 0) )
   {
@@ -437,7 +435,7 @@ uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configura
 
   }
 
-// First case, both light and turbidity sensors are enabled
+  // First case, both light and turbidity sensors are enabled
   if ( config->turbidity_enabled && config->light_enabled )
   {
     // First priority is light telemetry as it contains the most elements
@@ -458,7 +456,7 @@ uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configura
       msg_type = WAVES_TELEMETRY;
     }
   }
-// Only turbidity enabled
+  // Only turbidity enabled
   else if ( config->turbidity_enabled )
   {
     if ( (num_turbidity_msgs >= num_waves_msgs) )
@@ -472,7 +470,7 @@ uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configura
       msg_type = WAVES_TELEMETRY;
     }
   }
-// Only light enabled
+  // Only light enabled
   else if ( config->light_enabled )
   {
     if ( (num_light_msgs >= num_waves_msgs) )
@@ -486,7 +484,7 @@ uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configura
       msg_type = WAVES_TELEMETRY;
     }
   }
-// Neither turbidity nor light sensors are enabled
+  // Neither turbidity nor light sensors are enabled
   else
   {
     *msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
@@ -498,7 +496,7 @@ uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configura
     msg_type = NO_MESSAGE;
   }
 
-// Fill in remaining bytes
+  // Fill in remaining bytes
   switch ( msg_type )
   {
     case WAVES_TELEMETRY:
@@ -520,13 +518,15 @@ uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configura
     case TURBIDITY_TELEMETRY:
 
       type = 53;
-      size = 280;
+      size = 282;
 
       memcpy (&(((sbd_message_type_53*) *msg_buffer)->legacy_number_7), &legacy_number_7,
               sizeof(char));
       memcpy (&(((sbd_message_type_53*) *msg_buffer)->type), &type, sizeof(uint8_t));
       memcpy (&(((sbd_message_type_53*) *msg_buffer)->port), &port, sizeof(uint8_t));
       memcpy (&(((sbd_message_type_53*) *msg_buffer)->size), &size, sizeof(uint16_t));
+      memcpy (&(((sbd_message_type_53*) *msg_buffer)->serial_number),
+              &config->turbidity_serial_number, sizeof(uint16_t));
       break;
 
     default:

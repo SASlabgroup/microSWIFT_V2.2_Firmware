@@ -58,15 +58,14 @@ void uart_log ( const char *fmt, ... )
   }
 
   log_line_buf *log_buf = TX_NULL;
-  logger_message msg =
-    { 0 };
-  int32_t bytes_remaining = sizeof(log_line_buf), str_len = 0;
+  logger_message msg = { 0 };
+  int32_t bytes_remaining = sizeof(log_line_buf);
+  int32_t str_len = 0;
   va_list args;
   va_start(args, fmt);
   UINT tx_ret;
   time_t sys_timestamp = get_system_time ();
-  struct tm sys_time =
-    { 0 };
+  struct tm sys_time = { 0 };
 
   tx_ret = _logger_get_buffer (&log_buf);
 

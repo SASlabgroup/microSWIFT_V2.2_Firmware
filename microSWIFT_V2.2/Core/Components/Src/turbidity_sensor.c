@@ -101,8 +101,9 @@ static uSWIFT_return_code_t _turbidity_sensor_self_test ( uint16_t *ambient, uin
   uint8_t id = 0;
 
   if ( vcnl4010_register_io_functions (&turbidity_self->dev_ctx, NULL,
-  NULL,
-                                       _turbidity_sensor_i2c_write, _turbidity_sensor_i2c_read,
+                                       NULL,
+                                       _turbidity_sensor_i2c_write,
+                                       _turbidity_sensor_i2c_read,
                                        _turbidity_sensor_ms_delay)
        != uSWIFT_SUCCESS )
   {
@@ -349,7 +350,8 @@ static uSWIFT_return_code_t __turbidity_sensor_get_proximity_reading ( uint16_t 
 static uSWIFT_return_code_t __turbidity_sensor_get_ambient_reading ( uint16_t *reading )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
-  uint32_t ready_counter = 0, ready_timeout = 10;
+  uint32_t ready_counter = 0;
+  uint32_t ready_timeout = 10;
   bool drdy = false;
 
   ret = vcnl4010_start_ambient_conversion (&turbidity_self->dev_ctx);
