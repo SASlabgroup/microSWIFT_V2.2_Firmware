@@ -4,6 +4,7 @@
  *  Created on: Dec 13, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #ifndef COMPONENTS_INC_LEDS_H_
 #define COMPONENTS_INC_LEDS_H_
@@ -25,9 +26,13 @@
 //@formatter:off
 typedef enum led_sequence
 {
+  // Red on, green on, red off, green off (full cycle is 1 Hz)
   INITIAL_LED_SEQUENCE      = 1,
+  // Green off/on (full cycle is 0.5 Hz; equal time)
   TEST_PASSED_LED_SEQUENCE  = 2,
+  // Red off/on (full cycle is 1 Hz)
   TEST_FAILED_LED_SEQUENCE  = 3,
+  // Green off/on (full cycle is 1 Hz; on for 25% of that)
   HEARTBEAT_SEQUENCE        = 4,
   LIGHTS_OFF                = 5,
   LIGHTS_ON                 = 6

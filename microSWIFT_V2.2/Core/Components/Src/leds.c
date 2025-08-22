@@ -54,6 +54,7 @@ void led_light_sequence ( led_sequence_t sequence, uint32_t duration )
  *
  * @retval Void
  */
+// Input param duration is in secs
 static void __leds_play_sequence ( led_sequence_t sequence, uint32_t duration )
 {
 
