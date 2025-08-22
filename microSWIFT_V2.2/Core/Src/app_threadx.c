@@ -1,4 +1,5 @@
 /* USER CODE BEGIN Header */
+// clang-format off
 /**
  ******************************************************************************
  * @file    app_threadx.c
@@ -156,7 +157,7 @@ TX_SEMAPHORE core_i2c_sema;
 TX_SEMAPHORE iridium_uart_sema;
 TX_SEMAPHORE ct_uart_sema;
 TX_SEMAPHORE logger_sema;
-// Logger mutex
+// Logger mutex; protects LOG call since all threads have access to it
 TX_MUTEX logger_mutex;
 // Server/client message queue for RTC (including watchdog function)
 TX_QUEUE rtc_messaging_queue;
@@ -263,7 +264,7 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   {
     return ret;
   }
-  // Create the logger thread. Low priority priority level and no preemption possible
+  // Create the LED thread. Low priority priority level and no preemption possible
   ret = tx_thread_create(&led_thread, "LED thread", led_thread_entry, 0, pointer, XXS_STACK,
                          VERY_HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
@@ -272,7 +273,7 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   }
 
   //
-  // Allocate stack for the LED thread
+  // Allocate stack for the I2C thread
   ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XS_STACK,
   TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
@@ -1386,7 +1387,7 @@ static void ct_thread_entry ( ULONG thread_input )
                     "CT sensor too many parsing errors, shutting down.");
     }
 
-    // If this evaluates to true, something hung up with GNSS sampling and we were not able
+    // If this evaluates to true, something hung up with CT sampling and we were not able
     // to get all required samples in the alloted time.
     if ( ct_get_timeout_status () )
     {
@@ -1901,7 +1902,7 @@ static void waves_thread_entry ( ULONG thread_input )
   emxDestroyArray_real32_T (waves_mem.east);
   emxDestroyArray_real32_T (waves_mem.down);
 
-  // Done with dynamic memory requirements for NEDWaves, delete the memory pool
+   // Done with dynamic memory requirements for NEDWaves, delete the memory pool
   (void) waves_memory_pool_delete ();
 
   LOG("NEDWaves complete.");
