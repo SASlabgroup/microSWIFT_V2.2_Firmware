@@ -183,7 +183,9 @@ uSWIFT_return_code_t file_system_server_update_date_time ( void )
   queue_msg.complete_flag = UPDATE_DATE_TIME_COMPLETE;
   queue_msg.return_code = &ret;
 
-  __internal_manage_request (&queue_msg, FILE_SYSTEM_TURBIDITY_RAW_MAX_WAIT_TICKS);
+  // Can't wait for this to complete or the system will be in an endless reset loop when
+  // the RTC time is set.
+  __internal_manage_request (&queue_msg, 0U);
 
   return ret;
 }
