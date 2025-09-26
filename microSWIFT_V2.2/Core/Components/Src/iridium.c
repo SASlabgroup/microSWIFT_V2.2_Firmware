@@ -571,7 +571,8 @@ static uSWIFT_return_code_t __internal_transmit_message ( uint8_t *payload, uint
     {
       // Success case
       __send_basic_command_message (clear_MO, SBDD_RESPONSE_SIZE);
-      LOG("Iridium transmission successful.");
+      LOG("Iridium transmission successful. MO status: %d",
+          iridium_self->sbdix_response_codes[MO_STATUS]);
       return_code = uSWIFT_SUCCESS;
       break;
     }
