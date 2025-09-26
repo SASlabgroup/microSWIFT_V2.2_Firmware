@@ -23,12 +23,12 @@ File System
 
 [x] Fixed bug that caused endless reset loop when the SD card fails and RTC time/date set is called.
 
-    
 ****************************************************************************************************
-Turbidity/ OBS
-**************
+Telemetry Storage (persistent_ram)
+**********************************
 
-[ ] 
+[x] Fixed bug causing incorrect packing of OBS telemetry message elements
+[x] Updated logging comments to reflect message elements for light and turbidity
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
