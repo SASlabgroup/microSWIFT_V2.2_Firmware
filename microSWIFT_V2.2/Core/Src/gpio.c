@@ -34,6 +34,7 @@
 
 /** Configure pins
      PC14-OSC32_IN (PC14)   ------> RCC_OSC32_IN
+     VREF+   ------> VREFBUF_OUT
      PA13 (JTMS/SWDIO)   ------> DEBUG_JTMS-SWDIO
      PA14 (JTCK/SWCLK)   ------> DEBUG_JTCK-SWCLK
      PB3 (JTDO/TRACESWO)   ------> DEBUG_JTDO-SWO

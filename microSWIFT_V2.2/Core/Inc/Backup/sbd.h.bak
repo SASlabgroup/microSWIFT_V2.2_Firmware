@@ -48,7 +48,7 @@ typedef struct __packed
   real16_T            mean_voltage;
   float               timestamp;
   uint32_t            error_bits;
-            iridium_checksum_t  checksum;
+  iridium_checksum_t  checksum;
 } sbd_message_type_52;
 
 // Message definition for turbidity (OBS) measurements
@@ -73,6 +73,7 @@ typedef struct __packed
   uint8_t                     type;
   uint8_t                     port;
   uint16_t                    size;
+  uint16_t                    serial_number;
   sbd_message_type_53_element elements[TURBIDITY_MSGS_PER_SBD];
   iridium_checksum_t          checksum;
 } sbd_message_type_53;
@@ -113,5 +114,14 @@ typedef struct __packed
   sbd_message_type_54_element elements[LIGHT_MSGS_PER_SBD];
   iridium_checksum_t          checksum;
 } sbd_message_type_54;
+
+typedef struct
+{
+  char                  message_body[TYPE_99_CHAR_BUF_LEN];
+  float                 latitude;
+  float                 longitude;
+  uint32_t              timestamp;
+  iridium_checksum_t    checksum;
+} sbd_message_type_99;
 // @formatter:on
 #endif /* INC_SBD_H_ */

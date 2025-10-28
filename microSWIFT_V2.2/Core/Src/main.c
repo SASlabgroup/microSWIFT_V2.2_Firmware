@@ -20,7 +20,6 @@
 #include "app_threadx.h"
 #include "main.h"
 #include "gpdma.h"
-#include "memorymap.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -265,7 +264,7 @@ static void rtc_init_delay ( void )
 }
 /* USER CODE END 4 */
 
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
  * @brief  Reports the name of the source file and the source line number
  *         where the assert_param error has occurred.
