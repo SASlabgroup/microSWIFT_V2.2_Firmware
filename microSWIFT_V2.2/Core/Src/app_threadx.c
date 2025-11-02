@@ -940,12 +940,10 @@ static void logger_thread_entry ( ULONG thread_input )
     if ( tx_ret == TX_SUCCESS )
     {
       logger.send_log_line (&(msg.str_buf[0]), msg.strlen);
-#warning"Figure out how to identify is the thread has failed out, and if so, recycle the buffer in this thread."
-      // Pass the buffer down to the file system for saving to SD card
-      file_system_server_save_log_line ((char*) &(msg.str_buf[0]));
-
       // Need to wait until the transmission is complete before grabbing another message
       (void) tx_semaphore_get (&logger_sema, TX_WAIT_FOREVER);
+      // Pass the buffer down to the file system for saving to SD card
+      file_system_server_save_log_line ((char*) &(msg.str_buf[0]));
     }
   }
 }
@@ -1851,7 +1849,7 @@ static void waves_thread_entry ( ULONG thread_input )
   signed char b1[42] = { 0 };
   signed char b2[42] = { 0 };
   unsigned char check[42] = { 0 };
-                              //@formatter:on
+                                    //@formatter:on
 
   tx_thread_sleep (1);
 
