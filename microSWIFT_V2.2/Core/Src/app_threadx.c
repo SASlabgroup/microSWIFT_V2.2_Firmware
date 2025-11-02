@@ -1774,7 +1774,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
   while ( 1 )
   {
 
-    watchdog_check_in (LIGHT_THREAD);
+    watchdog_check_in (TURBIDITY_THREAD);
 
     ret = obs.take_measurement (false);
 
