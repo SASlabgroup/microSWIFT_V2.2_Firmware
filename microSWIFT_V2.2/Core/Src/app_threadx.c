@@ -1774,7 +1774,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
   while ( 1 )
   {
 
-    watchdog_check_in (LIGHT_THREAD);
+    watchdog_check_in (TURBIDITY_THREAD);
 
     ret = obs.take_measurement (false);
 
@@ -1849,7 +1849,7 @@ static void waves_thread_entry ( ULONG thread_input )
   signed char b1[42] = { 0 };
   signed char b2[42] = { 0 };
   unsigned char check[42] = { 0 };
-                                                                        //@formatter:on
+                                                                          //@formatter:on
 
   tx_thread_sleep (1);
 
