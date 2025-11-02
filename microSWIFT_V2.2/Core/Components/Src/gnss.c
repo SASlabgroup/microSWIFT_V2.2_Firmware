@@ -167,6 +167,11 @@ bool gnss_get_timer_timeout_status ( void )
   return gnss_self->timer_timeout;
 }
 
+void gnss_set_sys_init_complete ( void )
+{
+  gnss_self->sys_init_complete = true;
+}
+
 /**
  * Get GNSS configuration status.
  *
@@ -682,21 +687,6 @@ static void _gnss_process_message ( void )
   bool is_ubx_nav_pvt_msg, message_checksum_valid = false;
   bool velocities_non_zero;
 
-  // Catch the end condition
-  if ( gnss_self->total_samples >= gnss_self->global_config->gnss_samples_per_window )
-  {
-    HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
-    gnss_self->sample_window_stop_time = get_system_time ();
-    gnss_self->all_samples_processed = true;
-    gnss_self->sample_window_freq = (double) (((double) gnss_self->global_config
-        ->gnss_samples_per_window)
-                                              / (((double) (((double) gnss_self
-                                                  ->sample_window_stop_time)
-                                                            - ((double) gnss_self
-                                                                ->sample_window_start_time)))));
-    return;
-  }
-
   // Really gross for loop that processes msgs in each iteration
   for ( num_payload_bytes = uUbxProtocolDecode (buf_start, buf_length, &message_class, &message_id,
                                                 (char*) payload, sizeof(payload), &buf_end);
@@ -762,7 +752,7 @@ static void _gnss_process_message ( void )
     }
 
     // Did we have at least 1 good sample?
-    if ( (gnss_self->total_samples == 0) && velocities_non_zero )
+    if ( (gnss_self->total_samples == 0) && velocities_non_zero && gnss_self->sys_init_complete )
     {
       gnss_self->all_resolution_stages_complete = true;
       gnss_self->sample_window_start_time = get_system_time ();
@@ -793,6 +783,21 @@ static void _gnss_process_message ( void )
     }
 
     gnss_self->total_samples++;
+
+    // Catch the end condition
+    if ( gnss_self->total_samples >= gnss_self->global_config->gnss_samples_per_window )
+    {
+      HAL_UART_DMAStop (gnss_self->gnss_uart_handle);
+      gnss_self->sample_window_stop_time = get_system_time ();
+      gnss_self->all_samples_processed = true;
+      gnss_self->sample_window_freq = (double) (((double) gnss_self->global_config
+          ->gnss_samples_per_window)
+                                                / (((double) (((double) gnss_self
+                                                    ->sample_window_stop_time)
+                                                              - ((double) gnss_self
+                                                                  ->sample_window_start_time)))));
+      return;
+    }
 
     buf_length -= buf_end - buf_start;
     buf_start = buf_end;
@@ -1247,6 +1252,7 @@ static void __reset_struct_fields ( void )
   gnss_self->rtc_error = false;
   gnss_self->all_samples_processed = false;
   gnss_self->timer_timeout = false;
+  gnss_self->sys_init_complete = false;
 }
 
 /**

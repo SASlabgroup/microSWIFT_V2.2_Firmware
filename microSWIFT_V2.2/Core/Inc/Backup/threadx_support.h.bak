@@ -36,7 +36,7 @@
 bool                gnss_apply_config ( GNSS *gnss );
 bool                ct_self_test ( CT *ct, bool add_warmup_time, ct_sample *self_test_readings );
 bool                temperature_self_test ( Temperature *temperature, float *self_test_temp );
-bool                turbidity_self_test ( Turbidity_Sensor *obs );
+bool                turbidity_self_test ( Turbidity_Sensor *obs, uint16_t *ambient, uint16_t *proximity );
 bool                light_self_test ( Light_Sensor *light);
 bool                iridium_apply_config ( Iridium *iridium );
 bool                iridium_self_test ( Iridium *iridium );
@@ -54,6 +54,10 @@ void                filex_error_out (TX_THREAD *filex_thread, const char *fmt, .
 
 ULONG               get_gnss_acquisition_timeout (microSWIFT_configuration *config);
 ULONG               get_gnss_sample_window_timeout (microSWIFT_configuration *config);
+
+void                set_system_time ( time_t timestamp );
+time_t              get_system_time ( void );
+void                increment_system_time ( void );
 
 uint32_t            get_next_telemetry_message (uint8_t** msg_buffer, microSWIFT_configuration *config);
 

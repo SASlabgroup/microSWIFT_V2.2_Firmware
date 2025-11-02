@@ -20,7 +20,6 @@
 #include "app_threadx.h"
 #include "main.h"
 #include "gpdma.h"
-#include "memorymap.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -188,7 +187,7 @@ void SystemClock_Config ( void )
   RCC_OscInitStruct.LSEState = RCC_LSE_BYPASS;
   RCC_OscInitStruct.MSIState = RCC_MSI_ON;
   RCC_OscInitStruct.MSICalibrationValue = RCC_MSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_2;
+  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_1;
   RCC_OscInitStruct.MSIKClockRange = RCC_MSIKRANGE_2;
   RCC_OscInitStruct.MSIKState = RCC_MSIK_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
@@ -265,7 +264,7 @@ static void rtc_init_delay ( void )
 }
 /* USER CODE END 4 */
 
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
  * @brief  Reports the name of the source file and the source line number
  *         where the assert_param error has occurred.

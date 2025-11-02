@@ -295,7 +295,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   // Create the logger thread. Low priority priority level and no preemption possible
   ret = tx_thread_create(&logger_thread, "logger thread", logger_thread_entry, 0, pointer, M_STACK,
-                         LOW_PRIORITY, LOW_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
+                         LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -940,7 +940,7 @@ static void logger_thread_entry ( ULONG thread_input )
     if ( tx_ret == TX_SUCCESS )
     {
       logger.send_log_line (&(msg.str_buf[0]), msg.strlen);
-
+#warning"Figure out how to identify is the thread has failed out, and if so, recycle the buffer in this thread."
       // Pass the buffer down to the file system for saving to SD card
       file_system_server_save_log_line ((char*) &(msg.str_buf[0]));
 
@@ -1009,6 +1009,8 @@ static void control_thread_entry ( ULONG thread_input )
       Error_Handler ();
     }
   }
+
+  gnss_set_sys_init_complete ();
 
   watchdog_check_in (CONTROL_THREAD);
 
@@ -1190,6 +1192,7 @@ static void gnss_thread_entry ( ULONG thread_input )
 
     if ( (total_samples > 0) && (!start_flag_sent) )
     {
+
       (void) tx_event_flags_set (&complete_flags, GNSS_SAMPLING_STARTED_FIX_GOOD, TX_OR);
       start_flag_sent = true;
     }
@@ -1848,7 +1851,7 @@ static void waves_thread_entry ( ULONG thread_input )
   signed char b1[42] = { 0 };
   signed char b2[42] = { 0 };
   unsigned char check[42] = { 0 };
-                //@formatter:on
+                              //@formatter:on
 
   tx_thread_sleep (1);
 
@@ -1963,6 +1966,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   uint32_t next_message_type;
   uint32_t next_message_size = 0;
   char *log_str = NULL;
+  uint32_t start_time = 0;
 
   tx_thread_sleep (10);
 
@@ -1978,7 +1982,8 @@ static void iridium_thread_entry ( ULONG thread_input )
 
   iridium.on ();
   iridium.wake ();
-  iridium.charge_caps (IRIDIUM_INITIAL_CAP_CHARGE_TIME);
+  start_time = tx_time_get ();
+  iridium.charge_caps (IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
 
   if ( !iridium_apply_config (&iridium) )
   {
@@ -1995,6 +2000,9 @@ static void iridium_thread_entry ( ULONG thread_input )
   {
     tests.iridium_thread_test (&iridium);
   }
+
+  // Finish charging the caps
+  tx_thread_sleep ((tx_time_get () - start_time) < IRIDIUM_INITIAL_CAP_CHARGE_TIME);
 
   iridium.sleep ();
 

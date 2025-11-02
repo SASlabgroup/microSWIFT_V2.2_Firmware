@@ -99,6 +99,7 @@ void file_system_init ( File_System_SD_Card *file_system, uint32_t *media_sector
 
 void file_system_deinit ( void )
 {
+  __close_sd_card ();
   sdmmc1_deinit ();
 }
 
@@ -195,7 +196,7 @@ static uSWIFT_return_code_t _file_system_initialize_card ( void )
   }
 
 done:
-  __close_sd_card ();
+//  __close_sd_card ();
 
   return ret;
 }
@@ -222,11 +223,11 @@ static uSWIFT_return_code_t _file_system_save_log_line ( char *line, uint32_t le
   bool file_existed = false;
   time_t sys_time_now = get_system_time ();
 
-  if ( !__open_sd_card () )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
+//  if ( !__open_sd_card () )
+//  {
+//    ret = uSWIFT_IO_ERROR;
+//    goto done;
+//  }
 
   if ( first_time )
   {
@@ -283,10 +284,10 @@ static uSWIFT_return_code_t _file_system_save_log_line ( char *line, uint32_t le
   }
 
 done:
-  if ( !__close_sd_card () )
-  {
-    ret = uSWIFT_IO_ERROR;
-  }
+//  if ( !__close_sd_card () )
+//  {
+//    ret = uSWIFT_IO_ERROR;
+//  }
 
   return ret;
 }
@@ -305,11 +306,11 @@ static uSWIFT_return_code_t _file_system_save_gnss_velocities ( GNSS *gnss )
   size_t str_index = 0, size_req = 0;
   uint32_t velocity_index = 0, time_counter = 0;
 
-  if ( !__open_sd_card () )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
+//  if ( !__open_sd_card () )
+//  {
+//    ret = uSWIFT_IO_ERROR;
+//    goto done;
+//  }
 
   if ( !__write_file_header (gnss_velocities_csv_header, GNSS_VELOCITIES) )
   {
@@ -359,10 +360,10 @@ static uSWIFT_return_code_t _file_system_save_gnss_velocities ( GNSS *gnss )
   }
 
 done:
-  if ( !__close_sd_card () )
-  {
-    ret = uSWIFT_IO_ERROR;
-  }
+//  if ( !__close_sd_card () )
+//  {
+//    ret = uSWIFT_IO_ERROR;
+//  }
   return ret;
 }
 
@@ -425,13 +426,13 @@ static uSWIFT_return_code_t _file_system_save_gnss_breadcrumb_track ( GNSS *gnss
   struct tm time;
   time_t timestamp = gnss->sample_window_start_time;
 
-  if ( !__open_sd_card () )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
+//  if ( !__open_sd_card () )
+//  {
+//    ret = uSWIFT_IO_ERROR;
+//    goto done;
+//  }
 
-  // Write the tracking number into the header
+// Write the tracking number into the header
   snprintf (&(line[0]), LINE_BUF_SIZE, gnss_track_kml_header,
             file_sys_self->global_config->tracking_number, file_sys_self->sample_window_counter);
 
@@ -522,10 +523,10 @@ static uSWIFT_return_code_t _file_system_save_gnss_breadcrumb_track ( GNSS *gnss
   }
 
 done:
-  if ( !__close_sd_card () )
-  {
-    ret = uSWIFT_IO_ERROR;
-  }
+//  if ( !__close_sd_card () )
+//  {
+//    ret = uSWIFT_IO_ERROR;
+//  }
   return ret;
 }
 
@@ -542,11 +543,11 @@ static uSWIFT_return_code_t _file_system_save_temperature_raw ( Temperature *tem
   struct tm time;
   time_t timestamp = temp->start_timestamp;
 
-  if ( !__open_sd_card () )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
+//  if ( !__open_sd_card () )
+//  {
+//    ret = uSWIFT_IO_ERROR;
+//    goto done;
+//  }
 
   if ( !__write_file_header (temperature_csv_header, TEMPERATURE_FILE) )
   {
@@ -590,10 +591,10 @@ static uSWIFT_return_code_t _file_system_save_temperature_raw ( Temperature *tem
   }
 
 done:
-  if ( !__close_sd_card () )
-  {
-    ret = uSWIFT_IO_ERROR;
-  }
+//  if ( !__close_sd_card () )
+//  {
+//    ret = uSWIFT_IO_ERROR;
+//  }
   return ret;
 }
 
@@ -610,11 +611,11 @@ static uSWIFT_return_code_t _file_system_save_ct_raw ( CT *ct )
   struct tm time;
   time_t timestamp = ct->start_timestamp;
 
-  if ( !__open_sd_card () )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
+//  if ( !__open_sd_card () )
+//  {
+//    ret = uSWIFT_IO_ERROR;
+//    goto done;
+//  }
 
   if ( !__write_file_header (ct_csv_header, CT_FILE) )
   {
@@ -656,10 +657,10 @@ static uSWIFT_return_code_t _file_system_save_ct_raw ( CT *ct )
   }
 
 done:
-  if ( !__close_sd_card () )
-  {
-    ret = uSWIFT_IO_ERROR;
-  }
+//  if ( !__close_sd_card () )
+//  {
+//    ret = uSWIFT_IO_ERROR;
+//  }
   return ret;
 }
 
@@ -677,11 +678,11 @@ static uSWIFT_return_code_t _file_system_save_light_raw ( Light_Sensor *light )
   struct tm time;
   time_t timestamp = light->start_timestamp;
 
-  if ( !__open_sd_card () )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
+//  if ( !__open_sd_card () )
+//  {
+//    ret = uSWIFT_IO_ERROR;
+//    goto done;
+//  }
 
   if ( !__write_file_header (light_csv_header, LIGHT_FILE) )
   {
@@ -734,10 +735,10 @@ static uSWIFT_return_code_t _file_system_save_light_raw ( Light_Sensor *light )
   }
 
 done:
-  if ( !__close_sd_card () )
-  {
-    ret = uSWIFT_IO_ERROR;
-  }
+//  if ( !__close_sd_card () )
+//  {
+//    ret = uSWIFT_IO_ERROR;
+//  }
   return ret;
 }
 
@@ -755,11 +756,11 @@ static uSWIFT_return_code_t _file_system_save_turbidity_raw ( Turbidity_Sensor *
   struct tm time;
   time_t timestamp = obs->start_timestamp;
 
-  if ( !__open_sd_card () )
-  {
-    ret = uSWIFT_IO_ERROR;
-    goto done;
-  }
+//  if ( !__open_sd_card () )
+//  {
+//    ret = uSWIFT_IO_ERROR;
+//    goto done;
+//  }
 
   if ( !__write_file_header (turbidity_csv_header, TURBIDITY_FILE) )
   {
@@ -804,10 +805,10 @@ static uSWIFT_return_code_t _file_system_save_turbidity_raw ( Turbidity_Sensor *
   }
 
 done:
-  if ( !__close_sd_card () )
-  {
-    ret = uSWIFT_IO_ERROR;
-  }
+//  if ( !__close_sd_card () )
+//  {
+//    ret = uSWIFT_IO_ERROR;
+//  }
   return ret;
 }
 
@@ -818,7 +819,7 @@ static void __sd_card_on ( void )
 
 static void __sd_card_off ( void )
 {
-  gpio_write_pin (file_sys_self->fet_pin, GPIO_PIN_SET);
+  gpio_write_pin (file_sys_self->fet_pin, GPIO_PIN_RESET);
 }
 
 static bool __open_sd_card ( void )
@@ -827,11 +828,11 @@ static bool __open_sd_card ( void )
   char card_name[32] =
     { 0 };
 
-  __sd_card_on ();
+//  __sd_card_on ();
 
   snprintf (&(card_name[0]), 32, "microSWIFT %lu", file_sys_self->global_config->tracking_number);
 
-  tx_thread_sleep (SOFT_START_DELAY);
+//  tx_thread_sleep (SOFT_START_DELAY);
 
   fx_ret = fx_media_open(file_sys_self->sd_card, &(card_name[0]), fx_stm32_sd_driver,
                          (VOID *)FX_NULL, (VOID *) file_sys_self->media_sector_cache,
@@ -846,7 +847,7 @@ static bool __close_sd_card ( void )
 
   fx_ret = fx_media_close (file_sys_self->sd_card);
 
-  __sd_card_off ();
+//  __sd_card_off ();
 
   return (fx_ret == FX_SUCCESS);
 }

@@ -295,7 +295,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   }
   // Create the logger thread. Low priority priority level and no preemption possible
   ret = tx_thread_create(&logger_thread, "logger thread", logger_thread_entry, 0, pointer, M_STACK,
-                         LOW_PRIORITY, LOW_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
+                         LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
   if ( ret != TX_SUCCESS )
   {
     return ret;
@@ -673,7 +673,6 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   device_handles.expansion_uart_rx_dma_handle = &handle_GPDMA1_Channel2;
 
   persistent_ram_get_device_config (&configuration);
-  configuration.gnss_max_acquisition_wait_time = get_gnss_acquisition_timeout (&configuration);
 
   /* USER CODE END App_ThreadX_MEM_POOL */
   /* USER CODE BEGIN App_ThreadX_Init */
@@ -717,16 +716,10 @@ void MX_ThreadX_Init ( void )
  * @brief  RTC thread. Manages all RTC operations.
  *
  * @note   This is a server style thread to manage shared hardware. Multiple threads require access
- *         to the RTC, so all operations happen in this thread. There are two methods of notifying
- *         this thread that there is work to do:
+ *         to the RTC, so all operations happen in this thread.
  *
- *         1) A watchdog semaphore -- if this semaphore ever has a count greater than 0, the
- *            RTC will refresh the watchdog.
- *
- *         2) For all other RTC requests, functions in ext_rtc_api.h are called which place a
- *            rtc_request_message on the queue, which contains all the required information for an
- *            RTC operation. The return code is written back via pointer provided in the queue
- *            message.
+ *         Threads call functions defined in ext_rtc_server.h which place requests on the rtc queue
+ *         which are then handled here.
  *
  * @param  ULONG thread_input - unused
  * @retval void
@@ -740,8 +733,6 @@ static void rtc_thread_entry ( ULONG thread_input )
   uSWIFT_return_code_t ret;
   UINT tx_ret;
   rtc_request_message req;
-
-  tx_thread_sleep (10);
 
   ret = ext_rtc_init (&rtc, device_handles.core_spi_handle, &ext_rtc_spi_sema);
 
@@ -942,8 +933,6 @@ static void logger_thread_entry ( ULONG thread_input )
   uart_logger_init (&logger, &logger_block_pool, &logger_message_queue, &logger_mutex,
                     device_handles.logger_uart_handle);
 
-  tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
-
   while ( 1 )
   {
 
@@ -986,9 +975,6 @@ static void control_thread_entry ( ULONG thread_input )
 
   persistent_ram_get_firmware_version (&version);
 
-  // Let RTC and Logger thread init
-  tx_thread_sleep (10);
-
   controller_init (&control, &configuration, &thread_handles, &error_flags, &initialization_flags,
                    &irq_flags, &complete_flags, &control_timer, device_handles.battery_adc,
                    &sbd_message);
@@ -1023,6 +1009,8 @@ static void control_thread_entry ( ULONG thread_input )
       Error_Handler ();
     }
   }
+
+  gnss_set_sys_init_complete ();
 
   watchdog_check_in (CONTROL_THREAD);
 
@@ -1204,6 +1192,7 @@ static void gnss_thread_entry ( ULONG thread_input )
 
     if ( (total_samples > 0) && (!start_flag_sent) )
     {
+
       (void) tx_event_flags_set (&complete_flags, GNSS_SAMPLING_STARTED_FIX_GOOD, TX_OR);
       start_flag_sent = true;
     }
@@ -1348,7 +1337,7 @@ static void ct_thread_entry ( ULONG thread_input )
   // Run tests if needed
   if ( tests.ct_thread_test != NULL )
   {
-    tests.ct_thread_test (NULL);
+    tests.ct_thread_test (&ct);
   }
 
   if ( !ct_self_test (&ct, false, &ct_readings) )
@@ -1519,8 +1508,6 @@ static void temperature_thread_entry ( ULONG thread_input )
   tx_thread_sleep (SOFT_START_DELAY);
 
   LOG("Temperature sample window started.");
-
-#warning "The temperature start timestamp is never set, resulting in files with timestamps of 0."
 
   while ( fail_counter < max_retries )
   {
@@ -1751,13 +1738,11 @@ static void turbidity_thread_entry ( ULONG thread_input )
     tests.turbidity_thread_test (NULL);
   }
 
-  if ( !turbidity_self_test (&obs) )
+  if ( !turbidity_self_test (&obs, &amb, &prox) )
   {
     turbidity_error_out (&obs, TURBIDITY_INIT_FAILED, this_thread,
                          "Turbidity sensor self test failed.");
   }
-
-  obs.get_most_recent_measurement (&amb, &prox);
 
   LOG("Turbidity sensor initialization complete. Ambient raw counts: %d, Proximity raw counts: %d.",
       amb, prox);
@@ -1777,15 +1762,13 @@ static void turbidity_thread_entry ( ULONG thread_input )
   obs.on ();
   tx_thread_sleep (SOFT_START_DELAY);
 
-  if ( !turbidity_self_test (&obs) )
+  if ( !turbidity_self_test (&obs, &amb, &prox) )
   {
     turbidity_error_out (&obs, TURBIDITY_INIT_FAILED, this_thread,
                          "Turbidity sensor self failed prior to sampling.");
   }
 
   turbidity_reset_sample_counter ();
-
-  gnss_get_current_lat_lon (&obs.start_lat, &obs.start_lon);
 
   LOG("Turbidity sample window started.");
 
@@ -1795,7 +1778,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
 
     watchdog_check_in (LIGHT_THREAD);
 
-    ret = obs.take_measurement ();
+    ret = obs.take_measurement (false);
 
     if ( ret == uSWIFT_DONE_SAMPLING )
     {
@@ -1821,8 +1804,6 @@ static void turbidity_thread_entry ( ULONG thread_input )
   LOG("Turbidity sample window completed.");
 
   obs.off ();
-
-  gnss_get_current_lat_lon (&obs.end_lat, &obs.end_lon);
 
   obs.assemble_telemetry_message_element (&sbd_msg_element);
   persistent_ram_save_message (TURBIDITY_TELEMETRY, (uint8_t*) &sbd_msg_element);
@@ -1854,22 +1835,23 @@ static void turbidity_thread_entry ( ULONG thread_input )
  */
 static void waves_thread_entry ( ULONG thread_input )
 {
+  //@formatter:off
   UNUSED(thread_input);
   TX_THREAD *this_thread = &waves_thread;
-  NEDWaves_memory waves_mem =
-    { 0 };
+  NEDWaves_memory waves_mem = { 0 };
   // Function return parameters
-  real16_T E[42];
-  real16_T Dp;
-  real16_T Hs;
-  real16_T Tp;
-  real16_T b_fmax;
-  real16_T b_fmin;
-  signed char a1[42];
-  signed char a2[42];
-  signed char b1[42];
-  signed char b2[42];
-  unsigned char check[42];
+  real16_T E[42] = { 0 };
+  real16_T Dp = { 0 };
+  real16_T Hs = { 0 };
+  real16_T Tp = { 0 };
+  real16_T b_fmax = { 0 };
+  real16_T b_fmin = { 0 };
+  signed char a1[42] = { 0 };
+  signed char a2[42] = { 0 };
+  signed char b1[42] = { 0 };
+  signed char b2[42] = { 0 };
+  unsigned char check[42] = { 0 };
+                            //@formatter:on
 
   tx_thread_sleep (1);
 
@@ -1905,7 +1887,7 @@ static void waves_thread_entry ( ULONG thread_input )
   // Run tests if needed
   if ( tests.waves_thread_test != NULL )
   {
-    tests.waves_thread_test (NULL);
+    tests.waves_thread_test (&waves_mem);
   }
 
   watchdog_check_in (WAVES_THREAD);
@@ -1984,7 +1966,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   uint32_t next_message_type;
   uint32_t next_message_size = 0;
   char *log_str = NULL;
-  GPIO_PinState ri_status;
+  uint32_t start_time = 0;
 
   tx_thread_sleep (10);
 
@@ -2000,9 +1982,8 @@ static void iridium_thread_entry ( ULONG thread_input )
 
   iridium.on ();
   iridium.wake ();
-  iridium.charge_caps (IRIDIUM_INITIAL_CAP_CHARGE_TIME);
-
-  ri_status = HAL_GPIO_ReadPin (IRIDIUM_RI_N_GPIO_Port, IRIDIUM_RI_N_Pin);
+  start_time = tx_time_get ();
+  iridium.charge_caps (IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
 
   if ( !iridium_apply_config (&iridium) )
   {
@@ -2020,6 +2001,9 @@ static void iridium_thread_entry ( ULONG thread_input )
     tests.iridium_thread_test (&iridium);
   }
 
+  // Finish charging the caps
+  tx_thread_sleep ((tx_time_get () - start_time) < IRIDIUM_INITIAL_CAP_CHARGE_TIME);
+
   iridium.sleep ();
 
   tx_thread_suspend (this_thread);
@@ -2032,8 +2016,6 @@ static void iridium_thread_entry ( ULONG thread_input )
   iridium.charge_caps (IRIDIUM_TOP_UP_CAP_CHARGE_TIME);
 
   iridium.start_timer (iridium_thread_timeout);
-
-  ri_status = HAL_GPIO_ReadPin (IRIDIUM_RI_N_GPIO_Port, IRIDIUM_RI_N_Pin);
 
   // finish filling out the SBD message
   rtc_server_get_time (&time_struct, IRIDIUM_REQUEST_COMPLETE);
@@ -2082,6 +2064,11 @@ static void iridium_thread_entry ( ULONG thread_input )
         break;
       }
 
+      if ( iridium_get_configuration_received_status () )
+      {
+        (void) iridium.receive_configuration ();
+      }
+
       continue;
     }
 
@@ -2092,25 +2079,41 @@ static void iridium_thread_entry ( ULONG thread_input )
       break;
     }
 
-    next_message_size = (next_message_type == WAVES_TELEMETRY) ?
-        sizeof(sbd_message_type_52) :
-                        (next_message_type == TURBIDITY_TELEMETRY) ?
-                            sizeof(sbd_message_type_53) :
-                        (next_message_type == LIGHT_TELEMETRY) ?
-                            sizeof(sbd_message_type_54) : 0;
+    switch ( next_message_type )
+    {
+      case WAVES_TELEMETRY:
+        next_message_size = sizeof(sbd_message_type_52);
+        log_str = "NEDWaves telemetry";
+        break;
+      case TURBIDITY_TELEMETRY:
+        next_message_size = sizeof(sbd_message_type_53);
+        log_str = "OBS telemetry";
+        break;
+      case LIGHT_TELEMETRY:
+        next_message_size = sizeof(sbd_message_type_54);
+        log_str = "Light telemetry";
+        break;
+      case OTA_ACK_MESSAGE:
+        next_message_size = sizeof(sbd_message_type_99);
+        log_str = "OTA config acknowledgment";
+        break;
+
+      default:
+        next_message_size = 0;
+        log_str = "Unknown";
+    }
 
     if ( next_message_size > 0 )
     {
-      log_str = (next_message_type == WAVES_TELEMETRY) ?
-          "NEDWaves" :
-                (next_message_type == TURBIDITY_TELEMETRY) ?
-                    "OBS" :
-                (next_message_type == LIGHT_TELEMETRY) ?
-                    "Light" : "Unknown";
-      LOG("Attempting transmission of %s telemetry...", log_str);
+      LOG("Attempting transmission of %s...", log_str);
 
       if ( iridium.transmit_message (msg_ptr, next_message_size) == uSWIFT_SUCCESS )
       {
+        if ( iridium_get_configuration_received_status () )
+        {
+          (void) iridium.receive_configuration ();
+        }
+
         persistent_ram_delete_message_element (next_message_type, msg_ptr);
       }
     }
@@ -2123,7 +2126,7 @@ static void iridium_thread_entry ( ULONG thread_input )
   if ( !current_message_sent )
   {
     // Update the error bits
-    error_bits = get_current_flags (&error_flags);
+    error_bits = control_get_accumulated_error_flags ();
     memcpy (&sbd_message.error_bits, &error_bits, sizeof(uint32_t));
     // Save the message
     persistent_ram_save_message (WAVES_TELEMETRY, msg_ptr);
@@ -2131,7 +2134,7 @@ static void iridium_thread_entry ( ULONG thread_input )
     tx_thread_sleep (10);
   }
 
-// Turn off the modem
+  // Turn off the modem
   iridium.stop_timer ();
   iridium.sleep ();
 

@@ -20,7 +20,6 @@
 #include "app_threadx.h"
 #include "main.h"
 #include "gpdma.h"
-#include "memorymap.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -54,8 +53,8 @@
  ***************************************************************************************************
  **************************************************************************************************/
 
-#define HARDWARE_VERSION 2U
-#define FIRMWARE_VERSION 1U
+#define HARDWARE_VERSION (2U)
+#define FIRMWARE_VERSION (5U)
 
 static const microSWIFT_firmware_version_t firmware_version =
   { HARDWARE_VERSION, FIRMWARE_VERSION };
@@ -125,6 +124,10 @@ int main ( void )
   MX_GPDMA1_Init ();
   /* USER CODE BEGIN 2 */
 
+  // Disable the RTC Int B pin interrupt for now until we set up the RTC
+  HAL_NVIC_DisableIRQ (EXTI2_IRQn);
+  HAL_NVIC_ClearPendingIRQ (EXTI2_IRQn);
+
   // Change the gpio configuration based on which modem type we're using
   configure_iridium_onoff_pin (flash_config.iridium_v3f);
 
@@ -184,8 +187,8 @@ void SystemClock_Config ( void )
   RCC_OscInitStruct.LSEState = RCC_LSE_BYPASS;
   RCC_OscInitStruct.MSIState = RCC_MSI_ON;
   RCC_OscInitStruct.MSICalibrationValue = RCC_MSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_2;
-  RCC_OscInitStruct.MSIKClockRange = RCC_MSIKRANGE_2;
+  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_1;
+  RCC_OscInitStruct.MSIKClockRange = RCC_MSIKRANGE_1;
   RCC_OscInitStruct.MSIKState = RCC_MSIK_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if ( HAL_RCC_OscConfig (&RCC_OscInitStruct) != HAL_OK )
@@ -261,7 +264,7 @@ static void rtc_init_delay ( void )
 }
 /* USER CODE END 4 */
 
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
  * @brief  Reports the name of the source file and the source line number
  *         where the assert_param error has occurred.

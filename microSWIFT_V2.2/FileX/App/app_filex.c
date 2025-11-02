@@ -95,7 +95,7 @@ UINT MX_FileX_Init ( VOID *memory_ptr )
   }
   // Create the file system thread. LOWEST_PRIORITY priority level and no preemption possible
   ret = tx_thread_create(&fx_thread, "FileX Thread", fx_thread_entry, 0, pointer, XL_STACK,
-                         LOWEST_PRIORITY, LOWEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
+                         LOW_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_AUTO_START);
 
   if ( ret != FX_SUCCESS )
   {

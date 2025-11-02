@@ -9,6 +9,7 @@
 #include "controller.h"
 #include "threadx_support.h"
 #include "logger.h"
+#include "file_system.h"
 #include "persistent_ram.h"
 #include "NEDWaves/rtwhalf.h"
 #include "ct_sensor.h"
@@ -281,6 +282,8 @@ static void _control_shutdown_procedure ( void )
 
   // Give the logger and file system time to complete
   tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
+
+  file_system_deinit ();
 
   // Make sure everything is shut down
   controller_self->shutdown_all_peripherals ();
@@ -577,7 +580,7 @@ static void _control_manage_state ( void )
   if ( controller_self->thread_status.iridium_complete )
   {
     LOG("Iridium thread complete, now terminating.");
-
+    tx_thread_sleep (25);
     controller_self->shutdown_procedure ();
   }
 
@@ -876,24 +879,30 @@ static void __handle_file_system_error ( void )
 
 static void __handle_i2c_error ( void )
 {
-  if ( controller_self->global_config->temperature_enabled )
-  {
-    (void) tx_event_flags_set (controller_self->complete_flags,
-                               TEMPERATURE_THREAD_COMPLETED_WITH_ERRORS,
-                               TX_OR);
-  }
+  static uint32_t error_counter = 0;
 
-  if ( controller_self->global_config->light_enabled )
+  if ( ++error_counter > 5 )
   {
-    (void) tx_event_flags_set (controller_self->complete_flags, LIGHT_THREAD_COMPLETED_WITH_ERRORS,
-    TX_OR);
-  }
+    if ( controller_self->global_config->temperature_enabled )
+    {
+      (void) tx_event_flags_set (controller_self->complete_flags,
+                                 TEMPERATURE_THREAD_COMPLETED_WITH_ERRORS,
+                                 TX_OR);
+    }
 
-  if ( controller_self->global_config->turbidity_enabled )
-  {
-    (void) tx_event_flags_set (controller_self->complete_flags,
-                               TURBIDITY_THREAD_COMPLETED_WITH_ERRORS,
-                               TX_OR);
+    if ( controller_self->global_config->light_enabled )
+    {
+      (void) tx_event_flags_set (controller_self->complete_flags,
+                                 LIGHT_THREAD_COMPLETED_WITH_ERRORS,
+                                 TX_OR);
+    }
+
+    if ( controller_self->global_config->turbidity_enabled )
+    {
+      (void) tx_event_flags_set (controller_self->complete_flags,
+                                 TURBIDITY_THREAD_COMPLETED_WITH_ERRORS,
+                                 TX_OR);
+    }
   }
 }
 

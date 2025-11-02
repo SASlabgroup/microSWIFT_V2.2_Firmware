@@ -19,8 +19,8 @@
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __APP_THREADX_H__
-#define __APP_THREADX_H__
+#ifndef __APP_THREADX_H
+#define __APP_THREADX_H
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -44,7 +44,7 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
 
-#define SOFT_START_DELAY 25
+#define SOFT_START_DELAY 50U
 #define ONE_SECOND 1000U
 
 // @formatter:off
@@ -80,7 +80,8 @@ enum initialization_flags
   LIGHT_INIT_SUCCESS            = ((ULONG) 1 << 5),
   ACCELEROMETER_INIT_SUCCESS    = ((ULONG) 1 << 6),
   WAVES_THREAD_INIT_SUCCESS     = ((ULONG) 1 << 7),
-  IRIDIUM_INIT_SUCCESS          = ((ULONG) 1 << 8)
+  IRIDIUM_INIT_SUCCESS          = ((ULONG) 1 << 8),
+  SYSTEM_INIT_COMPLETE          = ((ULONG) 1 << 9)
 };
 
 enum rtc_server_complete_flags

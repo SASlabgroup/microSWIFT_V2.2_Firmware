@@ -143,6 +143,7 @@ typedef struct GNSS
   bool                      rtc_error;
   bool                      all_samples_processed;
   bool                      timer_timeout;
+  bool                      sys_init_complete;
   // Function pointers
   uSWIFT_return_code_t      (*config) ( void );
   uSWIFT_return_code_t      (*sync_and_start_reception) ( void );
@@ -169,6 +170,7 @@ void                    gnss_init ( GNSS *struct_ptr, microSWIFT_configuration *
 void                    gnss_deinit ( void );
 void                    gnss_timer_expired ( ULONG expiration_input );
 bool                    gnss_get_timer_timeout_status ( void );
+void                    gnss_set_sys_init_complete ( void );
 bool                    gnss_get_configured_status ( void );
 bool                    gnss_get_sample_window_complete ( void );
 uSWIFT_return_code_t    gnss_get_current_lat_lon (int32_t *lat, int32_t *lon);

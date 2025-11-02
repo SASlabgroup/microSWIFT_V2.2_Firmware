@@ -67,7 +67,11 @@ typedef struct
 {
   uint64_t                      magic_number;
   int32_t                       sample_window_counter;
+  uint32_t                      reset_reason;
   bool                          rtc_time_set;
+  bool                          ota_update_received;
+  bool                          ota_acknowledgement_sent;
+  sbd_message_type_99           ota_acknowledgement_msg;
   Waves_Message_Storage         waves_storage;
   Turbidity_Message_Storage     turbidity_storage;
   Light_Message_Storage         light_storage;
@@ -80,19 +84,25 @@ typedef enum
   WAVES_TELEMETRY       = 0,
   TURBIDITY_TELEMETRY   = 1,
   LIGHT_TELEMETRY       = 2,
-  NO_MESSAGE            = 3
+  OTA_ACK_MESSAGE       = 3,
+  NO_MESSAGE            = 4
 } telemetry_type_t;
 
 void                    persistent_ram_init ( const microSWIFT_configuration *config, const microSWIFT_firmware_version_t *version );
 void                    persistent_ram_deinit ( void );
-void                    persistent_ram_set_device_config ( const microSWIFT_configuration *config );
+void                    persistent_ram_set_device_config ( const microSWIFT_configuration *config, bool ota_update );
 void                    persistent_ram_get_device_config ( microSWIFT_configuration *config );
 void                    persistent_ram_set_firmware_version ( const microSWIFT_firmware_version_t *version );
 void                    persistent_ram_get_firmware_version ( microSWIFT_firmware_version_t *version );
+bool                    persistent_ram_get_ota_update_status ( void );
+bool                    persistent_ram_get_ota_ack_status ( void );
+void                    persistent_ram_set_ota_ack_msg ( sbd_message_type_99 *msg );
+void                    persistent_ram_get_ota_ack_msg ( sbd_message_type_99 *msg );
 uint32_t                persistent_ram_get_sample_window_counter ( void );
 void                    persistent_ram_reset_sample_window_counter ( void );
 void                    persistent_ram_set_rtc_time_set ( void );
 bool                    persistent_ram_get_rtc_time_set ( void );
+uint32_t                persistent_ram_get_reset_reason ( void );
 uint32_t                persistent_ram_get_num_msgs_enqueued ( telemetry_type_t msg_type );
 void                    persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t* msg );
 uint8_t*                persistent_ram_get_prioritized_unsent_message ( telemetry_type_t msg_type );

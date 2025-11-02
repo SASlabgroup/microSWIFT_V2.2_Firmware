@@ -123,5 +123,6 @@ static void _logger_send_log_line ( log_line_buf *buf, size_t strlen )
 
 void uart_logger_return_line_buf ( log_line_buf *buffer )
 {
+  memset (buffer, 0, sizeof(log_line_buf));
   (void) tx_block_release ((VOID*) buffer);
 }
