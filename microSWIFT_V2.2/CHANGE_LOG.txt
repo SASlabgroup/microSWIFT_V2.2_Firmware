@@ -1,3 +1,16 @@
+Desired updates:
+[ ] Failsafe logging and SD card
+[ ] Better method of timestamping SD card files (log with BOOT file to remain unchanged)
+[ ] Better state management for thread control, including initialization and sampling completion
+[ ] Simpler, more robust shared I2C bus implementation
+[ ] Configuration option for Alkaline/Lithium batteries
+[ ] Turbidity sensor configuration changes -- either single config option (GNSS = 4096 samples) or
+    better internal management for different length windows
+[ ] Intra-thread communication safety analysis and updates
+[ ] Better watchdog implementation
+
+
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Version  2.05  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 25 September 2025 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -4,6 +4,7 @@
  *  Created on: Aug 20, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #include <ext_rtc_server.h>
 #include "logger.h"
@@ -41,6 +42,16 @@ void uart_logger_init ( uart_logger *logger, TX_BLOCK_POOL *block_pool, TX_QUEUE
 void uart_log ( const char *fmt, ... )
 {
   uint32_t init_wait_counter = 0;
+  log_line_buf *log_buf = TX_NULL;
+  logger_message msg =
+    { 0 };
+  int32_t bytes_remaining = sizeof(log_line_buf), str_len = 0;
+  va_list args;
+  va_start(args, fmt);
+  UINT tx_ret;
+  time_t sys_timestamp = get_system_time ();
+  struct tm sys_time =
+    { 0 };
 
   while ( !initialized )
   {
@@ -56,17 +67,6 @@ void uart_log ( const char *fmt, ... )
   {
     return;
   }
-
-  log_line_buf *log_buf = TX_NULL;
-  logger_message msg =
-    { 0 };
-  int32_t bytes_remaining = sizeof(log_line_buf), str_len = 0;
-  va_list args;
-  va_start(args, fmt);
-  UINT tx_ret;
-  time_t sys_timestamp = get_system_time ();
-  struct tm sys_time =
-    { 0 };
 
   tx_ret = _logger_get_buffer (&log_buf);
 

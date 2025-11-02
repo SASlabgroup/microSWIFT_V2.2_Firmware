@@ -1,4 +1,5 @@
 /* USER CODE BEGIN Header */
+// clang-format off
 /**
  ******************************************************************************
  * @file    app_threadx.c
@@ -941,11 +942,11 @@ static void logger_thread_entry ( ULONG thread_input )
     {
       logger.send_log_line (&(msg.str_buf[0]), msg.strlen);
 
-      // Pass the buffer down to the file system for saving to SD card
-      file_system_server_save_log_line ((char*) &(msg.str_buf[0]));
-
       // Need to wait until the transmission is complete before grabbing another message
       (void) tx_semaphore_get (&logger_sema, TX_WAIT_FOREVER);
+
+      // Pass the buffer down to the file system for saving to SD card
+      file_system_server_save_log_line ((char*) &(msg.str_buf[0]));
     }
   }
 }
