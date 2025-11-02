@@ -1849,7 +1849,7 @@ static void waves_thread_entry ( ULONG thread_input )
   signed char b1[42] = { 0 };
   signed char b2[42] = { 0 };
   unsigned char check[42] = { 0 };
-                                                                    //@formatter:on
+                                                                        //@formatter:on
 
   tx_thread_sleep (1);
 
@@ -1903,6 +1903,8 @@ static void waves_thread_entry ( ULONG thread_input )
 
   // Done with dynamic memory requirements for NEDWaves, delete the memory pool
   (void) waves_memory_pool_delete ();
+  // TESTING: Ensure process kill works for NEDWaves
+//  tx_thread_sleep (NEDWAVES_MAX_PROCESS_TIME);
 
   LOG("NEDWaves complete.");
 
@@ -1912,9 +1914,6 @@ static void waves_thread_entry ( ULONG thread_input )
   memcpy (&(sbd_message.E_array[0]), &(E[0]), 42 * sizeof(real16_T));
   memcpy (&sbd_message.f_min, &b_fmin, sizeof(real16_T));
   memcpy (&sbd_message.f_max, &b_fmax, sizeof(real16_T));
-
-  tx_thread_sleep (NEDWAVES_MAX_PROCESS_TIME);
-
   memcpy (&(sbd_message.a1_array[0]), &(a1[0]), 42 * sizeof(signed char));
   memcpy (&(sbd_message.b1_array[0]), &(b1[0]), 42 * sizeof(signed char));
   memcpy (&(sbd_message.a2_array[0]), &(a2[0]), 42 * sizeof(signed char));
