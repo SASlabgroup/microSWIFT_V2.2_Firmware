@@ -322,6 +322,7 @@ static uSWIFT_return_code_t __turbidity_sensor_get_proximity_reading ( uint16_t 
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   uint32_t ready_counter = 0, ready_timeout = 10;
+  uint16_t proximity = 0;
   bool drdy = false;
 
   ret = vcnl4010_start_prox_conversion (&turbidity_self->dev_ctx);
@@ -341,7 +342,9 @@ static uSWIFT_return_code_t __turbidity_sensor_get_proximity_reading ( uint16_t 
     tx_thread_sleep (1);
   }
 
-  ret = vcnl4010_get_proximity_reading (&turbidity_self->dev_ctx, reading);
+  ret = vcnl4010_get_proximity_reading (&turbidity_self->dev_ctx, &proximity);
+
+  reading = (proximity << 8) | (proximity >> 8);
 
   return ret;
 }
@@ -350,6 +353,7 @@ static uSWIFT_return_code_t __turbidity_sensor_get_ambient_reading ( uint16_t *r
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
   uint32_t ready_counter = 0, ready_timeout = 10;
+  uint16_t ambient = 0;
   bool drdy = false;
 
   ret = vcnl4010_start_ambient_conversion (&turbidity_self->dev_ctx);
@@ -369,7 +373,9 @@ static uSWIFT_return_code_t __turbidity_sensor_get_ambient_reading ( uint16_t *r
     tx_thread_sleep (1);
   }
 
-  ret = vcnl4010_get_ambient_reading (&turbidity_self->dev_ctx, reading);
+  ret = vcnl4010_get_ambient_reading (&turbidity_self->dev_ctx, &ambient);
+
+  *reading = (ambient << 8) | (ambient >> 8);
 
   return ret;
 }
