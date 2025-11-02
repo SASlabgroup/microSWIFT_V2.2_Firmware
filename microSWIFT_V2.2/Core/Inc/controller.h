@@ -15,8 +15,9 @@
 #include "tx_api.h"
 #include "sbd.h"
 
-#define STARTUP_SEQUENCE_MAX_WAIT_TICKS (TX_TIMER_TICKS_PER_SECOND * 60)
+#define STARTUP_SEQUENCE_MAX_WAIT_TICKS (TX_TIMER_TICKS_PER_SECOND * 60U)
 #define BOOT_TIME_TIMESTAMP TIMESTAMP_1
+#define NEDWAVES_MAX_PROCESS_TIME (30000U)
 
 // @formatter:off
 typedef struct
@@ -33,6 +34,8 @@ typedef struct
   TX_EVENT_FLAGS_GROUP      *irq_flags;
   TX_EVENT_FLAGS_GROUP      *complete_flags;
   TX_TIMER                  *timer;
+
+  TIM_HandleTypeDef         *NEDwaves_hardware_timer;
 
   sbd_message_type_52       *current_message;
 
@@ -64,10 +67,11 @@ typedef struct
 // @formatter:on
 
 void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_config,
-                       Thread_Handles *thread_handles, TX_EVENT_FLAGS_GROUP *error_flags,
-                       TX_EVENT_FLAGS_GROUP *init_flags, TX_EVENT_FLAGS_GROUP *irq_flags,
-                       TX_EVENT_FLAGS_GROUP *complete_flags, TX_TIMER *timer,
-                       ADC_HandleTypeDef *battery_adc_handle, sbd_message_type_52 *current_message );
+                       Thread_Handles *thread_handles, TIM_HandleTypeDef *NEDwaves_hardware_timer,
+                       TX_EVENT_FLAGS_GROUP *error_flags, TX_EVENT_FLAGS_GROUP *init_flags,
+                       TX_EVENT_FLAGS_GROUP *irq_flags, TX_EVENT_FLAGS_GROUP *complete_flags,
+                       TX_TIMER *timer, ADC_HandleTypeDef *battery_adc_handle,
+                       sbd_message_type_52 *current_message );
 
 void control_timer_expired ( ULONG expiration_input );
 bool control_get_timeout_status ( void );

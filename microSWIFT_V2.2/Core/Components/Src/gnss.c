@@ -167,11 +167,6 @@ bool gnss_get_timer_timeout_status ( void )
   return gnss_self->timer_timeout;
 }
 
-void gnss_set_sys_init_complete ( void )
-{
-  gnss_self->sys_init_complete = true;
-}
-
 /**
  * Get GNSS configuration status.
  *
@@ -389,6 +384,8 @@ static uSWIFT_return_code_t _gnss_sync_and_start_reception ( void )
   }
 
   gnss_self->is_configured = (return_code == uSWIFT_SUCCESS);
+  gnss_self->warmup_counter = 0;
+  gnss_self->total_samples = 0;
 
   return return_code;
 }
@@ -752,12 +749,21 @@ static void _gnss_process_message ( void )
     }
 
     // Did we have at least 1 good sample?
-    if ( (gnss_self->total_samples == 0) && velocities_non_zero && gnss_self->sys_init_complete )
+    if ( (gnss_self->total_samples == 0) && velocities_non_zero )
     {
-      gnss_self->all_resolution_stages_complete = true;
-      gnss_self->sample_window_start_time = get_system_time ();
+      if ( ++gnss_self->warmup_counter > (60U * gnss_self->global_config->gnss_sampling_rate) )
+      {
+        gnss_self->all_resolution_stages_complete = true;
+        gnss_self->sample_window_start_time = get_system_time ();
 
-      LOG("GNSS sample window started.");
+        LOG("GNSS sample window started.");
+      }
+      else
+      {
+        buf_length -= buf_end - buf_start;
+        buf_start = buf_end;
+        continue;
+      }
     }
 
     // All velocity values are good to go
@@ -1245,6 +1251,7 @@ static void __reset_struct_fields ( void )
   gnss_self->total_samples_averaged = 0;
   gnss_self->num_bad_messages = 0;
   gnss_self->number_cycles_without_data = 0;
+  gnss_self->warmup_counter = 0;
   gnss_self->current_fix_is_good = false;
   gnss_self->all_resolution_stages_complete = false;
   gnss_self->is_configured = false;
@@ -1252,7 +1259,6 @@ static void __reset_struct_fields ( void )
   gnss_self->rtc_error = false;
   gnss_self->all_samples_processed = false;
   gnss_self->timer_timeout = false;
-  gnss_self->sys_init_complete = false;
 }
 
 /**

@@ -31,6 +31,8 @@ static void     _control_manage_state ( void );
 static void     _control_monitor_and_handle_errors ( void );
 
 // Helper functions
+static void     __start_ned_waves_process_timer ( void );
+static void     __stop_ned_waves_process_timer ( void );
 static void     __get_alarm_settings ( rtc_alarm_struct *alarm);
 static void     __handle_rtc_error ( void );
 static void     __handle_gnss_error ( ULONG error_flag );
@@ -49,10 +51,11 @@ static void     __handle_misc_error ( ULONG error_flag );
 // @formatter:on
 
 void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_config,
-                       Thread_Handles *thread_handles, TX_EVENT_FLAGS_GROUP *error_flags,
-                       TX_EVENT_FLAGS_GROUP *init_flags, TX_EVENT_FLAGS_GROUP *irq_flags,
-                       TX_EVENT_FLAGS_GROUP *complete_flags, TX_TIMER *timer,
-                       ADC_HandleTypeDef *battery_adc_handle, sbd_message_type_52 *current_message )
+                       Thread_Handles *thread_handles, TIM_HandleTypeDef *NEDwaves_hardware_timer,
+                       TX_EVENT_FLAGS_GROUP *error_flags, TX_EVENT_FLAGS_GROUP *init_flags,
+                       TX_EVENT_FLAGS_GROUP *irq_flags, TX_EVENT_FLAGS_GROUP *complete_flags,
+                       TX_TIMER *timer, ADC_HandleTypeDef *battery_adc_handle,
+                       sbd_message_type_52 *current_message )
 {
   // Init self
   controller_self = struct_ptr;
@@ -64,6 +67,7 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
   controller_self->irq_flags = irq_flags;
   controller_self->complete_flags = complete_flags;
   controller_self->timer = timer;
+  controller_self->NEDwaves_hardware_timer = NEDwaves_hardware_timer;
   controller_self->current_message = current_message;
   controller_self->timer_timeout = false;
 
@@ -432,6 +436,16 @@ static void _control_enter_processor_standby_mode ( void )
 
 }
 
+static real16_T Dp =
+  { 0 };
+static real16_T Hs =
+  { 0 };
+static real16_T Tp =
+  { 0 };
+static real16_T b_fmax =
+  { 0 };
+static real16_T b_fmin =
+  { 0 };
 static void _control_manage_state ( void )
 {
   ULONG current_flags;
@@ -495,8 +509,29 @@ static void _control_manage_state ( void )
        | (current_flags & WAVES_THREAD_COMPLETED_WITH_ERRORS) )
   {
     controller_self->thread_status.waves_complete = true;
+    __stop_ned_waves_process_timer ();
 
-    LOG("NED Waves thread complete, now terminating.");
+    if ( controller_self->accumulated_error_flags & NED_WAVES_TIMEOUT )
+    {
+      LOG("NED Waves process timed out. Thread terminated. Hasta la vista, baby!");
+      // Set the SBD fields to error values in the event GNSS has a failure
+      Dp.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+      Hs.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+      Tp.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+      b_fmax.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+      b_fmin.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+
+      memcpy (&controller_self->current_message->Hs, &Hs, sizeof(real16_T));
+      memcpy (&controller_self->current_message->Tp, &Tp, sizeof(real16_T));
+      memcpy (&controller_self->current_message->Dp, &Dp, sizeof(real16_T));
+      memcpy (&controller_self->current_message->f_min, &b_fmin, sizeof(real16_T));
+      memcpy (&controller_self->current_message->f_max, &b_fmax, sizeof(real16_T));
+    }
+    else
+    {
+      LOG("NED Waves thread complete, now terminating.");
+    }
+
     tx_thread_sleep (25);
   }
 
@@ -534,6 +569,8 @@ static void _control_manage_state ( void )
   if ( current_flags & GNSS_THREAD_COMPLETED_SUCCESSFULLY )
   {
     controller_self->thread_status.gnss_complete = true;
+
+    __start_ned_waves_process_timer ();
     ret |= tx_thread_resume (controller_self->thread_handles->waves_thread);
 
     LOG("GNSS thread complete, now terminating.");
@@ -625,11 +662,13 @@ static void _control_monitor_and_handle_errors ( void )
                      & (TURBIDITY_INIT_FAILED | TURBIDITY_SAMPLING_ERROR
                         | TURBIDITY_SAMPLE_WINDOW_TIMEOUT);
   iridium_errors = current_flags & (IRIDIUM_INIT_ERROR | IRIDIUM_UART_COMMS_ERROR);
-  waves_errors = current_flags & (WAVES_INIT_FAILED);
+  waves_errors = current_flags & (WAVES_INIT_FAILED | NED_WAVES_TIMEOUT);
   file_system_errors = current_flags & (FILE_SYSTEM_ERROR);
   i2c_errors = current_flags & (CORE_I2C_BUS_ERROR);
   rtc_errors = current_flags & (RTC_ERROR);
-  misc_errors = current_flags & (WATCHDOG_RESET | SOFTWARE_RESET | MEMORY_CORRUPTION_ERROR);
+  misc_errors = current_flags
+                & (WATCHDOG_RESET | SOFTWARE_RESET | MEMORY_CORRUPTION_ERROR
+                   | FPU_EXCEPTION_OCCURRED);
 
   if ( gnss_errors )
   {
@@ -688,6 +727,15 @@ static void _control_monitor_and_handle_errors ( void )
 
 }
 
+static void __start_ned_waves_process_timer ( void )
+{
+  (void) HAL_TIM_Base_Start_IT (controller_self->NEDwaves_hardware_timer);
+}
+
+static void __stop_ned_waves_process_timer ( void )
+{
+  (void) HAL_TIM_Base_Stop_IT (controller_self->NEDwaves_hardware_timer);
+}
 static void __get_alarm_settings ( rtc_alarm_struct *alarm )
 {
   struct tm boot_time =
@@ -930,5 +978,10 @@ static void __handle_misc_error ( ULONG error_flag )
     persistent_ram_deinit ();
     tx_thread_sleep (10);
     Error_Handler ();
+  }
+
+  if ( error_flag & FPU_EXCEPTION_OCCURRED )
+  {
+    LOG("Floating point exception occurred! Check NED Waves!");
   }
 }

@@ -181,6 +181,13 @@ void HAL_TIM_PeriodElapsedCallback ( TIM_HandleTypeDef *htim )
   {
     HAL_IncTick ();
   }
+
+  // NEDWaves has taken longer than it should and may be stuck in a loop, kill it!
+  if ( htim->Instance == TIM7 )
+  {
+    (void) tx_thread_suspend (&waves_thread);
+    (void) tx_event_flags_set (&error_flags, NED_WAVES_TIMEOUT, TX_OR);
+  }
 }
 
 /**

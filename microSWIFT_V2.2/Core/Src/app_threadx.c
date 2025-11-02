@@ -58,6 +58,7 @@
 #include "leds.h"
 #include "shared_i2c_bus.h"
 #include "file_system_server.h"
+#include "tim.h"
 
 // Waves files
 #include "NEDWaves/NEDwaves_memlight.h"
@@ -661,6 +662,7 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   device_handles.expansion_uart_handle = &huart2;
   device_handles.ext_psram_handle = &hospi1;
   device_handles.battery_adc = &hadc1;
+  device_handles.NEDWaves_hardware_timer = &htim7;
   device_handles.gnss_uart_tx_dma_handle = &handle_GPDMA1_Channel9;
   device_handles.gnss_uart_rx_dma_handle = &handle_GPDMA1_Channel8;
   device_handles.iridium_uart_tx_dma_handle = &handle_GPDMA1_Channel7;
@@ -973,7 +975,8 @@ static void control_thread_entry ( ULONG thread_input )
 
   persistent_ram_get_firmware_version (&version);
 
-  controller_init (&control, &configuration, &thread_handles, &error_flags, &initialization_flags,
+  controller_init (&control, &configuration, &thread_handles,
+                   device_handles.NEDWaves_hardware_timer, &error_flags, &initialization_flags,
                    &irq_flags, &complete_flags, &control_timer, device_handles.battery_adc,
                    &sbd_message);
 
@@ -1007,8 +1010,6 @@ static void control_thread_entry ( ULONG thread_input )
       Error_Handler ();
     }
   }
-
-  gnss_set_sys_init_complete ();
 
   watchdog_check_in (CONTROL_THREAD);
 
@@ -1158,7 +1159,6 @@ static void gnss_thread_entry ( ULONG thread_input )
     tx_return = tx_event_flags_get (&irq_flags, (GNSS_MSG_RECEIVED | GNSS_MSG_INCOMPLETE),
     TX_OR_CLEAR,
                                     &actual_flags, timer_ticks_to_get_message);
-
     // Full message came through
     if ( (tx_return == TX_SUCCESS) && !(actual_flags & GNSS_MSG_INCOMPLETE) )
     {
@@ -1849,7 +1849,7 @@ static void waves_thread_entry ( ULONG thread_input )
   signed char b1[42] = { 0 };
   signed char b2[42] = { 0 };
   unsigned char check[42] = { 0 };
-                                    //@formatter:on
+                                                                    //@formatter:on
 
   tx_thread_sleep (1);
 
@@ -1912,6 +1912,9 @@ static void waves_thread_entry ( ULONG thread_input )
   memcpy (&(sbd_message.E_array[0]), &(E[0]), 42 * sizeof(real16_T));
   memcpy (&sbd_message.f_min, &b_fmin, sizeof(real16_T));
   memcpy (&sbd_message.f_max, &b_fmax, sizeof(real16_T));
+
+  tx_thread_sleep (NEDWAVES_MAX_PROCESS_TIME);
+
   memcpy (&(sbd_message.a1_array[0]), &(a1[0]), 42 * sizeof(signed char));
   memcpy (&(sbd_message.b1_array[0]), &(b1[0]), 42 * sizeof(signed char));
   memcpy (&(sbd_message.a2_array[0]), &(a2[0]), 42 * sizeof(signed char));
