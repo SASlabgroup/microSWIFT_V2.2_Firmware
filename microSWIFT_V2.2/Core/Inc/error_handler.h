@@ -11,6 +11,8 @@
 #include "stdbool.h"
 #include "tx_api.h"
 
+extern int skip_safe_mode;
+
 void Error_Handler ( void );
 void safe_mode ( void );
 

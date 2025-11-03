@@ -5,6 +5,8 @@
  */
 
 #include "NEDWaves/mem_replacements.h"
+#include "threadx_support.h"
+#include "app_threadx.h"
 
 static NEDWaves_memory *waves_mem;
 
@@ -75,7 +77,9 @@ void* malloc_replacement ( size_t size )
     TX_NO_WAIT);
     if ( ret != TX_SUCCESS )
     {
-      return NULL;
+      waves_error_out (NED_WAVES_RAN_OUT_OF_MEM, &waves_thread,
+                       "NED Waves memory buffer depleted, call to malloc"
+                       " returned NULL ptr.");
     }
   }
   return (void*) pointer;
@@ -90,7 +94,9 @@ void* calloc_replacement ( size_t num, size_t size )
     TX_NO_WAIT);
     if ( ret != TX_SUCCESS )
     {
-      return NULL;
+      waves_error_out (NED_WAVES_RAN_OUT_OF_MEM, &waves_thread,
+                       "NED Waves memory buffer depleted, call to calloc"
+                       " returned NULL ptr.");
     }
 
     memset (pointer, 0, (num * size));

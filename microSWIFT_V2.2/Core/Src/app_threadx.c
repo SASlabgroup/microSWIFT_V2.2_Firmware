@@ -380,13 +380,13 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
 
   //
   // Allocate stack for the waves thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XL_STACK, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XXL_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the waves thread. Lowest priority, can be preempted by any other thread
-  ret = tx_thread_create(&waves_thread, "waves thread", waves_thread_entry, 0, pointer, XL_STACK,
+  ret = tx_thread_create(&waves_thread, "waves thread", waves_thread_entry, 0, pointer, XXL_STACK,
                          LOWEST_PRIORITY, LOWEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
@@ -1849,7 +1849,7 @@ static void waves_thread_entry ( ULONG thread_input )
   signed char b1[42] = { 0 };
   signed char b2[42] = { 0 };
   unsigned char check[42] = { 0 };
-                                                                              //@formatter:on
+                                                                                      //@formatter:on
 
   tx_thread_sleep (1);
 
@@ -1903,8 +1903,11 @@ static void waves_thread_entry ( ULONG thread_input )
 
   // Done with dynamic memory requirements for NEDWaves, delete the memory pool
   (void) waves_memory_pool_delete ();
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////
   // TESTING: Ensure process kill works for NEDWaves
-//  tx_thread_sleep (NEDWAVES_MAX_PROCESS_TIME);
+  tx_thread_sleep (NEDWAVES_MAX_PROCESS_TIME);
+  //////////////////////////////////////////////////////////////////////////////////////////////////
 
   LOG("NEDWaves complete.");
 

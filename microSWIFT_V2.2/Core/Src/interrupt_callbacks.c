@@ -12,6 +12,7 @@
 #include "gnss.h"
 #include "battery.h"
 #include "ext_rtc.h"
+#include "error_handler.h"
 
 /**
  * @brief Tx Transfer completed callback.
@@ -182,11 +183,12 @@ void HAL_TIM_PeriodElapsedCallback ( TIM_HandleTypeDef *htim )
     HAL_IncTick ();
   }
 
-  // NEDWaves has taken longer than it should and may be stuck in a loop, kill it!
+  // NEDWaves has taken longer than it should and may be stuck in a loop. All bets are off,
+  // must software restart
   if ( htim->Instance == TIM7 )
   {
-    (void) tx_thread_suspend (&waves_thread);
-    (void) tx_event_flags_set (&error_flags, NED_WAVES_TIMEOUT, TX_OR);
+    skip_safe_mode = 1;
+    Error_Handler ();
   }
 }
 

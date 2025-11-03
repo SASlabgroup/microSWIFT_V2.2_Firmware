@@ -436,16 +436,6 @@ static void _control_enter_processor_standby_mode ( void )
 
 }
 
-static real16_T Dp =
-  { 0 };
-static real16_T Hs =
-  { 0 };
-static real16_T Tp =
-  { 0 };
-static real16_T b_fmax =
-  { 0 };
-static real16_T b_fmin =
-  { 0 };
 static void _control_manage_state ( void )
 {
   ULONG current_flags;
@@ -511,26 +501,7 @@ static void _control_manage_state ( void )
     controller_self->thread_status.waves_complete = true;
     __stop_ned_waves_process_timer ();
 
-    if ( controller_self->accumulated_error_flags & NED_WAVES_TIMEOUT )
-    {
-      LOG("NED Waves process timed out. Thread terminated. Hasta la vista, baby!");
-      // Set the SBD fields to error values in the event GNSS has a failure
-      Dp.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
-      Hs.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
-      Tp.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
-      b_fmax.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
-      b_fmin.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
-
-      memcpy (&controller_self->current_message->Hs, &Hs, sizeof(real16_T));
-      memcpy (&controller_self->current_message->Tp, &Tp, sizeof(real16_T));
-      memcpy (&controller_self->current_message->Dp, &Dp, sizeof(real16_T));
-      memcpy (&controller_self->current_message->f_min, &b_fmin, sizeof(real16_T));
-      memcpy (&controller_self->current_message->f_max, &b_fmax, sizeof(real16_T));
-    }
-    else
-    {
-      LOG("NED Waves thread complete, now terminating.");
-    }
+    LOG("NED Waves thread complete, now terminating.");
 
     tx_thread_sleep (25);
   }
@@ -662,13 +633,12 @@ static void _control_monitor_and_handle_errors ( void )
                      & (TURBIDITY_INIT_FAILED | TURBIDITY_SAMPLING_ERROR
                         | TURBIDITY_SAMPLE_WINDOW_TIMEOUT);
   iridium_errors = current_flags & (IRIDIUM_INIT_ERROR | IRIDIUM_UART_COMMS_ERROR);
-  waves_errors = current_flags & (WAVES_INIT_FAILED | NED_WAVES_TIMEOUT);
+  waves_errors = current_flags
+                 & (WAVES_INIT_FAILED | NED_WAVES_RAN_OUT_OF_MEM | FPU_EXCEPTION_OCCURRED);
   file_system_errors = current_flags & (FILE_SYSTEM_ERROR);
   i2c_errors = current_flags & (CORE_I2C_BUS_ERROR);
   rtc_errors = current_flags & (RTC_ERROR);
-  misc_errors = current_flags
-                & (WATCHDOG_RESET | SOFTWARE_RESET | MEMORY_CORRUPTION_ERROR
-                   | FPU_EXCEPTION_OCCURRED);
+  misc_errors = current_flags & (WATCHDOG_RESET | SOFTWARE_RESET | MEMORY_CORRUPTION_ERROR);
 
   if ( gnss_errors )
   {
@@ -895,8 +865,30 @@ static void __handle_light_error ( ULONG error_flag )
 
 static void __handle_waves_error ( void )
 {
+  real16_T Dp =
+    { 0 };
+  real16_T Hs =
+    { 0 };
+  real16_T Tp =
+    { 0 };
+  real16_T b_fmax =
+    { 0 };
+  real16_T b_fmin =
+    { 0 };
   // Set all the fields of the SBD message to error values
   memset (controller_self->current_message, 0, sizeof(sbd_message_type_52));
+
+  Dp.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+  Hs.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+  Tp.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+  b_fmax.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+  b_fmin.bitPattern = TELEMETRY_FIELD_ERROR_CODE;
+
+  memcpy (&controller_self->current_message->Hs, &Hs, sizeof(real16_T));
+  memcpy (&controller_self->current_message->Tp, &Tp, sizeof(real16_T));
+  memcpy (&controller_self->current_message->Dp, &Dp, sizeof(real16_T));
+  memcpy (&controller_self->current_message->f_min, &b_fmin, sizeof(real16_T));
+  memcpy (&controller_self->current_message->f_max, &b_fmax, sizeof(real16_T));
 
   (void) tx_event_flags_set (controller_self->complete_flags, WAVES_THREAD_COMPLETED_WITH_ERRORS,
   TX_OR);

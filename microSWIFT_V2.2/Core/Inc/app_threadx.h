@@ -157,7 +157,7 @@ typedef enum error_flags
   RTC_ERROR                             = ((ULONG) 1 << 21),
   WAVES_INIT_FAILED                     = ((ULONG) 1 << 22),
   CORE_I2C_BUS_ERROR                    = ((ULONG) 1 << 23),
-  NED_WAVES_TIMEOUT                     = ((ULONG) 1 << 24),
+  NED_WAVES_RAN_OUT_OF_MEM              = ((ULONG) 1 << 24),
   FPU_EXCEPTION_OCCURRED                = ((ULONG) 1 << 25),
   // Misc errors
   WATCHDOG_RESET                        = ((ULONG) 1 << 29),
