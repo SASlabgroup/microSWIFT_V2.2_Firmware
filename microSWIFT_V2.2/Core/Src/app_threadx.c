@@ -1,4 +1,5 @@
 /* USER CODE BEGIN Header */
+// clang-format off
 /**
  ******************************************************************************
  * @file    app_threadx.c
@@ -1850,15 +1851,31 @@ static void waves_thread_entry(ULONG thread_input) {
   watchdog_check_in(WAVES_THREAD);
 
   LOG("Running NEDWaves.");
+  tx_thread_sleep(10*TX_TIMER_TICKS_PER_SECOND);
+  LOG("Testing NEDWaves.");
+
+  LOG("First velocity: %.3f, %.3f, %.3f", test_vel_north[0], test_vel_east[0], test_vel_down[0]);
+  LOG("Last velocity: %.3f, %.3f, %.3f", test_vel_north[4095], test_vel_east[4095], test_vel_down[4095]);
+
+  waves_mem.north->data = test_vel_north;
+  waves_mem.east->data = test_vel_east;
+  waves_mem.down->data = test_vel_down;
+
+  double sample_window_frequency = 4.0;
+
 
   /* Call the entry-point 'NEDwaves_memlight'. */
+  // NEDwaves_memlight(waves_mem.north, waves_mem.east, waves_mem.down,
+  //                   gnss_get_sample_window_frequency(), &Hs, &Tp, &Dp, E,
+  //                   &b_fmin, &b_fmax, a1, b1, a2, b2, check);
   NEDwaves_memlight(waves_mem.north, waves_mem.east, waves_mem.down,
-                    gnss_get_sample_window_frequency(), &Hs, &Tp, &Dp, E,
+                    sample_window_frequency, &Hs, &Tp, &Dp, E,
                     &b_fmin, &b_fmax, a1, b1, a2, b2, check);
 
-  emxDestroyArray_real32_T(waves_mem.north);
-  emxDestroyArray_real32_T(waves_mem.east);
-  emxDestroyArray_real32_T(waves_mem.down);
+  // This dies if I've assigned it hard-coded array.
+  // emxDestroyArray_real32_T(waves_mem.north);
+  // emxDestroyArray_real32_T(waves_mem.east);
+  // emxDestroyArray_real32_T(waves_mem.down);
 
   // Done with dynamic memory requirements for NEDWaves, delete the memory pool
   (void)waves_memory_pool_delete();

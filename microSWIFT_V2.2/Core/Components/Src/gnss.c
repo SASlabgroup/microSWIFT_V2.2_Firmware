@@ -5,6 +5,7 @@
  *      Author: Phil
  *
  */
+// clang-format off
 
 #include "ext_rtc_server.h"
 #include "gnss.h"
@@ -451,9 +452,10 @@ static uSWIFT_return_code_t _gnss_get_running_average_velocities ( void )
     substitute_down = (((float) gnss_self->v_down_sum) / MM_PER_METER)
                       / ((float) gnss_self->total_samples);
 
-    gnss_self->GNSS_N_Array[gnss_self->total_samples] = substitute_north;
-    gnss_self->GNSS_E_Array[gnss_self->total_samples] = substitute_east;
-    gnss_self->GNSS_D_Array[gnss_self->total_samples] = substitute_down;
+    // We're testing NEDwaves with hard-coded data; don't overwrite
+    // gnss_self->GNSS_N_Array[gnss_self->total_samples] = substitute_north;
+    // gnss_self->GNSS_E_Array[gnss_self->total_samples] = substitute_east;
+    // gnss_self->GNSS_D_Array[gnss_self->total_samples] = substitute_down;
 
     gnss_self->total_samples++;
     gnss_self->total_samples_averaged++;
@@ -776,9 +778,10 @@ static void _gnss_process_message ( void )
     gnss_self->v_down_sum += vdown;
 
     // Assign to the velocity arrays
-    gnss_self->GNSS_N_Array[gnss_self->total_samples] = ((float) ((float) vnorth) / MM_PER_METER);
-    gnss_self->GNSS_E_Array[gnss_self->total_samples] = ((float) ((float) veast) / MM_PER_METER);
-    gnss_self->GNSS_D_Array[gnss_self->total_samples] = ((float) ((float) vdown) / MM_PER_METER);
+    // This would over-write the hard-coded values we want to test with.
+    // gnss_self->GNSS_N_Array[gnss_self->total_samples] = ((float) ((float) vnorth) / MM_PER_METER);
+    // gnss_self->GNSS_E_Array[gnss_self->total_samples] = ((float) ((float) veast) / MM_PER_METER);
+    // gnss_self->GNSS_D_Array[gnss_self->total_samples] = ((float) ((float) vdown) / MM_PER_METER);
 
     gnss_self->number_cycles_without_data = 0;
 
