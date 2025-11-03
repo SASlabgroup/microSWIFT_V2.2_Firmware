@@ -4,6 +4,7 @@
  *  Created on: Sep 12, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #include <ext_rtc_server.h>
 #include "controller.h"
@@ -531,7 +532,8 @@ static void _control_manage_state ( void )
   if ( current_flags & GNSS_THREAD_COMPLETED_SUCCESSFULLY )
   {
     controller_self->thread_status.gnss_complete = true;
-    ret |= tx_thread_resume (controller_self->thread_handles->waves_thread);
+    // Skipping this, since we're kicking waves off earlier for testing.
+    // ret |= tx_thread_resume (controller_self->thread_handles->waves_thread);
 
     LOG("GNSS thread complete, now terminating.");
     tx_thread_sleep (25);

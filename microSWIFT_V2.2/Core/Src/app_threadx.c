@@ -1835,11 +1835,11 @@ static void waves_thread_entry(ULONG thread_input) {
   memcpy(&sbd_message.f_min, &b_fmin, sizeof(real16_T));
   memcpy(&sbd_message.f_max, &b_fmax, sizeof(real16_T));
 
-  tx_thread_suspend(this_thread);
+  // tx_thread_suspend(this_thread);
 
   /******************************* Control thread resumes this thread
    * *****************************/
-  watchdog_register_thread(WAVES_THREAD);
+  // watchdog_register_thread(WAVES_THREAD);
   watchdog_check_in(WAVES_THREAD);
 
   //
