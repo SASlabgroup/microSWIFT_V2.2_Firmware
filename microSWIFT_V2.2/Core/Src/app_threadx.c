@@ -66,6 +66,7 @@
 #include "NEDWaves/NEDwaves_memlight_types.h"
 #include "NEDWaves/rt_nonfinite.h"
 #include "NEDWaves/rtwhalf.h"
+#include "NEDWaves/test_data_includes.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
