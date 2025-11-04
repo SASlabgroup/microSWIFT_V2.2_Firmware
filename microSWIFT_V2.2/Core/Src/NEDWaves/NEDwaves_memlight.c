@@ -7,6 +7,7 @@
  * MATLAB Coder version            : 5.4
  * C/C++ source code generated on  : 16-Oct-2023 17:01:43
  */
+// clang-format off
 
 /* Include Files */
 #include "NEDWaves/NEDwaves_memlight.h"
@@ -20,12 +21,11 @@
 #include "NEDWaves/mean.h"
 #include "NEDWaves/minOrMax.h"
 #include "NEDWaves/nullAssignment.h"
+#include "NEDWaves/rt_defines.h"
 #include "NEDWaves/rt_nonfinite.h"
 #include "NEDWaves/rtwhalf.h"
 #include "NEDWaves/std.h"
 #include "NEDWaves/var.h"
-#include "NEDWaves/rt_defines.h"
-#include "NEDWaves/rt_nonfinite.h"
 #include <float.h>
 #include <math.h>
 #include <string.h>
@@ -520,271 +520,11 @@ void NEDwaves_memlight ( emxArray_real32_T *north, emxArray_real32_T *east, emxA
   memset (&VW[0], 0, 42U * sizeof(creal32_T));
   emxInit_real32_T (&u, 2);
   /*  Despike the full time series */
-  fe = 10.0F * b_std (east);
-  nx = east->size[1];
-  i = u->size[0] * u->size[1];
-  u->size[0] = 1;
-  u->size[1] = east->size[1];
-  emxEnsureCapacity_real32_T (u, i);
-  u_data = u->data;
-  for ( fpindex = 0; fpindex < nx; fpindex++ )
-  {
-    u_data[fpindex] = fabsf (east_data[fpindex]);
-  }
-  i = bad->size[0] * bad->size[1];
-  bad->size[0] = 1;
-  bad->size[1] = u->size[1];
-  emxEnsureCapacity_boolean_T (bad, i);
-  bad_data = bad->data;
-  fpindex = u->size[1];
-  for ( i = 0; i < fpindex; i++ )
-  {
-    bad_data[i] = (u_data[i] >= fe);
-  }
-  /*  logical array of indices for bad points */
-  fpindex = bad->size[1] - 1;
-  nx = 0;
-  for ( b_i = 0; b_i <= fpindex; b_i++ )
-  {
-    if ( bad_data[b_i] )
-    {
-      nx++;
-    }
-  }
-  emxInit_int32_T (&r, 2);
-  i = r->size[0] * r->size[1];
-  r->size[0] = 1;
-  r->size[1] = nx;
-  emxEnsureCapacity_int32_T (r, i);
-  r1 = r->data;
-  nx = 0;
-  for ( b_i = 0; b_i <= fpindex; b_i++ )
-  {
-    if ( bad_data[b_i] )
-    {
-      r1[nx] = b_i + 1;
-      nx++;
-    }
-  }
-  fpindex = bad->size[1] - 1;
-  nx = 0;
-  for ( b_i = 0; b_i <= fpindex; b_i++ )
-  {
-    if ( !bad_data[b_i] )
-    {
-      nx++;
-    }
-  }
-  emxInit_int32_T (&r2, 2);
-  i = r2->size[0] * r2->size[1];
-  r2->size[0] = 1;
-  r2->size[1] = nx;
-  emxEnsureCapacity_int32_T (r2, i);
-  r3 = r2->data;
-  nx = 0;
-  for ( b_i = 0; b_i <= fpindex; b_i++ )
-  {
-    if ( !bad_data[b_i] )
-    {
-      r3[nx] = b_i + 1;
-      nx++;
-    }
-  }
-  emxInit_real32_T (&filtereddata, 2);
-  i = filtereddata->size[0] * filtereddata->size[1];
-  filtereddata->size[0] = 1;
-  filtereddata->size[1] = r2->size[1];
-  emxEnsureCapacity_real32_T (filtereddata, i);
-  filtereddata_data = filtereddata->data;
-  fpindex = r2->size[1];
-  for ( i = 0; i < fpindex; i++ )
-  {
-    filtereddata_data[i] = east_data[r3[i] - 1];
-  }
-  fe = b_combineVectorElements (filtereddata) / (float) r2->size[1];
-  fpindex = r->size[1] - 1;
-  emxFree_int32_T (&r2);
-  for ( i = 0; i <= fpindex; i++ )
-  {
-    east_data[r1[i] - 1] = fe;
-  }
-  fe = 10.0F * b_std (north);
-  nx = north->size[1];
-  i = u->size[0] * u->size[1];
-  u->size[0] = 1;
-  u->size[1] = north->size[1];
-  emxEnsureCapacity_real32_T (u, i);
-  u_data = u->data;
-  for ( fpindex = 0; fpindex < nx; fpindex++ )
-  {
-    u_data[fpindex] = fabsf (north_data[fpindex]);
-  }
-  i = bad->size[0] * bad->size[1];
-  bad->size[0] = 1;
-  bad->size[1] = u->size[1];
-  emxEnsureCapacity_boolean_T (bad, i);
-  bad_data = bad->data;
-  fpindex = u->size[1];
-  for ( i = 0; i < fpindex; i++ )
-  {
-    bad_data[i] = (u_data[i] >= fe);
-  }
-  /*  logical array of indices for bad points */
-  fpindex = bad->size[1] - 1;
-  nx = 0;
-  for ( b_i = 0; b_i <= fpindex; b_i++ )
-  {
-    if ( bad_data[b_i] )
-    {
-      nx++;
-    }
-  }
-  emxInit_int32_T (&r4, 2);
-  i = r4->size[0] * r4->size[1];
-  r4->size[0] = 1;
-  r4->size[1] = nx;
-  emxEnsureCapacity_int32_T (r4, i);
-  r1 = r4->data;
-  nx = 0;
-  for ( b_i = 0; b_i <= fpindex; b_i++ )
-  {
-    if ( bad_data[b_i] )
-    {
-      r1[nx] = b_i + 1;
-      nx++;
-    }
-  }
-  fpindex = bad->size[1] - 1;
-  nx = 0;
-  for ( b_i = 0; b_i <= fpindex; b_i++ )
-  {
-    if ( !bad_data[b_i] )
-    {
-      nx++;
-    }
-  }
-  emxInit_int32_T (&r5, 2);
-  i = r5->size[0] * r5->size[1];
-  r5->size[0] = 1;
-  r5->size[1] = nx;
-  emxEnsureCapacity_int32_T (r5, i);
-  r3 = r5->data;
-  nx = 0;
-  for ( b_i = 0; b_i <= fpindex; b_i++ )
-  {
-    if ( !bad_data[b_i] )
-    {
-      r3[nx] = b_i + 1;
-      nx++;
-    }
-  }
-  i = filtereddata->size[0] * filtereddata->size[1];
-  filtereddata->size[0] = 1;
-  filtereddata->size[1] = r5->size[1];
-  emxEnsureCapacity_real32_T (filtereddata, i);
-  filtereddata_data = filtereddata->data;
-  fpindex = r5->size[1];
-  for ( i = 0; i < fpindex; i++ )
-  {
-    filtereddata_data[i] = north_data[r3[i] - 1];
-  }
-  fe = b_combineVectorElements (filtereddata) / (float) r5->size[1];
-  fpindex = r4->size[1] - 1;
-  emxFree_int32_T (&r5);
-  for ( i = 0; i <= fpindex; i++ )
-  {
-    north_data[r1[i] - 1] = fe;
-  }
-  emxFree_int32_T (&r4);
-  fe = 10.0F * b_std (down);
-  nx = down->size[1];
-  i = u->size[0] * u->size[1];
-  u->size[0] = 1;
-  u->size[1] = down->size[1];
-  emxEnsureCapacity_real32_T (u, i);
-  u_data = u->data;
-  for ( fpindex = 0; fpindex < nx; fpindex++ )
-  {
-    u_data[fpindex] = fabsf (down_data[fpindex]);
-  }
-  i = bad->size[0] * bad->size[1];
-  bad->size[0] = 1;
-  bad->size[1] = u->size[1];
-  emxEnsureCapacity_boolean_T (bad, i);
-  bad_data = bad->data;
-  fpindex = u->size[1];
-  for ( i = 0; i < fpindex; i++ )
-  {
-    bad_data[i] = (u_data[i] >= fe);
-  }
-  /*  logical array of indices for bad points */
-  fpindex = bad->size[1] - 1;
-  nx = 0;
-  for ( b_i = 0; b_i <= fpindex; b_i++ )
-  {
-    if ( bad_data[b_i] )
-    {
-      nx++;
-    }
-  }
-  emxInit_int32_T (&r6, 2);
-  i = r6->size[0] * r6->size[1];
-  r6->size[0] = 1;
-  r6->size[1] = nx;
-  emxEnsureCapacity_int32_T (r6, i);
-  r1 = r6->data;
-  nx = 0;
-  for ( b_i = 0; b_i <= fpindex; b_i++ )
-  {
-    if ( bad_data[b_i] )
-    {
-      r1[nx] = b_i + 1;
-      nx++;
-    }
-  }
-  fpindex = bad->size[1] - 1;
-  nx = 0;
-  for ( b_i = 0; b_i <= fpindex; b_i++ )
-  {
-    if ( !bad_data[b_i] )
-    {
-      nx++;
-    }
-  }
-  emxInit_int32_T (&r7, 2);
-  i = r7->size[0] * r7->size[1];
-  r7->size[0] = 1;
-  r7->size[1] = nx;
-  emxEnsureCapacity_int32_T (r7, i);
-  r3 = r7->data;
-  nx = 0;
-  for ( b_i = 0; b_i <= fpindex; b_i++ )
-  {
-    if ( !bad_data[b_i] )
-    {
-      r3[nx] = b_i + 1;
-      nx++;
-    }
-  }
-  emxFree_boolean_T (&bad);
-  i = filtereddata->size[0] * filtereddata->size[1];
-  filtereddata->size[0] = 1;
-  filtereddata->size[1] = r7->size[1];
-  emxEnsureCapacity_real32_T (filtereddata, i);
-  filtereddata_data = filtereddata->data;
-  fpindex = r7->size[1];
-  for ( i = 0; i < fpindex; i++ )
-  {
-    filtereddata_data[i] = down_data[r3[i] - 1];
-  }
-  fe = b_combineVectorElements (filtereddata) / (float) r7->size[1];
-  fpindex = r6->size[1] - 1;
-  emxFree_int32_T (&r7);
-  for ( i = 0; i <= fpindex; i++ )
-  {
-    down_data[r1[i] - 1] = fe;
-  }
-  emxFree_int32_T (&r6);
+  // Despiking removed at Jim's request */
+  // There were some required initializations mixed in among the Despiking code.
+  emxInit_real32_T(&filtereddata, 2);
+  emxInit_int32_T(&r, 2);
+  // r2, r5, r6, r7 were also initialized here, but they aren't used elsewhere.
   /*  loop thru windows, accumulating spectral results */
   i = (int) windows;
   emxInit_real_T (&taper);
