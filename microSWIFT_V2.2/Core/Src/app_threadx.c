@@ -1849,7 +1849,7 @@ static void waves_thread_entry ( ULONG thread_input )
   signed char b1[42] = { 0 };
   signed char b2[42] = { 0 };
   unsigned char check[42] = { 0 };
-                                                                                      //@formatter:on
+                                                                                        //@formatter:on
 
   tx_thread_sleep (1);
 
@@ -1903,11 +1903,6 @@ static void waves_thread_entry ( ULONG thread_input )
 
   // Done with dynamic memory requirements for NEDWaves, delete the memory pool
   (void) waves_memory_pool_delete ();
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-  // TESTING: Ensure process kill works for NEDWaves
-  tx_thread_sleep (NEDWAVES_MAX_PROCESS_TIME);
-  //////////////////////////////////////////////////////////////////////////////////////////////////
 
   LOG("NEDWaves complete.");
 
