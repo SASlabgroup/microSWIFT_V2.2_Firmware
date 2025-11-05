@@ -42,9 +42,9 @@ END NOTE!!! END NOTE!!! END NOTE!!! END NOTE!!! END NOTE!!! END NOTE!!! END NOTE
      END NOTE!!! END NOTE!!! END NOTE!!! END NOTE!!! END NOTE!!! END NOTE!!! END NOTE!!! END NOTE!!!
 
 Future updates:
-[ ] Add error bit for NEDWaves running out of memory
+[x] Add error bit for NEDWaves running out of memory
 [ ] Update gitignore for .bak files and other such things
-[ ] Fix the watchdog!
+[x] Fix the watchdog!
 [ ] More robust, failsafe, fail-silent logging and SD card
 [ ] Better method of timestamping SD card files (log with BOOT file to remain unchanged)
 [ ] Better state management for thread control, including initialization and sampling completion
@@ -84,13 +84,11 @@ System
 Controller
 **********
 
-[x] Hardware timer (TIM7) implemented to software restart if NEDWaves takes longer than 30 seconds.
-    On calloc/malloc fail in mem_replacements, will set NED_WAVES_RAN_OUT_OF_MEM flag, suspend
-    NEDwaves thread, and continue on.
+[x] Added support for the following error bits:
     
-    NED_WAVES_TIMEOUT        = bit position 24,
+    NED_WAVES_RAN_OUT_OF_MEM = bit position 24,
   	FPU_EXCEPTION_OCCURRED   = bit position 25,
-  	NED_WAVES_RAN_OUT_OF_MEM = bit position 26
+
   	
 [x] Added 1 minute warmup timer to GNSS to ensure velocity data is well resolved by the time it is
     saved internally.
@@ -108,7 +106,13 @@ Controller
 [x] Fixed startup procedure bug causing delay in OBS or light processing while waiting on Iridium
     to finish initialization.
     
-    
+
+****************************************************************************************************
+External RTC
+************
+
+[x] Fixed RTC interrupt line assignment for watchdog
+
 ****************************************************************************************************
 File System
 ***********

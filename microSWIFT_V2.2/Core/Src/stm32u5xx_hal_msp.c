@@ -77,7 +77,7 @@ void HAL_MspInit(void)
 
   /* Peripheral interrupt init */
   /* FPU_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(FPU_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(FPU_IRQn, 15, 0);
   HAL_NVIC_EnableIRQ(FPU_IRQn);
 
   /** Enable the VREF clock

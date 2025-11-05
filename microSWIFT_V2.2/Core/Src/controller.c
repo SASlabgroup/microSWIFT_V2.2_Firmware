@@ -31,8 +31,6 @@ static void     _control_manage_state ( void );
 static void     _control_monitor_and_handle_errors ( void );
 
 // Helper functions
-static void     __start_ned_waves_process_timer ( void );
-static void     __stop_ned_waves_process_timer ( void );
 static void     __get_alarm_settings ( rtc_alarm_struct *alarm);
 static void     __handle_rtc_error ( void );
 static void     __handle_gnss_error ( ULONG error_flag );
@@ -51,11 +49,10 @@ static void     __handle_misc_error ( ULONG error_flag );
 // @formatter:on
 
 void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_config,
-                       Thread_Handles *thread_handles, TIM_HandleTypeDef *NEDwaves_hardware_timer,
-                       TX_EVENT_FLAGS_GROUP *error_flags, TX_EVENT_FLAGS_GROUP *init_flags,
-                       TX_EVENT_FLAGS_GROUP *irq_flags, TX_EVENT_FLAGS_GROUP *complete_flags,
-                       TX_TIMER *timer, ADC_HandleTypeDef *battery_adc_handle,
-                       sbd_message_type_52 *current_message )
+                       Thread_Handles *thread_handles, TX_EVENT_FLAGS_GROUP *error_flags,
+                       TX_EVENT_FLAGS_GROUP *init_flags, TX_EVENT_FLAGS_GROUP *irq_flags,
+                       TX_EVENT_FLAGS_GROUP *complete_flags, TX_TIMER *timer,
+                       ADC_HandleTypeDef *battery_adc_handle, sbd_message_type_52 *current_message )
 {
   // Init self
   controller_self = struct_ptr;
@@ -67,7 +64,6 @@ void controller_init ( Control *struct_ptr, microSWIFT_configuration *global_con
   controller_self->irq_flags = irq_flags;
   controller_self->complete_flags = complete_flags;
   controller_self->timer = timer;
-  controller_self->NEDwaves_hardware_timer = NEDwaves_hardware_timer;
   controller_self->current_message = current_message;
   controller_self->timer_timeout = false;
 
@@ -195,6 +191,18 @@ static bool _control_startup_procedure ( void )
 
   // Start core threads
   (void) tx_thread_resume (controller_self->thread_handles->waves_thread);
+  /*
+   *
+   *
+   *
+   * TESTING!!!!
+   */
+#warning "running NEDWaves test"
+  while ( 1 )
+  {
+    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
+  }
+
   (void) tx_thread_resume (controller_self->thread_handles->gnss_thread);
   (void) tx_thread_resume (controller_self->thread_handles->iridium_thread);
 
@@ -499,7 +507,6 @@ static void _control_manage_state ( void )
        | (current_flags & WAVES_THREAD_COMPLETED_WITH_ERRORS) )
   {
     controller_self->thread_status.waves_complete = true;
-    __stop_ned_waves_process_timer ();
 
     LOG("NED Waves thread complete, now terminating.");
 
@@ -541,7 +548,6 @@ static void _control_manage_state ( void )
   {
     controller_self->thread_status.gnss_complete = true;
 
-    __start_ned_waves_process_timer ();
     ret |= tx_thread_resume (controller_self->thread_handles->waves_thread);
 
     LOG("GNSS thread complete, now terminating.");
@@ -697,15 +703,6 @@ static void _control_monitor_and_handle_errors ( void )
 
 }
 
-static void __start_ned_waves_process_timer ( void )
-{
-  (void) HAL_TIM_Base_Start_IT (controller_self->NEDwaves_hardware_timer);
-}
-
-static void __stop_ned_waves_process_timer ( void )
-{
-  (void) HAL_TIM_Base_Stop_IT (controller_self->NEDwaves_hardware_timer);
-}
 static void __get_alarm_settings ( rtc_alarm_struct *alarm )
 {
   struct tm boot_time =

@@ -22,6 +22,7 @@
 #include "stm32u5xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "app_threadx.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -545,7 +546,7 @@ void GPDMA1_Channel9_IRQHandler(void)
 void FPU_IRQHandler(void)
 {
   /* USER CODE BEGIN FPU_IRQn 0 */
-
+  (void) tx_event_flags_set (&error_flags, FPU_EXCEPTION_OCCURRED, TX_OR);
   /* USER CODE END FPU_IRQn 0 */
   /* USER CODE BEGIN FPU_IRQn 1 */
 

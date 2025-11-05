@@ -20,7 +20,6 @@
 #include "app_threadx.h"
 #include "main.h"
 #include "gpdma.h"
-#include "tim.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -123,7 +122,6 @@ int main ( void )
   /* Initialize all configured peripherals */
   MX_GPIO_Init ();
   MX_GPDMA1_Init ();
-  MX_TIM7_Init ();
   /* USER CODE BEGIN 2 */
 
   // Disable the RTC Int B pin interrupt for now until we set up the RTC

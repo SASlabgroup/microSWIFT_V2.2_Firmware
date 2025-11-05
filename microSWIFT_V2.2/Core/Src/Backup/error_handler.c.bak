@@ -13,9 +13,14 @@
 #include "battery.h"
 #include "sdmmc.h"
 
+int skip_safe_mode = 0;
+
 void Error_Handler ( void )
 {
-  safe_mode ();
+  if ( skip_safe_mode == 0U )
+  {
+    safe_mode ();
+  }
 
   persistent_ram_deinit ();
 

@@ -12,6 +12,7 @@
 #include "gnss.h"
 #include "battery.h"
 #include "ext_rtc.h"
+#include "error_handler.h"
 
 /**
  * @brief Tx Transfer completed callback.
@@ -181,6 +182,7 @@ void HAL_TIM_PeriodElapsedCallback ( TIM_HandleTypeDef *htim )
   {
     HAL_IncTick ();
   }
+
 }
 
 /**

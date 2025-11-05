@@ -302,7 +302,7 @@ void waves_error_out ( ULONG error_flag, TX_THREAD *waves_thread, const char *fm
   va_end(args);
   LOG(&(tmp_fmt[0]));
 
-  (void) tx_event_flags_set (&error_flags, WAVES_INIT_FAILED, TX_OR);
+  (void) tx_event_flags_set (&error_flags, error_flag, TX_OR);
 
   watchdog_deregister_thread (WAVES_THREAD);
 

@@ -45,6 +45,9 @@
 #include "light_sensor.h"
 #include "turbidity_sensor.h"
 #include "NEDWaves/mem_replacements.h"
+
+#include "NEDWaves/test_data_includes.h"
+
 #include "configuration.h"
 #include "linked_list.h"
 #include "testing_hooks.h"
@@ -58,7 +61,6 @@
 #include "leds.h"
 #include "shared_i2c_bus.h"
 #include "file_system_server.h"
-#include "tim.h"
 
 // Waves files
 #include "NEDWaves/NEDwaves_memlight.h"
@@ -662,7 +664,6 @@ UINT App_ThreadX_Init ( VOID *memory_ptr )
   device_handles.expansion_uart_handle = &huart2;
   device_handles.ext_psram_handle = &hospi1;
   device_handles.battery_adc = &hadc1;
-  device_handles.NEDWaves_hardware_timer = &htim7;
   device_handles.gnss_uart_tx_dma_handle = &handle_GPDMA1_Channel9;
   device_handles.gnss_uart_rx_dma_handle = &handle_GPDMA1_Channel8;
   device_handles.iridium_uart_tx_dma_handle = &handle_GPDMA1_Channel7;
@@ -975,8 +976,7 @@ static void control_thread_entry ( ULONG thread_input )
 
   persistent_ram_get_firmware_version (&version);
 
-  controller_init (&control, &configuration, &thread_handles,
-                   device_handles.NEDWaves_hardware_timer, &error_flags, &initialization_flags,
+  controller_init (&control, &configuration, &thread_handles, &error_flags, &initialization_flags,
                    &irq_flags, &complete_flags, &control_timer, device_handles.battery_adc,
                    &sbd_message);
 
@@ -1849,7 +1849,7 @@ static void waves_thread_entry ( ULONG thread_input )
   signed char b1[42] = { 0 };
   signed char b2[42] = { 0 };
   unsigned char check[42] = { 0 };
-                                                                                        //@formatter:on
+                                                                                                                //@formatter:on
 
   tx_thread_sleep (1);
 

@@ -157,7 +157,8 @@ typedef enum error_flags
   RTC_ERROR                             = ((ULONG) 1 << 21),
   WAVES_INIT_FAILED                     = ((ULONG) 1 << 22),
   CORE_I2C_BUS_ERROR                    = ((ULONG) 1 << 23),
-  NED_WAVES_TIMEOUT                     = ((ULONG) 1 << 24),
+  NED_WAVES_RAN_OUT_OF_MEM              = ((ULONG) 1 << 24),
+  FPU_EXCEPTION_OCCURRED                = ((ULONG) 1 << 25),
   // Misc errors
   WATCHDOG_RESET                        = ((ULONG) 1 << 29),
   SOFTWARE_RESET                        = ((ULONG) 1 << 30),
@@ -239,11 +240,14 @@ extern TX_SEMAPHORE logger_sema;
 extern TX_EVENT_FLAGS_GROUP initialization_flags;
 extern TX_EVENT_FLAGS_GROUP irq_flags;
 extern TX_EVENT_FLAGS_GROUP error_flags;
+
+// Exposed so we can kill it in ISR if it takes too long to run
+extern TX_THREAD waves_thread;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-#define WAVES_MEM_POOL_SIZE 651264
+#define WAVES_MEM_POOL_SIZE 659456
 #define EXPANSION_QUEUE_MSG_SIZE 64
 #define EXPANSION_QUEUE_LENGTH 4
 /* USER CODE END EC */

@@ -196,7 +196,6 @@ typedef struct
   UART_HandleTypeDef    *expansion_uart_handle;
   OSPI_HandleTypeDef    *ext_psram_handle;
   ADC_HandleTypeDef     *battery_adc;
-  TIM_HandleTypeDef     *NEDWaves_hardware_timer;
   // DMA handles
   DMA_HandleTypeDef     *gnss_uart_tx_dma_handle;
   DMA_HandleTypeDef     *gnss_uart_rx_dma_handle;

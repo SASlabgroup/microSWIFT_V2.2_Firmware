@@ -45,6 +45,9 @@
 #include "light_sensor.h"
 #include "turbidity_sensor.h"
 #include "NEDWaves/mem_replacements.h"
+
+#include "NEDWaves/test_data_includes.h"
+
 #include "configuration.h"
 #include "linked_list.h"
 #include "testing_hooks.h"
@@ -205,11 +208,11 @@ static void turbidity_thread_entry ( ULONG thread_input );
 /* USER CODE END PFP */
 
 /**
-  * @brief  Application ThreadX Initialization.
-  * @param memory_ptr: memory pointer
-  * @retval int
-  */
-UINT App_ThreadX_Init(VOID *memory_ptr)
+ * @brief  Application ThreadX Initialization.
+ * @param memory_ptr: memory pointer
+ * @retval int
+ */
+UINT App_ThreadX_Init ( VOID *memory_ptr )
 {
   UINT ret = TX_SUCCESS;
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
@@ -379,13 +382,13 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
 
   //
   // Allocate stack for the waves thread
-  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XL_STACK, TX_NO_WAIT);
+  ret = tx_byte_allocate (byte_pool, (VOID**) &pointer, XXL_STACK, TX_NO_WAIT);
   if ( ret != TX_SUCCESS )
   {
     return ret;
   }
   // Create the waves thread. Lowest priority, can be preempted by any other thread
-  ret = tx_thread_create(&waves_thread, "waves thread", waves_thread_entry, 0, pointer, XL_STACK,
+  ret = tx_thread_create(&waves_thread, "waves thread", waves_thread_entry, 0, pointer, XXL_STACK,
                          LOWEST_PRIORITY, LOWEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if ( ret != TX_SUCCESS )
   {
@@ -688,18 +691,18 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   return ret;
 }
 
-  /**
-  * @brief  Function that implements the kernel's initialization.
-  * @param  None
-  * @retval None
-  */
-void MX_ThreadX_Init(void)
+/**
+ * @brief  Function that implements the kernel's initialization.
+ * @param  None
+ * @retval None
+ */
+void MX_ThreadX_Init ( void )
 {
   /* USER CODE BEGIN Before_Kernel_Start */
 
   /* USER CODE END Before_Kernel_Start */
 
-  tx_kernel_enter();
+  tx_kernel_enter ();
 
   /* USER CODE BEGIN Kernel_Start_Error */
 
@@ -1156,7 +1159,6 @@ static void gnss_thread_entry ( ULONG thread_input )
     tx_return = tx_event_flags_get (&irq_flags, (GNSS_MSG_RECEIVED | GNSS_MSG_INCOMPLETE),
     TX_OR_CLEAR,
                                     &actual_flags, timer_ticks_to_get_message);
-
     // Full message came through
     if ( (tx_return == TX_SUCCESS) && !(actual_flags & GNSS_MSG_INCOMPLETE) )
     {
@@ -1772,7 +1774,7 @@ static void turbidity_thread_entry ( ULONG thread_input )
   while ( 1 )
   {
 
-    watchdog_check_in (LIGHT_THREAD);
+    watchdog_check_in (TURBIDITY_THREAD);
 
     ret = obs.take_measurement (false);
 
@@ -1847,7 +1849,7 @@ static void waves_thread_entry ( ULONG thread_input )
   signed char b1[42] = { 0 };
   signed char b2[42] = { 0 };
   unsigned char check[42] = { 0 };
-                                                    //@formatter:on
+                                                                                                      //@formatter:on
 
   tx_thread_sleep (1);
 
@@ -1890,10 +1892,18 @@ static void waves_thread_entry ( ULONG thread_input )
 
   LOG("Running NEDWaves.");
 
+  waves_mem.north->data = test_vel_north;
+  waves_mem.east->data = test_vel_east;
+  waves_mem.down->data = test_vel_down;
+
+  double sample_window_frequency = 4.0;
+
   /* Call the entry-point 'NEDwaves_memlight'. */
-  NEDwaves_memlight (waves_mem.north, waves_mem.east, waves_mem.down,
-                     gnss_get_sample_window_frequency (), &Hs, &Tp, &Dp, E, &b_fmin, &b_fmax, a1,
-                     b1, a2, b2, check);
+  // NEDwaves_memlight(waves_mem.north, waves_mem.east, waves_mem.down,
+  //                   gnss_get_sample_window_frequency(), &Hs, &Tp, &Dp, E,
+  //                   &b_fmin, &b_fmax, a1, b1, a2, b2, check);
+  NEDwaves_memlight (waves_mem.north, waves_mem.east, waves_mem.down, sample_window_frequency, &Hs,
+                     &Tp, &Dp, E, &b_fmin, &b_fmax, a1, b1, a2, b2, check);
 
   emxDestroyArray_real32_T (waves_mem.north);
   emxDestroyArray_real32_T (waves_mem.east);
