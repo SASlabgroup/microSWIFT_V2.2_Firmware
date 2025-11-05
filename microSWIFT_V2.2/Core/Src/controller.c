@@ -191,18 +191,6 @@ static bool _control_startup_procedure ( void )
 
   // Start core threads
   (void) tx_thread_resume (controller_self->thread_handles->waves_thread);
-  /*
-   *
-   *
-   *
-   * TESTING!!!!
-   */
-#warning "running NEDWaves test"
-  while ( 1 )
-  {
-    tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND);
-  }
-
   (void) tx_thread_resume (controller_self->thread_handles->gnss_thread);
   (void) tx_thread_resume (controller_self->thread_handles->iridium_thread);
 
