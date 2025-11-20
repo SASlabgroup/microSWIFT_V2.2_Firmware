@@ -663,7 +663,8 @@ static void __assemble_ota_ack_message ( microSWIFT_configuration *rcvd_config )
   sbd_message_type_99 ack_msg =
     { 0 };
   uint32_t timestamp = (uint32_t) get_system_time ();
-  int32_t lat = 0.0f, lon = 0.0f;
+  int32_t lat = 0;
+  int32_t lon = 0;
   float msg_lat, msg_lon;
   char v3f, gnss_hi_perf, ct_en, temp_en, light_en, obs_en;
 
@@ -682,8 +683,8 @@ static void __assemble_ota_ack_message ( microSWIFT_configuration *rcvd_config )
 
   gnss_get_current_lat_lon (&lat, &lon);
 
-  msg_lat = lat / LAT_LON_CONVERSION_FACTOR;
-  msg_lon = lon / LAT_LON_CONVERSION_FACTOR;
+  msg_lat = (float) lat / LAT_LON_CONVERSION_FACTOR;
+  msg_lon = (float) lon / LAT_LON_CONVERSION_FACTOR;
 
   memcpy (&ack_msg.timestamp, &timestamp, sizeof(uint32_t));
   memcpy (&ack_msg.latitude, &msg_lat, sizeof(float));
