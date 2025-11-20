@@ -236,6 +236,11 @@ static bool _control_startup_procedure(void) {
     init_wait_ticks -= 10;
   }
 
+  if (tx_return != TX_SUCCESS) {
+    LOG("control startup_procedure failed; success_flags = %lu, current_flags = %lu",
+        init_success_flags, current_flags);
+  }
+
   return (tx_return == TX_SUCCESS);
 }
 
