@@ -21,6 +21,18 @@ int32_t watchdog_init ( watchdog_handle wd_handle, TX_EVENT_FLAGS_GROUP *watchdo
 
   wd_handle->check_in_flags = watchdog_check_in_flags;
 
+  // NOTE(lindzey): I don't think that the watchdog needs to track thesse
+  //     individually, though it is useful to have an enum mapping to which bit is set.
+  //     Instead, just have a corresponding uint32 of required_threads,
+  //     and use the thread enum to set bits in it, like done for watchdog_check_in.
+  //     That would simpify adding a new thread, such that the only thing to do is:
+  //       * add an enum to watchdog_thread_flags, call check_in/register/deregister with that value
+  //     while currently you also need to:
+  //       * add a flag to the watchdog_t struct
+  //       * update code to handle that flag in:
+  //         - watchdog_event_callback
+  //         - watchdog_register_thread
+  //         - watchdog_deregister_thread
   wd_handle->gnss_active = false;
   wd_handle->ct_active = false;
   wd_handle->temperature_active = false;
@@ -29,6 +41,7 @@ int32_t watchdog_init ( watchdog_handle wd_handle, TX_EVENT_FLAGS_GROUP *watchdo
   wd_handle->waves_active = false;
   wd_handle->iridium_active = false;
   wd_handle->filex_active = false;
+  wd_handle->accelerometer_active = false;
 
   if ( tx_event_flags_set_notify (wd_handle->check_in_flags, watchdog_event_callback) != TX_SUCCESS )
   {
@@ -86,6 +99,11 @@ void watchdog_event_callback ( TX_EVENT_FLAGS_GROUP *flags_group_ptr )
   if ( hidden_handle->filex_active )
   {
     required_flags |= FILEX_THREAD;
+  }
+
+  if ( hidden_handle->accelerometer_active )
+  {
+    required_flags |= ACCELEROMETER_THREAD;
   }
 
   // Control thread always has to check in
@@ -157,7 +175,13 @@ void watchdog_register_thread ( enum watchdog_thread_flags which_thread )
       hidden_handle->filex_active = true;
       break;
 
+    case ACCELEROMETER_THREAD:
+      hidden_handle->accelerometer_active = true;
+      break;
+
     default:
+      // This log message never prints; instead it causes a HardFault
+      // https://github.com/SASlabgroup/microSWIFT_V2.2_Firmware/issues/1
       LOG("Invalid arg supplied to watchdog_register_thread().");
       break;
   }
@@ -197,6 +221,10 @@ void watchdog_deregister_thread ( enum watchdog_thread_flags which_thread )
 
     case FILEX_THREAD:
       hidden_handle->filex_active = false;
+      break;
+
+    case ACCELEROMETER_THREAD:
+      hidden_handle->accelerometer_active = false;
       break;
 
     default:

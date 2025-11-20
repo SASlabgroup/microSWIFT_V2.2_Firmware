@@ -165,6 +165,11 @@ typedef enum error_flags
   CORE_I2C_BUS_ERROR                    = ((ULONG) 1 << 23),
   NED_WAVES_RAN_OUT_OF_MEM              = ((ULONG) 1 << 24),
   FPU_EXCEPTION_OCCURRED                = ((ULONG) 1 << 25),
+  // NB: we're really close to running out of space here.
+  // I can shove a few accelerometer flags here, but the *next*
+  // new payload will be an issue. Consider making it generic,
+  // so the other new threads can also use it? !
+  ACCELEROMETER_INIT_FAILED             = ((ULONG) 1 << 26),
   // Misc errors
   WATCHDOG_RESET                        = ((ULONG) 1 << 29),
   SOFTWARE_RESET                        = ((ULONG) 1 << 30),
@@ -229,6 +234,7 @@ typedef struct {
   TX_THREAD *waves_thread;
   TX_THREAD *iridium_thread;
   TX_THREAD *filex_thread;
+  TX_THREAD *accelerometer_thread;
 } Thread_Handles;
 
 extern microSWIFT_configuration configuration;

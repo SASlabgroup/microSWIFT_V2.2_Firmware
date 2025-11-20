@@ -119,13 +119,26 @@ TX_THREAD light_thread;
 TX_THREAD turbidity_thread;
 TX_THREAD waves_thread;
 TX_THREAD iridium_thread;
-// @formatter:off
-Thread_Handles thread_handles = {
-    &control_thread, &rtc_thread,       &led_thread,   &i2c_bus_thread,
-    &logger_thread,  &gnss_thread,      &ct_thread,    &temperature_thread,
-    &light_thread,   &turbidity_thread, &waves_thread, &iridium_thread,
-    &fx_thread};
-// @formatter:on
+TX_THREAD accelerometer_thread;
+// clang-format off
+Thread_Handles thread_handles =
+  {
+    &control_thread,
+    &rtc_thread,
+    &led_thread,
+    &i2c_bus_thread,
+    &logger_thread,
+    &gnss_thread,
+    &ct_thread,
+    &temperature_thread,
+    &light_thread,
+    &turbidity_thread,
+    &waves_thread,
+    &iridium_thread,
+    &fx_thread,
+    &accelerometer_thread
+  };
+// clang-format on
 // Used to track initialization status of threads and components
 TX_EVENT_FLAGS_GROUP initialization_flags;
 // We'll use these flags to indicate a thread has completed execution
@@ -215,6 +228,7 @@ static void ct_thread_entry(ULONG thread_input);
 static void temperature_thread_entry(ULONG thread_input);
 static void light_thread_entry(ULONG thread_input);
 static void turbidity_thread_entry(ULONG thread_input);
+static void accelerometer_thread_entry(ULONG thread_input);
 
 // clang-format off
 /* USER CODE END PFP */
@@ -408,6 +422,20 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
       tx_thread_create(&iridium_thread, "iridium thread", iridium_thread_entry,
                        0, pointer, XL_STACK, HIGH_PRIORITY, HIGHEST_PRIORITY,
                        TX_NO_TIME_SLICE, TX_DONT_START);
+  if (ret != TX_SUCCESS) {
+    return ret;
+  }
+
+  // Allocate stack for the Accelerometer thread
+  ret = tx_byte_allocate(byte_pool, (VOID **)&pointer, S_STACK, TX_NO_WAIT);
+  if (ret != TX_SUCCESS) {
+    return ret;
+  }
+  // Create the accelerometer thread. HIGH priority, no preemption-threshold
+  ret = tx_thread_create(&accelerometer_thread, "accelerometer thread",
+                         accelerometer_thread_entry, 0, pointer, S_STACK,
+                         HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
+                         TX_DONT_START);
   if (ret != TX_SUCCESS) {
     return ret;
   }
@@ -649,6 +677,8 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   device_handles.expansion_uart_rx_dma_handle = &handle_GPDMA1_Channel2;
 
   persistent_ram_get_device_config(&configuration);
+  // TODO: Revert this once I've added it to the configuration!
+  // configuration.accelerometer_enabled = true;
 
   // clang-format off
   /* USER CODE END App_ThreadX_MEM_POOL */
@@ -2065,6 +2095,49 @@ static void iridium_thread_entry(ULONG thread_input) {
 
   (void)tx_event_flags_set(&complete_flags,
                            IRIDIUM_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
+  tx_thread_terminate(this_thread);
+}
+
+static void accelerometer_thread_entry(ULONG thread_input) {
+  UNUSED(thread_input);
+
+  TX_THREAD *this_thread = &accelerometer_thread;
+
+  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
+  char *log_str = NULL;
+
+  // Calling "LOG" here causes repeated restarts of the program.
+  // https://github.com/SASlabgroup/microSWIFT_V2.2_Firmware/issues/1
+  // LOG("accelerometer_thread_entry");
+
+  tx_thread_sleep(100);
+  LOG("accelerometer_thread_entry");
+  HAL_GPIO_WritePin(EXP_GPIO_1_GPIO_Port, EXP_GPIO_1_Pin, GPIO_PIN_SET);
+  tx_thread_sleep(10000);
+  // TODO: Run self test; report success/failure
+  HAL_GPIO_WritePin(EXP_GPIO_1_GPIO_Port, EXP_GPIO_1_Pin, GPIO_PIN_RESET);
+
+  (void)tx_event_flags_set(&initialization_flags, ACCELEROMETER_INIT_SUCCESS,
+                           TX_OR);
+
+  // Suspend for now, will be woken up when GNSS has initialized
+  tx_thread_suspend(this_thread);
+
+  tx_thread_sleep(100);
+
+  LOG("Resuming accelerometer thread");
+  HAL_GPIO_WritePin(EXP_GPIO_1_GPIO_Port, EXP_GPIO_1_Pin, GPIO_PIN_SET);
+  tx_thread_sleep(10000);
+  HAL_GPIO_WritePin(EXP_GPIO_1_GPIO_Port, EXP_GPIO_1_Pin, GPIO_PIN_RESET);
+
+  // The logger gets weird if there is no break here...
+  // Another place where the LOG call dropped me right into the HardFault
+  // handler.
+  LOG("Accel thread complete flag set; about to terminate");
+  tx_thread_sleep(LOGGER_MAX_TICKS_TO_TX_MSG);
+
+  (void)tx_event_flags_set(&complete_flags,
+                           ACCELEROMETER_THREAD_COMPLETED_SUCCESSFULLY, TX_OR);
   tx_thread_terminate(this_thread);
 }
 // clang-format off

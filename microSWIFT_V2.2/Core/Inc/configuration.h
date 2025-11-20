@@ -36,6 +36,7 @@ typedef struct __attribute__((packed)) microSWIFT_configuration
   bool temperature_enabled;
   bool light_enabled;
   bool turbidity_enabled;
+  bool accelerometer_enabled;
 
   const char compile_date[11];
   const char compile_time[9];

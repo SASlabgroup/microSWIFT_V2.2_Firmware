@@ -81,6 +81,8 @@ void controller_init(Control *struct_ptr,
       !controller_self->global_config->light_enabled;
   controller_self->thread_status.turbidity_complete =
       !controller_self->global_config->turbidity_enabled;
+  controller_self->thread_status.accelerometer_complete =
+      !controller_self->global_config->accelerometer_enabled;
 
   controller_self->startup_procedure = _control_startup_procedure;
   controller_self->shutdown_procedure = _control_shutdown_procedure;
@@ -211,6 +213,13 @@ static bool _control_startup_procedure(void) {
     (void)tx_thread_resume(controller_self->thread_handles->turbidity_thread);
   }
 
+  if (controller_self->global_config->accelerometer_enabled) {
+    init_success_flags |= ACCELEROMETER_INIT_SUCCESS;
+    LOG("Starting accelerometer thread");
+    (void)tx_thread_resume(
+        controller_self->thread_handles->accelerometer_thread);
+  }
+
   // Flash power up sequence (this will also give threads time to execute their
   // init procedures)
   if (initial_powerup) {
@@ -237,7 +246,8 @@ static bool _control_startup_procedure(void) {
   }
 
   if (tx_return != TX_SUCCESS) {
-    LOG("control startup_procedure failed; success_flags = %lu, current_flags = %lu",
+    LOG("control startup_procedure failed; success_flags = %lu, current_flags "
+        "= %lu",
         init_success_flags, current_flags);
   }
 
@@ -336,6 +346,7 @@ static void _control_shutdown_all_peripherals(void) {
   HAL_GPIO_WritePin(LIGHT_FET_GPIO_Port, LIGHT_FET_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(RTC_WDOG_OR_INPUT_GPIO_Port, RTC_WDOG_OR_INPUT_Pin,
                     GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(EXP_GPIO_1_GPIO_Port, EXP_GPIO_1_Pin, GPIO_PIN_RESET);
 }
 
 static void _control_shutdown_all_interfaces(void) {
@@ -473,6 +484,14 @@ static void _control_manage_state(void) {
     tx_thread_sleep(25);
   }
 
+  if ((current_flags & ACCELEROMETER_THREAD_COMPLETED_SUCCESSFULLY) ||
+      (current_flags & ACCELEROMETER_THREAD_COMPLETED_WITH_ERRORS)) {
+    controller_self->thread_status.accelerometer_complete = true;
+
+    LOG("Accelerometer thread complete, now terminating.");
+    tx_thread_sleep(25);
+  }
+
   if ((current_flags & WAVES_THREAD_COMPLETED_SUCCESSFULLY) |
       (current_flags & WAVES_THREAD_COMPLETED_WITH_ERRORS)) {
     controller_self->thread_status.waves_complete = true;
@@ -483,7 +502,7 @@ static void _control_manage_state(void) {
   }
 
   // When the GNSS has resolved time, has a fix, and has started sampling,
-  // signal the light and/or turbidity threads to start
+  // signal the light, turbidity, and/or accelerometer threads to start.
   if (current_flags & GNSS_SAMPLING_STARTED_FIX_GOOD) {
     if (!controller_self->thread_status.light_complete) {
       ret |= tx_thread_resume(controller_self->thread_handles->light_thread);
@@ -492,6 +511,12 @@ static void _control_manage_state(void) {
     if (!controller_self->thread_status.turbidity_complete) {
       ret |=
           tx_thread_resume(controller_self->thread_handles->turbidity_thread);
+    }
+
+    if (!controller_self->thread_status.accelerometer_complete) {
+      LOG("Acquired GNSS fix; resuming accelerometer thread");
+      ret |= tx_thread_resume(
+          controller_self->thread_handles->accelerometer_thread);
     }
   }
 
@@ -541,6 +566,7 @@ static void _control_manage_state(void) {
                   controller_self->thread_status.temperature_complete &&
                   controller_self->thread_status.light_complete &&
                   controller_self->thread_status.turbidity_complete &&
+                  controller_self->thread_status.accelerometer_complete &&
                   controller_self->thread_status.waves_complete;
 
   if (iridium_ready) {
@@ -729,6 +755,8 @@ static void __handle_gnss_error(ULONG error_flags) {
   ULONG flags =
       GNSS_THREAD_COMPLETED_WITH_ERRORS | WAVES_THREAD_COMPLETED_WITH_ERRORS;
 
+  // These sensor threads depend on being resumed when GNSS gets a fix.
+  // So, if GNSS errors out, they won't ever terminate on their own.
   if (controller_self->global_config->turbidity_enabled) {
     flags |= TURBIDITY_THREAD_COMPLETED_WITH_ERRORS;
   }
@@ -737,7 +765,11 @@ static void __handle_gnss_error(ULONG error_flags) {
     flags |= LIGHT_THREAD_COMPLETED_WITH_ERRORS;
   }
 
-  // Shut down CT sensor
+  if (controller_self->global_config->accelerometer_enabled) {
+    flags |= LIGHT_THREAD_COMPLETED_WITH_ERRORS;
+  }
+
+  // Shut down GNSS sensor
   HAL_GPIO_WritePin(GNSS_FET_GPIO_Port, GNSS_FET_Pin, GPIO_PIN_RESET);
   // Set all the fields of the SBD message to error values
   memset(controller_self->current_message, 0, sizeof(sbd_message_type_52));
