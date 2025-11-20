@@ -435,56 +435,19 @@ uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configura
 
   }
 
-  // First case, both light and turbidity sensors are enabled
-  if ( config->turbidity_enabled && config->light_enabled )
+
+  // First priority is light telemetry as it contains the most elements
+  if ( (num_light_msgs >= num_waves_msgs) && (num_light_msgs >= num_turbidity_msgs) )
   {
-    // First priority is light telemetry as it contains the most elements
-    if ( (num_light_msgs >= num_waves_msgs) && (num_light_msgs >= num_turbidity_msgs) )
-    {
-      *msg_buffer = persistent_ram_get_prioritized_unsent_message (LIGHT_TELEMETRY);
-      msg_type = LIGHT_TELEMETRY;
-    }
-    // Second priority is turbidity as there are fewer per message than light and more than waves
-    else if ( (num_turbidity_msgs >= num_waves_msgs) )
-    {
-      *msg_buffer = persistent_ram_get_prioritized_unsent_message (TURBIDITY_TELEMETRY);
-      msg_type = TURBIDITY_TELEMETRY;
-    }
-    else
-    {
-      *msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
-      msg_type = WAVES_TELEMETRY;
-    }
+    *msg_buffer = persistent_ram_get_prioritized_unsent_message (LIGHT_TELEMETRY);
+    msg_type = LIGHT_TELEMETRY;
   }
-  // Only turbidity enabled
-  else if ( config->turbidity_enabled )
+  // Second priority is turbidity as there are fewer per message than light and more than waves
+  else if ( (num_turbidity_msgs >= num_waves_msgs) )
   {
-    if ( (num_turbidity_msgs >= num_waves_msgs) )
-    {
-      *msg_buffer = persistent_ram_get_prioritized_unsent_message (TURBIDITY_TELEMETRY);
-      msg_type = TURBIDITY_TELEMETRY;
-    }
-    else
-    {
-      *msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
-      msg_type = WAVES_TELEMETRY;
-    }
+    *msg_buffer = persistent_ram_get_prioritized_unsent_message (TURBIDITY_TELEMETRY);
+    msg_type = TURBIDITY_TELEMETRY;
   }
-  // Only light enabled
-  else if ( config->light_enabled )
-  {
-    if ( (num_light_msgs >= num_waves_msgs) )
-    {
-      *msg_buffer = persistent_ram_get_prioritized_unsent_message (LIGHT_TELEMETRY);
-      msg_type = LIGHT_TELEMETRY;
-    }
-    else
-    {
-      *msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
-      msg_type = WAVES_TELEMETRY;
-    }
-  }
-  // Neither turbidity nor light sensors are enabled
   else
   {
     *msg_buffer = persistent_ram_get_prioritized_unsent_message (WAVES_TELEMETRY);
