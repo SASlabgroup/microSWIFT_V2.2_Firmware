@@ -13,7 +13,6 @@
 #include "NEDWaves/rtwhalf.h"
 #define TYPE_99_CHAR_BUF_LEN 320
 #define IRIDIUM_SBD_MAX_LENGTH 340
-#define IRIDIUM_SBD_OVERHEAD_BYTES 2
 #define TELEMETRY_FIELD_ERROR_CODE (0x70E2)
 
 // @formatter:off
@@ -23,6 +22,7 @@ typedef struct
   uint8_t     checksum_a;
   uint8_t     checksum_b;
 } iridium_checksum_t;
+#define IRIDIUM_CHECKSUM_LENGTH sizeof(iridium_checksum_t)
 
 // Primary message type for wave dynamic measurements
 typedef struct __packed
@@ -65,7 +65,7 @@ typedef struct __packed
   uint16_t    ambient_avgs[17];
 } sbd_message_type_53_element;
 
-#define TURBIDITY_MSGS_PER_SBD ((IRIDIUM_SBD_MAX_LENGTH - IRIDIUM_SBD_OVERHEAD_BYTES) / sizeof(sbd_message_type_53_element))
+#define TURBIDITY_MSGS_PER_SBD ((IRIDIUM_SBD_MAX_LENGTH - IRIDIUM_CHECKSUM_LENGTH) / sizeof(sbd_message_type_53_element))
 
 // Definition for the SBD message with multiple sample windows
 typedef struct __packed
@@ -103,7 +103,7 @@ typedef struct __packed
   uint16_t    avg_nir;
 } sbd_message_type_54_element;
 
-#define LIGHT_MSGS_PER_SBD ((IRIDIUM_SBD_MAX_LENGTH - IRIDIUM_SBD_OVERHEAD_BYTES) / sizeof(sbd_message_type_54_element))
+#define LIGHT_MSGS_PER_SBD ((IRIDIUM_SBD_MAX_LENGTH - IRIDIUM_CHECKSUM_LENGTH) / sizeof(sbd_message_type_54_element))
 
 // Definition for the SBD message with multiple sample windows
 typedef struct __packed
