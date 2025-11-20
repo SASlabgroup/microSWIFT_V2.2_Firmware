@@ -7,6 +7,7 @@
 
 #include <ext_rtc_server.h>
 #include "persistent_ram.h"
+#include "float.h"
 #include "logger.h"
 #include "math.h"
 #include "string.h"
@@ -231,6 +232,12 @@ uint32_t persistent_ram_get_num_msgs_enqueued ( telemetry_type_t msg_type )
       return persistent_self.light_storage.num_msg_elements_enqueued / LIGHT_MSGS_PER_SBD;
       break;
 
+    case ACCELEROMETER_TELEMETRY:
+      LOG("Number of enqueued Accelerometer messages: %lu",
+          persistent_self.accelerometer_storage.num_telemetry_msgs_enqueued);
+      return persistent_self.accelerometer_storage.num_telemetry_msgs_enqueued;
+      break;
+
     default:
       return 0;
   }
@@ -289,6 +296,51 @@ void persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t *msg )
             return;
           }
         }
+      }
+
+      break;
+
+    case ACCELEROMETER_TELEMETRY:
+      // If the storage queue is full, see if we can replace an element
+      if ( persistent_self.accelerometer_storage.num_telemetry_msgs_enqueued == MAX_NUM_ACCELEROMETER_MSGS_STORED )
+      {
+        for ( i = 0; i < MAX_NUM_ACCELEROMETER_MSGS_STORED; i++ )
+        {
+          // TODO: Ask Jim what metric to use here since we do not calculate
+          //       wave heights for accelerometer data.
+          // NOTE: The previous logic simply replaces the first message with
+          //       smaller wave heights; instead, it might make sense to
+          //       replace the absolute smallest element.
+          if ( (fabsf (halfToFloat (persistent_self.accelerometer_storage.msg_queue[i].payload.max_z_accel)))
+               < fabsf (halfToFloat (((sbd_message_type_55*) msg)->max_z_accel)) )
+          {
+            // copy the message over
+            memcpy (&(persistent_self.accelerometer_storage.msg_queue[i].payload), msg,
+                    sizeof(sbd_message_type_55));
+            // Make the entry valid (should already be, but just in case)
+            persistent_self.accelerometer_storage.msg_queue[i].valid = true;
+            return;
+          }
+        }
+        // Do we want to log that we're discarding a message due to full queue?
+      }
+      else
+      {
+        // Not full, just need to find an open slot
+        for ( i = 0; i < MAX_NUM_ACCELEROMETER_MSGS_STORED; i++ )
+        {
+          if ( !persistent_self.accelerometer_storage.msg_queue[i].valid )
+          {
+            // copy the message over
+            memcpy (&(persistent_self.accelerometer_storage.msg_queue[i].payload), msg,
+                    sizeof(sbd_message_type_55));
+            // Make the entry valid
+            persistent_self.accelerometer_storage.msg_queue[i].valid = true;
+            persistent_self.accelerometer_storage.num_telemetry_msgs_enqueued++;
+            return;
+          }
+        }
+        // Getting here would indicate an error -- should we log that?
       }
 
       break;
@@ -393,10 +445,12 @@ void persistent_ram_save_message ( telemetry_type_t msg_type, uint8_t *msg )
 uint8_t* persistent_ram_get_prioritized_unsent_message ( telemetry_type_t msg_type )
 {
   // Set to float min value to ensure any message significant wave height will be greater than or equal to
-  float most_significant_wave_height = ((float) -3.4028234e+38);
+  float most_significant_wave_height = -FLT_MAX;
   float msg_wave_height = 0.0;
-  real16_T msg_wave_half_float =
-    { 0 };
+  real16_T msg_wave_half_float = { 0 };
+  float max_z_accel = -FLT_MAX;
+  float msg_z_accel = 0.0;
+  real16_T msg_accel_half_float = { 0 };
   int32_t pri_msg_index = 0, valid_msg_index = -1;
   bool msg_full = false;
   uint8_t *ret_ptr = NULL;
@@ -443,6 +497,49 @@ uint8_t* persistent_ram_get_prioritized_unsent_message ( telemetry_type_t msg_ty
       else if ( (valid_msg_index >= 0) && (valid_msg_index <= (MAX_NUM_WAVES_MSGS_STORED - 1)) )
       {
         ret_ptr = (uint8_t*) &persistent_self.waves_storage.msg_queue[valid_msg_index].payload;
+      }
+      else
+      {
+        ret_ptr = NULL;
+      }
+
+      break;
+
+    // This is a clone of the WAVES_TELEMETRY logic
+    case ACCELEROMETER_TELEMETRY:
+
+      // Empty queue check
+      if ( persistent_self.accelerometer_storage.num_telemetry_msgs_enqueued == 0 )
+      {
+        return NULL;
+      }
+
+      // Find the maximum acceleration in Z.
+      // TODO: Update this prioritization.
+      for ( int i = 0; i < MAX_NUM_ACCELEROMETER_MSGS_STORED; i++ )
+      {
+        if ( persistent_self.accelerometer_storage.msg_queue[i].valid )
+        {
+          valid_msg_index = i;
+          msg_accel_half_float = persistent_self.accelerometer_storage.msg_queue[i].payload.max_z_accel;
+          msg_z_accel = fabsf (halfToFloat (msg_accel_half_float));
+
+          if ( msg_z_accel >= max_z_accel )
+          {
+            max_z_accel = msg_z_accel;
+            pri_msg_index = i;
+          }
+        }
+      }
+
+      // Make sure we don't go out of bounds. Take the priority message first, otherwise, any valid message
+      if ( (pri_msg_index >= 0) && (pri_msg_index <= (MAX_NUM_ACCELEROMETER_MSGS_STORED - 1)) )
+      {
+        ret_ptr = (uint8_t*) &persistent_self.accelerometer_storage.msg_queue[pri_msg_index].payload;
+      }
+      else if ( (valid_msg_index >= 0) && (valid_msg_index <= (MAX_NUM_ACCELEROMETER_MSGS_STORED - 1)) )
+      {
+        ret_ptr = (uint8_t*) &persistent_self.accelerometer_storage.msg_queue[valid_msg_index].payload;
       }
       else
       {
@@ -543,6 +640,22 @@ void persistent_ram_delete_message_element ( telemetry_type_t msg_type, uint8_t 
           // Zero out the message
           memset (msg_ptr, 0, sizeof(Iridium_Message_Storage_Element_t));
           persistent_self.waves_storage.num_telemetry_msgs_enqueued--;
+          break;
+        }
+      }
+
+      break;
+
+    case ACCELEROMETER_TELEMETRY:
+
+      // Find the pointer
+      for ( int i = 0; i < MAX_NUM_ACCELEROMETER_MSGS_STORED; i++ )
+      {
+        if ( (uint8_t*) &persistent_self.accelerometer_storage.msg_queue[i].payload == msg_ptr )
+        {
+          // Zero out the message
+          memset (msg_ptr, 0, sizeof(Accelerometer_Message_Storage_Element_t));
+          persistent_self.accelerometer_storage.num_telemetry_msgs_enqueued--;
           break;
         }
       }

@@ -70,6 +70,8 @@ typedef struct __packed
   uint16_t    ambient_avgs[17];
 } sbd_message_type_53_element;
 
+// NOTE(lindzey): This math doesn't seem right -- shouldn't it also
+//    subtract the other non-element fields in the type_53 message?
 #define TURBIDITY_MSGS_PER_SBD ((IRIDIUM_SBD_MAX_LENGTH - IRIDIUM_CHECKSUM_LENGTH) / sizeof(sbd_message_type_53_element))
 
 // Definition for the SBD message with multiple sample windows
@@ -110,6 +112,7 @@ typedef struct __packed
   uint16_t    failed_samples;
 } sbd_message_type_54_element;
 
+// Same question regarding this calculation...
 #define LIGHT_MSGS_PER_SBD ((IRIDIUM_SBD_MAX_LENGTH - IRIDIUM_CHECKSUM_LENGTH) / sizeof(sbd_message_type_54_element))
 
 // Definition for the SBD message with multiple sample windows

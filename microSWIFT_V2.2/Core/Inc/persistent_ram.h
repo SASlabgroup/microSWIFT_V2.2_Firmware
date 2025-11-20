@@ -35,11 +35,22 @@ typedef struct
   bool                      valid[LIGHT_MSGS_PER_SBD];
 } Light_Message_Storage_Element_t;
 
+typedef struct
+{
+  sbd_message_type_55       payload;
+  bool                      valid;
+  } Accelerometer_Message_Storage_Element_t;
+
+// NB: This max does not change based on which sensors are enabled; currently
+//     evaluates to ~16 messages (or several days of waves messages), so that
+//     limitation may not be particularly important.
 #define MAX_NUM_NON_WAVES_MSGS_STORED   (65536U / ((sizeof(Iridium_Message_Storage_Element_t) * 5U) \
                                          + sizeof(Turbidity_Message_Storage_Element_t) \
-                                         + sizeof(Light_Message_Storage_Element_t))) // Max possible based on 64K SRAM2 size
+                                         + sizeof(Light_Message_Storage_Element_t) \
+                                         + sizeof(Accelerometer_Message_Storage_Element_t) * 5U)) // Max possible based on 64K SRAM2 size
 
 #define MAX_NUM_WAVES_MSGS_STORED       (MAX_NUM_NON_WAVES_MSGS_STORED * 5U)
+#define MAX_NUM_ACCELEROMETER_MSGS_STORED (MAX_NUM_NON_WAVES_MSGS_STORED * 5U)
 #define MAX_NUM_TURBIDITY_MSGS_STORED   (MAX_NUM_NON_WAVES_MSGS_STORED * TURBIDITY_MSGS_PER_SBD)
 #define MAX_NUM_LIGHT_MSGS_STORED       (MAX_NUM_NON_WAVES_MSGS_STORED * LIGHT_MSGS_PER_SBD)
 typedef struct
@@ -62,6 +73,12 @@ typedef struct
   uint32_t                              current_msg_index;
 } Light_Message_Storage;
 
+typedef struct
+{
+  Accelerometer_Message_Storage_Element_t msg_queue[MAX_NUM_ACCELEROMETER_MSGS_STORED];
+  uint32_t num_telemetry_msgs_enqueued;
+} Accelerometer_Message_Storage;
+
 // All of the things we need to retain in standby mode
 typedef struct
 {
@@ -75,17 +92,19 @@ typedef struct
   Waves_Message_Storage         waves_storage;
   Turbidity_Message_Storage     turbidity_storage;
   Light_Message_Storage         light_storage;
+  Accelerometer_Message_Storage accelerometer_storage;
   microSWIFT_configuration      device_config;
   microSWIFT_firmware_version_t version;
 } Persistent_Storage;
 
 typedef enum
 {
-  WAVES_TELEMETRY       = 0,
-  TURBIDITY_TELEMETRY   = 1,
-  LIGHT_TELEMETRY       = 2,
-  OTA_ACK_MESSAGE       = 3,
-  NO_MESSAGE            = 4
+  WAVES_TELEMETRY         = 0,
+  TURBIDITY_TELEMETRY     = 1,
+  LIGHT_TELEMETRY         = 2,
+  ACCELEROMETER_TELEMETRY = 3,
+  OTA_ACK_MESSAGE         = 4,
+  NO_MESSAGE              = 5
 } telemetry_type_t;
 
 void                    persistent_ram_init ( const microSWIFT_configuration *config, const microSWIFT_firmware_version_t *version );

@@ -2007,6 +2007,20 @@ static void iridium_thread_entry(ULONG thread_input) {
 
     watchdog_check_in(IRIDIUM_THREAD);
 
+    // Report how many messages of each type have been queued.
+    uint32_t num_waves_msgs =
+        persistent_ram_get_num_msgs_enqueued(WAVES_TELEMETRY);
+    uint32_t num_turbidity_msgs =
+        persistent_ram_get_num_msgs_enqueued(TURBIDITY_TELEMETRY);
+    uint32_t num_light_msgs =
+        persistent_ram_get_num_msgs_enqueued(LIGHT_TELEMETRY);
+    uint32_t num_accelerometer_msgs =
+        persistent_ram_get_num_msgs_enqueued(ACCELEROMETER_TELEMETRY);
+    LOG("Iridium trying to transmit! Queue lengths: waves = %lu, accel = %lu, "
+        "turbidity = %lu, light = %lu",
+        num_waves_msgs, num_accelerometer_msgs, num_turbidity_msgs,
+        num_light_msgs);
+
     if (!current_message_sent) {
       LOG("Attempting transmission of NEDWaves telemetry...");
       ret = iridium.transmit_message(&(msg_buffer[0]),
@@ -2129,6 +2143,86 @@ static void accelerometer_thread_entry(ULONG thread_input) {
   HAL_GPIO_WritePin(EXP_GPIO_1_GPIO_Port, EXP_GPIO_1_Pin, GPIO_PIN_SET);
   tx_thread_sleep(10000);
   HAL_GPIO_WritePin(EXP_GPIO_1_GPIO_Port, EXP_GPIO_1_Pin, GPIO_PIN_RESET);
+
+  sbd_message_type_55 accel_msg = {0};
+
+  char ascii_7 = '7';
+  uint8_t accel_type = 55;
+  uint32_t timestamp = (uint32_t)get_system_time();
+  // NOTE(LEL): copied from iridum.c; seems odd to have type be
+  // int32, given that it's initialized as 0.0f?
+  int32_t lat = 0;
+  int32_t lon = 0;
+  gnss_get_current_lat_lon(&lat, &lon);
+  float msg_lat, msg_lon;
+  msg_lat = (float)lat / LAT_LON_CONVERSION_FACTOR;
+  msg_lon = (float)lon / LAT_LON_CONVERSION_FACTOR;
+
+  memcpy(&accel_msg.legacy_number_7, &ascii_7, sizeof(uint8_t));
+  memcpy(&accel_msg.type, &accel_type, sizeof(uint8_t));
+  memcpy(&accel_msg.timestamp, &timestamp, sizeof(uint32_t));
+  memcpy(&accel_msg.latitude, &msg_lat, sizeof(float));
+  memcpy(&accel_msg.longitude, &msg_lon, sizeof(float));
+
+  // LOG("Trying to queue an accelerometer message");
+  persistent_ram_save_message(ACCELEROMETER_TELEMETRY, (uint8_t *)&accel_msg);
+
+  watchdog_check_in(ACCELEROMETER_THREAD);
+  watchdog_deregister_thread(ACCELEROMETER_THREAD);
+
+  // TODO: Add saving the data. I'm not yet sure whether we need a whole
+  //       struct to hold the accelerometer-related variables ...
+  // (void)file_system_server_save_turbidity_raw(&obs);
+
+  /**
+  tx_thread_sleep(10);
+  if (uart4_init() != UART_OK) {
+    iridium_error_out(&iridium, IRIDIUM_INIT_ERROR, this_thread,
+                      "Iridium UART port failed to initialize.");
+  }
+
+  // The standard pattern here is to declare a struct, then call *_init
+  // to populate the struct with resources that have been allocated in
+  // this file.
+  Iridium iridium = {0};
+  iridium_init(&iridium, ...);
+
+  // Then, provide power to the peripheral. For the accel board, we
+  // don't want to do this -- it should manage its own power during
+  // duty cycles! Maybe just send it a "wake up" message?
+  iridium.on();
+  iridium.wake();
+  iridium.charge_caps(IRIDIUM_INITIAL_CAP_CHARGE_TIME);
+
+  // It seems like the tests don't exist? But all threads have this option...
+  if (tests.iridium_thread_test != NULL) {
+    tests.iridium_thread_test(&iridium);
+  }
+
+  // This configures the device, including failure handling around
+  // power cycling it, as well as calling a self test that confirms UART
+  // comms with the device are working.
+  if (!iridium_apply_config(&iridium)) {
+    iridium_error_out(&iridium, IRIDIUM_INIT_ERROR, this_thread,
+                      "Iridium modem failed to initialize.");
+  }
+
+  */
+
+  // For the accelerometer, the sequence of events will probably be
+  // * confirm UART comms (but the board may not answer immediately
+  //   if it's logging at high data rates; TBD) ... probably by
+  //   requesting the number of un-sent wake-on-shake events.
+  // * send request to start acquisition
+  // * Maybe set timeout? Do other threads do that?
+  //   e.g.   iridium.start_timer(iridium_thread_timeout);
+  // * Maybe sleep? but rather than being woken up by the control thread,
+  //   need to wake up on UART data receipt. So maybe just sit waiting?
+  // * read bytes; package up and add to iridium queue.
+  // * Repeat N times: request cached wake-on-shake data; add to irdium queue
+
+  // LOG("Accel deregistered and about to sleep");
+>>>>>>> Conflict 2 of 2 ends
 
   // The logger gets weird if there is no break here...
   // Another place where the LOG call dropped me right into the HardFault
