@@ -11,6 +11,8 @@
 
 #include "time.h"
 #include "NEDWaves/rtwhalf.h"
+#include <stdint.h>
+
 #define TYPE_99_CHAR_BUF_LEN 320
 #define IRIDIUM_SBD_MAX_LENGTH 340
 #define TELEMETRY_FIELD_ERROR_CODE (0x70E2)
@@ -117,6 +119,58 @@ typedef struct __packed
   sbd_message_type_54_element elements[LIGHT_MSGS_PER_SBD];
   iridium_checksum_t          checksum;
 } sbd_message_type_54;
+
+// Definition for accelerometer waves message; based heavily on type_52 for the
+// waves component.
+typedef struct __packed
+{
+  char legacy_number_7;  // byte 0
+  uint8_t type;  // Used by swift code to determine how to parse bytes
+  // 1 byte required here for compatibility.
+  // Historically, swift messages used this for port, and microSWIFT has
+  // started using it for firmware version.
+  uint8_t version;
+  uint16_t size;
+
+  uint32_t timestamp; // byte 5-8
+
+  float latitude;  // byte 9-12
+  float longitude;  // byte 13-16
+
+  // Bytes 17-27 are reserved for planned wake-on-shake support
+  uint8_t reserved01;
+  uint16_t reserved02;
+  uint8_t reserved03;
+  int16_t reserved04;
+  int16_t reserved05;
+  int16_t reserved06;
+  uint8_t reserved07;
+
+  real16_T min_x_accel;  // bytes 28-29
+  real16_T max_x_accel;
+  real16_T mean_x_accel;
+
+  real16_T min_y_accel;  // bytes 34-35
+  real16_T max_y_accel;
+  real16_T mean_y_accel;
+
+  real16_T min_z_accel;  // bytes 40-41
+  real16_T max_z_accel;
+  real16_T mean_z_accel;
+
+  real16_T x_spectra[48];
+  real16_T y_spectra[48];
+  real16_T z_spectra[48];
+
+  real16_T min_freq;
+  real16_T max_freq;
+
+  // 2 bytes for the checksum; this MUST be the final element in the struct,
+  // since the iridium thread calculates the checksum and calls memcpy on
+  // payload[sizeof(sbd_message_type_55) - IRIDIUM_CHECKSUM_LENGTH]
+  iridium_checksum_t  checksum;
+
+} sbd_message_type_55;
 
 typedef struct
 {
