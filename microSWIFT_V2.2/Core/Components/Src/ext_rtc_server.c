@@ -4,6 +4,7 @@
  *  Created on: Aug 9, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #include <ext_rtc_server.h>
 
@@ -245,7 +246,7 @@ void struct_tm_dec_to_bcd ( struct tm *struct_ptr )
   struct_ptr->tm_mday = (struct_ptr->tm_mday > 31) ?
       BCD_ERROR : DEC_TO_BCD(struct_ptr->tm_mday)
   ;
-  struct_ptr->tm_mon = (struct_ptr->tm_mon > 11) ?
+  struct_ptr->tm_mon = (struct_ptr->tm_mon > 12) ?
       BCD_ERROR : DEC_TO_BCD(struct_ptr->tm_mon)
   ;
   struct_ptr->tm_year = (struct_ptr->tm_year - 2000 > 99) ?

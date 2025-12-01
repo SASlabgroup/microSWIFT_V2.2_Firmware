@@ -237,6 +237,7 @@ static bool _control_startup_procedure ( void )
 
     controller_self->monitor_and_handle_errors ();
 
+
     if ( tx_return == TX_SUCCESS )
     {
       break;
