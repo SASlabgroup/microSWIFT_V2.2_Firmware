@@ -31,11 +31,4 @@
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
-	<linkedResources>
-		<link>
-			<name>Drivers/STM32U5xx_HAL_Driver/stm32u5xx_hal_lptim.c</name>
-			<type>1</type>
-			<locationURI>PARENT-4-PROJECT_LOC/STM32Cube/Repository/STM32Cube_FW_U5_V1.6.0/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_lptim.c</locationURI>
-		</link>
-	</linkedResources>
 </projectDescription>
