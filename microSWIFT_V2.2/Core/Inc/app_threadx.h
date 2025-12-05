@@ -246,6 +246,8 @@ extern TX_SEMAPHORE ext_rtc_spi_sema;
 extern TX_SEMAPHORE core_i2c_sema;
 extern TX_SEMAPHORE iridium_uart_sema;
 extern TX_SEMAPHORE ct_uart_sema;
+extern TX_SEMAPHORE expansion_uart_sema;
+
 extern TX_SEMAPHORE logger_sema;
 
 extern TX_EVENT_FLAGS_GROUP initialization_flags;

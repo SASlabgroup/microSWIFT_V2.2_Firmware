@@ -60,6 +60,8 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
     (void)tx_semaphore_put(&ct_uart_sema);
   } else if (huart->Instance == IRIDIUM_UART) {
     (void)tx_semaphore_put(&iridium_uart_sema);
+  } else if (huart->Instance == EXPANSION_UART) {
+    (void)tx_semaphore_put(&expansion_uart_sema);
   } else if (huart->Instance == GNSS_UART) {
     (void)tx_event_flags_set(&irq_flags, GNSS_TX_COMPLETE, TX_OR);
   } else if (huart->Instance == LOGGER_UART) {
@@ -77,6 +79,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     (void)tx_semaphore_put(&ct_uart_sema);
   } else if (huart->Instance == IRIDIUM_UART) {
     (void)tx_semaphore_put(&iridium_uart_sema);
+  } else if (huart->Instance == EXPANSION_UART) {
+    (void)tx_semaphore_put(&expansion_uart_sema);
   } else if (huart->Instance == GNSS_UART) {
     if (gnss_get_configured_status()) {
       (void)tx_event_flags_set(&irq_flags, GNSS_MSG_RECEIVED, TX_OR);
@@ -100,7 +104,9 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
     (void)tx_semaphore_put(&ct_uart_sema);
   } else if (huart->Instance == IRIDIUM_UART) {
     (void)tx_semaphore_put(&iridium_uart_sema);
-  } else if (huart->Instance == GNSS_UART) {
+  } else if (huart->Instance == EXPANSION_UART)
+    (void)tx_semaphore_put(&expansion_uart_sema);
+  else if (huart->Instance == GNSS_UART) {
     if (!gnss_get_configured_status()) {
       if (Size == FRAME_SYNC_RX_SIZE) {
         (void)tx_event_flags_set(&irq_flags, GNSS_CONFIG_RECVD, TX_OR);

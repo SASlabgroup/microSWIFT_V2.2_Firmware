@@ -29,6 +29,7 @@
 /* USER CODE BEGIN Includes */
 // clang-format on
 #include "NEDWaves/mem_replacements.h"
+#include "accelerometer.h"
 #include "app_filex.h"
 #include "battery.h"
 #include "ct_sensor.h"
@@ -168,6 +169,8 @@ TX_SEMAPHORE ext_rtc_spi_sema;
 TX_SEMAPHORE core_i2c_sema;
 TX_SEMAPHORE iridium_uart_sema;
 TX_SEMAPHORE ct_uart_sema;
+TX_SEMAPHORE expansion_uart_sema;
+// used to tell logger_thread that HAL_UART_Transmit_DMA has finished
 TX_SEMAPHORE logger_sema;
 // Logger mutex; protects LOG call since all threads have access to it
 TX_MUTEX logger_mutex;
@@ -567,6 +570,11 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   }
 
   ret = tx_semaphore_create(&ct_uart_sema, "CT UART sema", 0);
+  if (ret != TX_SUCCESS) {
+    return ret;
+  }
+
+  ret = tx_semaphore_create(&expansion_uart_sema, "Expansion UART sema", 0);
   if (ret != TX_SUCCESS) {
     return ret;
   }
@@ -2117,18 +2125,42 @@ static void accelerometer_thread_entry(ULONG thread_input) {
 
   TX_THREAD *this_thread = &accelerometer_thread;
 
-  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
-  char *log_str = NULL;
-
   // Calling "LOG" here causes repeated restarts of the program.
   // https://github.com/SASlabgroup/microSWIFT_V2.2_Firmware/issues/1
   // LOG("accelerometer_thread_entry");
 
   tx_thread_sleep(100);
   LOG("accelerometer_thread_entry");
+
+  // Sleep long enough to get debugger attached
+  // tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 30);
+
+  int32_t ret;
+  ret = usart2_init();
+  if (UART_OK != ret) {
+    LOG("usart2 init failed with code: %d", ret);
+    // TODO: need to implement an accelerometer_error_out
+    // accelerometer_error_out(&accel, ACCEL_INIT_FAILED, this_thread, "Accel
+    // UART port failed to initialize";)
+  }
+
+  // TODO: Define this struct ...
+  Accelerometer accel = {0};
+  accelerometer_init(&accel, device_handles.expansion_uart_handle,
+                     device_handles.expansion_uart_tx_dma_handle,
+                     device_handles.expansion_uart_rx_dma_handle,
+                     &expansion_uart_sema);
+
+  // NOTE(LEL): The other devices tend to hide this in an accel.on() function
+  //   I'm not yet sure whether I think that's better for a one-line
+  //   initialization.
   HAL_GPIO_WritePin(EXP_GPIO_1_GPIO_Port, EXP_GPIO_1_Pin, GPIO_PIN_SET);
-  tx_thread_sleep(10000);
-  // TODO: Run self test; report success/failure
+  tx_thread_sleep(10);
+
+  LOG("Running accel.self_test");
+  ret = accel.self_test(&accel);
+  LOG("accel.self_test returned %d", ret);
+
   HAL_GPIO_WritePin(EXP_GPIO_1_GPIO_Port, EXP_GPIO_1_Pin, GPIO_PIN_RESET);
 
   (void)tx_event_flags_set(&initialization_flags, ACCELEROMETER_INIT_SUCCESS,
@@ -2141,6 +2173,18 @@ static void accelerometer_thread_entry(ULONG thread_input) {
 
   LOG("Resuming accelerometer thread");
   HAL_GPIO_WritePin(EXP_GPIO_1_GPIO_Port, EXP_GPIO_1_Pin, GPIO_PIN_SET);
+
+  // TODO: Initialize time on accel board / confirm UART comms
+
+  // TODO: send request to start acquisition
+
+  // TODO: Set timeout for overall thread:
+  //   e.g.   iridium.start_timer(iridium_thread_timeout);
+
+  // TODO: Sleep and wake up on UART data receipt.
+
+  // TODO: read bytes; package up and add to iridium queue.
+
   tx_thread_sleep(10000);
   HAL_GPIO_WritePin(EXP_GPIO_1_GPIO_Port, EXP_GPIO_1_Pin, GPIO_PIN_RESET);
 
@@ -2151,8 +2195,12 @@ static void accelerometer_thread_entry(ULONG thread_input) {
   uint32_t timestamp = (uint32_t)get_system_time();
   // NOTE(LEL): copied from iridum.c; seems odd to have type be
   // int32, given that it's initialized as 0.0f?
+  // TODO(LEL) Clean this up!
   int32_t lat = 0;
   int32_t lon = 0;
+  // NOTE(LEL): It looks like there's a call in gnss.c that does this division
+  // for us?
+  //   should we be using get_location(...) instead?
   gnss_get_current_lat_lon(&lat, &lon);
   float msg_lat, msg_lon;
   msg_lat = (float)lat / LAT_LON_CONVERSION_FACTOR;
@@ -2167,62 +2215,11 @@ static void accelerometer_thread_entry(ULONG thread_input) {
   // LOG("Trying to queue an accelerometer message");
   persistent_ram_save_message(ACCELEROMETER_TELEMETRY, (uint8_t *)&accel_msg);
 
-  watchdog_check_in(ACCELEROMETER_THREAD);
-  watchdog_deregister_thread(ACCELEROMETER_THREAD);
-
   // TODO: Add saving the data. I'm not yet sure whether we need a whole
   //       struct to hold the accelerometer-related variables ...
-  // (void)file_system_server_save_turbidity_raw(&obs);
-
-  /**
-  tx_thread_sleep(10);
-  if (uart4_init() != UART_OK) {
-    iridium_error_out(&iridium, IRIDIUM_INIT_ERROR, this_thread,
-                      "Iridium UART port failed to initialize.");
-  }
-
-  // The standard pattern here is to declare a struct, then call *_init
-  // to populate the struct with resources that have been allocated in
-  // this file.
-  Iridium iridium = {0};
-  iridium_init(&iridium, ...);
-
-  // Then, provide power to the peripheral. For the accel board, we
-  // don't want to do this -- it should manage its own power during
-  // duty cycles! Maybe just send it a "wake up" message?
-  iridium.on();
-  iridium.wake();
-  iridium.charge_caps(IRIDIUM_INITIAL_CAP_CHARGE_TIME);
-
-  // It seems like the tests don't exist? But all threads have this option...
-  if (tests.iridium_thread_test != NULL) {
-    tests.iridium_thread_test(&iridium);
-  }
-
-  // This configures the device, including failure handling around
-  // power cycling it, as well as calling a self test that confirms UART
-  // comms with the device are working.
-  if (!iridium_apply_config(&iridium)) {
-    iridium_error_out(&iridium, IRIDIUM_INIT_ERROR, this_thread,
-                      "Iridium modem failed to initialize.");
-  }
-
-  */
-
-  // For the accelerometer, the sequence of events will probably be
-  // * confirm UART comms (but the board may not answer immediately
-  //   if it's logging at high data rates; TBD) ... probably by
-  //   requesting the number of un-sent wake-on-shake events.
-  // * send request to start acquisition
-  // * Maybe set timeout? Do other threads do that?
-  //   e.g.   iridium.start_timer(iridium_thread_timeout);
-  // * Maybe sleep? but rather than being woken up by the control thread,
-  //   need to wake up on UART data receipt. So maybe just sit waiting?
-  // * read bytes; package up and add to iridium queue.
-  // * Repeat N times: request cached wake-on-shake data; add to irdium queue
-
-  // LOG("Accel deregistered and about to sleep");
->>>>>>> Conflict 2 of 2 ends
+  //    Of course, this woudldn't be true raw data, just the chunk
+  //    that is sent
+  // (void)file_system_server_save_accelerometer_raw(&accel);
 
   // The logger gets weird if there is no break here...
   // Another place where the LOG call dropped me right into the HardFault
