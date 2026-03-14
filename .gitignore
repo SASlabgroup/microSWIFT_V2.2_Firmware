@@ -1,3 +1,13 @@
+accel_V1_port/**
+accel_V1_read_adxl/**
+accel_V1_timer_blinky/**
+accel_V1.0/**
+debugging_i2c/**
+microSWIFT_V2_ClockSetTest/**
+microSWIFT_V2_PowerOnExpansion/**
+microSWIFT_V2_UART_Test/**
+nucleo-u5a5-adxl355z/**
+
 # Prerequisites
 *.d
 
