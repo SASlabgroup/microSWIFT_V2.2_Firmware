@@ -4,6 +4,7 @@
  *  Created on: Nov 21, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #include "file_system.h"
 #include "app_threadx.h"

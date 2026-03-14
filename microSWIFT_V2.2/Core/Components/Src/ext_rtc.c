@@ -4,6 +4,7 @@
  *  Created on: Jul 29, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #include "ext_rtc.h"
 #include "spi.h"

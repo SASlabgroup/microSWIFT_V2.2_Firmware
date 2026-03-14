@@ -4,6 +4,7 @@
  *  Created on: Aug 21, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #include "light_sensor.h"
 #include "ext_rtc_server.h"

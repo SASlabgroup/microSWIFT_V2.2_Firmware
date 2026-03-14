@@ -4,6 +4,7 @@
  *  Created on: Jul 29, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #ifndef COMPONENTS_INC_EXT_RTC_H_
 #define COMPONENTS_INC_EXT_RTC_H_

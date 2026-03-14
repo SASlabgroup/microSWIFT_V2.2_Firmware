@@ -4,6 +4,7 @@
  *  Created on: Aug 20, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #include "threadx_support.h"
 #include "stdarg.h"

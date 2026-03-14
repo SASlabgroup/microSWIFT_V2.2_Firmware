@@ -4,6 +4,7 @@
  *  Created on: Oct 24, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #include "as7341_reg.h"
 #include "stdint.h"

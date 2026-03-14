@@ -4,6 +4,7 @@
  *  Created on: Oct 28, 2022
  *      Author: Phil
  */
+// clang-format off
 
 #include "ct_sensor.h"
 

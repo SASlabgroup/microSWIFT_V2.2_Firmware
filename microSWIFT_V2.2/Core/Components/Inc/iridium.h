@@ -4,6 +4,7 @@
  *  Created on: Oct 28, 2022
  *      Author: Phil
  */
+// clang-format off
 
 #ifndef SRC_IRIDIUM_H_
 #define SRC_IRIDIUM_H_

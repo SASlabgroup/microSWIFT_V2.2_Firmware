@@ -4,6 +4,7 @@
  *  Created on: Mar 27, 2023
  *      Author: Phil
  */
+// clang-format off
 
 #ifndef INC_CONFIGURATION_H_
 #define INC_CONFIGURATION_H_

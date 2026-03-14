@@ -4,6 +4,7 @@
  *  Created on: Sep 12, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #ifndef INC_CONTROLLER_H_
 #define INC_CONTROLLER_H_

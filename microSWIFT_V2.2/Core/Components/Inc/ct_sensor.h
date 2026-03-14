@@ -4,6 +4,7 @@
  *  Created on: Oct 28, 2022
  *      Author: Phil
  */
+// clang-format off
 
 #ifndef SRC_CT_H_
 #define SRC_CT_H_

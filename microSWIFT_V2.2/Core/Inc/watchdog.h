@@ -4,6 +4,7 @@
  *  Created on: Jun 14, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #ifndef INC_WATCHDOG_H_
 #define INC_WATCHDOG_H_

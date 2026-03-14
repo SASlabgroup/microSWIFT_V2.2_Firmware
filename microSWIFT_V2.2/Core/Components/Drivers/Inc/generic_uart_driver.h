@@ -4,6 +4,7 @@
  *  Created on: Aug 5, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #ifndef COMPONENTS_DRIVERS_INC_GENERIC_UART_DRIVER_H_
 #define COMPONENTS_DRIVERS_INC_GENERIC_UART_DRIVER_H_

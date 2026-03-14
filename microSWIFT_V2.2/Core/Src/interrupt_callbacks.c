@@ -4,6 +4,7 @@
  *  Created on: Aug 2, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #include "spi.h"
 #include "app_threadx.h"

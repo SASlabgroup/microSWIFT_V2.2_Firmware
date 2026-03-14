@@ -4,6 +4,7 @@
  *  Created on: Sep 12, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #include <ext_rtc_server.h>
 #include "controller.h"

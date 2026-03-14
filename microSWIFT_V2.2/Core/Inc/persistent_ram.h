@@ -4,6 +4,7 @@
  *  Created on: Sep 12, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #ifndef INC_PERSISTENT_RAM_H_
 #define INC_PERSISTENT_RAM_H_

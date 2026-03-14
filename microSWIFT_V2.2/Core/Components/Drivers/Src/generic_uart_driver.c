@@ -4,6 +4,7 @@
  *  Created on: Aug 5, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #include "generic_uart_driver.h"
 #include "stddef.h"

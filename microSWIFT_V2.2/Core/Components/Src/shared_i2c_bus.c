@@ -4,6 +4,7 @@
  *  Created on: Dec 13, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #include "shared_i2c_bus.h"
 
