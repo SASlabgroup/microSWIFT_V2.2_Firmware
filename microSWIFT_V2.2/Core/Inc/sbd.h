@@ -48,6 +48,8 @@ typedef struct __packed
   real16_T            mean_temp;
   real16_T            mean_salinity;
   real16_T            mean_voltage;
+  // Do not use this message as an example of how to do timestamps correctly.
+  // This should have been uint32_t, but cannot be changed now for backwards compatibility.
   float               timestamp;
   uint32_t            error_bits;
   iridium_checksum_t  checksum;
