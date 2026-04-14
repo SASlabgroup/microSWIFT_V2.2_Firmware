@@ -90,7 +90,8 @@ void light_sensor_init ( Light_Sensor *struct_ptr, microSWIFT_configuration *glo
 
   light_self->timer_timeout = false;
 
-  light_self->total_samples = 0;
+  light_self->failed_samples = 0;
+  light_self->valid_samples = 0;
   light_self->samples_series = samples_series_buffer;
   memset (&(light_self->samples_min), 0xFFFFFFFF, sizeof(light_basic_counts));
   memset (&(light_self->samples_max), 0, sizeof(light_basic_counts));
@@ -271,8 +272,12 @@ static uSWIFT_return_code_t _light_sensor_setup_sensor ( void )
 static uSWIFT_return_code_t _light_sensor_read_all_channels ( void )
 {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
-  bool data_ready = false, first_wait = false;
-  uint32_t wait_period = 0, timeout = TX_TIMER_TICKS_PER_SECOND / 4, start_time = 0, time_now = 0;
+  bool data_ready = false;
+  bool first_wait = false;
+  uint32_t wait_period = 0;
+  uint32_t timeout = TX_TIMER_TICKS_PER_SECOND / 4;
+  uint32_t start_time = 0;
+  uint32_t time_now = 0;
 
   // Set the SMUX to the lower channels
   if ( as7341_config_smux (&light_self->dev_ctx,
@@ -450,7 +455,7 @@ static uSWIFT_return_code_t _light_sensor_process_measurements ( void )
   // Update min/ max
   __get_mins_maxes ();
 
-  if ( light_self->total_samples == light_self->global_config->total_light_samples )
+  if ( light_self->valid_samples + light_self->failed_samples == light_self->global_config->total_light_samples )
   {
     gnss_get_current_lat_lon (&light_self->end_lat, &light_self->end_lon);
     light_self->stop_timestamp = get_system_time ();
@@ -458,7 +463,7 @@ static uSWIFT_return_code_t _light_sensor_process_measurements ( void )
   }
 
   // Store the most recent samples in the time series
-  memcpy (&(light_self->samples_series[light_self->total_samples]), &light_self->basic_counts,
+  memcpy (&(light_self->samples_series[light_self->valid_samples]), &light_self->basic_counts,
           sizeof(light_basic_counts));
 
   for ( int i = 0; i < 12; i++, basic_count_ptr++, averages_ptr++ )
@@ -466,9 +471,9 @@ static uSWIFT_return_code_t _light_sensor_process_measurements ( void )
     *averages_ptr += *basic_count_ptr;
   }
 
-  light_self->total_samples++;
+  light_self->valid_samples++;
 
-  if ( light_self->total_samples == 1 )
+  if ( light_self->valid_samples == 1 )
   {
     gnss_get_current_lat_lon (&light_self->start_lat, &light_self->start_lon);
     light_self->start_timestamp = get_system_time ();
@@ -486,14 +491,14 @@ static uSWIFT_return_code_t _light_sensor_get_samples_averages ( void )
 {
   uint32_t *averages_ptr = &light_self->samples_averages_accumulator.f1_chan;
 
-  if ( light_self->total_samples == 0 )
+  if ( light_self->valid_samples == 0 )
   {
     return uSWIFT_PARAMETERS_INVALID;
   }
 
   for ( int i = 0; i < 12; i++, averages_ptr++ )
   {
-    *averages_ptr /= light_self->total_samples;
+    *averages_ptr /= light_self->valid_samples;
   }
 
   return uSWIFT_SUCCESS;

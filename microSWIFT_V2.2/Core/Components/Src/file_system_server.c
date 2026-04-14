@@ -144,7 +144,7 @@ uSWIFT_return_code_t file_system_server_save_light_raw ( Light_Sensor *light )
     { 0 };
 
   queue_msg.request = SAVE_LIGHT_RAW;
-  queue_msg.size = light->total_samples * (sizeof(light_basic_counts) - sizeof(uint32_t));
+  queue_msg.size = light->valid_samples * (sizeof(light_basic_counts) - sizeof(uint32_t));
   queue_msg.object_pointer = (void*) light;
   queue_msg.complete_flag = SAVE_LIGHT_RAW_COMPLETE;
   queue_msg.return_code = &ret;

@@ -1637,6 +1637,12 @@ static void light_thread_entry ( ULONG thread_input )
   while ( 1 )
   {
 
+    if ( light_get_timeout_status () )
+    {
+      light_error_out (&light, LIGHT_SAMPLE_WINDOW_TIMEOUT, this_thread,
+                       "Light sample window timed out after %d minutes.", light_thread_timeout);
+    }
+
     sample_start_time = tx_time_get ();
 
     watchdog_check_in (LIGHT_THREAD);
@@ -1645,19 +1651,16 @@ static void light_thread_entry ( ULONG thread_input )
 
     if ( light_ret != uSWIFT_SUCCESS )
     {
-      light_error_out (&light, LIGHT_SAMPLING_ERROR, this_thread,
-                       "Error occurred when reading light sensor channels.");
+      light.failed_samples++;
+      // light_error_out (&light, LIGHT_SAMPLING_ERROR, this_thread,
+      //                  "Error occurred when reading light sensor channels.");
+    } else {
+      light_ret = light.process_measurements ();
     }
 
-    if ( light_get_timeout_status () )
-    {
-      light_error_out (&light, LIGHT_SAMPLE_WINDOW_TIMEOUT, this_thread,
-                       "Light sample window timed out after %d minutes.", light_thread_timeout);
-    }
-
-    light_ret = light.process_measurements ();
-
-    if ( light_ret == uSWIFT_DONE_SAMPLING )
+    int num_samples = light.valid_samples + light.failed_samples;
+    if ( light_ret == uSWIFT_DONE_SAMPLING
+         || num_samples == light.global_config->total_light_samples)
     {
       light.get_samples_averages ();
       break;
@@ -1675,7 +1678,8 @@ static void light_thread_entry ( ULONG thread_input )
     tx_thread_sleep (thread_sleep_time);
   }
 
-  LOG("Light sample window completed.");
+  LOG("Light sample window completed. %d / %d samples succeeded.",
+      light.valid_samples, light.valid_samples + light.failed_samples);
 
   light.idle ();
   light.off ();

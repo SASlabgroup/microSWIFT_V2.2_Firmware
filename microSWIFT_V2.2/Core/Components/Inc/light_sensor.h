@@ -93,7 +93,8 @@ typedef struct
 
   bool                      timer_timeout;
 
-  uint32_t                  total_samples;
+  uint32_t                  failed_samples;
+  uint32_t                  valid_samples;
   light_basic_counts        samples_max;
   light_basic_counts        samples_min;
   light_basic_counts        samples_averages_accumulator;
