@@ -837,13 +837,13 @@ static void i2c_bus_thread_entry(ULONG thread_input) {
       case I2C_READ:
         ret = shared_bus.read(incoming_msg.dev_addr, incoming_msg.dev_reg,
                               incoming_msg.input_output_buffer,
-                              incoming_msg.data_len, I2C_OP_WAIT_TICKS);
+                              incoming_msg.data_len);
         break;
 
       case I2C_WRITE:
         ret = shared_bus.write(incoming_msg.dev_addr, incoming_msg.dev_reg,
                                incoming_msg.input_output_buffer,
-                               incoming_msg.data_len, I2C_OP_WAIT_TICKS);
+                               incoming_msg.data_len);
         break;
 
       default:
