@@ -99,13 +99,15 @@ static uSWIFT_return_code_t _i2c_bus_read(uint8_t dev_addr, uint8_t dev_reg,
                                           uint8_t read_len) {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
-  if (HAL_I2C_Mem_Read_IT(i2c_bus->i2c_handle, dev_addr, dev_reg, 1,
-                          input_output_buffer, read_len) != HAL_OK) {
-    return uSWIFT_IO_ERROR;
+  HAL_StatusTypeDef read_result = HAL_I2C_Mem_Read_IT(
+      i2c_bus->i2c_handle, dev_addr, dev_reg, 1, input_output_buffer, read_len);
+  if (HAL_OK != read_result) {
+    return uSWIFT_I2C_READ_ERROR;
   }
 
-  if (tx_semaphore_get(i2c_bus->i2c_sema, HAL_I2C_WAIT_TICKS) != TX_SUCCESS) {
-    return uSWIFT_TIMEOUT;
+  UINT sema_result = tx_semaphore_get(i2c_bus->i2c_sema, HAL_I2C_WAIT_TICKS);
+  if (TX_SUCCESS != sema_result) {
+    return uSWIFT_I2C_SEMAPHORE_ERROR;
   }
 
   return uSWIFT_SUCCESS;
@@ -120,20 +122,20 @@ static uSWIFT_return_code_t _i2c_bus_write(uint8_t dev_addr, uint8_t dev_reg,
   if (write_len == 0) {
     write_result = HAL_I2C_Master_Transmit_IT(i2c_bus->i2c_handle, dev_addr,
                                               input_output_buffer, 1);
-    if (write_result != HAL_OK) {
-      return uSWIFT_IO_ERROR;
+    if (HAL_OK != write_result) {
+      return uSWIFT_I2C_WRITE_ERROR;
     }
   } else {
     write_result = HAL_I2C_Mem_Write_IT(i2c_bus->i2c_handle, dev_addr, dev_reg,
                                         1, input_output_buffer, write_len);
-    if (write_result != HAL_OK) {
-      return uSWIFT_IO_ERROR;
+    if (HAL_OK != write_result) {
+      return uSWIFT_I2C_WRITE_ERROR;
     }
   }
 
   sema_result = tx_semaphore_get(i2c_bus->i2c_sema, HAL_I2C_WAIT_TICKS);
   if (sema_result != TX_SUCCESS) {
-    return uSWIFT_TIMEOUT;
+    return uSWIFT_I2C_SEMAPHORE_ERROR;
   }
 
   return uSWIFT_SUCCESS;

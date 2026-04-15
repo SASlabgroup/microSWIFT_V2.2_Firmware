@@ -37,6 +37,11 @@ typedef enum
   uSWIFT_LOCATION_ERROR         = -20,
   uSWIFT_TIME_ERROR             = -21,
   uSWIFT_FILE_SYSTEM_ERROR      = -22,
+  // More specific I2C errors
+  uSWIFT_I2C_BUSY_ERROR         = -23,
+  uSWIFT_I2C_SEMAPHORE_ERROR    = -24,
+  uSWIFT_I2C_WRITE_ERROR        = -25,
+  uSWIFT_I2C_READ_ERROR         = -26,
 
   uSWIFT_OBJECT_SPECIFIC_1      = -90,
   uSWIFT_OBJECT_SPECIFIC_2      = -91,

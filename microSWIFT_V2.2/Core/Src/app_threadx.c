@@ -852,10 +852,50 @@ static void i2c_bus_thread_entry(ULONG thread_input) {
       }
 
       if (ret != uSWIFT_SUCCESS) {
-        i2c_error_out(
-            this_thread,
-            "I2C Bus failed to service request %d, returning code %d.",
-            (int)incoming_msg.operation_type, (int)ret);
+        // TODO: There are much cleaner ways to do this int -> string lookup.
+        char request_type[16];
+        switch (incoming_msg.operation_type) {
+        case I2C_READ:
+          snprintf(request_type, 16, "READ");
+          break;
+        case I2C_WRITE:
+          snprintf(request_type, 16, "WRITE");
+          break;
+        default:
+          snprintf(request_type, 16, "unknown");
+          break;
+        }
+
+        char failure_mode[16];
+        switch (ret) {
+        case uSWIFT_MESSAGE_QUEUE_ERROR:
+          snprintf(failure_mode, 16, "QUEUE ERROR");
+          break;
+        case uSWIFT_TIMEOUT:
+          snprintf(failure_mode, 16, "TIMEOUT");
+          break;
+        case uSWIFT_IO_ERROR:
+          snprintf(failure_mode, 16, "IO ERROR");
+          break;
+        case uSWIFT_I2C_BUSY_ERROR:
+          snprintf(failure_mode, 16, "I2C BUSY");
+          break;
+        case uSWIFT_I2C_SEMAPHORE_ERROR:
+          snprintf(failure_mode, 16, "I2C SEMAPHORE");
+          break;
+        case uSWIFT_I2C_WRITE_ERROR:
+          snprintf(failure_mode, 16, "I2C WRITE ERROR");
+          break;
+        case uSWIFT_I2C_READ_ERROR:
+          snprintf(failure_mode, 16, "I2C READ ERROR");
+          break;
+        default:
+          snprintf(failure_mode, 16, "unknown: %d", ret);
+          break;
+        }
+
+        LOG("I2C Bus failed to service %s request: %s.", request_type,
+            failure_mode);
       }
 
       if (incoming_msg.return_code != NULL) {
