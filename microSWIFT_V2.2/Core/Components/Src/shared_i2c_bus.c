@@ -99,6 +99,18 @@ static uSWIFT_return_code_t _i2c_bus_read(uint8_t dev_addr, uint8_t dev_reg,
                                           uint8_t read_len) {
   uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
+  // In testing, when the semaphore timed out, the I2C bus was often still
+  // busy, leading to a series of IO_ERRORS since transactions were attempted
+  // in quick succession.
+  int busy_count = 0;
+  while (busy_count < 5 && HAL_I2C_STATE_READY != i2c_bus->i2c_handle->State) {
+    tx_thread_sleep(1);
+    busy_count++;
+  }
+  if (i2c_bus->i2c_handle->State != HAL_I2C_STATE_READY) {
+    return uSWIFT_I2C_BUSY_ERROR;
+  }
+
   HAL_StatusTypeDef read_result = HAL_I2C_Mem_Read_IT(
       i2c_bus->i2c_handle, dev_addr, dev_reg, 1, input_output_buffer, read_len);
   if (HAL_OK != read_result) {
@@ -118,6 +130,15 @@ static uSWIFT_return_code_t _i2c_bus_write(uint8_t dev_addr, uint8_t dev_reg,
                                            uint8_t write_len) {
   HAL_StatusTypeDef write_result = HAL_OK;
   UINT sema_result;
+
+  int busy_count = 0;
+  while (busy_count < 5 && HAL_I2C_STATE_READY != i2c_bus->i2c_handle->State) {
+    tx_thread_sleep(1);
+    busy_count++;
+  }
+  if (i2c_bus->i2c_handle->State != HAL_I2C_STATE_READY) {
+    return uSWIFT_I2C_BUSY_ERROR;
+  }
 
   if (write_len == 0) {
     write_result = HAL_I2C_Master_Transmit_IT(i2c_bus->i2c_handle, dev_addr,
