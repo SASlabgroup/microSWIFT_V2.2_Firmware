@@ -642,7 +642,7 @@ static uSWIFT_return_code_t _file_system_save_light_raw(Light_Sensor *light) {
   uint32_t size_remaining = 0;
   uint32_t str_index = 0;
   uint32_t sample_index = 0;
-  uint32_t max_samples = light->total_samples;
+  uint32_t max_samples = light->valid_samples;
   struct tm time;
   time_t timestamp = light->start_timestamp;
 

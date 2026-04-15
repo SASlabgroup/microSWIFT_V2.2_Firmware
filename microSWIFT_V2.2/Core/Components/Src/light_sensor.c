@@ -101,7 +101,8 @@ void light_sensor_init(Light_Sensor *struct_ptr,
 
   light_self->timer_timeout = false;
 
-  light_self->total_samples = 0;
+  light_self->valid_samples = 0;
+  light_self->failed_samples = 0;
   light_self->samples_series = samples_series_buffer;
   memset(&(light_self->samples_min), 0xFFFFFFFF, sizeof(light_basic_counts));
   memset(&(light_self->samples_max), 0, sizeof(light_basic_counts));
@@ -432,7 +433,7 @@ static uSWIFT_return_code_t _light_sensor_process_measurements(void) {
   // Update min/ max
   __get_mins_maxes();
 
-  if (light_self->total_samples ==
+  if (light_self->valid_samples + light_self->failed_samples ==
       light_self->global_config->total_light_samples) {
     gnss_get_current_lat_lon(&light_self->end_lat, &light_self->end_lon);
     light_self->stop_timestamp = get_system_time();
@@ -440,16 +441,16 @@ static uSWIFT_return_code_t _light_sensor_process_measurements(void) {
   }
 
   // Store the most recent samples in the time series
-  memcpy(&(light_self->samples_series[light_self->total_samples]),
+  memcpy(&(light_self->samples_series[light_self->valid_samples]),
          &light_self->basic_counts, sizeof(light_basic_counts));
 
   for (int i = 0; i < 12; i++, basic_count_ptr++, averages_ptr++) {
     *averages_ptr += *basic_count_ptr;
   }
 
-  light_self->total_samples++;
+  light_self->valid_samples++;
 
-  if (light_self->total_samples == 1) {
+  if (light_self->valid_samples == 1) {
     gnss_get_current_lat_lon(&light_self->start_lat, &light_self->start_lon);
     light_self->start_timestamp = get_system_time();
   }
@@ -465,12 +466,12 @@ static uSWIFT_return_code_t _light_sensor_process_measurements(void) {
 static uSWIFT_return_code_t _light_sensor_get_samples_averages(void) {
   uint32_t *averages_ptr = &light_self->samples_averages_accumulator.f1_chan;
 
-  if (light_self->total_samples == 0) {
+  if (light_self->valid_samples == 0) {
     return uSWIFT_PARAMETERS_INVALID;
   }
 
   for (int i = 0; i < 12; i++, averages_ptr++) {
-    *averages_ptr /= light_self->total_samples;
+    *averages_ptr /= light_self->valid_samples;
   }
 
   return uSWIFT_SUCCESS;
