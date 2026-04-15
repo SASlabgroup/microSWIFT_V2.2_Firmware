@@ -166,6 +166,9 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle)
 
 /* USER CODE BEGIN 1 */
 // clang-format on
+
+// We use our own version of this instead of the auto-generated MX_I2C2_Init,
+// since we need to return a success flag rather than calling Error_Handler
 int32_t i2c2_init(void) {
   int32_t ret = I2C_OK;
 
