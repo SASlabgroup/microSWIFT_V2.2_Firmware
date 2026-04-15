@@ -1,4 +1,5 @@
 /* USER CODE BEGIN Header */
+// clang-format on
 /**
  ******************************************************************************
  * @file    i2c.c
@@ -16,14 +17,17 @@
  *
  ******************************************************************************
  */
+// clang-format off
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "i2c.h"
 
 /* USER CODE BEGIN 0 */
+// clang-format on
 #include "stdbool.h"
 
 static bool i2c2_init_status = false;
+// clang-format off
 /* USER CODE END 0 */
 
 I2C_HandleTypeDef hi2c2;
@@ -33,11 +37,15 @@ void MX_I2C2_Init(void)
 {
 
   /* USER CODE BEGIN I2C2_Init 0 */
+//   clang-format on
 
+  // clang-format off
   /* USER CODE END I2C2_Init 0 */
 
   /* USER CODE BEGIN I2C2_Init 1 */
+//   clang-format on
 
+  // clang-format off
   /* USER CODE END I2C2_Init 1 */
   hi2c2.Instance = I2C2;
   hi2c2.Init.Timing = 0x00201127;
@@ -67,7 +75,9 @@ void MX_I2C2_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN I2C2_Init 2 */
+//   clang-format on
 
+  // clang-format off
   /* USER CODE END I2C2_Init 2 */
 
 }
@@ -80,7 +90,9 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* i2cHandle)
   if(i2cHandle->Instance==I2C2)
   {
   /* USER CODE BEGIN I2C2_MspInit 0 */
+//   clang-format on
 
+  // clang-format off
   /* USER CODE END I2C2_MspInit 0 */
 
   /** Initializes the peripherals clock
@@ -113,7 +125,9 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* i2cHandle)
     HAL_NVIC_SetPriority(I2C2_ER_IRQn, 13, 0);
     HAL_NVIC_EnableIRQ(I2C2_ER_IRQn);
   /* USER CODE BEGIN I2C2_MspInit 1 */
+//   clang-format on
 
+  // clang-format off
   /* USER CODE END I2C2_MspInit 1 */
   }
 }
@@ -124,7 +138,9 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle)
   if(i2cHandle->Instance==I2C2)
   {
   /* USER CODE BEGIN I2C2_MspDeInit 0 */
+//   clang-format on
 
+  // clang-format off
   /* USER CODE END I2C2_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_I2C2_CLK_DISABLE();
@@ -141,14 +157,16 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle)
     HAL_NVIC_DisableIRQ(I2C2_EV_IRQn);
     HAL_NVIC_DisableIRQ(I2C2_ER_IRQn);
   /* USER CODE BEGIN I2C2_MspDeInit 1 */
+//   clang-format on
 
+  // clang-format off
   /* USER CODE END I2C2_MspDeInit 1 */
   }
 }
 
 /* USER CODE BEGIN 1 */
-int32_t i2c2_init ( void )
-{
+// clang-format on
+int32_t i2c2_init(void) {
   int32_t ret = I2C_OK;
 
   hi2c2.Instance = I2C2;
@@ -160,22 +178,17 @@ int32_t i2c2_init ( void )
   hi2c2.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
   hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
   hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_ENABLE;
-  if ( HAL_I2C_Init (&hi2c2) != HAL_OK )
-  {
+  if (HAL_I2C_Init(&hi2c2) != HAL_OK) {
     ret = I2C_ERROR;
   }
 
-  /** Configure Analogue filter
-   */
-  if ( HAL_I2CEx_ConfigAnalogFilter (&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK )
-  {
+  // Configure Analogue filter
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK) {
     ret = I2C_ERROR;
   }
 
-  /** Configure Digital filter
-   */
-  if ( HAL_I2CEx_ConfigDigitalFilter (&hi2c2, 0) != HAL_OK )
-  {
+  // Configure Digital filter
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c2, 0) != HAL_OK) {
     ret = I2C_ERROR;
   }
 
@@ -184,14 +197,11 @@ int32_t i2c2_init ( void )
   return ret;
 }
 
-int32_t i2c2_deinit ( void )
-{
+int32_t i2c2_deinit(void) {
   int32_t ret = I2C_OK;
 
-  if ( i2c2_init_status )
-  {
-    if ( HAL_I2C_DeInit (&hi2c2) != HAL_OK )
-    {
+  if (i2c2_init_status) {
+    if (HAL_I2C_DeInit(&hi2c2) != HAL_OK) {
       ret = I2C_ERROR;
     }
 
@@ -201,13 +211,12 @@ int32_t i2c2_deinit ( void )
   return ret;
 }
 
-bool i2c_bus_init_status ( I2C_TypeDef *instance )
-{
-  if ( instance == I2C2 )
-  {
+bool i2c_bus_init_status(I2C_TypeDef *instance) {
+  if (instance == I2C2) {
     return i2c2_init_status;
   }
 
   return false;
 }
+// clang-format off
 /* USER CODE END 1 */

@@ -4,6 +4,7 @@
  *  Created on: Sep 18, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #ifndef INC_SBD_H_
 #define INC_SBD_H_

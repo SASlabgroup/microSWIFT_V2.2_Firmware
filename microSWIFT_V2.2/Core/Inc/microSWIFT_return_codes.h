@@ -4,6 +4,7 @@
  *  Created on: Nov 6, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #ifndef INC_MICROSWIFT_RETURN_CODES_H_
 #define INC_MICROSWIFT_RETURN_CODES_H_

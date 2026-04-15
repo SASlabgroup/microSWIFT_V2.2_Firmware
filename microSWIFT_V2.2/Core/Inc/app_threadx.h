@@ -1,4 +1,5 @@
 /* USER CODE BEGIN Header */
+// clang-format on
 /**
  ******************************************************************************
  * @file    app_threadx.h
@@ -16,6 +17,7 @@
  *
  ******************************************************************************
  */
+// clang-format off
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
@@ -30,26 +32,29 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+// clang-format on
 #if SD_CARD_ENABLED
-   #include "sdmmc.h"
+#include "sdmmc.h"
 #endif
 
-#include "spi.h"
 #include "i2c.h"
-#include "usart.h"
 #include "octospi.h"
+#include "spi.h"
 #include "threadx_support.h"
+#include "usart.h"
+
+// clang-format off
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+// clang-format on
 
 #define SOFT_START_DELAY 50U
 #define ONE_SECOND 1000U
 
 // @formatter:off
-enum thread_priorities
-{
+enum thread_priorities {
   HIGHEST_PRIORITY = 1,
   VERY_HIGH_PRIORITY = 2,
   HIGH_PRIORITY = 3,
@@ -59,8 +64,7 @@ enum thread_priorities
   LOWEST_PRIORITY = 7
 };
 
-enum stack_sizes
-{
+enum stack_sizes {
   XXL_STACK = 16384,
   XL_STACK = 8192,
   L_STACK = 6144,
@@ -70,6 +74,8 @@ enum stack_sizes
   XXS_STACK = 512
 };
 
+// clang-format off
+// Flag groups look better right-justified, so don't format
 enum initialization_flags
 {
   RTC_INIT_SUCCESS              = ((ULONG) 1 << 0),
@@ -179,38 +185,37 @@ typedef enum
   PERSISTENT_RAM_REQUEST_PROCESSED      = ((ULONG) 1 << 9),
   FILE_SYSTEM_REQUEST_PROCESSES         = ((ULONG) 1 << 10)
 } process_complete_flags_t;
+// clang-format on
 
-typedef struct
-{
+typedef struct {
   // Core
 #if SD_CARD_ENABLED
   SD_HandleTypeDef *sd_handle;
 #endif
-  SPI_HandleTypeDef     *core_spi_handle;
-  SPI_HandleTypeDef     *expansion_spi_handle;
-  I2C_HandleTypeDef     *core_i2c_handle;
-  UART_HandleTypeDef    *iridium_uart_handle;
-  UART_HandleTypeDef    *gnss_uart_handle;
-  UART_HandleTypeDef    *ct_uart_handle;
-  UART_HandleTypeDef    *logger_uart_handle;
-  UART_HandleTypeDef    *expansion_uart_handle;
-  OSPI_HandleTypeDef    *ext_psram_handle;
-  ADC_HandleTypeDef     *battery_adc;
+  SPI_HandleTypeDef *core_spi_handle;
+  SPI_HandleTypeDef *expansion_spi_handle;
+  I2C_HandleTypeDef *core_i2c_handle;
+  UART_HandleTypeDef *iridium_uart_handle;
+  UART_HandleTypeDef *gnss_uart_handle;
+  UART_HandleTypeDef *ct_uart_handle;
+  UART_HandleTypeDef *logger_uart_handle;
+  UART_HandleTypeDef *expansion_uart_handle;
+  OSPI_HandleTypeDef *ext_psram_handle;
+  ADC_HandleTypeDef *battery_adc;
   // DMA handles
-  DMA_HandleTypeDef     *gnss_uart_tx_dma_handle;
-  DMA_HandleTypeDef     *gnss_uart_rx_dma_handle;
-  DMA_HandleTypeDef     *iridium_uart_tx_dma_handle;
-  DMA_HandleTypeDef     *iridium_uart_rx_dma_handle;
-  DMA_HandleTypeDef     *ct_uart_tx_dma_handle;
-  DMA_HandleTypeDef     *ct_uart_rx_dma_handle;
-  DMA_HandleTypeDef     *logger_uart_tx_dma_handle;
-  DMA_HandleTypeDef     *logger_uart_rx_dma_handle;
-  DMA_HandleTypeDef     *expansion_uart_tx_dma_handle;
-  DMA_HandleTypeDef     *expansion_uart_rx_dma_handle;
+  DMA_HandleTypeDef *gnss_uart_tx_dma_handle;
+  DMA_HandleTypeDef *gnss_uart_rx_dma_handle;
+  DMA_HandleTypeDef *iridium_uart_tx_dma_handle;
+  DMA_HandleTypeDef *iridium_uart_rx_dma_handle;
+  DMA_HandleTypeDef *ct_uart_tx_dma_handle;
+  DMA_HandleTypeDef *ct_uart_rx_dma_handle;
+  DMA_HandleTypeDef *logger_uart_tx_dma_handle;
+  DMA_HandleTypeDef *logger_uart_rx_dma_handle;
+  DMA_HandleTypeDef *expansion_uart_tx_dma_handle;
+  DMA_HandleTypeDef *expansion_uart_rx_dma_handle;
 } Device_Handles;
 
-typedef struct
-{
+typedef struct {
   TX_THREAD *control_thread;
   TX_THREAD *rtc_thread;
   TX_THREAD *led_thread;
@@ -243,35 +248,45 @@ extern TX_EVENT_FLAGS_GROUP error_flags;
 
 // Exposed so we can kill it in ISR if it takes too long to run
 extern TX_THREAD waves_thread;
+// clang-format off
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
+// clang-format on
 #define WAVES_MEM_POOL_SIZE 659456
 #define EXPANSION_QUEUE_MSG_SIZE 64
 #define EXPANSION_QUEUE_LENGTH 4
+// clang-format off
 /* USER CODE END EC */
 
 /* Private defines -----------------------------------------------------------*/
 
 /* USER CODE BEGIN PD */
+// clang-format on
 
+// clang-format off
 /* USER CODE END PD */
 
 /* Main thread defines -------------------------------------------------------*/
 /* USER CODE BEGIN MTD */
+// clang-format on
 
+// clang-format off
 /* USER CODE END MTD */
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
+// clang-format on
 
 #define MS_PER_SECOND 1000
 
-// The max times we'll try to get a single peripheral up before sending reset vector
+// The max times we'll try to get a single peripheral up before sending reset
+// vector
 #define MAX_SELF_TEST_RETRIES 10
 // The maximum amount of time (in milliseconds) a sample window could take
 #define MAX_ALLOWABLE_WINDOW_TIME_IN_MINUTES 61
+// clang-format off
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
@@ -279,11 +294,15 @@ UINT App_ThreadX_Init(VOID *memory_ptr);
 void MX_ThreadX_Init(void);
 
 /* USER CODE BEGIN EFP */
+// clang-format on
 
+// clang-format off
 /* USER CODE END EFP */
 
 /* USER CODE BEGIN 1 */
+// clang-format on
 // @formatter:on
+// clang-format off
 /* USER CODE END 1 */
 
 #ifdef __cplusplus

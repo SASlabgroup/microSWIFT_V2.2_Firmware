@@ -4,6 +4,8 @@
  *  Created on: Oct 24, 2024
  *      Author: philbush
  */
+// There are lots of hand-formatted enums that look better that way
+// clang-format off
 
 #ifndef COMPONENTS_DRIVERS_INC_AS7341_REG_H_
 #define COMPONENTS_DRIVERS_INC_AS7341_REG_H_
