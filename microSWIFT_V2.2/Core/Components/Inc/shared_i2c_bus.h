@@ -58,12 +58,12 @@ bool shared_i2c_init(Shared_I2C_Bus *shared_bus, I2C_HandleTypeDef *i2c_handle,
 void shared_i2c_server_init(TX_QUEUE *i2c_queue,
                             TX_EVENT_FLAGS_GROUP *operation_complete_flags);
 bool shared_i2c_deinit(void);
-uSWIFT_return_code_t shared_i2c_read(uint8_t dev_addr, uint8_t dev_reg,
-                                     uint8_t *input_output_buffer,
-                                     uint8_t read_len, UINT complete_flag);
-uSWIFT_return_code_t shared_i2c_write(uint8_t dev_addr, uint8_t dev_reg,
+uSWIFT_return_code_t enqueue_i2c_read(uint8_t dev_addr, uint8_t dev_reg,
                                       uint8_t *input_output_buffer,
-                                      uint8_t write_len, UINT complete_flag);
+                                      uint8_t read_len, UINT complete_flag);
+uSWIFT_return_code_t enqueue_i2c_write(uint8_t dev_addr, uint8_t dev_reg,
+                                       uint8_t *input_output_buffer,
+                                       uint8_t write_len, UINT complete_flag);
 
 //@formatter:on
 #endif /* COMPONENTS_INC_SHARED_I2C_BUS_H_ */

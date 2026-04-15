@@ -292,8 +292,8 @@ static int32_t _turbidity_sensor_i2c_read(void *unused_handle,
                                           uint8_t *read_data,
                                           uint16_t data_length) {
   (void)unused_handle;
-  return shared_i2c_read(bus_address, reg_address, read_data, data_length,
-                         TURBIDITY_REQUEST_PROCESSED);
+  return enqueue_i2c_read(bus_address, reg_address, read_data, data_length,
+                          TURBIDITY_REQUEST_PROCESSED);
 }
 
 static int32_t _turbidity_sensor_i2c_write(void *unused_handle,
@@ -302,8 +302,8 @@ static int32_t _turbidity_sensor_i2c_write(void *unused_handle,
                                            uint8_t *write_data,
                                            uint16_t data_length) {
   (void)unused_handle;
-  return shared_i2c_write(bus_address, reg_address, write_data, data_length,
-                          TURBIDITY_REQUEST_PROCESSED);
+  return enqueue_i2c_write(bus_address, reg_address, write_data, data_length,
+                           TURBIDITY_REQUEST_PROCESSED);
 }
 
 static void _turbidity_sensor_ms_delay(uint32_t delay) {

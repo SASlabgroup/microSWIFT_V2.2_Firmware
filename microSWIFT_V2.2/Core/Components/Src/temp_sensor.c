@@ -168,16 +168,16 @@ static uSWIFT_return_code_t _temperature_i2c_read(uint8_t dev_addr,
                                                   uint8_t reg_addr,
                                                   uint8_t *read_buf,
                                                   uint16_t size) {
-  return shared_i2c_read(dev_addr, reg_addr, read_buf, size,
-                         TEMPERATURE_REQUEST_PROCESSED);
+  return enqueue_i2c_read(dev_addr, reg_addr, read_buf, size,
+                          TEMPERATURE_REQUEST_PROCESSED);
 }
 
 static uSWIFT_return_code_t _temperature_i2c_write(uint8_t dev_addr,
                                                    uint8_t reg_addr,
                                                    uint8_t *write_buf,
                                                    uint16_t size) {
-  return shared_i2c_write(dev_addr, reg_addr, write_buf, size,
-                          TEMPERATURE_REQUEST_PROCESSED);
+  return enqueue_i2c_write(dev_addr, reg_addr, write_buf, size,
+                           TEMPERATURE_REQUEST_PROCESSED);
 }
 
 static uSWIFT_return_code_t __init_sensor(void) {

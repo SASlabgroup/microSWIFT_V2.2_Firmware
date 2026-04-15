@@ -587,8 +587,8 @@ static int32_t _light_sensor_i2c_read(void *unused_handle, uint16_t bus_address,
     light_self->as7341_current_reg_bank = REG_BANK_80_PLUS;
   }
 
-  ret = shared_i2c_read(bus_address, reg_address, read_data, data_length,
-                        LIGHT_REQUEST_PROCESSED);
+  ret = enqueue_i2c_read(bus_address, reg_address, read_data, data_length,
+                         LIGHT_REQUEST_PROCESSED);
 
   return ret;
 }
@@ -627,8 +627,8 @@ static int32_t _light_sensor_i2c_write(void *unused_handle,
     light_self->as7341_current_reg_bank = REG_BANK_80_PLUS;
   }
 
-  ret = shared_i2c_write(bus_address, reg_address, write_data, data_length,
-                         LIGHT_REQUEST_PROCESSED);
+  ret = enqueue_i2c_write(bus_address, reg_address, write_data, data_length,
+                          LIGHT_REQUEST_PROCESSED);
 
   return ret;
 }
