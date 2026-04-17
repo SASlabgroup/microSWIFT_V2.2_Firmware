@@ -376,6 +376,10 @@ static uSWIFT_return_code_t _light_sensor_read_all_channels(void) {
   }
 
   if (as7341_spectral_meas_config(&light_self->dev_ctx, false) != AS7341_OK) {
+    // NOTE(LEL): This error flag is ignored, but I think it's OK because both
+    //   self_test and read_all_samples start by trying to set this flag, and
+    //   if it fails then, the functions will report failure. I think this is
+    //   probably set here as a good idea, but not required.
     ret = uSWIFT_IO_ERROR;
   }
 
@@ -428,31 +432,33 @@ static uSWIFT_return_code_t _light_sensor_stop_timer(void) {
  * @retval uSWIFT_return_code_t indicating success or specific failure type
  */
 static uSWIFT_return_code_t _light_sensor_process_measurements(void) {
-  uint32_t *basic_count_ptr = &light_self->basic_counts.f1_chan;
-  uint32_t *averages_ptr = &light_self->samples_averages_accumulator.f1_chan;
-  // Update min/ max
-  __get_mins_maxes();
-
-  if (light_self->valid_samples + light_self->failed_samples ==
-      light_self->global_config->total_light_samples) {
-    gnss_get_current_lat_lon(&light_self->end_lat, &light_self->end_lon);
-    light_self->stop_timestamp = get_system_time();
-    return uSWIFT_DONE_SAMPLING;
-  }
-
-  // Store the most recent samples in the time series
+  // Store the most recent samples in the time series; this buffer
+  // is saved to disk at the end of the sampling period.
   memcpy(&(light_self->samples_series[light_self->valid_samples]),
          &light_self->basic_counts, sizeof(light_basic_counts));
+  light_self->valid_samples++;
 
+  // Update min/max for each channel
+  __get_mins_maxes();
+
+  // update the accumulator.
+  uint32_t *basic_count_ptr = &light_self->basic_counts.f1_chan;
+  uint32_t *averages_ptr = &light_self->samples_averages_accumulator.f1_chan;
   for (int i = 0; i < 12; i++, basic_count_ptr++, averages_ptr++) {
     *averages_ptr += *basic_count_ptr;
   }
 
-  light_self->valid_samples++;
-
   if (light_self->valid_samples == 1) {
     gnss_get_current_lat_lon(&light_self->start_lat, &light_self->start_lon);
     light_self->start_timestamp = get_system_time();
+  } else {
+    // Fill in timestamp + lat/lon data every time, because if the last
+    // sampling attempt fails this function won't be called. If we only
+    // fill these values in when sampling is complete, there's the potential
+    // that they will be from significantly later than the last successful
+    // sample.
+    gnss_get_current_lat_lon(&light_self->end_lat, &light_self->end_lon);
+    light_self->stop_timestamp = get_system_time();
   }
 
   return uSWIFT_SUCCESS;

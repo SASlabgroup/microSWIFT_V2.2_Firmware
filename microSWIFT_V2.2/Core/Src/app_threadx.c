@@ -1606,8 +1606,7 @@ static void light_thread_entry(ULONG thread_input) {
     }
 
     int num_samples = light.valid_samples + light.failed_samples;
-    if (light_ret == uSWIFT_DONE_SAMPLING ||
-        num_samples == light.global_config->total_light_samples) {
+    if (num_samples == light.global_config->total_light_samples) {
       light.get_samples_averages();
       break;
     }
