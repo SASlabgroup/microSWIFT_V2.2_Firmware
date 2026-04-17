@@ -8,8 +8,11 @@
 #ifndef COMPONENTS_INC_LIGHT_SENSOR_H_
 #define COMPONENTS_INC_LIGHT_SENSOR_H_
 
+#include <stdint.h>
+
 #include "as7341_reg.h"
 #include "configuration.h"
+#include "gpio.h"
 #include "i2c.h"
 #include "microSWIFT_return_codes.h"
 #include "sbd.h"
@@ -72,26 +75,20 @@ typedef struct {
   microSWIFT_configuration *global_config;
 
   TX_TIMER *timer;
+  bool timer_timeout;
 
   gpio_pin_struct pwr_fet;
 
   dev_ctx_t dev_ctx;
-
   as7341_smux_assignment smux_assignment_low_channels;
   as7341_smux_assignment smux_assignment_high_channels;
-
   light_raw_counts raw_counts;
-
   light_basic_counts basic_counts;
-
   int32_t as7341_current_reg_bank;
-
   as7341_again_t sensor_gain;
 
-  bool timer_timeout;
-
-  uint32_t failed_samples;
-  uint32_t valid_samples;
+  uint16_t failed_samples;
+  uint16_t valid_samples;
   light_basic_counts samples_max;
   light_basic_counts samples_min;
   light_basic_counts samples_averages_accumulator;
@@ -101,7 +98,7 @@ typedef struct {
   int32_t end_lat;
   int32_t end_lon;
   time_t start_timestamp;
-  time_t stop_timestamp;
+  time_t end_timestamp;
 
   uSWIFT_return_code_t (*self_test)(void);
   uSWIFT_return_code_t (*setup_sensor)(void);

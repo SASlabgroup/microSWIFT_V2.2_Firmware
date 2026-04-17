@@ -114,7 +114,7 @@ void light_sensor_init(Light_Sensor *struct_ptr,
   light_self->end_lat = 0;
   light_self->end_lon = 0;
   light_self->start_timestamp = 0;
-  light_self->stop_timestamp = 0;
+  light_self->end_timestamp = 0;
 
   light_self->self_test = _light_sensor_self_test;
   light_self->setup_sensor = _light_sensor_setup_sensor;
@@ -458,7 +458,7 @@ static uSWIFT_return_code_t _light_sensor_process_measurements(void) {
     // that they will be from significantly later than the last successful
     // sample.
     gnss_get_current_lat_lon(&light_self->end_lat, &light_self->end_lon);
-    light_self->stop_timestamp = get_system_time();
+    light_self->end_timestamp = get_system_time();
   }
 
   return uSWIFT_SUCCESS;
@@ -491,7 +491,9 @@ static void _light_sensor_assemble_telemetry_message_element(
   memcpy(&msg->end_lat, &light_self->end_lat, sizeof(int32_t));
   memcpy(&msg->end_lon, &light_self->end_lon, sizeof(int32_t));
   memcpy(&msg->start_timestamp, &light_self->start_timestamp, sizeof(uint32_t));
-  memcpy(&msg->end_timestamp, &light_self->stop_timestamp, sizeof(uint32_t));
+  memcpy(&msg->end_timestamp, &light_self->end_timestamp, sizeof(uint32_t));
+  memcpy(&msg->valid_samples, &light_self->valid_samples, sizeof(uint16_t));
+  memcpy(&msg->failed_samples, &light_self->failed_samples, sizeof(uint16_t));
   memcpy(&msg->max_reading_clear, &light_self->samples_max.clear_chan,
          sizeof(uint16_t));
   memcpy(&msg->min_reading_clear, &light_self->samples_min.clear_chan,

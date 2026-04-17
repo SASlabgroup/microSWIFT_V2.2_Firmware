@@ -9,6 +9,7 @@
 #ifndef INC_SBD_H_
 #define INC_SBD_H_
 
+#include <stdint.h>
 #include "time.h"
 #include "NEDWaves/rtwhalf.h"
 #define TYPE_99_CHAR_BUF_LEN 320
@@ -88,6 +89,8 @@ typedef struct __packed
   int32_t     end_lon;
   uint32_t    start_timestamp;
   uint32_t    end_timestamp;
+  uint16_t    valid_samples;
+  uint16_t    failed_samples;
   uint16_t    max_reading_clear;
   uint16_t    min_reading_clear;
   uint16_t    avg_clear;
