@@ -89,8 +89,6 @@ typedef struct __packed
   int32_t     end_lon;
   uint32_t    start_timestamp;
   uint32_t    end_timestamp;
-  uint16_t    valid_samples;
-  uint16_t    failed_samples;
   uint16_t    max_reading_clear;
   uint16_t    min_reading_clear;
   uint16_t    avg_clear;
@@ -104,6 +102,8 @@ typedef struct __packed
   uint16_t    avg_f8;
   uint16_t    avg_dark;
   uint16_t    avg_nir;
+  uint16_t    valid_samples;
+  uint16_t    failed_samples;
 } sbd_message_type_54_element;
 
 #define LIGHT_MSGS_PER_SBD ((IRIDIUM_SBD_MAX_LENGTH - IRIDIUM_SBD_OVERHEAD_BYTES) / sizeof(sbd_message_type_54_element))
