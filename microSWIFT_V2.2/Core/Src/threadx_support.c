@@ -267,6 +267,28 @@ void turbidity_error_out(Turbidity_Sensor *turbidity, ULONG error_flag,
   tx_thread_suspend(turbidity_thread);
 }
 
+void accel_error_out(Accelerometer *accel, ULONG error_flag,
+                     TX_THREAD *accel_thread, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  char tmp_fmt[128];
+
+  accel->power_off();
+  // TODO: As soon as we have a timer that kills this thread after X minutes,
+  // will need to stop it.
+  // accel->stop_timer();
+
+  vsnprintf(&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
+  va_end(args);
+  LOG(&(tmp_fmt[0]));
+
+  (void)tx_event_flags_set(&error_flags, error_flag, TX_OR);
+  // NOTE: If we start using a watchdog with the accel thread, would need to
+  // call watchdog_deregister_thread(accel_thread);
+
+  tx_thread_suspend(accel_thread);
+}
+
 void waves_error_out(ULONG error_flag, TX_THREAD *waves_thread, const char *fmt,
                      ...) {
   va_list args;

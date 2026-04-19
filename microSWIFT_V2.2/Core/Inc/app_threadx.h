@@ -234,7 +234,7 @@ typedef struct {
   TX_THREAD *waves_thread;
   TX_THREAD *iridium_thread;
   TX_THREAD *filex_thread;
-  TX_THREAD *accelerometer_thread;
+  TX_THREAD *accel_thread;
 } Thread_Handles;
 
 extern microSWIFT_configuration configuration;

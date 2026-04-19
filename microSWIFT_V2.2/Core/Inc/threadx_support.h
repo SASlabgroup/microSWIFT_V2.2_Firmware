@@ -8,6 +8,7 @@
 #ifndef INC_THREADX_SUPPORT_H_
 #define INC_THREADX_SUPPORT_H_
 
+#include "accelerometer.h"
 #include "ct_sensor.h"
 #include "gnss.h"
 #include "iridium.h"
@@ -50,6 +51,8 @@ void light_error_out(Light_Sensor *light, ULONG error_flag,
                      TX_THREAD *light_thread, const char *fmt, ...);
 void turbidity_error_out(Turbidity_Sensor *turbidity, ULONG error_flag,
                          TX_THREAD *turbidity_thread, const char *fmt, ...);
+void accel_error_out(Accelerometer *accel, ULONG error_flag,
+                     TX_THREAD *accel_thread, const char *fmt, ...);
 void waves_error_out(ULONG error_flag, TX_THREAD *waves_thread, const char *fmt,
                      ...);
 void iridium_error_out(Iridium *iridium, ULONG error_flag,

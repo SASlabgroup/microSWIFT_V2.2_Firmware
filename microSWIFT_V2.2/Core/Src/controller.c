@@ -216,8 +216,7 @@ static bool _control_startup_procedure(void) {
   if (controller_self->global_config->accelerometer_enabled) {
     init_success_flags |= ACCELEROMETER_INIT_SUCCESS;
     LOG("Starting accelerometer thread");
-    (void)tx_thread_resume(
-        controller_self->thread_handles->accelerometer_thread);
+    (void)tx_thread_resume(controller_self->thread_handles->accel_thread);
   }
 
   // Flash power up sequence (this will also give threads time to execute their
@@ -246,9 +245,21 @@ static bool _control_startup_procedure(void) {
   }
 
   if (tx_return != TX_SUCCESS) {
-    LOG("control startup_procedure failed; success_flags = %lu, current_flags "
-        "= %lu",
-        init_success_flags, current_flags);
+    // TODO: There may b e a category of sensors that we give the *chance*
+    //   to initialize but then if they don't come online, we run waves anyways.
+    if ((current_flags | ACCELEROMETER_INIT_SUCCESS) == init_success_flags) {
+      LOG("Accelerometer initialization failed; disabling accelerometer and "
+          "continuing with startup");
+      // This ensures that we won't try to re-start the accel thread later,
+      // and that the iridium thread won't wait for it.
+      // controller_self->thread_status.accelerometer_complete = true;
+      tx_return = TX_SUCCESS;
+    } else {
+      LOG("control startup_procedure failed; success_flags = %lu, "
+          "current_flags "
+          "= %lu",
+          init_success_flags, current_flags);
+    }
   }
 
   return (tx_return == TX_SUCCESS);
@@ -515,8 +526,7 @@ static void _control_manage_state(void) {
 
     if (!controller_self->thread_status.accelerometer_complete) {
       LOG("Acquired GNSS fix; resuming accelerometer thread");
-      ret |= tx_thread_resume(
-          controller_self->thread_handles->accelerometer_thread);
+      ret |= tx_thread_resume(controller_self->thread_handles->accel_thread);
     }
   }
 
@@ -557,10 +567,14 @@ static void _control_manage_state(void) {
           tx_thread_resume(controller_self->thread_handles->temperature_thread);
     }
 
+    // NOTE: I needed this for testing indoors, so that the accelerometer
+    // would run even when I couldn't get a GPS fix. If we want to use it
+    // operationally, should we also start the light thread so we get
+    // that data as well? (I guess normally you wouldn't because it's not worth
+    // using 18 mins of battery just for light data?)
     if (!controller_self->thread_status.accelerometer_complete) {
       LOG("No GNSS fix; resuming accelerometer thread anyways");
-      ret |= tx_thread_resume(
-          controller_self->thread_handles->accelerometer_thread);
+      ret |= tx_thread_resume(controller_self->thread_handles->accel_thread);
     }
 
     LOG("GNSS thread complete.");
@@ -772,9 +786,10 @@ static void __handle_gnss_error(ULONG error_flags) {
     flags |= LIGHT_THREAD_COMPLETED_WITH_ERRORS;
   }
 
-  if (controller_self->global_config->accelerometer_enabled) {
-    flags |= LIGHT_THREAD_COMPLETED_WITH_ERRORS;
-  }
+  // For testing, I've chosen to start it (alongside temp and ct) on GNSS error.
+  // if (controller_self->global_config->accelerometer_enabled) {
+  //   flags |= ACCELEROMETER_THREAD_COMPLETED_WITH_ERRORS;
+  // }
 
   // Shut down GNSS sensor
   HAL_GPIO_WritePin(GNSS_FET_GPIO_Port, GNSS_FET_Pin, GPIO_PIN_RESET);

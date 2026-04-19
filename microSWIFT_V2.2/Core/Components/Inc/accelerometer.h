@@ -14,6 +14,16 @@
 
 struct Accelerometer;
 
+// This must also be defined in the accelerometer code; the accelerometer
+// and controller do not currently have a way to share header files.
+typedef struct accel_self_test_result_t {
+  uint32_t timestamp;
+  float temp_c;
+  float x_g;
+  float y_g;
+  float z_g;
+} accel_self_test_result_t;
+
 typedef struct Accelerometer {
   // Global configuration struct.
   // The accelerometer will probably (eventually) need it for
@@ -30,10 +40,12 @@ typedef struct Accelerometer {
   DMA_HandleTypeDef *tx_dma_handle;
   DMA_HandleTypeDef *rx_dma_handle;
 
-  uSWIFT_return_code_t (*self_test)(struct Accelerometer *accel);
-  uSWIFT_return_code_t (*uart_init)(struct Accelerometer *accel);
-  uSWIFT_return_code_t (*uart_deinit)(struct Accelerometer *accel);
-  uSWIFT_return_code_t (*uart_reset)(struct Accelerometer *accel);
+  uSWIFT_return_code_t (*self_test)(accel_self_test_result_t *result);
+  uSWIFT_return_code_t (*uart_init)(void);
+  uSWIFT_return_code_t (*uart_deinit)(void);
+  uSWIFT_return_code_t (*uart_reset)(void);
+  void (*power_on)(void);
+  void (*power_off)(void);
 
 } Accelerometer;
 

@@ -120,7 +120,7 @@ TX_THREAD light_thread;
 TX_THREAD turbidity_thread;
 TX_THREAD waves_thread;
 TX_THREAD iridium_thread;
-TX_THREAD accelerometer_thread;
+TX_THREAD accel_thread;
 // clang-format off
 Thread_Handles thread_handles =
   {
@@ -137,7 +137,7 @@ Thread_Handles thread_handles =
     &waves_thread,
     &iridium_thread,
     &fx_thread,
-    &accelerometer_thread
+    &accel_thread
   };
 // clang-format on
 // Used to track initialization status of threads and components
@@ -231,7 +231,7 @@ static void ct_thread_entry(ULONG thread_input);
 static void temperature_thread_entry(ULONG thread_input);
 static void light_thread_entry(ULONG thread_input);
 static void turbidity_thread_entry(ULONG thread_input);
-static void accelerometer_thread_entry(ULONG thread_input);
+static void accel_thread_entry(ULONG thread_input);
 
 // clang-format off
 /* USER CODE END PFP */
@@ -435,10 +435,9 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
     return ret;
   }
   // Create the accelerometer thread. HIGH priority, no preemption-threshold
-  ret = tx_thread_create(&accelerometer_thread, "accelerometer thread",
-                         accelerometer_thread_entry, 0, pointer, S_STACK,
-                         HIGH_PRIORITY, HIGHEST_PRIORITY, TX_NO_TIME_SLICE,
-                         TX_DONT_START);
+  ret = tx_thread_create(&accel_thread, "accelerometer thread",
+                         accel_thread_entry, 0, pointer, S_STACK, HIGH_PRIORITY,
+                         HIGHEST_PRIORITY, TX_NO_TIME_SLICE, TX_DONT_START);
   if (ret != TX_SUCCESS) {
     return ret;
   }
@@ -2022,12 +2021,11 @@ static void iridium_thread_entry(ULONG thread_input) {
         persistent_ram_get_num_msgs_enqueued(TURBIDITY_TELEMETRY);
     uint32_t num_light_msgs =
         persistent_ram_get_num_msgs_enqueued(LIGHT_TELEMETRY);
-    uint32_t num_accelerometer_msgs =
+    uint32_t num_accel_msgs =
         persistent_ram_get_num_msgs_enqueued(ACCELEROMETER_TELEMETRY);
     LOG("Iridium trying to transmit! Queue lengths: waves = %lu, accel = %lu, "
         "turbidity = %lu, light = %lu",
-        num_waves_msgs, num_accelerometer_msgs, num_turbidity_msgs,
-        num_light_msgs);
+        num_waves_msgs, num_accel_msgs, num_turbidity_msgs, num_light_msgs);
 
     if (!current_message_sent) {
       LOG("Attempting transmission of NEDWaves telemetry...");
@@ -2120,10 +2118,10 @@ static void iridium_thread_entry(ULONG thread_input) {
   tx_thread_terminate(this_thread);
 }
 
-static void accelerometer_thread_entry(ULONG thread_input) {
+static void accel_thread_entry(ULONG thread_input) {
   UNUSED(thread_input);
 
-  TX_THREAD *this_thread = &accelerometer_thread;
+  TX_THREAD *this_thread = &accel_thread;
 
   // Calling "LOG" here causes repeated restarts of the program.
   // https://github.com/SASlabgroup/microSWIFT_V2.2_Firmware/issues/1
@@ -2154,17 +2152,26 @@ static void accelerometer_thread_entry(ULONG thread_input) {
   // NOTE(LEL): The other devices tend to hide this in an accel.on() function
   //   I'm not yet sure whether I think that's better for a one-line
   //   initialization.
-  HAL_GPIO_WritePin(EXP_GPIO_1_GPIO_Port, EXP_GPIO_1_Pin, GPIO_PIN_SET);
+  accel.power_on();
   tx_thread_sleep(10);
 
-  LOG("Running accel.self_test");
-  ret = accel.self_test(&accel);
-  LOG("accel.self_test returned %d", ret);
+  accel_self_test_result_t self_test_result;
+  ret = accel.self_test(&self_test_result);
+  if (uSWIFT_SUCCESS != ret) {
+    accel_error_out(&accel, ACCELEROMETER_INIT_FAILED, this_thread,
+                    "Accelerometer self test failed with error: (%d)",
+                    (int)ret);
 
-  HAL_GPIO_WritePin(EXP_GPIO_1_GPIO_Port, EXP_GPIO_1_Pin, GPIO_PIN_RESET);
+  } else {
+    LOG("Accelerometer self test succeeded. timestamp = %d, X = %0.2f, Y = "
+        "%0.2f, Z = %0.2f (g)",
+        self_test_result.timestamp, self_test_result.x_g, self_test_result.y_g,
+        self_test_result.z_g);
+    (void)tx_event_flags_set(&initialization_flags, ACCELEROMETER_INIT_SUCCESS,
+                             TX_OR);
+  }
 
-  (void)tx_event_flags_set(&initialization_flags, ACCELEROMETER_INIT_SUCCESS,
-                           TX_OR);
+  accel.power_off();
 
   // Suspend for now, will be woken up when GNSS has initialized
   tx_thread_suspend(this_thread);
