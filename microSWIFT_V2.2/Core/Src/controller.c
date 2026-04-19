@@ -557,6 +557,12 @@ static void _control_manage_state(void) {
           tx_thread_resume(controller_self->thread_handles->temperature_thread);
     }
 
+    if (!controller_self->thread_status.accelerometer_complete) {
+      LOG("No GNSS fix; resuming accelerometer thread anyways");
+      ret |= tx_thread_resume(
+          controller_self->thread_handles->accelerometer_thread);
+    }
+
     LOG("GNSS thread complete, now terminating.");
     tx_thread_sleep(25);
   }
