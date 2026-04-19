@@ -16,8 +16,6 @@
 #include "tx_api.h"
 #include "vcnl4010_reg.h"
 
-// @formatter:off
-
 #define TURBIDITY_I2C_TIMEOUT 50
 #define TURBIDITY_SENSOR_SAMPLE_BUFFER_SIZE 14400
 
@@ -60,5 +58,5 @@ void turbidity_sensor_init(Turbidity_Sensor *struct_ptr,
 void turbidity_timer_expired(ULONG expiration_input);
 bool turbidity_get_timeout_status(void);
 void turbidity_reset_sample_counter(void);
-// @formatter:on
+
 #endif /* COMPONENTS_INC_TURBIDITY_SENSOR_H_ */

@@ -10,7 +10,6 @@
 #include "logger.h"
 #include "string.h"
 
-// @formatter:off
 typedef enum {
   SAVE_LOG_LINE_COMPLETE = (ULONG)(1 << SAVE_LOG_LINE),
   SAVE_GNSS_RAW_COMPLETE = (ULONG)(1 << SAVE_GNSS_RAW),
@@ -22,7 +21,6 @@ typedef enum {
   SAVE_TURBIDITY_RAW_COMPLETE = (ULONG)(1 << SAVE_TURBIDITY_RAW),
   UPDATE_DATE_TIME_COMPLETE = (ULONG)(1 << UPDATE_DATE_TIME)
 } file_system_complete_flags;
-// @formatter:on
 
 static file_system_server file_server_self;
 

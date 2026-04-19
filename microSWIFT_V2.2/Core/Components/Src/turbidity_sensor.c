@@ -12,7 +12,6 @@
 #include "shared_i2c_bus.h"
 #include "threadx_support.h"
 
-// @formatter:off
 static Turbidity_Sensor *turbidity_self;
 
 // Struct functions
@@ -50,7 +49,6 @@ static uSWIFT_return_code_t
 __turbidity_sensor_get_proximity_reading(uint16_t *reading);
 static uSWIFT_return_code_t
 __turbidity_sensor_get_ambient_reading(uint16_t *reading);
-// @formatter:on
 
 void turbidity_sensor_init(Turbidity_Sensor *struct_ptr,
                            microSWIFT_configuration *global_config,

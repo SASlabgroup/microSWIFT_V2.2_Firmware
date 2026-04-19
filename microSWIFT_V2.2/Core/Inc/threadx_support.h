@@ -28,8 +28,6 @@
   (GET_QUEUE_MSG_ELEMENT_SIZE(msg_element_size) * sizeof(uint32_t) *           \
    queue_element_length)
 
-// @formatter:off
-
 #define ALL_EVENT_FLAGS (0xFFFFFFFF)
 #define NO_ERROR_FLAG 0U
 
@@ -79,5 +77,4 @@ ULONG get_timer_remaining_ticks(TX_TIMER *timer);
 
 uint32_t ticks_from_milliseconds(uint32_t milliseconds);
 
-// @formatter:on
 #endif /* INC_THREADX_SUPPORT_H_ */
