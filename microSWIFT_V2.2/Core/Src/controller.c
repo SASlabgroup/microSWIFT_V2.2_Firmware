@@ -456,7 +456,7 @@ static void _control_manage_state(void) {
       (current_flags & CT_THREAD_COMPLETED_WITH_ERRORS)) {
     controller_self->thread_status.ct_complete = true;
 
-    LOG("CT thread complete, now terminating.");
+    LOG("CT thread complete.");
     tx_thread_sleep(25);
   }
 
@@ -464,7 +464,7 @@ static void _control_manage_state(void) {
       (current_flags & TEMPERATURE_THREAD_COMPLETED_WITH_ERRORS)) {
     controller_self->thread_status.temperature_complete = true;
 
-    LOG("Temperature thread complete, now terminating.");
+    LOG("Temperature thread complete.");
     tx_thread_sleep(25);
   }
 
@@ -472,7 +472,7 @@ static void _control_manage_state(void) {
       (current_flags & TURBIDITY_THREAD_COMPLETED_WITH_ERRORS)) {
     controller_self->thread_status.turbidity_complete = true;
 
-    LOG("Turbidity thread complete, now terminating.");
+    LOG("Turbidity thread complete.");
     tx_thread_sleep(25);
   }
 
@@ -480,7 +480,7 @@ static void _control_manage_state(void) {
       (current_flags & LIGHT_THREAD_COMPLETED_WITH_ERRORS)) {
     controller_self->thread_status.light_complete = true;
 
-    LOG("Light thread complete, now terminating.");
+    LOG("Light thread complete.");
     tx_thread_sleep(25);
   }
 
@@ -488,7 +488,7 @@ static void _control_manage_state(void) {
       (current_flags & ACCELEROMETER_THREAD_COMPLETED_WITH_ERRORS)) {
     controller_self->thread_status.accelerometer_complete = true;
 
-    LOG("Accelerometer thread complete, now terminating.");
+    LOG("Accelerometer thread complete.");
     tx_thread_sleep(25);
   }
 
@@ -496,7 +496,7 @@ static void _control_manage_state(void) {
       (current_flags & WAVES_THREAD_COMPLETED_WITH_ERRORS)) {
     controller_self->thread_status.waves_complete = true;
 
-    LOG("NED Waves thread complete, now terminating.");
+    LOG("NED Waves thread complete.");
 
     tx_thread_sleep(25);
   }
@@ -540,7 +540,7 @@ static void _control_manage_state(void) {
 
     ret |= tx_thread_resume(controller_self->thread_handles->waves_thread);
 
-    LOG("GNSS thread complete, now terminating.");
+    LOG("GNSS thread complete.");
     tx_thread_sleep(25);
   }
 
@@ -563,7 +563,7 @@ static void _control_manage_state(void) {
           controller_self->thread_handles->accelerometer_thread);
     }
 
-    LOG("GNSS thread complete, now terminating.");
+    LOG("GNSS thread complete.");
     tx_thread_sleep(25);
   }
 
@@ -592,7 +592,8 @@ static void _control_manage_state(void) {
 
   if (ret != TX_SUCCESS) {
     controller_self->shutdown_all_peripherals();
-
+    // NOTE(LEL): This makes me nervous -- go into an infinite loop in
+    // case of failure?
     tx_thread_sleep(25);
     Error_Handler();
   }

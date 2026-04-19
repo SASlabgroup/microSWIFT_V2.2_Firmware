@@ -94,12 +94,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
  * @brief  Reception Event Callback (Rx event notification called after use of
  * advanced reception service).
  * @param  huart UART handle
- * @param  Size  Number of data available in application reception buffer
+ * @param  size  Number of data available in application reception buffer
  * (indicates a position in reception buffer until which, data are available)
  * @retval None
  */
 uint16_t msg_size = 0;
-void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
   if (huart->Instance == CT_UART) {
     (void)tx_semaphore_put(&ct_uart_sema);
   } else if (huart->Instance == IRIDIUM_UART) {
@@ -108,11 +108,11 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
     (void)tx_semaphore_put(&expansion_uart_sema);
   else if (huart->Instance == GNSS_UART) {
     if (!gnss_get_configured_status()) {
-      if (Size == FRAME_SYNC_RX_SIZE) {
+      if (size == FRAME_SYNC_RX_SIZE) {
         (void)tx_event_flags_set(&irq_flags, GNSS_CONFIG_RECVD, TX_OR);
       }
-    } else if (Size < UBX_NAV_PVT_MESSAGE_LENGTH) {
-      msg_size = Size;
+    } else if (size < UBX_NAV_PVT_MESSAGE_LENGTH) {
+      msg_size = size;
       (void)tx_event_flags_set(&irq_flags, GNSS_MSG_INCOMPLETE, TX_OR);
     } else {
       (void)tx_event_flags_set(&irq_flags, GNSS_MSG_RECEIVED, TX_OR);
@@ -127,13 +127,15 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
  */
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
   /* Prevent unused argument(s) compilation warning */
-  uint8_t dummy = 0, i;
+  uint8_t dummy = 0;
+  uint8_t i;
 
   if (huart->Instance == GNSS_UART) {
     dummy = 1;
     i = dummy;
     dummy = i;
   }
+  // TODO(LEL): Should this propagate up somehow? For all supported UARTs?
 }
 
 /**

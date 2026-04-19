@@ -928,7 +928,8 @@ static void i2c_bus_thread_entry(ULONG thread_input) {
           snprintf(failure_mode, 16, "I2C READ ERROR");
           break;
         default:
-          snprintf(failure_mode, 16, "unknown: %d", ret);
+          // this is a 32-bit enum; not sure why I got a compiler warning for using %d
+          snprintf(failure_mode, 16, "unknown: %lld", ret);
           break;
         }
 
@@ -1853,11 +1854,10 @@ static void waves_thread_entry(ULONG thread_input) {
 
   tx_thread_suspend(this_thread);
 
-  /*/ Control thread resumes this thread
+  // Control thread resumes this thread
   watchdog_register_thread(WAVES_THREAD);
   watchdog_check_in(WAVES_THREAD);
 
-  //
   // Run tests if needed
   if (tests.waves_thread_test != NULL) {
     tests.waves_thread_test(&waves_mem);
@@ -1867,7 +1867,7 @@ static void waves_thread_entry(ULONG thread_input) {
 
   LOG("Running NEDWaves.");
 
-  /* Call the entry-point 'NEDwaves_memlight'. */
+  // Call the entry-point 'NEDwaves_memlight'.
   NEDwaves_memlight(waves_mem.north, waves_mem.east, waves_mem.down,
                     gnss_get_sample_window_frequency(), &Hs, &Tp, &Dp, E,
                     &b_fmin, &b_fmax, a1, b1, a2, b2, check);
@@ -1920,8 +1920,8 @@ static void iridium_thread_entry(ULONG thread_input) {
   char ascii_7 = '7';
   uint8_t sbd_type = 52;
   uint16_t sbd_size = 331;
-  microSWIFT_firmware_version_t sbd_port = {
-      0}; // We're using the Type 52 field "port" to hold firmware version
+  // We're using the Type 52 field "port" to hold firmware version
+  microSWIFT_firmware_version_t sbd_port = {0};
   float sbd_timestamp = 0;
   uint32_t error_bits = 0;
   struct tm time_struct = {0};
@@ -2127,10 +2127,10 @@ static void accelerometer_thread_entry(ULONG thread_input) {
 
   // Calling "LOG" here causes repeated restarts of the program.
   // https://github.com/SASlabgroup/microSWIFT_V2.2_Firmware/issues/1
-  // LOG("accelerometer_thread_entry");
-
-  tx_thread_sleep(100);
-  LOG("accelerometer_thread_entry");
+  // LOG("accel_thread_entry");
+  // Calling it after a sleep is fine
+  // tx_thread_sleep(100);
+  // LOG("accel_thread_entry");
 
   // Sleep long enough to get debugger attached
   // tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 30);

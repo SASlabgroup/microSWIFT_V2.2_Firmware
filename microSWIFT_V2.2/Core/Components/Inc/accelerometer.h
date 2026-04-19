@@ -15,10 +15,11 @@
 struct Accelerometer;
 
 typedef struct Accelerometer {
-  // Our global configuration struct -- not actually used by the ct?
-  // But the accelerometer will probably (eventually) need it for
+  // Global configuration struct.
+  // The accelerometer will probably (eventually) need it for
   // setting thresholds for wake-on-shake.
   // microSWIFT_configuration  *global_config;
+
   generic_uart_driver uart_driver;
 
   // CT had ct_uart_handle, which I think is unused?

@@ -22,7 +22,6 @@
 #include "string.h"
 #include "tx_api.h"
 
-// @formatter:off
 // Object instance pointer
 CT *ct_self;
 
@@ -43,8 +42,6 @@ static void __reset_ct_struct_fields(void);
 // Search terms
 static const char *temp_units = "Deg.C";
 static const char *salinity_units = "PSU";
-
-// @formatter:on
 
 /**
  * Initialize the CT struct
@@ -96,6 +93,7 @@ void ct_deinit(void) {
   HAL_DMA_DeInit(ct_self->rx_dma_handle);
 
   // Just to be overly sure we don't get an erroneous IRQ
+  // QUESTION(LEL): Should the ordering here be disable and then clear?
   HAL_NVIC_ClearPendingIRQ(GPDMA1_Channel0_IRQn);
   HAL_NVIC_ClearPendingIRQ(GPDMA1_Channel1_IRQn);
   HAL_NVIC_ClearPendingIRQ(USART1_IRQn);
