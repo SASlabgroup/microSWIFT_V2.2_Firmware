@@ -4,6 +4,7 @@
  *  Created on: Aug 20, 2024
  *      Author: philbush
  */
+// clang-format off
 
 #include "threadx_support.h"
 #include "stdarg.h"
@@ -505,7 +506,7 @@ uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configura
     case LIGHT_TELEMETRY:
 
       type = 54;
-      size = 303;
+      size = sizeof(sbd_message_type_54);
 
       memcpy (&(((sbd_message_type_54*) *msg_buffer)->legacy_number_7), &legacy_number_7,
               sizeof(char));
@@ -517,7 +518,7 @@ uint32_t get_next_telemetry_message ( uint8_t **msg_buffer, microSWIFT_configura
     case TURBIDITY_TELEMETRY:
 
       type = 53;
-      size = 282;
+      size = sizeof(sbd_message_type_53);
 
       memcpy (&(((sbd_message_type_53*) *msg_buffer)->legacy_number_7), &legacy_number_7,
               sizeof(char));
