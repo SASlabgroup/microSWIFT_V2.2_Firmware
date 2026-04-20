@@ -427,6 +427,7 @@ static void _control_manage_state(void) {
 
   // Check first if the duty cycle timer has expired
   if (controller_self->timer_timeout) {
+    LOG("Controller timer expired; shutting buoy down.");
     controller_self->shutdown_procedure();
   }
 
