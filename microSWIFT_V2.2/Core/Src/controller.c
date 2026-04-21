@@ -40,6 +40,7 @@ static void __handle_turbidity_error(ULONG error_flag);
 static void __handle_light_error(ULONG error_flag);
 static void __handle_waves_error(void);
 static void __handle_iridium_error(ULONG error_flags);
+static void __handle_accel_error(ULONG error_flags);
 static void __handle_file_system_error(void);
 static void __handle_i2c_error(void);
 static void __handle_misc_error(ULONG error_flag);
@@ -617,7 +618,7 @@ static void _control_monitor_and_handle_errors(void) {
   ULONG current_flags;
   ULONG gnss_errors, ct_errors, temperature_errors, light_errors,
       turbidity_errors, waves_errors, iridium_errors, file_system_errors,
-      i2c_errors, rtc_errors, misc_errors;
+      i2c_errors, rtc_errors, misc_errors, accel_errors;
 
   // Get the error flags
   (void)tx_event_flags_get(controller_self->error_flags, ALL_EVENT_FLAGS,
@@ -644,6 +645,7 @@ static void _control_monitor_and_handle_errors(void) {
   turbidity_errors =
       current_flags & (TURBIDITY_INIT_FAILED | TURBIDITY_SAMPLING_ERROR |
                        TURBIDITY_SAMPLE_WINDOW_TIMEOUT);
+  accel_errors = current_flags & (ACCELEROMETER_INIT_FAILED);
   iridium_errors =
       current_flags & (IRIDIUM_INIT_ERROR | IRIDIUM_UART_COMMS_ERROR);
   waves_errors = current_flags & (WAVES_INIT_FAILED | NED_WAVES_RAN_OUT_OF_MEM |
@@ -680,6 +682,10 @@ static void _control_monitor_and_handle_errors(void) {
 
   if (turbidity_errors) {
     __handle_turbidity_error(turbidity_errors);
+  }
+
+  if (accel_errors) {
+    __handle_accel_error(accel_errors);
   }
 
   if (waves_errors) {
@@ -842,6 +848,14 @@ static void __handle_turbidity_error(ULONG error_flag) {
 
   (void)tx_thread_suspend(controller_self->thread_handles->turbidity_thread);
   (void)tx_thread_terminate(controller_self->thread_handles->turbidity_thread);
+}
+
+static void __handle_accel_error(ULONG error_flag) {
+  (void)tx_event_flags_set(controller_self->complete_flags,
+                           ACCELEROMETER_THREAD_COMPLETED_WITH_ERRORS, TX_OR);
+
+  (void)tx_thread_suspend(controller_self->thread_handles->accel_thread);
+  (void)tx_thread_terminate(controller_self->thread_handles->accel_thread);
 }
 
 static void __handle_light_error(ULONG error_flag) {

@@ -927,7 +927,8 @@ static void i2c_bus_thread_entry(ULONG thread_input) {
           snprintf(failure_mode, 16, "I2C READ ERROR");
           break;
         default:
-          // this is a 32-bit enum; not sure why I got a compiler warning for using %d
+          // this is a 32-bit enum; not sure why I got a compiler warning for
+          // using %d
           snprintf(failure_mode, 16, "unknown: %lld", ret);
           break;
         }
@@ -2149,9 +2150,6 @@ static void accel_thread_entry(ULONG thread_input) {
                      device_handles.expansion_uart_rx_dma_handle,
                      &expansion_uart_sema);
 
-  // NOTE(LEL): The other devices tend to hide this in an accel.on() function
-  //   I'm not yet sure whether I think that's better for a one-line
-  //   initialization.
   accel.power_on();
   tx_thread_sleep(10);
 
