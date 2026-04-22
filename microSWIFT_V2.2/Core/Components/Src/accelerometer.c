@@ -11,6 +11,7 @@ Accelerometer *accel_self;
 // Private function prototypes; since not part of public interface, did not
 // include them in .h file
 uSWIFT_return_code_t _accel_self_test(accel_self_test_result_t *result);
+uSWIFT_return_code_t _accel_start_sampling(void);
 uSWIFT_return_code_t _accel_uart_init(void);
 uSWIFT_return_code_t _accel_uart_deinit(void);
 uSWIFT_return_code_t _accel_uart_reset(void);
@@ -27,6 +28,7 @@ void accelerometer_init(Accelerometer *accel, UART_HandleTypeDef *uart_handle,
   accel_self = accel;
 
   accel_self->self_test = _accel_self_test;
+  accel_self->start_sampling = _accel_start_sampling;
   accel_self->uart_init = _accel_uart_init;
   accel_self->uart_deinit = _accel_uart_deinit;
   accel_self->uart_reset = _accel_uart_reset;
@@ -49,6 +51,17 @@ void _accel_power_on(void) {
 
 void _accel_power_off(void) {
   HAL_GPIO_WritePin(EXP_GPIO_1_GPIO_Port, EXP_GPIO_1_Pin, GPIO_PIN_RESET);
+}
+
+uSWIFT_return_code_t _accel_start_sampling(void) {
+  const char *start_sampling_command = "RW";
+  UINT ret;
+  ret = accel_self->uart_driver.write(
+      &accel_self->uart_driver, (uint8_t *)&(start_sampling_command[0]),
+      strlen(start_sampling_command), ACCEL_MAX_UART_TX_TICKS);
+  if (UART_OK != ret) {
+    return uSWIFT_IO_ERROR;
+  }
 }
 
 uSWIFT_return_code_t _accel_self_test(accel_self_test_result_t *result) {

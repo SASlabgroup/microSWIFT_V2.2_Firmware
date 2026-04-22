@@ -2182,6 +2182,8 @@ static void accel_thread_entry(ULONG thread_input) {
   // TODO: Initialize time on accel board / confirm UART comms
 
   // TODO: send request to start acquisition
+  accel.start_sampling();
+  LOG("Accelerometer sample window started.");
 
   // TODO: Set timeout for overall thread:
   //   e.g.   iridium.start_timer(iridium_thread_timeout);
