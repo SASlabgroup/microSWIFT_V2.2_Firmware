@@ -2131,15 +2131,6 @@ static void accel_thread_entry(ULONG thread_input) {
   // tx_thread_sleep(100);
   // LOG("accel_thread_entry");
 
-  int32_t ret;
-  ret = usart2_init();
-  if (UART_OK != ret) {
-    LOG("usart2 init failed with code: %d", ret);
-    // TODO: need to implement an accelerometer_error_out
-    // accelerometer_error_out(&accel, ACCEL_INIT_FAILED, this_thread, "Accel
-    // UART port failed to initialize";)
-  }
-
   // TODO: Define this struct ...
   Accelerometer accel = {0};
   accelerometer_init(&accel, device_handles.expansion_uart_handle,
@@ -2148,6 +2139,12 @@ static void accel_thread_entry(ULONG thread_input) {
                      &expansion_uart_sema);
 
   accel.power_on();
+  int32_t ret;
+  ret = usart2_init();
+  if (UART_OK != ret) {
+    accel_error_out(&accel, ACCELEROMETER_INIT_FAILED, this_thread,
+                    "Accel UART port failed to initialize");
+  }
 
   tx_thread_sleep(3 * TX_TIMER_TICKS_PER_SECOND);
 
@@ -2172,6 +2169,7 @@ static void accel_thread_entry(ULONG thread_input) {
 
   tx_thread_sleep(10 * TX_TIMER_TICKS_PER_SECOND);
 
+  ret = usart2_deinit();
   accel.power_off();
 
   // Suspend for now, will be woken up when GNSS has initialized
@@ -2180,7 +2178,12 @@ static void accel_thread_entry(ULONG thread_input) {
   tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 10);
 
   LOG("Resuming accelerometer thread");
-  HAL_GPIO_WritePin(EXP_GPIO_1_GPIO_Port, EXP_GPIO_1_Pin, GPIO_PIN_SET);
+  accel.power_on();
+  ret = usart2_init();
+  if (UART_OK != ret) {
+    accel_error_out(&accel, ACCELEROMETER_INIT_FAILED, this_thread,
+                    "Accel UART port failed to initialize");
+  }
 
   // TODO: Initialize time on accel board / confirm UART comms
 
@@ -2194,13 +2197,20 @@ static void accel_thread_entry(ULONG thread_input) {
   // TODO: Set timeout for overall thread:
   //   e.g.   iridium.start_timer(iridium_thread_timeout);
 
-  // TODO: Sleep and wake up on UART data receipt.
+  // Read bytes; package up and add to iridium queue.
+  ret = accel.parse_waves(&accel_msg);
+  if (uSWIFT_SUCCESS != ret) {
+    LOG("Acceleration-based waves returned with error code; terminating. (%d) ",
+        (int)ret);
+    tx_thread_sleep(LOGGER_MAX_TICKS_TO_TX_MSG);
+    (void)tx_event_flags_set(&complete_flags,
+                             ACCELEROMETER_THREAD_COMPLETED_WITH_ERRORS, TX_OR);
+    tx_thread_terminate(this_thread);
+  }
 
-  // TODO: read bytes; package up and add to iridium queue.
-  accel.parse_waves(&accel_msg);
-
-  tx_thread_sleep(10000);
-  HAL_GPIO_WritePin(EXP_GPIO_1_GPIO_Port, EXP_GPIO_1_Pin, GPIO_PIN_RESET);
+  LOG("Accelerometer-based waves computations completed. \r\n");
+  accel.uart_deinit();
+  accel.power_off(); // TODO: accel.uart_deinit()
 
   char ascii_7 = '7';
   uint8_t accel_type = 55;
