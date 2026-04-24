@@ -2208,9 +2208,9 @@ static void accel_thread_entry(ULONG thread_input) {
     tx_thread_terminate(this_thread);
   }
 
-  LOG("Accelerometer-based waves computations completed. \r\n");
+  LOG("Accelerometer-based waves computations completed.");
   accel.uart_deinit();
-  accel.power_off(); // TODO: accel.uart_deinit()
+  accel.power_off();
 
   char ascii_7 = '7';
   uint8_t accel_type = 55;
@@ -2230,17 +2230,17 @@ static void accel_thread_entry(ULONG thread_input) {
   memcpy(&accel_msg.latitude, &msg_lat, sizeof(float));
   memcpy(&accel_msg.longitude, &msg_lon, sizeof(float));
 
-  LOG("Saving accelerometer message: \r\n");
-  LOG("....X min/mean/max: %0.4f / %0.4f / %0.4f \r\n",
+  LOG("Received accelerometer message:");
+  LOG("....X min/mean/max: %0.4f / %0.4f / %0.4f",
       halfToFloat(accel_msg.min_x_accel), halfToFloat(accel_msg.mean_x_accel),
       halfToFloat(accel_msg.max_x_accel));
-  LOG("....Y min/mean/max: %0.4f / %0.4f / %0.4f \r\n",
+  LOG("....Y min/mean/max: %0.4f / %0.4f / %0.4f",
       halfToFloat(accel_msg.min_y_accel), halfToFloat(accel_msg.mean_y_accel),
       halfToFloat(accel_msg.max_y_accel));
-  LOG("....Z min/mean/max: %0.4f / %0.4f / %0.4f \r\n",
+  LOG("....Z min/mean/max: %0.4f / %0.4f / %0.4f",
       halfToFloat(accel_msg.min_z_accel), halfToFloat(accel_msg.mean_z_accel),
       halfToFloat(accel_msg.max_z_accel));
-  LOG("Lat = %0.2f, Lon = %0.2f \r\n", accel_msg.latitude, accel_msg.longitude);
+  LOG("Lat = %0.2f, Lon = %0.2f", accel_msg.latitude, accel_msg.longitude);
 
   persistent_ram_save_message(ACCELEROMETER_TELEMETRY, (uint8_t *)&accel_msg);
 
@@ -2250,7 +2250,6 @@ static void accel_thread_entry(ULONG thread_input) {
   //    that is sent
   // (void)file_system_server_save_accelerometer_raw(&accel);
 
-  LOG("Accel thread complete flag set; about to terminate");
   tx_thread_sleep(LOGGER_MAX_TICKS_TO_TX_MSG);
 
   (void)tx_event_flags_set(&complete_flags,
