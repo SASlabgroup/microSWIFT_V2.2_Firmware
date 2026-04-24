@@ -6,7 +6,8 @@
  */
 
 #include "generic_uart_driver.h"
-#include "stddef.h"
+#include <stddef.h>
+#include <stdint.h>
 
 static int32_t _generic_uart_read(void *driver_ptr, uint8_t *read_buf,
                                   uint16_t size, uint32_t timeout_ticks);
@@ -39,12 +40,14 @@ static int32_t _generic_uart_read(void *driver_ptr, uint8_t *read_buf,
                                   uint16_t size, uint32_t timeout_ticks) {
   generic_uart_driver *driver_handle = (generic_uart_driver *)driver_ptr;
 
-  if (HAL_UART_Receive_DMA(driver_handle->uart_handle, read_buf, size) !=
-      HAL_OK) {
+  HAL_StatusTypeDef ret;
+  ret = HAL_UART_Receive_DMA(driver_handle->uart_handle, read_buf, size);
+  if (HAL_OK != ret) {
     return UART_ERR;
   }
 
-  if (tx_semaphore_get(driver_handle->uart_sema, timeout_ticks) != TX_SUCCESS) {
+  ret = tx_semaphore_get(driver_handle->uart_sema, timeout_ticks);
+  if (TX_SUCCESS != ret) {
     return UART_ERR;
   }
 
