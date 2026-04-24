@@ -2131,9 +2131,6 @@ static void accel_thread_entry(ULONG thread_input) {
   // tx_thread_sleep(100);
   // LOG("accel_thread_entry");
 
-  // Sleep long enough to get debugger attached
-  // tx_thread_sleep (TX_TIMER_TICKS_PER_SECOND * 30);
-
   int32_t ret;
   ret = usart2_init();
   if (UART_OK != ret) {
@@ -2151,7 +2148,11 @@ static void accel_thread_entry(ULONG thread_input) {
                      &expansion_uart_sema);
 
   accel.power_on();
-  tx_thread_sleep(10);
+
+  tx_thread_sleep(3 * TX_TIMER_TICKS_PER_SECOND);
+
+  // Additional sleep to attach debugger.
+  // tx_thread_sleep(30 * TX_TIMER_TICKS_PER_SECOND);
 
   accel_self_test_result_t self_test_result;
   ret = accel.self_test(&self_test_result);
@@ -2169,17 +2170,21 @@ static void accel_thread_entry(ULONG thread_input) {
                              TX_OR);
   }
 
+  tx_thread_sleep(10 * TX_TIMER_TICKS_PER_SECOND);
+
   accel.power_off();
 
   // Suspend for now, will be woken up when GNSS has initialized
   tx_thread_suspend(this_thread);
 
-  tx_thread_sleep(100);
+  tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 10);
 
   LOG("Resuming accelerometer thread");
   HAL_GPIO_WritePin(EXP_GPIO_1_GPIO_Port, EXP_GPIO_1_Pin, GPIO_PIN_SET);
 
   // TODO: Initialize time on accel board / confirm UART comms
+
+  tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND); // Time for board to wake back up.
 
   accel.start_sampling();
 
@@ -2200,14 +2205,10 @@ static void accel_thread_entry(ULONG thread_input) {
   char ascii_7 = '7';
   uint8_t accel_type = 55;
   uint32_t timestamp = (uint32_t)get_system_time();
-  // NOTE(LEL): copied from iridum.c; seems odd to have type be
-  // int32, given that it's initialized as 0.0f?
-  // TODO(LEL) Clean this up!
   int32_t lat = 0;
   int32_t lon = 0;
   // NOTE(LEL): It looks like there's a call in gnss.c that does this division
-  // for us?
-  //   should we be using get_location(...) instead?
+  // for us? So should we be using get_location(...) instead?
   gnss_get_current_lat_lon(&lat, &lon);
   float msg_lat, msg_lon;
   msg_lat = (float)lat / LAT_LON_CONVERSION_FACTOR;
@@ -2231,7 +2232,6 @@ static void accel_thread_entry(ULONG thread_input) {
       halfToFloat(accel_msg.max_z_accel));
   LOG("Lat = %0.2f, Lon = %0.2f \r\n", accel_msg.latitude, accel_msg.longitude);
 
-  // LOG("Trying to queue an accelerometer message");
   persistent_ram_save_message(ACCELEROMETER_TELEMETRY, (uint8_t *)&accel_msg);
 
   // TODO: Add saving the data. I'm not yet sure whether we need a whole
@@ -2240,9 +2240,6 @@ static void accel_thread_entry(ULONG thread_input) {
   //    that is sent
   // (void)file_system_server_save_accelerometer_raw(&accel);
 
-  // The logger gets weird if there is no break here...
-  // Another place where the LOG call dropped me right into the HardFault
-  // handler.
   LOG("Accel thread complete flag set; about to terminate");
   tx_thread_sleep(LOGGER_MAX_TICKS_TO_TX_MSG);
 

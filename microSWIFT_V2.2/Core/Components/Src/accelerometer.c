@@ -77,9 +77,9 @@ uSWIFT_return_code_t _accel_parse_waves(sbd_message_type_55 *accel_msg) {
   char waves_response[response_length];
   memset(waves_response, 0, response_length);
   // Blocking read for 19 minutes (at 3.9 Hz, 4096 samples is 17.5 minutes)
-  UINT ret = accel_self->uart_driver.read(&accel_self->uart_driver,
-                                          (uint8_t *)&(waves_response[0]),
-                                          response_length, 1000 * 60 * 19);
+  UINT ret = accel_self->uart_driver.read(
+      &accel_self->uart_driver, (uint8_t *)&(waves_response[0]),
+      response_length, TX_TIMER_TICKS_PER_SECOND * 60 * 19);
   if (UART_OK != ret) {
     return uSWIFT_IO_ERROR;
   }
@@ -118,6 +118,7 @@ uSWIFT_return_code_t _accel_self_test(accel_self_test_result_t *result) {
   if (UART_OK != ret) {
     return uSWIFT_IO_ERROR;
   }
+  // TODO: Probably want to confirm that the response starts with ST?
   memcpy(result, &self_test_response[2], sizeof(accel_self_test_result_t));
 
   return uSWIFT_SUCCESS;
