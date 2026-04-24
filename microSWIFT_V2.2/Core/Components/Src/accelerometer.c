@@ -76,9 +76,10 @@ uSWIFT_return_code_t _accel_parse_waves(sbd_message_type_55 *accel_msg) {
   static int response_length = 2 + 340;
   char waves_response[response_length];
   memset(waves_response, 0, response_length);
+  // Blocking read for 19 minutes (at 3.9 Hz, 4096 samples is 17.5 minutes)
   UINT ret = accel_self->uart_driver.read(&accel_self->uart_driver,
                                           (uint8_t *)&(waves_response[0]),
-                                          response_length, 30000);
+                                          response_length, 1000 * 60 * 19);
   if (UART_OK != ret) {
     return uSWIFT_IO_ERROR;
   }
@@ -105,14 +106,15 @@ uSWIFT_return_code_t _accel_self_test(accel_self_test_result_t *result) {
     return uSWIFT_IO_ERROR;
   }
 
-  // TODO: It'd probably be cleaner to add some sentinel bytes to the start of
-  // the struct, rather than having transmit and receive sides doing this.
+  // The slowest we'll run is 4Hz, so need to wait long enough for the next
+  // sample to arrive. Half a second was too short.
+  uint32_t read_timeout = TX_TIMER_TICKS_PER_SECOND;
   static int response_length = 2 + sizeof(accel_self_test_result_t);
   char self_test_response[response_length];
   memset(self_test_response, 0, response_length);
   ret = accel_self->uart_driver.read(&accel_self->uart_driver,
                                      (uint8_t *)&(self_test_response[0]),
-                                     response_length, ACCEL_MAX_UART_TX_TICKS);
+                                     response_length, read_timeout);
   if (UART_OK != ret) {
     return uSWIFT_IO_ERROR;
   }
