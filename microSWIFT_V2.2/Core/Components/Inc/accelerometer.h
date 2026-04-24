@@ -8,6 +8,7 @@
 
 #include "generic_uart_driver.h"
 #include "microSWIFT_return_codes.h"
+#include "sbd.h"
 #include "tx_api.h"
 
 #define ACCEL_MAX_UART_TX_TICKS (TX_TIMER_TICKS_PER_SECOND)
@@ -42,6 +43,7 @@ typedef struct Accelerometer {
 
   uSWIFT_return_code_t (*self_test)(accel_self_test_result_t *result);
   uSWIFT_return_code_t (*start_sampling)(void);
+  uSWIFT_return_code_t (*parse_waves)(sbd_message_type_55 *accel_msg);
   uSWIFT_return_code_t (*uart_init)(void);
   uSWIFT_return_code_t (*uart_deinit)(void);
   uSWIFT_return_code_t (*uart_reset)(void);

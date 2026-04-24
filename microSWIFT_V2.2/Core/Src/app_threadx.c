@@ -2181,9 +2181,10 @@ static void accel_thread_entry(ULONG thread_input) {
 
   // TODO: Initialize time on accel board / confirm UART comms
 
-  // TODO: send request to start acquisition
   accel.start_sampling();
+
   LOG("Accelerometer sample window started.");
+  sbd_message_type_55 accel_msg = {0};
 
   // TODO: Set timeout for overall thread:
   //   e.g.   iridium.start_timer(iridium_thread_timeout);
@@ -2191,11 +2192,10 @@ static void accel_thread_entry(ULONG thread_input) {
   // TODO: Sleep and wake up on UART data receipt.
 
   // TODO: read bytes; package up and add to iridium queue.
+  accel.parse_waves(&accel_msg);
 
   tx_thread_sleep(10000);
   HAL_GPIO_WritePin(EXP_GPIO_1_GPIO_Port, EXP_GPIO_1_Pin, GPIO_PIN_RESET);
-
-  sbd_message_type_55 accel_msg = {0};
 
   char ascii_7 = '7';
   uint8_t accel_type = 55;
@@ -2218,6 +2218,18 @@ static void accel_thread_entry(ULONG thread_input) {
   memcpy(&accel_msg.timestamp, &timestamp, sizeof(uint32_t));
   memcpy(&accel_msg.latitude, &msg_lat, sizeof(float));
   memcpy(&accel_msg.longitude, &msg_lon, sizeof(float));
+
+  LOG("Saving accelerometer message: \r\n");
+  LOG("....X min/mean/max: %0.4f / %0.4f / %0.4f \r\n",
+      halfToFloat(accel_msg.min_x_accel), halfToFloat(accel_msg.mean_x_accel),
+      halfToFloat(accel_msg.max_x_accel));
+  LOG("....Y min/mean/max: %0.4f / %0.4f / %0.4f \r\n",
+      halfToFloat(accel_msg.min_y_accel), halfToFloat(accel_msg.mean_y_accel),
+      halfToFloat(accel_msg.max_y_accel));
+  LOG("....Z min/mean/max: %0.4f / %0.4f / %0.4f \r\n",
+      halfToFloat(accel_msg.min_z_accel), halfToFloat(accel_msg.mean_z_accel),
+      halfToFloat(accel_msg.max_z_accel));
+  LOG("Lat = %0.2f, Lon = %0.2f \r\n", accel_msg.latitude, accel_msg.longitude);
 
   // LOG("Trying to queue an accelerometer message");
   persistent_ram_save_message(ACCELEROMETER_TELEMETRY, (uint8_t *)&accel_msg);
