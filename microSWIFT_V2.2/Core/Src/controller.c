@@ -246,7 +246,7 @@ static bool _control_startup_procedure(void) {
   }
 
   if (tx_return != TX_SUCCESS) {
-    // TODO: There may b e a category of sensors that we give the *chance*
+    // TODO: There may be a larger category of sensors that we give the *chance*
     //   to initialize but then if they don't come online, we run waves anyways.
     if ((current_flags | ACCELEROMETER_INIT_SUCCESS) == init_success_flags) {
       LOG("Accelerometer initialization failed; disabling accelerometer and "
@@ -792,7 +792,11 @@ static void __handle_gnss_error(ULONG error_flags) {
     flags |= LIGHT_THREAD_COMPLETED_WITH_ERRORS;
   }
 
-  // For testing, I've chosen to start it (alongside temp and ct) on GNSS error.
+  // For testing in offices without GPS, I had to start the accelerometer
+  // on GNSS error (alongside temp and ct). This actually seems like a good idea
+  // for deployment as well; even without GNSS-based waves, we can get
+  // accelerometer-based ones.
+  //
   // if (controller_self->global_config->accelerometer_enabled) {
   //   flags |= ACCELEROMETER_THREAD_COMPLETED_WITH_ERRORS;
   // }

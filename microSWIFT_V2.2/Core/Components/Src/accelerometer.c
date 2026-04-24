@@ -66,6 +66,7 @@ uSWIFT_return_code_t _accel_start_sampling(void) {
   if (UART_OK != ret) {
     return uSWIFT_IO_ERROR;
   }
+  return uSWIFT_SUCCESS;
 }
 
 uSWIFT_return_code_t _accel_parse_waves(sbd_message_type_55 *accel_msg) {
