@@ -41,6 +41,11 @@ static int32_t _generic_uart_read(void *driver_ptr, uint8_t *read_buf,
   generic_uart_driver *driver_handle = (generic_uart_driver *)driver_ptr;
 
   HAL_StatusTypeDef uart_ret;
+  // the iridium code appears to overwrite the _generic_uart_read in order to
+  // run these in case of errors. CT and accel use the generic.
+  HAL_UART_DMAStop(driver_handle->uart_handle);
+  HAL_UART_Abort(driver_handle->uart_handle);
+  memset(read_buf, 0, size);
   uart_ret = HAL_UART_Receive_DMA(driver_handle->uart_handle, read_buf, size);
   if (HAL_OK != uart_ret) {
     return UART_ERR;
