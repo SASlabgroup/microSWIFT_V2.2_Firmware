@@ -119,7 +119,10 @@ uSWIFT_return_code_t _accel_self_test(accel_self_test_result_t *result) {
   if (UART_OK != ret) {
     return uSWIFT_IO_ERROR;
   }
-  // TODO: Probably want to confirm that the response starts with ST?
+  if (0 != strncmp(self_test_command, self_test_response, 2)) {
+    return uSWIFT_IO_ERROR;
+  }
+
   memcpy(result, &self_test_response[2], sizeof(accel_self_test_result_t));
 
   return uSWIFT_SUCCESS;
