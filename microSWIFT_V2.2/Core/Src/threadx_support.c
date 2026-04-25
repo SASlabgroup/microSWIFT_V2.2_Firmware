@@ -494,6 +494,10 @@ uint32_t get_next_telemetry_message(uint8_t **msg_buffer,
            &config->turbidity_serial_number, sizeof(uint16_t));
     break;
 
+  case ACCELEROMETER_TELEMETRY:
+    // Message is already filled out in Iridium thread, nothing to add
+    break;
+
   default:
 
     msg_type = NO_MESSAGE;
