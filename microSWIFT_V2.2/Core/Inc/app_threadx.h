@@ -170,6 +170,7 @@ typedef enum error_flags
   // new payload will be an issue. Consider making it generic,
   // so the other new threads can also use it? !
   ACCELEROMETER_INIT_FAILED             = ((ULONG) 1 << 26),
+  ACCELEROMETER_SAMPLING_ERROR          = ((ULONG) 1 << 27),
   // Misc errors
   WATCHDOG_RESET                        = ((ULONG) 1 << 29),
   SOFTWARE_RESET                        = ((ULONG) 1 << 30),

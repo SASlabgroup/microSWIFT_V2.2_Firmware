@@ -2210,12 +2210,9 @@ static void accel_thread_entry(ULONG thread_input) {
   // Read bytes; package up and add to iridium queue.
   ret = accel.parse_waves(&accel_msg);
   if (uSWIFT_SUCCESS != ret) {
-    LOG("Acceleration-based waves returned with error code; terminating. (%d) ",
-        (int)ret);
-    tx_thread_sleep(LOGGER_MAX_TICKS_TO_TX_MSG);
-    (void)tx_event_flags_set(&complete_flags,
-                             ACCELEROMETER_THREAD_COMPLETED_WITH_ERRORS, TX_OR);
-    tx_thread_terminate(this_thread);
+    accel_error_out(&accel, ACCELEROMETER_SAMPLING_ERROR, this_thread,
+                    "Acceleration-based waves returned with error code: %d",
+                    (int)ret);
   }
 
   LOG("Accelerometer-based waves computations completed.");

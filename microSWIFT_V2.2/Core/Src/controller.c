@@ -645,7 +645,8 @@ static void _control_monitor_and_handle_errors(void) {
   turbidity_errors =
       current_flags & (TURBIDITY_INIT_FAILED | TURBIDITY_SAMPLING_ERROR |
                        TURBIDITY_SAMPLE_WINDOW_TIMEOUT);
-  accel_errors = current_flags & (ACCELEROMETER_INIT_FAILED);
+  accel_errors = current_flags &
+                 (ACCELEROMETER_INIT_FAILED | ACCELEROMETER_SAMPLING_ERROR);
   iridium_errors =
       current_flags & (IRIDIUM_INIT_ERROR | IRIDIUM_UART_COMMS_ERROR);
   waves_errors = current_flags & (WAVES_INIT_FAILED | NED_WAVES_RAN_OUT_OF_MEM |

@@ -273,10 +273,8 @@ void accel_error_out(Accelerometer *accel, ULONG error_flag,
   va_start(args, fmt);
   char tmp_fmt[128];
 
+  accel->uart_deinit();
   accel->power_off();
-  // TODO: As soon as we have a timer that kills this thread after X minutes,
-  // will need to stop it.
-  // accel->stop_timer();
 
   vsnprintf(&tmp_fmt[0], sizeof(tmp_fmt), fmt, args);
   va_end(args);
@@ -284,9 +282,12 @@ void accel_error_out(Accelerometer *accel, ULONG error_flag,
 
   (void)tx_event_flags_set(&error_flags, error_flag, TX_OR);
   // NOTE: If we start using a watchdog with the accel thread, would need to
-  // call watchdog_deregister_thread(accel_thread);
+  // call watchdog_deregister_thread(accel_thread) here.
 
-  tx_thread_suspend(accel_thread);
+  // NOTE: The other *_error_out functions call "suspend" but these
+  // threads are not set up to be resumed after an error; everything will be
+  // reset at the next duty cycle.
+  tx_thread_terminate(accel_thread);
 }
 
 void waves_error_out(ULONG error_flag, TX_THREAD *waves_thread, const char *fmt,
