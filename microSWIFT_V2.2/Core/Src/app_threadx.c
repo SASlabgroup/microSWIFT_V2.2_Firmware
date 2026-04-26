@@ -2064,6 +2064,10 @@ static void iridium_thread_entry(ULONG thread_input) {
       next_message_size = sizeof(sbd_message_type_54);
       log_str = "Light telemetry";
       break;
+    case ACCELEROMETER_TELEMETRY:
+      next_message_size = sizeof(sbd_message_type_55);
+      log_str = "Accelerometer telemetry";
+      break;
     case OTA_ACK_MESSAGE:
       next_message_size = sizeof(sbd_message_type_99);
       log_str = "OTA config acknowledgment";
