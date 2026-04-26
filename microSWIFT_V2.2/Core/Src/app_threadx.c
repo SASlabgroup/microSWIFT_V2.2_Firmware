@@ -2200,6 +2200,7 @@ static void accel_thread_entry(ULONG thread_input) {
   tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND); // Time for board to wake back up.
 
   accel.start_sampling();
+  uint32_t timestamp = (uint32_t)get_system_time();
 
   LOG("Accelerometer sample window started.");
   sbd_message_type_55 accel_msg = {0};
@@ -2221,7 +2222,6 @@ static void accel_thread_entry(ULONG thread_input) {
 
   char ascii_7 = '7';
   uint8_t accel_type = 55;
-  uint32_t timestamp = (uint32_t)get_system_time();
   int32_t lat = 0;
   int32_t lon = 0;
   // NOTE(LEL): It looks like there's a call in gnss.c that does this division
