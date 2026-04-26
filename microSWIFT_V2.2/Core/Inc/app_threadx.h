@@ -54,28 +54,28 @@ extern "C" {
 #define ONE_SECOND 1000U
 
 // @formatter:off
+// clang-format off
+// Flag groups look better right-justified, so don't format
 enum thread_priorities {
-  HIGHEST_PRIORITY = 1,
-  VERY_HIGH_PRIORITY = 2,
-  HIGH_PRIORITY = 3,
-  MID_PRIORITY = 4,
-  LOW_PRIORITY = 5,
-  VERY_LOW_PRIORITY = 6,
-  LOWEST_PRIORITY = 7
+  HIGHEST_PRIORITY     = 1,
+  VERY_HIGH_PRIORITY   = 2,
+  HIGH_PRIORITY        = 3,
+  MID_PRIORITY         = 4,
+  LOW_PRIORITY         = 5,
+  VERY_LOW_PRIORITY    = 6,
+  LOWEST_PRIORITY      = 7
 };
 
 enum stack_sizes {
-  XXL_STACK = 16384,
-  XL_STACK = 8192,
-  L_STACK = 6144,
-  M_STACK = 4096,
-  S_STACK = 2048,
-  XS_STACK = 1024,
-  XXS_STACK = 512
+  XXL_STACK     = 16384,
+  XL_STACK      = 8192,
+  L_STACK       = 6144,
+  M_STACK       = 4096,
+  S_STACK       = 2048,
+  XS_STACK      = 1024,
+  XXS_STACK     = 512
 };
 
-// clang-format off
-// Flag groups look better right-justified, so don't format
 enum initialization_flags
 {
   RTC_INIT_SUCCESS              = ((ULONG) 1 << 0),
