@@ -1,5 +1,6 @@
 accel_V1_port/**
 accel_V1_read_adxl/**
+accel_V1_rtc/**
 accel_V1_timer_blinky/**
 accel_V1.0/**
 debugging_i2c/**
