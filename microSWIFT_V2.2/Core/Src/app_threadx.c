@@ -1571,7 +1571,8 @@ static void light_thread_entry(ULONG thread_input) {
   light_raw_counts raw_counts;
   int32_t light_thread_timeout =
       get_gnss_sample_window_timeout(&configuration); // Same timeout as GNSS
-  ULONG sample_start_time = 0, thread_sleep_time = 0;
+  ULONG sample_start_time = 0;
+  ULONG thread_sleep_time = 0;
 
   tx_thread_sleep(10);
 
@@ -1932,7 +1933,7 @@ static void iridium_thread_entry(ULONG thread_input) {
   uint32_t next_message_type;
   uint32_t next_message_size = 0;
   char *log_str = NULL;
-  uint32_t start_time = 0;
+  ULONG start_time = 0;
 
   tx_thread_sleep(10);
 
@@ -1966,8 +1967,13 @@ static void iridium_thread_entry(ULONG thread_input) {
   }
 
   // Finish charging the caps
-  tx_thread_sleep((tx_time_get() - start_time) <
-                  IRIDIUM_INITIAL_CAP_CHARGE_TIME);
+  ULONG elapsed_time = tx_time_get() - start_time;
+  ULONG ticks_remaining = IRIDIUM_INITIAL_CAP_CHARGE_TIME - elapsed_time;
+  LOG("Iridium initialization took %ul ticks; need %ul to fully charge.",
+      elapsed_time, IRIDIUM_INITIAL_CAP_CHARGE_TIME);
+  if (ticks_remaining) {
+    tx_thread_sleep(ticks_remaining);
+  }
 
   iridium.sleep();
 
