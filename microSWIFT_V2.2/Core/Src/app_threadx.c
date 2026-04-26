@@ -1027,6 +1027,8 @@ static void control_thread_entry(ULONG thread_input) {
 
       control.shutdown_procedure();
 
+      // NOTE(LEL): I don't think this ever gets called, because
+      // shutdown_procedure sets an alarm and puts the processor to sleep.
       Error_Handler();
     }
   }
@@ -1967,12 +1969,17 @@ static void iridium_thread_entry(ULONG thread_input) {
   }
 
   // Finish charging the caps
-  ULONG elapsed_time = tx_time_get() - start_time;
-  ULONG ticks_remaining = IRIDIUM_INITIAL_CAP_CHARGE_TIME - elapsed_time;
-  LOG("Iridium initialization took %ul ticks; need %ul to fully charge.",
-      elapsed_time, IRIDIUM_INITIAL_CAP_CHARGE_TIME);
-  if (ticks_remaining) {
-    tx_thread_sleep(ticks_remaining);
+  ULONG end_time = tx_time_get();
+  if (end_time < start_time) {
+    // timer wrapped around!
+  } else {
+    ULONG elapsed_time = end_time - start_time;
+    LOG("Iridium initialization took %ul ticks; need %ul to fully charge.",
+        elapsed_time, IRIDIUM_INITIAL_CAP_CHARGE_TIME);
+    if (elapsed_time < IRIDIUM_INITIAL_CAP_CHARGE_TIME) {
+      ULONG ticks_remaining = IRIDIUM_INITIAL_CAP_CHARGE_TIME - elapsed_time;
+      tx_thread_sleep(ticks_remaining);
+    }
   }
 
   iridium.sleep();
@@ -2141,7 +2148,6 @@ static void accel_thread_entry(ULONG thread_input) {
   // tx_thread_sleep(100);
   // LOG("accel_thread_entry");
 
-  // TODO: Define this struct ...
   Accelerometer accel = {0};
   accelerometer_init(&accel, device_handles.expansion_uart_handle,
                      device_handles.expansion_uart_tx_dma_handle,
