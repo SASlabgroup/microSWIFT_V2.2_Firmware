@@ -277,11 +277,18 @@ static uSWIFT_return_code_t _iridium_receive_configuration(void) {
   uSWIFT_return_code_t ret =
       __internal_receive_message(&(iridium_self->configuration_buffer[0]),
                                  sizeof(microSWIFT_configuration));
+  // NOTE: the above call actually grabs more bytes than the input size:
+  // SBDRT_ECHO_RESPONSE_SIZE + sizeof(microSWIFT_configuration)
+  // so the offset here is correct despite looking weird.
   microSWIFT_configuration *rcvd_config = (microSWIFT_configuration *)&(
       iridium_self->configuration_buffer[SBDRT_ECHO_RESPONSE_SIZE]);
 
-  if (ret == uSWIFT_IO_ERROR) {
+  if (ret != uSWIFT_SUCCESS) {
+    LOG("Unable to read configuration message. error = %d. Power cycling "
+        "Iridium.",
+        (int)ret);
     iridium_self->cycle_power();
+    return ret;
   } else {
     persistent_ram_set_device_config(rcvd_config, true);
     LOG("New configuration received and applied!");
@@ -526,6 +533,8 @@ static uSWIFT_return_code_t __internal_transmit_message(uint8_t *payload,
             iridium_self->sbdix_response_codes[MT_LENGTH]);
         (void)__flush_mt_buffer();
       } else {
+        LOG("Notified of pending configuration message. Length = %lu",
+            iridium_self->sbdix_response_codes[MT_LENGTH]);
         iridium_self->configuration_received = true;
       }
     }
@@ -589,28 +598,31 @@ io_error:
 
 static uSWIFT_return_code_t __internal_receive_message(uint8_t *receive_buffer,
                                                        uint16_t receive_size) {
-  uSWIFT_return_code_t ret = uSWIFT_SUCCESS;
 
-  if (iridium_self->uart_driver.write(
-          &iridium_self->uart_driver, (uint8_t *)&(receive_msg[0]),
-          strlen(receive_msg), IRIDIUM_MAX_UART_TX_TICKS) != UART_OK) {
+  int write_ret = iridium_self->uart_driver.write(
+      &iridium_self->uart_driver, (uint8_t *)&(receive_msg[0]),
+      strlen(receive_msg), IRIDIUM_MAX_UART_TX_TICKS);
+  if (UART_OK != write_ret) {
+    LOG("Trying to receive iridium; uart_driver.write returned %d",
+        (int)write_ret);
     goto io_error;
   }
 
   // This is just to grab the echo response, this will be thrown away
-  if (iridium_self->uart_driver.read(
-          &iridium_self->uart_driver, &(iridium_self->configuration_buffer[0]),
-          SBDRT_ECHO_RESPONSE_SIZE + receive_size,
-          IRIDIUM_MAX_UART_RX_TICKS_NO_TX) != UART_OK) {
+  int read_ret = iridium_self->uart_driver.read(
+      &iridium_self->uart_driver, &(iridium_self->configuration_buffer[0]),
+      SBDRT_ECHO_RESPONSE_SIZE + receive_size, IRIDIUM_MAX_UART_RX_TICKS_NO_TX);
+  if (UART_OK != read_ret) {
+    LOG("Trying to receive iridium; uart_driver.read returned %d",
+        (int)read_ret);
     goto io_error;
   }
 
-  return ret;
+  return uSWIFT_SUCCESS;
 
 io_error:
-  ret = uSWIFT_IO_ERROR;
   __reset_uart();
-  return ret;
+  return uSWIFT_IO_ERROR;
 }
 
 static void __assemble_ota_ack_message(microSWIFT_configuration *rcvd_config) {
