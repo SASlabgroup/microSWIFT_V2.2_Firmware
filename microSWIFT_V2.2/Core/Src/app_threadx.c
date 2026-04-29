@@ -2097,6 +2097,11 @@ static void iridium_thread_entry(ULONG thread_input) {
       if (iridium.transmit_message(msg_ptr, next_message_size) ==
           uSWIFT_SUCCESS) {
         if (iridium_get_configuration_received_status()) {
+          // NOTE(LEL): This will keep trying on successive message
+          // transmissions if the first one fails, since the flag won't be
+          // reset. Is that what we want? I doubt the modem will still
+          // be holding on to the message if we request it then the receive DMA
+          // fails...
           (void)iridium.receive_configuration();
         }
 

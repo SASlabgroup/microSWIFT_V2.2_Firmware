@@ -596,6 +596,8 @@ io_error:
   return return_code;
 }
 
+// NOTE: this ignores in input parameter, instead always putting data into the
+// configuration_buffer.
 static uSWIFT_return_code_t __internal_receive_message(uint8_t *receive_buffer,
                                                        uint16_t receive_size) {
 
@@ -667,6 +669,7 @@ static void __assemble_ota_ack_message(microSWIFT_configuration *rcvd_config) {
       gnss_hi_perf, ct_en, temp_en, light_en, obs_en);
 
   persistent_ram_set_ota_ack_msg(&ack_msg);
+  LOG("Sending ack message: %s", ack_msg);
 }
 
 static uSWIFT_return_code_t __flush_mt_buffer(void) {
@@ -710,17 +713,27 @@ static int32_t __uart_read_dma(void *driver_ptr, uint8_t *read_buf,
                                uint16_t size, uint32_t timeout_ticks) {
   generic_uart_driver *driver_handle = (generic_uart_driver *)driver_ptr;
 
+  HAL_StatusTypeDef rx_result;
   if (iridium_self->receive_to_idle) {
-    if (HAL_UARTEx_ReceiveToIdle_DMA(driver_handle->uart_handle, read_buf,
-                                     size) != HAL_OK) {
+    rx_result = HAL_UARTEx_ReceiveToIdle_DMA(driver_handle->uart_handle,
+                                             read_buf, size);
+    if (HAL_OK != rx_result) {
+      LOG("__uart_read_dma HAL_UARTEx_ReceiveToIdle_DMA returned error %d",
+          (int)rx_result);
       goto uart_error;
     }
-  } else if (HAL_UART_Receive_DMA(driver_handle->uart_handle, read_buf, size) !=
-             HAL_OK) {
-    goto uart_error;
+  } else {
+    rx_result =
+        HAL_UART_Receive_DMA(driver_handle->uart_handle, read_buf, size);
+    if (HAL_OK != rx_result) {
+      LOG("__uart_read_dma HAL_UART_Receive_DMA returned error %d",
+          (int)rx_result);
+      goto uart_error;
+    }
   }
-
-  if (tx_semaphore_get(driver_handle->uart_sema, timeout_ticks) != TX_SUCCESS) {
+  UINT sema_result = tx_semaphore_get(driver_handle->uart_sema, timeout_ticks);
+  if (TX_SUCCESS != sema_result) {
+    LOG("__uart_read_dma tx_semaphore_get returned error %d", (int)sema_result);
     goto uart_error;
   }
 
